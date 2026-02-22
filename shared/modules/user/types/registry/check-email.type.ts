@@ -1,0 +1,4 @@
+import { CheckEmailSchema } from "@shared/modules/user/schemas/registry/check-email.schema";
+import { z } from "zod";
+
+export type CheckEmail = z.infer<typeof CheckEmailSchema>;

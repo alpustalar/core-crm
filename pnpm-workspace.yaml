@@ -1,0 +1,4 @@
+packages:
+  - 'server-nest/rest'
+  - 'client-next/*'
+  - 'shared/'

@@ -1,0 +1,47 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+.next/
+**/build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Prisma & Database
+/server-nest/rest/generated/
+
+secrets/
+**/secrets/
+*.json
+!package.json
+!tsconfig*.json
+!nest-cli.json
+!project.json
+!firebase-sdk.json.example
+
+firebase-sdk.json

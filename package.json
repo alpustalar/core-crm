@@ -1,0 +1,9 @@
+{
+  "name": "@dentistrycrm/root",
+  "private": true,
+  "pnpm": {
+    "overrides": {
+      "zod": "^4.3.6"
+    }
+  }
+}
