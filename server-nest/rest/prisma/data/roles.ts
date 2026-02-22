@@ -1,0 +1,116 @@
+import { CAPABILITIES } from './capabilities';
+import { ACTIONS, allOfCapabilities, getAllSystemCapabilities } from './utils';
+
+const {
+  USER,
+  TREATMENT,
+  APPOINTMENT,
+  PATIENT,
+  DOCTORAVAILABILITY,
+  DOCTOR,
+  CLINIC,
+  ORGANIZATION,
+  DOCTORTREATMENT,
+  MEDICALFILE,
+  AUDITLOG,
+} = CAPABILITIES;
+
+export const rolesCreateManyInputs = [
+  {
+    slug: 'admin',
+    name: 'Sistem Yöneticisi',
+    priority: 100,
+    caps: getAllSystemCapabilities(),
+    isSystemRole: true,
+  },
+  {
+    slug: 'organization_owner',
+    name: 'Organizasyon Sahibi',
+    priority: 95,
+    caps: [
+      ORGANIZATION.update,
+      ORGANIZATION.read,
+      ...allOfCapabilities(USER),
+      ...allOfCapabilities(PATIENT),
+      ...allOfCapabilities(APPOINTMENT),
+      ...allOfCapabilities(TREATMENT),
+      ...allOfCapabilities(MEDICALFILE),
+      ...allOfCapabilities(CLINIC, ACTIONS.delete),
+      ...allOfCapabilities(DOCTOR),
+      AUDITLOG.read,
+    ],
+  },
+  {
+    slug: 'branch_manager',
+    name: 'Bölge / Şube Müdürü',
+    priority: 85,
+    caps: [
+      CLINIC.read,
+      CLINIC.update,
+      PATIENT.create,
+      PATIENT.read,
+      PATIENT.update,
+      APPOINTMENT.create,
+      APPOINTMENT.read,
+      APPOINTMENT.update,
+      DOCTOR.read,
+      DOCTOR.update,
+      DOCTORAVAILABILITY.read,
+      DOCTORAVAILABILITY.update,
+      TREATMENT.read,
+      MEDICALFILE.read,
+      AUDITLOG.read,
+    ],
+  },
+  {
+    slug: 'clinic_owner',
+    name: 'Klinik Sahibi / Mesul Müdür',
+    priority: 80,
+    caps: [CLINIC.update, CLINIC.read, ...allOfCapabilities(USER)],
+  },
+  {
+    slug: 'doctor',
+    name: 'Doktor',
+    priority: 70,
+    caps: [
+      PATIENT.read,
+      PATIENT.update,
+      ...allOfCapabilities(APPOINTMENT),
+      ...allOfCapabilities(MEDICALFILE),
+    ],
+  },
+  {
+    slug: 'nurse',
+    name: 'Hemşire / Asistan',
+    priority: 60,
+    caps: [PATIENT.read, APPOINTMENT.read],
+  },
+  {
+    slug: 'accountant',
+    name: 'Muhasebe / Finans Sorumlusu',
+    priority: 55,
+    caps: [],
+  },
+  {
+    slug: 'receptionist',
+    name: 'Resepsiyonist / Ön Büro',
+    priority: 50,
+    caps: [
+      ...allOfCapabilities(PATIENT),
+      ...allOfCapabilities(DOCTORAVAILABILITY),
+      ...allOfCapabilities(APPOINTMENT),
+    ],
+  },
+  {
+    slug: 'inventory_manager',
+    name: 'Depo / Stok Sorumlusu',
+    priority: 40,
+    caps: [TREATMENT.read, DOCTORTREATMENT.read, DOCTORTREATMENT.update],
+  },
+  {
+    slug: 'staff',
+    name: 'Destek Personeli',
+    priority: 10,
+    caps: [USER.read],
+  },
+];
