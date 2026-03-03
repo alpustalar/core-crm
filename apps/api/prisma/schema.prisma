@@ -1,0 +1,554 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator zod {
+  provider          = "zod-prisma-types"
+  output            = "../../packages/shared/generated-zod"
+  useMultipleFiles  = true
+  createInputTypes  = false
+  createModelTypes  = true
+  coerceDate        = true
+  addSelectQueries  = false
+  addIncludeQueries = false
+}
+
+//? ====================================================================================
+//! ENUMS
+//? ====================================================================================
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum UserStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+}
+
+enum GlobalStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+  TRIAL
+}
+
+enum BloodType {
+  A_POS // A Rh+
+  A_NEG // A Rh-
+  B_POS // B Rh+
+  B_NEG // B Rh-
+  O_POS // 0 Rh+
+  O_NEG // 0 Rh-
+  AB_POS // AB Rh+
+  AB_NEG // AB Rh-
+}
+
+enum AppointmentStatus {
+  PENDING // Onay bekliyor
+  CONFIRMED // Onaylandı
+  CANCELLED // İptal edildi
+  COMPLETED // Tedavi tamamlandı
+  NOSHOW // Hasta gelmedi
+}
+
+enum TreatmentCategory {
+  DIAGNOSIS // Teşhis ve Planlama (Muayene vb.)
+  RESTORATIVE // Tedavi ve Endodonti (Dolgu, Kanal)
+  SURGERY // Cerrahi (Çekim, İmplant)
+  PEDODONTICS // Çocuk Diş Hekimliği
+  PERIODONTOLOGY // Diş Eti Tedavileri
+  PROSTHODONTICS // Protez ve Kaplamalar
+  ORTHODONTICS // Tel Tedavisi
+  COSMETIC // Estetik (Beyazlatma vb.)
+  OTHER
+}
+
+enum DoctorSpecialty {
+  GENERAL
+  ENDODONTIST
+  PERIODONTIST
+  ORTHODONTIST
+  PROSTHODONTIST
+  PEDODONTIST
+  ORAL_SURGEON
+  COSMETIC
+}
+
+enum DoctorTitle {
+  // --- Temiz Klinik Unvanlar ---
+  DT // Diş Hekimi (Mezun)
+  UZM_DT // Uzman Diş Hekimi (DUS uzmanlığı almış)
+  DR_DT // Doktor Diş Hekimi (PhD yapmış)
+
+  // --- Akademik Unvanlar ---
+  ASST_PROF_DR // Dr. Öğretim Üyesi (Eski adıyla Yardımcı Doçent)
+  ASSOC_PROF_DR // Doçent Doktor
+  PROF_DR // Profesör Doktor
+  ORD_PROF_DR // Ordinaryüs Profesör (Çok nadir ama prestij için)
+
+  // --- Eğitim/Asistanlık Süreci ---
+  RES_ASST_DR // Araştırma Görevlisi / Asistan (Uzmanlık öğrencisi)
+
+  // --- Diğer / İdari ---
+  CLINIC_CHIEF // Klinik Şefi / Başhekim (İdari bir unvan)
+  CONSULTANT // Konsültan Hekim (Dışarıdan gelen danışman)
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  DECEASED
+  BLACKLISTED
+}
+
+enum ExternalSystem {
+  WHATSAPP
+  N8N
+  GOOGLE_CALENDAR
+}
+
+enum FileType {
+  XRAY
+  PRESCRIPTION
+  PHOTO
+  CONSENT_FORM
+  LAB_RESULT
+  OTHER
+}
+
+//? ====================================================================================
+//! MODELS
+//? ====================================================================================
+
+//? ====================================================================================
+//! ORGANIZATION
+//? ====================================================================================
+
+model Organization {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  phone    String?
+  email    String? @unique
+  address  String? @db.Text
+  city     String?
+  district String?
+
+  status   GlobalStatus @default(ACTIVE)
+  timezone String       @default("Europe/Istanbul")
+
+  clinics Clinic[]
+
+  organizationOwners User[] @relation("organization_owners")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("organizations")
+}
+
+//? ====================================================================================
+//! CLINIC
+//? ====================================================================================
+
+model Clinic {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  phone    String?
+  email    String?
+  address  String? @db.Text
+  city     String?
+  district String?
+
+  status   GlobalStatus @default(ACTIVE)
+  timezone String       @default("Europe/Istanbul")
+
+  logo String?
+
+  // bağlı olduğu organizasyon
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // diğer ilişkiler
+  managers     User[]        @relation("clinic_managers")
+  staffs       User[]        @relation("clinic_staff")
+  treatments   Treatment[]
+  doctors      Doctor[]
+  appointments Appointment[]
+  patients     Patient[]
+  medicalFiles MedicalFile[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("clinics")
+}
+
+//? ====================================================================================
+//! USER
+//? ====================================================================================
+model User {
+  id String @id
+
+  displayName   String  @map("display_name")
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+
+  status UserStatus @default(ACTIVE)
+
+  role   Role?   @relation(fields: [roleId], references: [id])
+  roleId String?
+
+  picture String?
+
+  // 1. Çalıştığı/Bağlı olduğu klinik (One-to-Many)
+  clinicId      String? @map("clinic_id")
+  workingClinic Clinic? @relation("clinic_staff", fields: [clinicId], references: [id])
+
+  // 2. Yönettiği klinik (Eğer bir user sadece BİR kliniği yönetebiliyorsa One-to-One)
+  managedClinics Clinic[] @relation("clinic_managers")
+
+  // 3. Yönettiği organziasyonlar
+  ownedOrganizations Organization[] @relation("organization_owners")
+
+  doctorProfile Doctor?
+
+  // Zaman damgaları
+  lastLogin DateTime  @default(now()) @map("last_login")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("users")
+}
+
+//? ====================================================================================
+//! ROLE
+//? ====================================================================================
+
+model Role {
+  id           String  @id @default(uuid())
+  name         String // "Clinic Owner", "Warehouse Manager"
+  slug         String // "clinic_owner", "warehouse_manager"
+  priority     Int // 90, 70, 50
+  isSystemRole Boolean @default(false) // Core role mu custom mu?
+
+  capabilities RoleCapability[]
+  users        User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slug])
+}
+
+model RoleCapability {
+  id String @id @default(uuid())
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  capability   Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  capabilityId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([roleId, capabilityId])
+}
+
+model Capability {
+  id     String @id @default(uuid())
+  name   String // "user:create", "patient:read"
+  module String // "user", "patient", "product"
+  action String // "create", "read", "update", "delete"
+
+  roles RoleCapability[]
+
+  @@unique([module, action])
+}
+
+//? ====================================================================================
+//! DOCTOR
+//? ====================================================================================
+
+model Doctor {
+  id String @id @default(uuid())
+
+  title     DoctorTitle? // Dt., Uzm. Dt., Prof. Dr. vb.
+  specialty DoctorSpecialty
+
+  publicPhone String? @map("public_phone")
+  publicEmail String? @map("public_email")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Bağlı olduğu
+  clinicId String @map("clinic_id")
+  userId   String @unique @map("user_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
+
+  // ilişkiler
+  appointments         Appointment[]
+  treatments           DoctorTreatment[]
+  doctorAvailabilities DoctorAvailability[]
+  medicalFiles         MedicalFile[]
+
+  @@index([clinicId])
+  @@map("doctors")
+}
+
+model DoctorTreatment {
+  id String @id @default(uuid())
+
+  // overrides
+  customPrice    Decimal? @map("custom_price") @db.Decimal(10, 2)
+  customDuration Int?     @map("custom_duration")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  // parent rel ids
+  doctorId    String @map("doctor_id")
+  treatmentId String @map("treatment_id")
+
+  // parent rel
+  doctor    Doctor    @relation(fields: [doctorId], references: [id])
+  treatment Treatment @relation(fields: [treatmentId], references: [id])
+
+  @@unique([doctorId, treatmentId])
+  @@map("doctor_treatments")
+}
+
+model DoctorAvailability {
+  id String @id @default(uuid())
+
+  dayOfWeek   Int @map("day_of_week") // 0 = pazar
+  startMinute Int @map("start_minute") // Örn: 9 * 60 (09:00)
+  endMinute   Int @map("end_minute") // Örn: 18 * 60 (18:00)
+
+  breakStartMinute Int? @map("break_start_minute")
+  breakEndMinute   Int? @map("break_end_minute")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  // rel
+  doctorId String @map("doctor_id")
+  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, dayOfWeek])
+  @@map("doctor_availabilities")
+}
+
+//? ====================================================================================
+//! APPOINTMENT (RANDEV)
+//? ====================================================================================
+
+model Appointment {
+  id String @id @default(uuid())
+
+  // Hasta Bilgileri
+  patientName  String  @map("patient_name")
+  patientPhone String  @map("patient_phone")
+  patientEmail String? @map("patient_email") // Opsiyonel
+
+  // Randevu Zamanı
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+
+  // Randevu Detayları
+  treatmentType String? @map("treatment_type") // Örn: Dolgu, İmplant, Muayene
+  notes         String? @db.Text
+
+  // Durum Yönetimi
+  status AppointmentStatus @default(PENDING)
+
+  // İptal Bilgileri (State)
+  canceledAt   DateTime? @map("canceled_at")
+  canceledBy   String?   @map("canceled_by") // "PATIENT", "DOCTOR", "SYSTEM_AI"
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // n8n veya dış sistemlerden gelen referans ID'si varsa (Opsiyonel)
+  externalSystem ExternalSystem? @map("external_system")
+  externalId     String?         @unique @map("external_id")
+
+  // parent rel ids
+  treatmentId String  @map("treatment_id")
+  clinicId    String  @map("clinic_id")
+  doctorId    String  @map("doctor_id")
+  patientId   String? @map("patient_id")
+
+  isDeleted Boolean  @default(false) @map("is-deleted")
+  deletedAt DateTime @map("deleted-at")
+
+  // parent rel
+  treatment Treatment @relation(fields: [treatmentId], references: [id])
+  clinic    Clinic    @relation(fields: [clinicId], references: [id])
+  doctor    Doctor    @relation(fields: [doctorId], references: [id])
+  patient   Patient?  @relation(fields: [patientId], references: [id])
+
+  // child rel
+  medicalFile MedicalFile[]
+
+  @@index([patientPhone]) // Telefonla hızlı sorgulama için index
+  @@index([startTime]) // Takvimde hızlı listeleme için index
+  @@map("appointments")
+}
+
+//? ====================================================================================
+//! TREATMENT (TEDAVİ)
+//? ====================================================================================
+
+model MasterTreatment {
+  id              String            @id @default(uuid())
+  name            String            @unique
+  category        TreatmentCategory
+  defaultDuration Int               @map("default_duration")
+  treatments      Treatment[]
+
+  @@map("master_treatments")
+}
+
+model Treatment {
+  id String @id @default(uuid())
+
+  name     String
+  category TreatmentCategory
+
+  duration    Int?
+  minDuration Int? @map("min_duration")
+  maxDuration Int? @map("max_duration")
+
+  description      String? @db.Text
+  isActive         Boolean @default(true) @map("is_active")
+  requiresApproval Boolean @default(false) @map("requires_approval")
+  isPackageOnly    Boolean @default(false) @map("is_package_only")
+  displayOrder     Int     @default(0) @map("display_order")
+
+  clinicId          String  @map("clinic_id")
+  masterTreatmentId String? @map("master_treatment_id")
+
+  appointments     Appointment[]
+  doctorTreatments DoctorTreatment[]
+  medicalFile      MedicalFile[]
+
+  clinic          Clinic           @relation(fields: [clinicId], references: [id])
+  masterTreatment MasterTreatment? @relation(fields: [masterTreatmentId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@unique([clinicId, name])
+  @@index([deletedAt])
+  @@map("treatments")
+}
+
+//? ====================================================================================
+//! PATIENT (HASTA)
+//? ====================================================================================
+
+model Patient {
+  id String @id @default(uuid())
+
+  clinicId String? @map("clinic_id")
+
+  // Kişisel Bilgiler
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  tcNo      String?   @unique // Opsiyonel ama yasal süreçler için gerekebilir
+  birthDate DateTime? @map("birth_date")
+  gender    Gender //
+
+  // İletişim Bilgileri
+  phone            String  @unique // Sisteme giriş veya bildirimler için anahtar
+  alternativePhone String? @map("alternative_phone")
+  email            String? @unique
+  address          String? @db.Text
+  emergencyContact String? @map("emergency_contact") // Acil durumda aranacak kişi ve nosu
+
+  // Tıbbi Geçmiş Özeti (Opsiyonel - Hızlı bakış için)
+  allergies       String?    @db.Text // Alerjiler
+  chronicDiseases String?    @map("chronic_diseases") @db.Text // Kronik hastalıklar
+  bloodType       BloodType? @map("blood_type")
+
+  // Durum
+  status PatientStatus @default(ACTIVE)
+
+  // İleride eklenebilecekler:
+  // payments     Payment[]
+  // files        File[] // Röntgenler, Reçeteler
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  medicalFile  MedicalFile[]
+  appointments Appointment[] // doktor ilişkisi buradan
+
+  // parent relations
+  clinic Clinic? @relation(fields: [clinicId], references: [id])
+
+  @@index([phone, clinicId])
+  @@index([firstName, lastName, deletedAt])
+  @@index([clinicId])
+  @@map("patients")
+}
+
+//? ====================================================================================
+//! MEDICAL FILE
+//? ====================================================================================
+
+model MedicalFile {
+  id String @id @default(uuid())
+
+  clinicId      String  @map("clinic_id")
+  patientId     String  @map("patient_id")
+  doctorId      String  @map("doctor_id")
+  appointmentId String? @map("appointment_id")
+  treatmentId   String
+
+  fileName String   @map("file_name")
+  fileUrl  String   @map("file_url")
+  fileType FileType @map("file_type")
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  doctor      Doctor       @relation(fields: [doctorId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  treatment   Treatment    @relation(fields: [treatmentId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([clinicId])
+  @@map("medical_files")
+}
