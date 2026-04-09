@@ -38,6 +38,7 @@ Thumbs.db
 secrets/
 **/secrets/
 *.json
+
 !package.json
 !tsconfig*.json
 !nest-cli.json

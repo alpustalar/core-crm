@@ -1,0 +1,20 @@
+import { z } from 'zod';
+export declare const TreatmentScalarFieldEnumSchema: z.ZodEnum<{
+    name: "name";
+    id: "id";
+    clinicId: "clinicId";
+    createdAt: "createdAt";
+    updatedAt: "updatedAt";
+    deletedAt: "deletedAt";
+    isActive: "isActive";
+    category: "category";
+    duration: "duration";
+    minDuration: "minDuration";
+    maxDuration: "maxDuration";
+    description: "description";
+    requiresApproval: "requiresApproval";
+    isPackageOnly: "isPackageOnly";
+    displayOrder: "displayOrder";
+    masterTreatmentId: "masterTreatmentId";
+}>;
+export default TreatmentScalarFieldEnumSchema;

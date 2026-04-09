@@ -1,0 +1,61 @@
+{
+  "include": [
+    "src",
+    "prisma",
+    "generated/prisma"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "scripts"
+  ],
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2021",
+    "rootDir": "../../",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+
+      "@prisma/client": ["node_modules/@prisma/client"],
+
+      "@common/*": ["src/common/*"],
+      "@modules/*": ["src/modules/*"],
+      "@firebase": ["src/firebase"],
+      "@src/*": ["src/*"],
+
+      "@shared/*": ["../../packages/shared/*"],
+      "@shared": ["../../packages/shared/index"],
+
+      "@shared/modules": ["../../packages/shared/modules/index"],
+      "@shared/modules/*": ["../../packages/shared/modules/*"],
+
+      "@shared/common": ["../../packages/shared/common/index"],
+      "@shared/common/*": ["../../packages/shared/common/*"],
+
+
+
+      "@generated/*": ["../../packages/shared/generated-zod/*"],
+      "@input-type-schemas/*": ["../../packages/shared/generated-zod/inputTypeSchemas/*"],
+      "@model-schema/*": ["../../packages/shared/generated-zod/modelSchema/*"]
+    },
+    "esModuleInterop": true,
+    "declaration": true,
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}
+
+

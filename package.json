@@ -1,6 +1,18 @@
 {
-  "name": "@dentistrycrm/root",
+  "name": "@dentistry-crm/root",
   "private": true,
+  "packageManager": "pnpm@10.26.0",
+  "description": "Dentistry CRM Monorepo",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "turbo": "latest"
+  },
   "pnpm": {
     "overrides": {
       "zod": "^4.3.6"

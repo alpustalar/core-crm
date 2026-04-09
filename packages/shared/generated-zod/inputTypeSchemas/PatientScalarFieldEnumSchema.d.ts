@@ -1,0 +1,23 @@
+import { z } from 'zod';
+export declare const PatientScalarFieldEnumSchema: z.ZodEnum<{
+    id: "id";
+    email: "email";
+    status: "status";
+    clinicId: "clinicId";
+    createdAt: "createdAt";
+    updatedAt: "updatedAt";
+    deletedAt: "deletedAt";
+    phone: "phone";
+    address: "address";
+    gender: "gender";
+    bloodType: "bloodType";
+    firstName: "firstName";
+    lastName: "lastName";
+    tcNo: "tcNo";
+    birthDate: "birthDate";
+    alternativePhone: "alternativePhone";
+    emergencyContact: "emergencyContact";
+    allergies: "allergies";
+    chronicDiseases: "chronicDiseases";
+}>;
+export default PatientScalarFieldEnumSchema;
