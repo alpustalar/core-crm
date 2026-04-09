@@ -1,0 +1,31 @@
+import { z } from 'zod';
+export declare const TreatmentSchema: z.ZodObject<{
+    category: z.ZodEnum<{
+        COSMETIC: "COSMETIC";
+        DIAGNOSIS: "DIAGNOSIS";
+        RESTORATIVE: "RESTORATIVE";
+        SURGERY: "SURGERY";
+        PEDODONTICS: "PEDODONTICS";
+        PERIODONTOLOGY: "PERIODONTOLOGY";
+        PROSTHODONTICS: "PROSTHODONTICS";
+        ORTHODONTICS: "ORTHODONTICS";
+        OTHER: "OTHER";
+    }>;
+    id: z.ZodUUID;
+    name: z.ZodString;
+    duration: z.ZodNullable<z.ZodNumber>;
+    minDuration: z.ZodNullable<z.ZodNumber>;
+    maxDuration: z.ZodNullable<z.ZodNumber>;
+    description: z.ZodNullable<z.ZodString>;
+    isActive: z.ZodBoolean;
+    requiresApproval: z.ZodBoolean;
+    isPackageOnly: z.ZodBoolean;
+    displayOrder: z.ZodNumber;
+    clinicId: z.ZodString;
+    masterTreatmentId: z.ZodNullable<z.ZodString>;
+    createdAt: z.ZodCoercedDate<unknown>;
+    deletedAt: z.ZodNullable<z.ZodCoercedDate<unknown>>;
+    updatedAt: z.ZodNullable<z.ZodCoercedDate<unknown>>;
+}, z.core.$strip>;
+export type Treatment = z.infer<typeof TreatmentSchema>;
+export default TreatmentSchema;

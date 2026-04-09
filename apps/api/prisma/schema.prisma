@@ -402,19 +402,19 @@ model Appointment {
   externalId     String?         @unique @map("external_id")
 
   // parent rel ids
-  treatmentId String  @map("treatment_id")
+  treatmentId String? @map("treatment_id")
   clinicId    String  @map("clinic_id")
   doctorId    String  @map("doctor_id")
   patientId   String? @map("patient_id")
 
-  isDeleted Boolean  @default(false) @map("is-deleted")
-  deletedAt DateTime @map("deleted-at")
+  isDeleted Boolean   @default(false) @map("is-deleted")
+  deletedAt DateTime? @map("deleted-at")
 
   // parent rel
-  treatment Treatment @relation(fields: [treatmentId], references: [id])
-  clinic    Clinic    @relation(fields: [clinicId], references: [id])
-  doctor    Doctor    @relation(fields: [doctorId], references: [id])
-  patient   Patient?  @relation(fields: [patientId], references: [id])
+  treatment Treatment? @relation(fields: [treatmentId], references: [id])
+  clinic    Clinic     @relation(fields: [clinicId], references: [id])
+  doctor    Doctor     @relation(fields: [doctorId], references: [id])
+  patient   Patient?   @relation(fields: [patientId], references: [id])
 
   // child rel
   medicalFile MedicalFile[]
@@ -490,9 +490,9 @@ model Patient {
   gender    Gender //
 
   // İletişim Bilgileri
-  phone            String  @unique // Sisteme giriş veya bildirimler için anahtar
+  phone            String
   alternativePhone String? @map("alternative_phone")
-  email            String? @unique
+  email            String?
   address          String? @db.Text
   emergencyContact String? @map("emergency_contact") // Acil durumda aranacak kişi ve nosu
 
@@ -519,6 +519,7 @@ model Patient {
   clinic Clinic? @relation(fields: [clinicId], references: [id])
 
   @@index([phone, clinicId])
+  @@index([email, clinicId])
   @@index([firstName, lastName, deletedAt])
   @@index([clinicId])
   @@map("patients")

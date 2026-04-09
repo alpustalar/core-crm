@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { OrganizationUseCasesModule } from './use-cases/use-cases.module';
+import { OrganizationUseCasesModule } from '@modules/organization/application/use-cases/use-cases.module';
 import {
   AdminController,
   OrganizationController,
-} from '@modules/organization/controllers';
-import { PolicyFactory } from '@common/policy/factory.policy';
+} from '@modules/organization/presentation/controllers';
+import { PolicyFactory } from '@modules/policy/policy-factory';
 
 const Controllers = [OrganizationController, AdminController];
 

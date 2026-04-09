@@ -15,7 +15,7 @@ const transports: winston.transport[] = [
       nestWinstonModuleUtilities.format.nestLike(APP_CONFIG.NAME, {
         colors: true,
         prettyPrint: true,
-      }),
+      })
     ),
   }),
 
@@ -27,7 +27,7 @@ const transports: winston.transport[] = [
     maxFiles: '14d',
     format: winston.format.combine(
       winston.format.timestamp(),
-      winston.format.json(),
+      winston.format.json()
     ),
   }),
 ];

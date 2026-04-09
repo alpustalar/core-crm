@@ -1,4 +1,5 @@
 import { Organization, Role } from '@prisma/client';
+import { AuditSource } from '@modules/audit-log/enums/audit-action.enum';
 
 export type OwnedOrganization = Pick<Organization, 'id' | 'name'>;
 export type ManagedClinics = Pick<Organization, 'id' | 'name'>;
@@ -13,4 +14,5 @@ export type ActorContext = {
   clinicId?: string;
   managedClinics?: ManagedClinics[];
   ownedOrganizations?: OwnedOrganization[];
+  source?: AuditSource;
 };

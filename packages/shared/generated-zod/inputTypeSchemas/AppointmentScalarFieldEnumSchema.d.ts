@@ -1,0 +1,26 @@
+import { z } from 'zod';
+export declare const AppointmentScalarFieldEnumSchema: z.ZodEnum<{
+    id: "id";
+    status: "status";
+    clinicId: "clinicId";
+    createdAt: "createdAt";
+    updatedAt: "updatedAt";
+    deletedAt: "deletedAt";
+    doctorId: "doctorId";
+    treatmentId: "treatmentId";
+    externalSystem: "externalSystem";
+    patientName: "patientName";
+    patientPhone: "patientPhone";
+    patientEmail: "patientEmail";
+    startTime: "startTime";
+    endTime: "endTime";
+    treatmentType: "treatmentType";
+    notes: "notes";
+    canceledAt: "canceledAt";
+    canceledBy: "canceledBy";
+    cancelReason: "cancelReason";
+    externalId: "externalId";
+    patientId: "patientId";
+    isDeleted: "isDeleted";
+}>;
+export default AppointmentScalarFieldEnumSchema;

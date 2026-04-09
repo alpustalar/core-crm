@@ -1,15 +1,9 @@
 import { HttpStatus } from '@nestjs/common';
 
-/**
- * Prisma Hata Kodları ve HTTP Karşılıkları
- * Bu map, veritabanı seviyesindeki teknik hataları,
- * son kullanıcının ve frontend'in anlayabileceği anlamlı mesajlara dönüştürür.
- */
 export const PrismaErrorMap: Record<
   string,
   { status: number; message: string; userMessage: string }
 > = {
-  // --- KAYIT VE BENZERSİZLİK HATALARI ---
   P2002: {
     status: HttpStatus.CONFLICT,
     message: 'Unique constraint failed.',

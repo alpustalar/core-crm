@@ -1,10 +1,8 @@
 import * as nodemailer from 'nodemailer';
-import { SendMailOptions } from 'nodemailer';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_CONFIG } from '@common/constants';
 import { verificationEmailTemplate } from './templates';
-import { asyncHandler } from '@common/utils';
 
 @Injectable()
 export class MailService {
@@ -29,17 +27,15 @@ export class MailService {
     if (!EMAIL_ADDRESS) {
       throw new Error('email ayar hatası ');
     }
-
-    const [, fnException] = await asyncHandler<SendMailOptions>(
-      // eslint-disable-next-line
-      this.transporter.sendMail({
+    try {
+      await this.transporter.sendMail({
         from: `"${APP_CONFIG.NAME}" <${EMAIL_ADDRESS}>`,
         to,
         subject: 'E-postanı Doğrula',
         html: verificationEmailTemplate(link),
-      }),
-    );
-    if (fnException) {
+      });
+    } catch (e) {
+      console.error(e);
       throw new InternalServerErrorException('Doğrulama maili gönderilemedi.');
     }
   }

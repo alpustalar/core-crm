@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { LookupService } from '@modules/lookup/lookup.service';
 import { citiesAndDistricts } from '@common/data';
-import { AuthGuard } from '@common/guards';
+import { AuthGuard } from '@modules/auth/guards';
 
 @UseGuards(AuthGuard)
 @Controller('look-up')

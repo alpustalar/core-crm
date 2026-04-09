@@ -29,8 +29,8 @@ export const SetupApp = (app: INestApplication) => {
   });
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const isProd = configService.get('NODE_ENV') === 'production';
-  if (isProd) {
+  const isProduction = configService.get('NODE_ENV') === 'production';
+  if (isProduction) {
     const expressApp = app.getHttpAdapter().getInstance() as {
       set: (key: string, value: any) => void;
     };
@@ -43,7 +43,7 @@ export const SetupApp = (app: INestApplication) => {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-    }),
+    })
   );
 
   // Shutdown Hooks

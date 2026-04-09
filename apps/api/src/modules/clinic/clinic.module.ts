@@ -1,19 +1,17 @@
 import { Module } from '@nestjs/common';
 import { RedisModule } from '@common/redis/redis.module';
-import { ClinicRepository } from './repositories/clinic.repository';
-import { ClinicUseCaseModule } from './use-cases/module';
-import {
-  ClinicCreatedListener,
-  ClinicDeletedListener,
-} from './events/listeners';
-import { UserModule } from '@modules/user/user.module';
-import { ClinicController } from '@modules/clinic/controllers';
+import { ClinicRepository } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic.repository';
+import { ClinicUseCaseModule } from '@modules/clinic/application/use-cases/module';
+import { ClinicCreatedListener, ClinicDeletedListener, } from './infrastructure/listeners';
+import { ClinicController } from '@modules/clinic/presentation/controllers';
+import { ClinicModuleApi } from '@modules/clinic/clinic-module.api';
 
 const Listeners = [ClinicCreatedListener, ClinicDeletedListener];
 
 @Module({
-  imports: [RedisModule, ClinicUseCaseModule, UserModule],
+  imports: [RedisModule, ClinicUseCaseModule],
   controllers: [ClinicController],
-  providers: [ClinicRepository, ...Listeners],
+  providers: [ClinicRepository, ClinicModuleApi, ...Listeners],
+  exports: [ClinicModuleApi],
 })
 export class ClinicModule {}

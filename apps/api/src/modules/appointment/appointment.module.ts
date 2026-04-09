@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { UserUseCaseModule } from '@modules/user/use-cases/module';
+import { UserUseCaseModule } from '@modules/user/application/use-cases/module';
 
 const UseCases = [];
 @Module({

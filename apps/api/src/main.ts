@@ -10,10 +10,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
   });
+
   SetupApp(app);
+
   const configService = app.get(ConfigService);
   const port = Number(configService.get<number | string>('PORT', 8080));
   await app.listen(port);
 }
 
-void bootstrap();
+bootstrap();

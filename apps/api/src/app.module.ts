@@ -1,14 +1,10 @@
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
-import { RedisModule as IoRedisModule } from '@nestjs-modules/ioredis';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from '@common/interceptors/logger/logger.interceptor';
 import { AllExceptionsFilter } from '@common/filters/all-exceptions-filter';
 import { UserModule } from '@modules/user/user.module';
-import { PrismaModule } from '@modules/prisma/prisma.module';
+import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
 import { FirebaseModule } from '@modules/firebase/firebase.module';
 import { MailModule } from '@modules/mail/mail.module';
 import { AuditLogModule } from '@modules/audit-log/audit-log.module';
@@ -21,46 +17,16 @@ import { RedisModule } from '@common/redis/redis.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
 import { MedicalFilesModule } from '@modules/medical-files/medical-files.module';
 import { LookupModule } from '@modules/lookup/lookup.module';
-import Joi from 'joi';
+import { AuthModule } from '@modules/auth/auth.module';
+import { InfrastructureModule } from '@src/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      validationSchema: Joi.object({
-        PORT: Joi.number().default(8080),
-        DATABASE_URL: Joi.string().required(),
-        MONGODB_URI: Joi.string().required(),
-        REDIS_URL: Joi.string().required(),
-        ADMIN_EMAIL: Joi.string().email().required(),
-        BETTERSTACK_TOKEN: Joi.string().required(),
-      }),
-    }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
-    MongooseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGODB_URI'),
-        autoIndex: true,
-        serverSelectionTimeoutMS: 5000,
-      }),
-    }),
-    IoRedisModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'single',
-        url: config.get<string>('REDIS_URL'),
-      }),
-    }),
-    EventEmitterModule.forRoot(),
-    UserModule,
-    PrismaModule,
+    InfrastructureModule,
     FirebaseModule,
+    PrismaModule,
+    AuthModule,
+    UserModule,
     MailModule,
     AuditLogModule,
     AppointmentModule,

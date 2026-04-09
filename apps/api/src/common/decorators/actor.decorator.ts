@@ -9,7 +9,7 @@ export const Actor = createParamDecorator(
 
     const flatCapabilities =
       user.role?.capabilities?.map(
-        (rc) => `${rc.capability.module}:${rc.capability.action}`,
+        (rc) => `${rc.capability.module}:${rc.capability.action}`
       ) ?? [];
 
     return {
@@ -17,21 +17,17 @@ export const Actor = createParamDecorator(
       roleId: user.role?.id,
       role: user.role ?? undefined,
       email: user.email,
-
       capabilities: flatCapabilities,
-
       rolePriority: user.role?.priority ?? 0,
       clinicId: user.clinicId ?? undefined,
-
       managedClinics: user.managedClinics?.map((c) => ({
         id: c.id,
-        name: (c as any).name, // Eğer Prisma include'unda name varsa
+        name: (c as any).name,
       })),
-
       ownedOrganizations: user.ownedOrganizations?.map((o) => ({
         id: o.id,
         name: o.name,
       })),
     };
-  },
+  }
 );

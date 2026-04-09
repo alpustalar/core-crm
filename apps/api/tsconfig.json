@@ -31,6 +31,10 @@
       "@shared/modules": ["../../packages/shared/modules/index"],
       "@shared/modules/*": ["../../packages/shared/modules/*"],
 
+      "@shared/common": ["../../packages/shared/common/index"],
+      "@shared/common/*": ["../../packages/shared/common/*"],
+
+
 
       "@generated/*": ["../../packages/shared/generated-zod/*"],
       "@input-type-schemas/*": ["../../packages/shared/generated-zod/inputTypeSchemas/*"],

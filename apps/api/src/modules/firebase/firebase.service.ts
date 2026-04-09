@@ -8,7 +8,7 @@ import DecodedIdToken = auth.DecodedIdToken;
 const firebaseSDKPath = path.resolve(
   process.cwd(),
   'secrets',
-  'firebase-sdk.json',
+  'firebase-sdk.json'
 );
 
 @Injectable()

@@ -25,10 +25,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       message = exception.getResponse();
-    }
-
-    //** Prisma hataları handle
-    else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       const errorConfig = PrismaErrorMap[exception.code];
       if (errorConfig) {
         status = errorConfig.status;
@@ -43,7 +40,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     this.logger.error(
-      `❌ ${request.method} ${request.url} | Status: ${status} | Message: ${JSON.stringify(message)}`,
+      `❌ ${request.method} ${request.url} | Status: ${status} | Message: ${JSON.stringify(message)}`
     );
 
     response.status(status).json({

@@ -27,6 +27,7 @@ export const rolesCreateManyInputs = [
     slug: 'organization_owner',
     name: 'Organizasyon Sahibi',
     priority: 95,
+    isSystemRole: true,
     caps: [
       ORGANIZATION.update,
       ORGANIZATION.read,
@@ -44,6 +45,7 @@ export const rolesCreateManyInputs = [
     slug: 'branch_manager',
     name: 'Bölge / Şube Müdürü',
     priority: 85,
+    isSystemRole: true,
     caps: [
       CLINIC.read,
       CLINIC.update,
@@ -66,12 +68,14 @@ export const rolesCreateManyInputs = [
     slug: 'clinic_owner',
     name: 'Klinik Sahibi / Mesul Müdür',
     priority: 80,
+    isSystemRole: true,
     caps: [CLINIC.update, CLINIC.read, ...allOfCapabilities(USER)],
   },
   {
     slug: 'doctor',
     name: 'Doktor',
     priority: 70,
+    isSystemRole: true,
     caps: [
       PATIENT.read,
       PATIENT.update,
@@ -83,18 +87,21 @@ export const rolesCreateManyInputs = [
     slug: 'nurse',
     name: 'Hemşire / Asistan',
     priority: 60,
+    isSystemRole: true,
     caps: [PATIENT.read, APPOINTMENT.read],
   },
   {
     slug: 'accountant',
     name: 'Muhasebe / Finans Sorumlusu',
     priority: 55,
+    isSystemRole: true,
     caps: [],
   },
   {
     slug: 'receptionist',
     name: 'Resepsiyonist / Ön Büro',
     priority: 50,
+    isSystemRole: true,
     caps: [
       ...allOfCapabilities(PATIENT),
       ...allOfCapabilities(DOCTORAVAILABILITY),
@@ -105,12 +112,14 @@ export const rolesCreateManyInputs = [
     slug: 'inventory_manager',
     name: 'Depo / Stok Sorumlusu',
     priority: 40,
+    isSystemRole: true,
     caps: [TREATMENT.read, DOCTORTREATMENT.read, DOCTORTREATMENT.update],
   },
   {
     slug: 'staff',
     name: 'Destek Personeli',
     priority: 10,
+    isSystemRole: true,
     caps: [USER.read],
   },
 ];
