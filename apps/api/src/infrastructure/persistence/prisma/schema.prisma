@@ -1,0 +1,681 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator zod {
+  provider          = "zod-prisma-types"
+  output            = "../../../../../../packages/shared/generated-zod"
+  useMultipleFiles  = true
+  createInputTypes  = false
+  createModelTypes  = true
+  coerceDate        = true
+  addSelectQueries  = false
+  addIncludeQueries = false
+}
+
+//? ====================================================================================
+//! ENUMS
+//? ====================================================================================
+
+enum SectorType {
+  ALL
+  DENTAL
+  HAIR_TRANSPLANT
+  AESTHETICS
+}
+
+enum LanguageDirection {
+  LTR
+  RTL
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum UserStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+}
+
+enum GlobalStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+  TRIAL
+}
+
+enum BloodType {
+  A_POS // A Rh+
+  A_NEG // A Rh-
+  B_POS // B Rh+
+  B_NEG // B Rh-
+  O_POS // 0 Rh+
+  O_NEG // 0 Rh-
+  AB_POS // AB Rh+
+  AB_NEG // AB Rh-
+}
+
+enum AppointmentStatus {
+  PENDING // Onay bekliyor
+  CONFIRMED // Onaylandı
+  CANCELLED // İptal edildi
+  COMPLETED // Tedavi tamamlandı
+  NOSHOW // Hasta gelmedi
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  DECEASED
+  BLACKLISTED
+}
+
+enum ExternalSystem {
+  WHATSAPP
+  N8N
+  GOOGLE_CALENDAR
+}
+
+enum FileType {
+  XRAY
+  PRESCRIPTION
+  PHOTO
+  CONSENT_FORM
+  LAB_RESULT
+  OTHER
+}
+
+//? ====================================================================================
+//! MODELS
+//? ====================================================================================
+
+//? ====================================================================================
+//! LANGUAGE
+//? ====================================================================================
+
+model Language {
+  id        String  @id @default(uuid())
+  code      String  @unique // "en-US", "tr-TR", "ar-SA"
+  name      String // "English", "Türkçe", "العربية"
+  direction String  @default("ltr")
+  isActive  Boolean @default(true)
+
+  masterTreatmentTranslations   TreatmentTranslation[]
+  providerTitleTranslations     ProviderTitleTranslation[]
+  providerSpecialtyTranslations ProviderSpecialtyTranslation[]
+  treatmentCategoryTranslations TreatmentCategoryTranslation[]
+}
+
+//? ====================================================================================
+//! SECTOR
+//? ====================================================================================
+
+model Sector {
+  id   String     @id @default(uuid())
+  slug String     @unique
+  name SectorType
+
+  categories       TreatmentCategory[]
+  specialties      ProviderSpecialty[]
+  providers        Provider[]
+  masterTreatments MasterTreatment[]
+  clinics          Clinic[]
+  patients         Patient[]
+
+  @@map("sectors")
+}
+
+//? ====================================================================================
+//! ORGANIZATION
+//? ====================================================================================
+
+model Organization {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  phone    String?
+  email    String? @unique
+  address  String? @db.Text
+  city     String?
+  district String?
+
+  status   GlobalStatus @default(ACTIVE)
+  timezone String       @default("Europe/Istanbul")
+
+  clinics Clinic[]
+
+  organizationOwners User[] @relation("organization_owners")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("organizations")
+}
+
+//? ====================================================================================
+//! CLINIC
+//? ====================================================================================
+
+model Clinic {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  sectorId String @map("sector_id")
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  phone    String?
+  email    String?
+  address  String? @db.Text
+  city     String?
+  district String?
+
+  status   GlobalStatus @default(ACTIVE)
+  timezone String       @default("Europe/Istanbul")
+
+  logo String?
+
+  // bağlı olduğu organizasyon
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // diğer ilişkiler
+  managers     User[]        @relation("clinic_managers")
+  staffs       User[]        @relation("clinic_staff")
+  treatments   Treatment[]
+  providers    Provider[]
+  appointments Appointment[]
+  patients     Patient[]
+  medicalFiles MedicalFile[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("clinics")
+}
+
+//? ====================================================================================
+//! USER
+//? ====================================================================================
+model User {
+  id String @id
+
+  displayName   String  @map("display_name")
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+
+  status UserStatus @default(ACTIVE)
+
+  role   Role?   @relation(fields: [roleId], references: [id])
+  roleId String?
+
+  picture String?
+
+  // 1. Çalıştığı/Bağlı olduğu klinik (One-to-Many)
+  clinicId      String? @map("clinic_id")
+  workingClinic Clinic? @relation("clinic_staff", fields: [clinicId], references: [id])
+
+  // 2. Yönettiği klinik (Eğer bir user sadece BİR kliniği yönetebiliyorsa One-to-One)
+  managedClinics Clinic[] @relation("clinic_managers")
+
+  // 3. Yönettiği organziasyonlar
+  ownedOrganizations Organization[] @relation("organization_owners")
+
+  providerProfile Provider?
+
+  // Zaman damgaları
+  lastLogin DateTime  @default(now()) @map("last_login")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("users")
+}
+
+//? ====================================================================================
+//! ROLE
+//? ====================================================================================
+
+model Role {
+  id           String  @id @default(uuid())
+  name         String // "Clinic Owner", "Warehouse Manager"
+  slug         String // "clinic_owner", "warehouse_manager"
+  priority     Int // 90, 70, 50
+  isSystemRole Boolean @default(false) // Core role mu custom mu?
+
+  capabilities RoleCapability[]
+  users        User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slug])
+}
+
+model RoleCapability {
+  id String @id @default(uuid())
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  capability   Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  capabilityId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([roleId, capabilityId])
+}
+
+model Capability {
+  id     String @id @default(uuid())
+  name   String // "user:create", "patient:read"
+  module String // "user", "patient", "product"
+  action String // "create", "read", "update", "delete"
+
+  roles RoleCapability[]
+
+  @@unique([module, action])
+}
+
+//? ====================================================================================
+//! PROVIDER
+//? ====================================================================================
+
+model Provider {
+  id String @id @default(uuid())
+
+  title     ProviderTitle?     @relation(fields: [providerTitleId], references: [id]) // Dt., Uzm. Dt., Prof. Dr. vb.
+  specialty ProviderSpecialty? @relation(fields: [providerSpecialtyId], references: [id])
+
+  publicPhone String? @map("public_phone")
+  publicEmail String? @map("public_email")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Bağlı olduğu
+  clinicId String @map("clinic_id")
+  userId   String @unique @map("user_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
+
+  // ilişkiler
+  appointments           Appointment[]
+  treatments             ProviderTreatment[]
+  providerAvailabilities ProviderAvailability[]
+  medicalFiles           MedicalFile[]
+  sector                 Sector?                @relation(fields: [sectorId], references: [id])
+  sectorId               String?
+  providerTitleId        String?
+  providerSpecialtyId    String?
+
+  @@index([clinicId])
+  @@map("providers")
+}
+
+model ProviderTreatment {
+  id String @id @default(uuid())
+
+  // overrides
+  customPrice    Decimal? @map("custom_price") @db.Decimal(10, 2)
+  customDuration Int?     @map("custom_duration")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  // parent rel ids
+  providerId  String @map("provider_id")
+  treatmentId String @map("treatment_id")
+
+  // parent rel
+  provider  Provider  @relation(fields: [providerId], references: [id])
+  treatment Treatment @relation(fields: [treatmentId], references: [id])
+
+  @@unique([providerId, treatmentId])
+  @@map("provider_treatments")
+}
+
+model ProviderAvailability {
+  id String @id @default(uuid())
+
+  dayOfWeek   Int @map("day_of_week") // 0 = pazar
+  startMinute Int @map("start_minute") // Örn: 9 * 60 (09:00)
+  endMinute   Int @map("end_minute") // Örn: 18 * 60 (18:00)
+
+  breakStartMinute Int? @map("break_start_minute")
+  breakEndMinute   Int? @map("break_end_minute")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  // rel
+  providerId String   @map("provider_id")
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, dayOfWeek])
+  @@map("provider_availabilities")
+}
+
+model ProviderTitle {
+  id        String @id @default(uuid())
+  slug      String @unique
+  sortOrder Int    @default(0) @map("sort_order")
+
+  // İlişkiler
+  providers    Provider[]
+  translations ProviderTitleTranslation[]
+
+  @@map("provider_titles")
+}
+
+model ProviderTitleTranslation {
+  id         String @id @default(uuid())
+  titleId    String @map("title_id")
+  languageId String @map("language_id")
+
+  name         String // Profesör Doktor
+  abbreviation String? // Prof. Dr.
+
+  title    ProviderTitle @relation(fields: [titleId], references: [id])
+  language Language      @relation(fields: [languageId], references: [id])
+
+  @@unique([titleId, languageId])
+  @@map("provider_title_translations")
+}
+
+// --- ProviderSpecialty Modeli ---
+model ProviderSpecialty {
+  id       String @id @default(uuid())
+  slug     String @unique
+  sectorId String @map("sector_id")
+
+  sector       Sector                         @relation(fields: [sectorId], references: [id])
+  providers    Provider[]
+  translations ProviderSpecialtyTranslation[]
+
+  @@map("provider_specialties")
+}
+
+model ProviderSpecialtyTranslation {
+  id          String @id @default(uuid())
+  specialtyId String @map("specialty_id")
+  languageId  String @map("language_id")
+
+  name String // "Ortodontist", "Orthodontist"
+
+  specialty ProviderSpecialty @relation(fields: [specialtyId], references: [id])
+  language  Language          @relation(fields: [languageId], references: [id])
+
+  @@unique([specialtyId, languageId])
+  @@map("provider_specialty_translations")
+}
+
+//? ====================================================================================
+//! APPOINTMENT (RANDEVU)
+//? ====================================================================================
+
+model Appointment {
+  id String @id @default(uuid())
+
+  // Hasta Bilgileri
+  patientName  String  @map("patient_name")
+  patientPhone String  @map("patient_phone")
+  patientEmail String? @map("patient_email") // Opsiyonel
+
+  // Randevu Zamanı
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+
+  // Randevu Detayları
+  treatmentType String? @map("treatment_type") // Örn: Dolgu, İmplant, Muayene
+  notes         String? @db.Text
+
+  // Durum Yönetimi
+  status AppointmentStatus @default(PENDING)
+
+  // İptal Bilgileri (State)
+  canceledAt   DateTime? @map("canceled_at")
+  canceledBy   String?   @map("canceled_by") // "PATIENT", "DOCTOR", "SYSTEM_AI"
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // n8n veya dış sistemlerden gelen referans ID'si varsa (Opsiyonel)
+  externalSystem ExternalSystem? @map("external_system")
+  externalId     String?         @unique @map("external_id")
+
+  // parent rel ids
+  treatmentId String? @map("treatment_id")
+  clinicId    String  @map("clinic_id")
+  providerId  String  @map("provider_id")
+  patientId   String? @map("patient_id")
+
+  isDeleted Boolean   @default(false) @map("is-deleted")
+  deletedAt DateTime? @map("deleted-at")
+
+  // parent rel
+  treatment Treatment? @relation(fields: [treatmentId], references: [id])
+  clinic    Clinic     @relation(fields: [clinicId], references: [id])
+  provider  Provider   @relation(fields: [providerId], references: [id])
+  patient   Patient?   @relation(fields: [patientId], references: [id])
+
+  // child rel
+  medicalFile MedicalFile[]
+
+  @@index([patientPhone]) // Telefonla hızlı sorgulama için index
+  @@index([startTime]) // Takvimde hızlı listeleme için index
+  @@map("appointments")
+}
+
+//? ====================================================================================
+//! TREATMENT (TEDAVİ)
+//? ====================================================================================
+
+model TreatmentCategory {
+  id       String @id @default(uuid())
+  sectorId String @map("sector_id")
+  slug     String @unique
+
+  sector           Sector            @relation(fields: [sectorId], references: [id])
+  masterTreatments MasterTreatment[]
+  treatments       Treatment[]
+
+  translations          TreatmentCategoryTranslation[]
+  treatmentTranslations TreatmentTranslation[]
+
+  @@map("treatment_categories")
+}
+
+model TreatmentCategoryTranslation {
+  id   String @id @default(uuid())
+  name String
+
+  languageId          String @map("language_id")
+  treatmentCategoryId String @map("treatment_category_id")
+
+  language          Language          @relation(fields: [languageId], references: [id])
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+}
+
+model MasterTreatment {
+  id   String @id @default(uuid())
+  slug String @unique
+
+  sectorId            String @map("sector_id")
+  treatmentCategoryId String @map("treatment_category_id")
+
+  defaultDuration Int @map("default_duration")
+
+  treatments   Treatment[]
+  translations TreatmentTranslation[]
+
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+  sector            Sector            @relation(fields: [sectorId], references: [id])
+
+  @@map("master_treatments")
+}
+
+model TreatmentTranslation {
+  id String @id @default(uuid())
+
+  masterTreatmentId   String? @map("master_treatment_id")
+  languageId          String  @map("language_id")
+  treatmentId         String? @map("treatment_id")
+  treatmentCategoryId String  @map("treatment_category_id")
+
+  name                  String
+  description           String?
+  aftercareInstructions String?          @map("aftercare_instructions")
+  language              Language         @relation(fields: [languageId], references: [id])
+  masterTreatment       MasterTreatment? @relation(fields: [masterTreatmentId], references: [id])
+  treatment             Treatment?       @relation(fields: [treatmentId], references: [id])
+
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+
+  @@unique([masterTreatmentId, languageId])
+  @@unique([treatmentCategoryId, languageId])
+  @@unique([treatmentId, languageId])
+  @@map("master_treatment_translations")
+}
+
+model Treatment {
+  id String @id @default(uuid())
+
+  slug                String
+  treatmentCategoryId String @map("treatment_category_id")
+
+  duration    Int?
+  minDuration Int? @map("min_duration")
+  maxDuration Int? @map("max_duration")
+
+  description      String? @db.Text
+  isActive         Boolean @default(true) @map("is_active")
+  requiresApproval Boolean @default(false) @map("requires_approval")
+  isPackageOnly    Boolean @default(false) @map("is_package_only")
+  displayOrder     Int     @default(0) @map("display_order")
+
+  clinicId          String  @map("clinic_id")
+  masterTreatmentId String? @map("master_treatment_id")
+
+  translations       TreatmentTranslation[]
+  appointments       Appointment[]
+  providerTreatments ProviderTreatment[]
+  medicalFile        MedicalFile[]
+
+  clinic            Clinic            @relation(fields: [clinicId], references: [id])
+  masterTreatment   MasterTreatment?  @relation(fields: [masterTreatmentId], references: [id])
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@unique([clinicId, slug])
+  @@index([deletedAt])
+  @@map("treatments")
+}
+
+//? ====================================================================================
+//! PATIENT (HASTA)
+//? ====================================================================================
+
+model Patient {
+  id String @id @default(uuid())
+
+  clinicId String? @map("clinic_id")
+  sectorId String? @map("sector_id")
+
+  // Kişisel Bilgiler
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  tcNo      String?   @map("tc_no")
+  birthDate DateTime? @map("birth_date")
+  gender    Gender //
+
+  // İletişim Bilgileri
+  phone            String
+  alternativePhone String? @map("alternative_phone")
+  email            String?
+  address          String? @db.Text
+  emergencyContact String? @map("emergency_contact") // Acil durumda aranacak kişi ve nosu
+
+  // Tıbbi Geçmiş Özeti (Opsiyonel - Hızlı bakış için)
+  allergies       String?    @db.Text // Alerjiler
+  chronicDiseases String?    @map("chronic_diseases") @db.Text // Kronik hastalıklar
+  bloodType       BloodType? @map("blood_type")
+
+  // Durum
+  status PatientStatus @default(ACTIVE)
+
+  // İleride eklenebilecekler:
+  // payments     Payment[]
+  // files        File[] // Röntgenler, Reçeteler
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  medicalFile  MedicalFile[]
+  appointments Appointment[] // doktor ilişkisi buradan
+
+  clinic Clinic? @relation(fields: [clinicId], references: [id])
+  sector Sector? @relation(fields: [sectorId], references: [id])
+
+  @@index([phone, clinicId])
+  @@index([email, clinicId])
+  @@index([firstName, lastName, deletedAt])
+  @@index([clinicId])
+  @@map("patients")
+}
+
+//? ====================================================================================
+//! MEDICAL FILE
+//? ====================================================================================
+
+model MedicalFile {
+  id String @id @default(uuid())
+
+  clinicId      String  @map("clinic_id")
+  patientId     String  @map("patient_id")
+  providerId    String  @map("provider_id")
+  appointmentId String? @map("appointment_id")
+  treatmentId   String
+
+  fileName String   @map("file_name")
+  fileUrl  String   @map("file_url")
+  fileType FileType @map("file_type")
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  provider    Provider     @relation(fields: [providerId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  treatment   Treatment    @relation(fields: [treatmentId], references: [id])
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([clinicId])
+  @@map("medical_files")
+}

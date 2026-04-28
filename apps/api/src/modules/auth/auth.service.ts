@@ -3,7 +3,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { ActorContext } from '@common/interfaces';
 import { UserStatus } from '@prisma/client';
-import { rolesCreateManyInputs } from '../../../prisma/data';
+import { rolesCreateManyInputs } from '../../infrastructure/persistence/prisma/data';
 import { getBearerToken } from '@common/utils';
 import { FirebaseService } from '@modules/firebase/firebase.service';
 
@@ -52,7 +52,7 @@ export class AuthService {
       include: {
         managedClinics: { select: { id: true, name: true } },
         ownedOrganizations: { select: { id: true, name: true } },
-        doctorProfile: { select: { id: true } },
+        providerProfile: { select: { id: true } },
         role: {
           include: {
             capabilities: { include: { capability: true } },

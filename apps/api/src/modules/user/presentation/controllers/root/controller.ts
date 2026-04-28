@@ -25,7 +25,7 @@ import {
 import { ActorContext } from '@common/interfaces';
 import { USERS_PATH } from '@modules/user/presentation/controllers/path';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
-import { CAPABILITIES } from '../../../../../../prisma/data';
+import { CAPABILITIES } from '../../../../../infrastructure/persistence/prisma/data';
 import { CheckEmailDto } from '@shared/modules/user/dto/registry/check-email.dto';
 import { UpdateUserByActorDto, UserSoftDeleteByActorDto } from '@shared';
 import { UserResponseDto } from '@modules/user/application/dto';

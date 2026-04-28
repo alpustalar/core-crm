@@ -7,7 +7,7 @@ import {
 } from '@modules/user/application/use-cases';
 import { ActorContext } from '@common/interfaces';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
-import { CAPABILITIES } from '../../../../../../prisma/data';
+import { CAPABILITIES } from '../../../../../infrastructure/persistence/prisma/data';
 import { REGISTRY_PATH } from '@modules/user/presentation/controllers/path';
 import { CreateUserDto } from '@shared/modules/index';
 

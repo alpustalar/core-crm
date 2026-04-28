@@ -1,5 +1,5 @@
 {
-  "name": "@dentistry-crm/web",
+  "name": "@core-crm/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@dentistry-crm/shared": "workspace:*",
+    "@core-crm/shared": "workspace:*",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"

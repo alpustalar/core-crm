@@ -5,6 +5,7 @@ import { ClinicEventPublisher } from '../../../infrastructure/publisher';
 import { ActorContext } from '@common/interfaces';
 import { PolicyFactory } from '@modules/policy/policy-factory';
 import { CreateClinicDto } from '@shared';
+import { connect } from '@src/infrastructure/persistence/prisma/data';
 
 @Injectable()
 export class CreateClinicUseCase {
@@ -15,7 +16,7 @@ export class CreateClinicUseCase {
   ) {}
 
   async execute(dto: CreateClinicDto, actor: ActorContext) {
-    const { name, organizationId, ...restDto } = dto;
+    const { name, organizationId, sectorId, ...restDto } = dto;
     const slug = slugIt(name);
 
     const { policy } = this.policyFactory.organization(actor);
@@ -25,7 +26,8 @@ export class CreateClinicUseCase {
     const clinic = await this.clinicRepo.create({
       name,
       slug,
-      organization: orgFilter ? { connect: orgFilter } : undefined,
+      organization: connect(orgFilter?.id),
+      sector: { connect: { id: sectorId as string } },
       ...restDto,
     });
 

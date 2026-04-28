@@ -1,8 +1,9 @@
 import { UserRepository } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository';
 import { ActorContext } from '@common/interfaces';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PolicyFactory } from '@modules/policy/policy-factory';
 import { UpdateUserByActorDto } from '@shared';
+import { connect } from '@src/infrastructure/persistence/prisma/data';
 
 type Execute = {
   targetUpdateUserId: string;
@@ -44,31 +45,44 @@ export class UpdateUserByActorUseCase {
         'Hedef kullanıcı ile aynı klinikte (yönetici olarak) olmalısınız'
       );
 
-    const { clinicId, doctorProfile, ...dataToUpdate } = dto;
+    const { clinicId, titleId, specialtyId, providerProfile, ...dataToUpdate } =
+      dto;
 
-    return await this.userRepo.updateUserWithAnId(targetUpdateUserId, {
+    if (providerProfile && !clinicId) {
+      throw new BadRequestException(
+        "'Provider profil oluşturmak için Klinik ID zorunludur.'"
+      );
+    }
+
+    return this.userRepo.updateUserWithAnId(targetUpdateUserId, {
       ...dataToUpdate,
-      ...(clinicId && {
-        workingClinic: {
-          connect: { id: clinicId },
-        },
-      }),
-      ...(doctorProfile && {
-        doctorProfile: {
-          upsert: {
-            update: {
-              title: doctorProfile.title,
-              specialty: doctorProfile.specialty,
-              publicPhone: doctorProfile.publicPhone,
-              clinic: clinicId ? { connect: { id: clinicId } } : undefined,
-            },
-            create: {
-              title: doctorProfile.title,
-              specialty: doctorProfile.specialty,
-              publicPhone: doctorProfile.publicPhone,
-              clinic: { connect: { id: clinicId! } },
-            },
-          },
+      workingClinic: connect(clinicId),
+      ...(providerProfile && {
+        providerProfile: {
+          ...(clinicId
+            ? {
+                upsert: {
+                  update: {
+                    publicPhone: providerProfile.publicPhone,
+                    title: connect(titleId),
+                    specialty: connect(specialtyId),
+                    clinic: connect(clinicId),
+                  },
+                  create: {
+                    publicPhone: providerProfile.publicPhone,
+                    title: connect(titleId),
+                    specialty: connect(specialtyId),
+                    clinic: { connect: { id: clinicId } },
+                  },
+                },
+              }
+            : {
+                update: {
+                  publicPhone: providerProfile.publicPhone,
+                  title: connect(titleId),
+                  specialty: connect(specialtyId),
+                },
+              }),
         },
       }),
     });

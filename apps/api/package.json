@@ -1,5 +1,5 @@
 {
-  "name": "@dentistry-crm/api",
+  "name": "@core-crm/api",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -22,10 +22,10 @@
     "migrate:dev": "prisma migrate dev"
   },
   "prisma": {
-    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/infrastructure/persistence/prisma/seed.ts"
   },
   "dependencies": {
-    "@dentistry-crm/shared": "workspace:*",
+    "@core-crm/shared": "workspace:*",
     "@logtail/node": "^0.5.6",
     "@logtail/winston": "^0.5.6",
     "@nestjs-modules/ioredis": "^2.0.2",

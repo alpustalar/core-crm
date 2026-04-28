@@ -7,7 +7,7 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
-import { CAPABILITIES } from '../../../../../../prisma/data';
+import { CAPABILITIES } from '../../../../../infrastructure/persistence/prisma/data';
 import { AuthGuard } from '@modules/auth/guards';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
 import { FindOneUseCase } from '@modules/organization/application/use-cases/queries/find-one.use-case';

@@ -9,6 +9,7 @@ import { ActorContext } from '@common/interfaces';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PolicyFactory } from '@modules/policy/policy-factory';
 import { CreateUserDto } from '@shared';
+import { connect } from '@src/infrastructure/persistence/prisma/data';
 
 @Injectable()
 export class CreateUserUseCase {
@@ -68,16 +69,16 @@ export class CreateUserUseCase {
             id: firebaseUser!.uid,
             email: dto.email,
             displayName: dto.displayName,
-            workingClinic: clinicId ? { connect: { id: clinicId } } : undefined,
-            role: dto.roleId ? { connect: { id: dto.roleId } } : undefined,
-            doctorProfile: dto.doctorProfile
+            workingClinic: connect(clinicId),
+            role: connect(dto.roleId),
+            providerProfile: dto.providerProfile
               ? {
                   create: {
-                    title: dto.doctorProfile.title,
-                    specialty: dto.doctorProfile.specialty,
-                    publicEmail: dto.doctorProfile.publicEmail,
-                    publicPhone: dto.doctorProfile.publicPhone,
-                    isActive: dto.doctorProfile.isActive,
+                    title: connect(dto.providerProfile.titleId),
+                    specialty: connect(dto.providerProfile.specialtyId),
+                    publicEmail: dto.providerProfile.publicEmail,
+                    publicPhone: dto.providerProfile.publicPhone,
+                    isActive: dto.providerProfile.isActive,
                     clinic: {
                       connect: { id: clinicId },
                     },

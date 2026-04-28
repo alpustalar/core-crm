@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { DoctorResponseDto } from '@modules/doctor/application/dto/doctor-response.dto';
+import { ProviderResponseDto } from '@modules/provider/application/dto/provider-response.dto';
 import { UserResponseGroups } from '@modules/user/constants';
 import { UserResponse } from '@shared';
 import { Role } from '@prisma/client';
@@ -80,6 +80,6 @@ export class UserResponseDto implements UserResponse {
   ownedOrganizations?: RelationalDto[];
 
   @Expose()
-  @Type(() => DoctorResponseDto)
-  doctorProfile?: DoctorResponseDto;
+  @Type(() => ProviderResponseDto)
+  providerProfile?: ProviderResponseDto;
 }

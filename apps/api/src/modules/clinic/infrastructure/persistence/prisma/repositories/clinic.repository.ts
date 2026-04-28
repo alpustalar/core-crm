@@ -27,7 +27,7 @@ export class ClinicRepository extends BaseRepository {
         },
         _count: {
           select: {
-            doctors: true,
+            providers: true,
             patients: true,
             appointments: true,
           },

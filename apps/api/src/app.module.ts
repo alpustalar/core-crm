@@ -12,13 +12,13 @@ import { AppointmentModule } from '@modules/appointment/appointment.module';
 import { ClinicModule } from '@modules/clinic/clinic.module';
 import { PatientModule } from '@modules/patient/patient.module';
 import { TreatmentModule } from '@modules/treatment/treatment.module';
-import { DoctorModule } from '@modules/doctor/doctor.module';
 import { RedisModule } from '@common/redis/redis.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
 import { MedicalFilesModule } from '@modules/medical-files/medical-files.module';
 import { LookupModule } from '@modules/lookup/lookup.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { InfrastructureModule } from '@src/infrastructure/infrastructure.module';
+import { ProviderModule } from '@modules/provider/provider.module';
 
 @Module({
   imports: [
@@ -33,7 +33,7 @@ import { InfrastructureModule } from '@src/infrastructure/infrastructure.module'
     ClinicModule,
     PatientModule,
     TreatmentModule,
-    DoctorModule,
+    ProviderModule,
     RedisModule,
     OrganizationModule,
     MedicalFilesModule,

@@ -1,4 +1,4 @@
-import { APP_CONFIG } from '../../../common/constants';
+import { APP_CONFIG } from '@common/constants';
 
 export const verificationEmailTemplate = (link: string) => `
 <!DOCTYPE html>
