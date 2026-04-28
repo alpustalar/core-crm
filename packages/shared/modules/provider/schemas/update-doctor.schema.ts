@@ -1,4 +1,4 @@
 import { z } from "zod";
-import { CreateDoctorSchema } from "@shared/modules/doctor/schemas/create-doctor.schema";
+import {CreateProviderSchema} from "@shared/modules/provider/schemas/create-doctor.schema";
 
-export const UpdateDoctorSchema = z.lazy(() => CreateDoctorSchema.partial());
+export const UpdateProviderSchema = z.lazy(() => CreateProviderSchema.partial());

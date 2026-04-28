@@ -1,4 +1,4 @@
 import { z } from "zod";
-import { ConvertUserToDoctorSchema } from "@shared/modules/doctor/schemas";
+import {ConvertUserToProviderSchema} from "@shared/modules/provider/schemas";
 
-export type ConvertUserToDoctor = z.infer<typeof ConvertUserToDoctorSchema>;
+export type ConvertUserToProvider = z.infer<typeof ConvertUserToProviderSchema>;

@@ -13,6 +13,7 @@ export const PatientSchema = z.object({
   status: PatientStatusSchema,
   id: z.uuid(),
   clinicId: z.string().nullable(),
+  sectorId: z.string().nullable(),
   firstName: z.string(),
   lastName: z.string(),
   tcNo: z.string().nullable(),

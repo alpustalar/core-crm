@@ -10,7 +10,7 @@ export const MedicalFileSchema = z.object({
   id: z.uuid(),
   clinicId: z.string(),
   patientId: z.string(),
-  doctorId: z.string(),
+  providerId: z.string(),
   appointmentId: z.string().nullable(),
   treatmentId: z.string(),
   fileName: z.string(),

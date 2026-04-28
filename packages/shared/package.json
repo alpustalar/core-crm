@@ -1,5 +1,5 @@
 {
-  "name": "@dentistry-crm/shared",
+  "name": "@core-crm/shared",
   "version": "0.0.1",
   "private": true,
   "main": "index.ts",
@@ -9,4 +9,3 @@
     "zod": "^4.3.6"
   }
 }
-

@@ -40,4 +40,6 @@ export const CreateClinicSchema = z.object({
   organizationId: z
     .uuid({ message: "Geçersiz organizasyon ID formatı" })
     .optional(),
+
+  sectorId: z.uuid({error: "Sektör Id zorunludur"})
 });

@@ -23,12 +23,12 @@ export const AppointmentSchema = z.object({
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   externalId: z.string().nullable(),
-  treatmentId: z.string(),
+  treatmentId: z.string().nullable(),
   clinicId: z.string(),
-  doctorId: z.string(),
+  providerId: z.string(),
   patientId: z.string().nullable(),
   isDeleted: z.boolean(),
-  deletedAt: z.coerce.date(),
+  deletedAt: z.coerce.date().nullable(),
 })
 
 export type Appointment = z.infer<typeof AppointmentSchema>

@@ -1,1 +1,1 @@
-export * from "./doctor-response.interface";
+export * from "./provider-response.interface";

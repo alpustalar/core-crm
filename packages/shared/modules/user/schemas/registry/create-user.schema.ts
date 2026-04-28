@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CreateDoctorSchema } from "@shared/modules/doctor/schemas";
+import { CreateProviderSchema } from "@shared/modules/provider/schemas";
 
 export const CreateUserSchema = z.object({
   email: z.email({ message: "Geçersiz e-posta formatı" }).trim().toLowerCase(),
@@ -8,5 +8,5 @@ export const CreateUserSchema = z.object({
   picture: z.url({ message: "Geçersiz resim bağlantısı" }).optional(),
   roleId: z.uuid({ message: "Geçersiz Role ID formatı" }).optional(),
   clinicId: z.uuid({ message: "Geçersiz Clinic ID formatı" }).optional(),
-  doctorProfile: z.lazy(() => CreateDoctorSchema.optional()),
+  providerProfile: z.lazy(() => CreateProviderSchema.optional()),
 });

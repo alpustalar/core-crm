@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-export const ConvertUserToDoctorSchema = z.object({
+export const ConvertUserToProviderSchema = z.object({
   userId: z.string(),
-  title: z.uuid(),
-  specialty: z.uuid(),
+  titleId: z.uuid(),
+  specialtyId: z.uuid(),
   publicPhone: z.string().optional(),
   publicEmail: z.email({ message: "Geçersiz e-posta formatı" }).optional(),
   isActive: z.coerce.boolean().default(true),

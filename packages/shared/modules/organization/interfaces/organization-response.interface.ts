@@ -1,6 +1,6 @@
 import { GlobalStatusType } from "@shared/generated-zod/inputTypeSchemas/GlobalStatusSchema";
 
-export interface OrganizationResponse {
+export interface IOrganizationResponse {
   id: string;
   name: string;
   phone?: string;

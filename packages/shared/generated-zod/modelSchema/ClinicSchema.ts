@@ -10,6 +10,7 @@ export const ClinicSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
+  sectorId: z.string(),
   phone: z.string().nullable(),
   email: z.string().nullable(),
   address: z.string().nullable(),

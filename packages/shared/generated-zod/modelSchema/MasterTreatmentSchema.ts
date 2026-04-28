@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { TreatmentCategorySchema } from '../inputTypeSchemas/TreatmentCategorySchema'
 
 /////////////////////////////////////////
 // MASTER TREATMENT SCHEMA
 /////////////////////////////////////////
 
 export const MasterTreatmentSchema = z.object({
-  category: TreatmentCategorySchema,
   id: z.uuid(),
-  name: z.string(),
+  slug: z.string(),
+  sectorId: z.string(),
+  treatmentCategoryId: z.string(),
   defaultDuration: z.number().int(),
 })
 

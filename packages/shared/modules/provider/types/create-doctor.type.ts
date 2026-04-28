@@ -1,4 +1,4 @@
 import { z } from "zod";
-import { CreateDoctorSchema } from "@shared/modules/doctor/schemas";
+import {CreateProviderSchema} from "@shared/modules/provider/schemas";
 
-export type CreateDoctor = z.infer<typeof CreateDoctorSchema>;
+export type CreateProvider = z.infer<typeof CreateProviderSchema>;

@@ -1,8 +1,8 @@
 {
-  "name": "@dentistry-crm/root",
+  "name": "@core-crm/root",
   "private": true,
   "packageManager": "pnpm@10.26.0",
-  "description": "Dentistry CRM Monorepo",
+  "description": "Core CRM Monorepo",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",

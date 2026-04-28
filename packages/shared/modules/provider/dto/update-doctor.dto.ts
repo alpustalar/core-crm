@@ -1,9 +1,7 @@
 import { createZodDto } from "nestjs-zod";
-import { z } from "zod";
-import { CreateDoctorSchema } from "@shared/modules/doctor/schemas";
+import { UpdateProviderSchema } from "@shared/modules/provider/schemas";
 
-export const UpdateDoctorSchema = z.lazy(() => CreateDoctorSchema.partial());
 
-export class UpdateDoctorDto extends createZodDto(UpdateDoctorSchema) {}
+export class UpdateDoctorDto extends createZodDto(UpdateProviderSchema) {}
 
-export type UpdateDoctor = z.infer<typeof UpdateDoctorSchema>;
+

@@ -1,5 +1,5 @@
 import { Role, UserStatusSchema } from "@shared/generated-zod";
-import { DoctorResponse } from "../../doctor";
+import { IProviderResponse } from "../../provider";
 import { z } from "zod";
 import { UserStatusType } from "@shared/generated-zod/inputTypeSchemas/UserStatusSchema";
 
@@ -25,5 +25,5 @@ export interface UserResponse {
   deletedAt?: Date;
   managedClinics?: RelationalDto[];
   ownedOrganizations?: RelationalDto[];
-  doctorProfile?: DoctorResponse;
+  doctorProfile?: IProviderResponse;
 }

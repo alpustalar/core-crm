@@ -1,4 +1,4 @@
 import { createZodDto } from "nestjs-zod";
-import { CreateDoctorSchema } from "@shared/modules/doctor/schemas";
+import {CreateProviderSchema} from "@shared/modules/provider/schemas";
 
-export class CreateDoctorDto extends createZodDto(CreateDoctorSchema) {}
+export class CreateDoctorDto extends createZodDto(CreateProviderSchema) {}

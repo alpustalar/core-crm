@@ -1,4 +1,4 @@
-export interface DoctorResponse {
+export interface IProviderResponse {
   id: string;
   title?: string;
   specialty: string;

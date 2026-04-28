@@ -3,7 +3,7 @@ import { GlobalStatusSchema } from "@shared/generated-zod";
 
 type GlobalStatus = z.infer<typeof GlobalStatusSchema>;
 
-export interface ClinicResponse {
+export interface IClinicResponse {
   id: string;
   name: string;
   slug: string;
