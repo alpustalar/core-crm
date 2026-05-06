@@ -1,7 +1,7 @@
 import { AppointmentStatus, ExternalSystem } from '@prisma/client';
 import { BadRequestException } from '@nestjs/common';
 
-export interface AppointmentProps {
+export class Appointment {
   id: string;
   patientName: string;
   patientPhone: string;
@@ -25,122 +25,93 @@ export interface AppointmentProps {
   patientId: string | null;
   isDeleted: boolean;
   deletedAt: Date | null;
-}
 
-export class Appointment {
-  private readonly props: AppointmentProps;
-
-  constructor(props: AppointmentProps) {
-    this.props = props;
+  constructor({
+    id,
+    patientName,
+    patientPhone,
+    patientEmail,
+    startTime,
+    endTime,
+    timezone,
+    treatmentType,
+    notes,
+    status,
+    canceledAt,
+    canceledBy,
+    cancelReason,
+    createdAt,
+    updatedAt,
+    externalSystem,
+    externalId,
+    treatmentId,
+    clinicId,
+    providerId,
+    patientId,
+    isDeleted,
+    deletedAt,
+  }: {
+    id: string;
+    patientName: string;
+    patientPhone: string;
+    patientEmail: string | null;
+    startTime: Date;
+    endTime: Date;
+    timezone: string;
+    treatmentType: string | null;
+    notes: string | null;
+    status: AppointmentStatus;
+    canceledAt: Date | null;
+    canceledBy: string | null;
+    cancelReason: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    externalSystem: ExternalSystem | null;
+    externalId: string | null;
+    treatmentId: string | null;
+    clinicId: string;
+    providerId: string;
+    patientId: string | null;
+    isDeleted: boolean;
+    deletedAt: Date | null;
+  }) {
+    this.id = id;
+    this.patientName = patientName;
+    this.patientPhone = patientPhone;
+    this.patientEmail = patientEmail;
+    this.startTime = startTime;
+    this.endTime = endTime;
+    this.timezone = timezone;
+    this.treatmentType = treatmentType;
+    this.notes = notes;
+    this.status = status;
+    this.canceledAt = canceledAt;
+    this.canceledBy = canceledBy;
+    this.cancelReason = cancelReason;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.externalSystem = externalSystem;
+    this.externalId = externalId;
+    this.treatmentId = treatmentId;
+    this.clinicId = clinicId;
+    this.providerId = providerId;
+    this.patientId = patientId;
+    this.isDeleted = isDeleted;
+    this.deletedAt = deletedAt;
   }
-
-  // Getters
-  get id(): string {
-    return this.props.id;
-  }
-
-  get patientName(): string {
-    return this.props.patientName;
-  }
-
-  get patientPhone(): string {
-    return this.props.patientPhone;
-  }
-
-  get patientEmail(): string | null {
-    return this.props.patientEmail;
-  }
-
-  get startTime(): Date {
-    return this.props.startTime;
-  }
-
-  get endTime(): Date {
-    return this.props.endTime;
-  }
-
-  get timezone(): string {
-    return this.props.timezone;
-  }
-
-  get treatmentType(): string | null {
-    return this.props.treatmentType;
-  }
-
-  get notes(): string | null {
-    return this.props.notes;
-  }
-
-  get status(): AppointmentStatus {
-    return this.props.status;
-  }
-
-  get canceledAt(): Date | null {
-    return this.props.canceledAt;
-  }
-
-  get canceledBy(): string | null {
-    return this.props.canceledBy;
-  }
-
-  get cancelReason(): string | null {
-    return this.props.cancelReason;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
-  }
-
-  get externalSystem(): ExternalSystem | null {
-    return this.props.externalSystem;
-  }
-
-  get externalId(): string | null {
-    return this.props.externalId;
-  }
-
-  get treatmentId(): string | null {
-    return this.props.treatmentId;
-  }
-
-  get clinicId(): string {
-    return this.props.clinicId;
-  }
-
-  get providerId(): string {
-    return this.props.providerId;
-  }
-
-  get patientId(): string | null {
-    return this.props.patientId;
-  }
-
-  get isDeleted(): boolean {
-    return this.props.isDeleted;
-  }
-
-  get deletedAt(): Date | null {
-    return this.props.deletedAt;
-  }
-
-  // Business Logic Methods
 
   /**
    * Confirms a pending appointment
    * Only PENDING appointments can be confirmed
    */
   public confirm(): void {
-    if (this.props.status !== AppointmentStatus.PENDING) {
+    if (this.status !== AppointmentStatus.PENDING) {
       throw new BadRequestException(
         'Yalnızca bekleyen randevular onaylanabilir.'
       );
     }
 
-    this.props.status = AppointmentStatus.CONFIRMED;
+    this.status = AppointmentStatus.CONFIRMED;
   }
 
   /**
@@ -149,19 +120,19 @@ export class Appointment {
    */
   public cancel(canceledBy: string, reason?: string): void {
     if (
-      this.props.status === AppointmentStatus.COMPLETED ||
-      this.props.status === AppointmentStatus.NOSHOW
+      this.status === AppointmentStatus.COMPLETED ||
+      this.status === AppointmentStatus.NOSHOW
     ) {
       throw new BadRequestException(
         'Tamamlanan veya gelmeme olarak işaretlenmiş randevular iptal edilemez.'
       );
     }
 
-    this.props.status = AppointmentStatus.CANCELLED;
-    this.props.canceledAt = new Date();
-    this.props.canceledBy = canceledBy;
+    this.status = AppointmentStatus.CANCELLED;
+    this.canceledAt = new Date();
+    this.canceledBy = canceledBy;
     if (reason) {
-      this.props.cancelReason = reason;
+      this.cancelReason = reason;
     }
   }
 
@@ -171,15 +142,15 @@ export class Appointment {
    */
   public complete(): void {
     if (
-      this.props.status !== AppointmentStatus.CONFIRMED &&
-      this.props.status !== AppointmentStatus.PENDING
+      this.status !== AppointmentStatus.CONFIRMED &&
+      this.status !== AppointmentStatus.PENDING
     ) {
       throw new BadRequestException(
         'Yalnızca onaylanan veya bekleyen randevular tamamlanabilir.'
       );
     }
 
-    this.props.status = AppointmentStatus.COMPLETED;
+    this.status = AppointmentStatus.COMPLETED;
   }
 
   /**
@@ -188,70 +159,63 @@ export class Appointment {
    */
   public markAsNoShow(): void {
     if (
-      this.props.status !== AppointmentStatus.CONFIRMED &&
-      this.props.status !== AppointmentStatus.PENDING
+      this.status !== AppointmentStatus.CONFIRMED &&
+      this.status !== AppointmentStatus.PENDING
     ) {
       throw new BadRequestException(
         'Yalnızca onaylanan veya bekleyen randevular gelmeme olarak işaretlenebilir.'
       );
     }
 
-    this.props.status = AppointmentStatus.NOSHOW;
+    this.status = AppointmentStatus.NOSHOW;
   }
 
   /**
    * Checks if appointment is pending
    */
   public isPending(): boolean {
-    return this.props.status === AppointmentStatus.PENDING;
+    return this.status === AppointmentStatus.PENDING;
   }
 
   /**
    * Checks if appointment is confirmed
    */
   public isConfirmed(): boolean {
-    return this.props.status === AppointmentStatus.CONFIRMED;
+    return this.status === AppointmentStatus.CONFIRMED;
   }
 
   /**
    * Checks if appointment is cancelled
    */
   public isCancelled(): boolean {
-    return this.props.status === AppointmentStatus.CANCELLED;
+    return this.status === AppointmentStatus.CANCELLED;
   }
 
   /**
    * Checks if appointment is completed
    */
   public isCompleted(): boolean {
-    return this.props.status === AppointmentStatus.COMPLETED;
+    return this.status === AppointmentStatus.COMPLETED;
   }
 
   /**
    * Checks if appointment is no-show
    */
   public isNoShow(): boolean {
-    return this.props.status === AppointmentStatus.NOSHOW;
+    return this.status === AppointmentStatus.NOSHOW;
   }
 
   /**
    * Checks if appointment is in the past
    */
   public isInThePast(): boolean {
-    return this.props.endTime < new Date();
+    return this.endTime < new Date();
   }
 
   /**
    * Checks if appointment is in the future
    */
   public isInTheFuture(): boolean {
-    return this.props.startTime > new Date();
-  }
-
-  /**
-   * Gets all properties as a plain object
-   */
-  public toObject(): AppointmentProps {
-    return { ...this.props };
+    return this.startTime > new Date();
   }
 }
