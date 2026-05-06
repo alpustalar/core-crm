@@ -100,10 +100,6 @@ export class Appointment {
     this.deletedAt = deletedAt;
   }
 
-  /**
-   * Confirms a pending appointment
-   * Only PENDING appointments can be confirmed
-   */
   public confirm(): void {
     if (this.status !== AppointmentStatus.PENDING) {
       throw new BadRequestException(
@@ -114,10 +110,6 @@ export class Appointment {
     this.status = AppointmentStatus.CONFIRMED;
   }
 
-  /**
-   * Cancels an appointment
-   * Cannot cancel already completed or no-show appointments
-   */
   public cancel(canceledBy: string, reason?: string): void {
     if (
       this.status === AppointmentStatus.COMPLETED ||
@@ -136,10 +128,6 @@ export class Appointment {
     }
   }
 
-  /**
-   * Marks appointment as completed
-   * Only confirmed or pending appointments can be completed
-   */
   public complete(): void {
     if (
       this.status !== AppointmentStatus.CONFIRMED &&
@@ -153,10 +141,6 @@ export class Appointment {
     this.status = AppointmentStatus.COMPLETED;
   }
 
-  /**
-   * Marks appointment as no-show
-   * Patient did not show up for the appointment
-   */
   public markAsNoShow(): void {
     if (
       this.status !== AppointmentStatus.CONFIRMED &&
@@ -170,51 +154,30 @@ export class Appointment {
     this.status = AppointmentStatus.NOSHOW;
   }
 
-  /**
-   * Checks if appointment is pending
-   */
   public isPending(): boolean {
     return this.status === AppointmentStatus.PENDING;
   }
 
-  /**
-   * Checks if appointment is confirmed
-   */
   public isConfirmed(): boolean {
     return this.status === AppointmentStatus.CONFIRMED;
   }
 
-  /**
-   * Checks if appointment is cancelled
-   */
   public isCancelled(): boolean {
     return this.status === AppointmentStatus.CANCELLED;
   }
 
-  /**
-   * Checks if appointment is completed
-   */
   public isCompleted(): boolean {
     return this.status === AppointmentStatus.COMPLETED;
   }
 
-  /**
-   * Checks if appointment is no-show
-   */
   public isNoShow(): boolean {
     return this.status === AppointmentStatus.NOSHOW;
   }
 
-  /**
-   * Checks if appointment is in the past
-   */
   public isInThePast(): boolean {
     return this.endTime < new Date();
   }
 
-  /**
-   * Checks if appointment is in the future
-   */
   public isInTheFuture(): boolean {
     return this.startTime > new Date();
   }
