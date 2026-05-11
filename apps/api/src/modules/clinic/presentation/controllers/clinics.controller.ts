@@ -7,18 +7,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import {
-  CreateClinicUseCase,
-  UpdateClinicUseCase,
-} from '@modules/clinic/application/use-cases';
+
 import { Actor } from '@common/decorators';
 import { AuthGuard } from '@modules/auth/guards';
 import { ActorContext } from '@common/interfaces';
 import { CreateClinicDto, UpdateClinicDto } from '@shared';
-import { ClinicPaths } from '@modules/clinic/presentation/controllers/paths';
+import {
+  CreateClinicUseCase,
+  UpdateClinicUseCase,
+} from '@modules/clinic/application/use-cases/commands';
 
 @UseGuards(AuthGuard)
-@Controller(ClinicPaths.ROOT)
+@Controller()
 export class ClinicController {
   constructor(
     private readonly createClinic: CreateClinicUseCase,

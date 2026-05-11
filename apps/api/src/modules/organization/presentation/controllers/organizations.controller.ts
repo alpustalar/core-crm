@@ -7,21 +7,20 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
-import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 import { AuthGuard } from '@modules/auth/guards';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
-import { FindOneUseCase } from '@modules/organization/application/use-cases/queries/find-one.use-case';
+import { FindOneUseCase } from '@modules/organization/application/use-cases/queries/find-one/find-one.use-case';
 import { UpdateOrganizationUseCase } from '@modules/organization/application/use-cases/commands';
 import { Actor, HasCapability } from '@common/decorators';
 import { ActorContext } from '@common/interfaces';
 import { plainToInstance } from 'class-transformer';
 import { OrganizationResponseDto } from '@modules/organization/application/dto/organization-response.dto';
-import { OrganizationPaths } from '@modules/organization/presentation/controllers/path';
 import { UpdateOrganizationDto } from '@shared';
 
 const { ORGANIZATION } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
-@Controller(OrganizationPaths.ROOT)
+@Controller()
 export class OrganizationController {
   constructor(
     private readonly findOneOrganization: FindOneUseCase,

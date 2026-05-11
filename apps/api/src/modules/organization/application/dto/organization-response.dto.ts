@@ -1,6 +1,8 @@
 import { Expose } from 'class-transformer';
+import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
+import { IOrganizationResponse } from '@shared';
 
-export class OrganizationResponseDto {
+export class OrganizationResponseDto implements IOrganizationResponse {
   @Expose()
   id: string;
 
@@ -8,13 +10,16 @@ export class OrganizationResponseDto {
   name: string;
 
   @Expose()
-  phone?: string;
+  slug: string;
 
   @Expose()
-  email?: string;
+  phone: string | null;
 
   @Expose()
-  status: string;
+  email: string | null;
+
+  @Expose()
+  status: GlobalStatusType;
 
   @Expose()
   timezone: string;

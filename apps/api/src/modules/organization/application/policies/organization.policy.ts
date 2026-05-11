@@ -1,23 +1,13 @@
-import { ClinicPolicy } from '@modules/clinic/application/policies';
+import { BasePolicy } from '@modules/policy/application/base.policy';
+import { isEmpty } from '@common/utils/is-empty';
 
-export class OrganizationPolicy extends ClinicPolicy {
-  isOwnOrganization(organizationId?: string): boolean {
-    if (this.isSystemAdmin()) return true;
-    if (!organizationId) return false;
+export class OrganizationPolicy extends BasePolicy {
+  isOwnOrganization(targetOrganizationId?: string): boolean {
+    if (!targetOrganizationId || isEmpty(this.actor.ownedOrganizations))
+      return false;
 
-    return (
-      this.actor.ownedOrganizations?.some((org) => org.id === organizationId) ??
-      false
+    return this.actor.ownedOrganizations?.some(
+      (org) => org.id === targetOrganizationId
     );
-  }
-
-  getOrganizationFilter(organizationId?: string) {
-    if (!organizationId) return undefined;
-    if (this.isSystemAdmin()) return { id: organizationId };
-
-    return {
-      id: organizationId,
-      organizationOwners: { some: { id: this.actor.userId } },
-    };
   }
 }

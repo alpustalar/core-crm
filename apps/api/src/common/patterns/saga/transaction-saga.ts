@@ -47,7 +47,7 @@ export class TransactionSaga {
    */
   async compensate(): Promise<void> {
     this.logger.warn(
-      `Compensating ${this.executedSteps.length} executed steps`,
+      `Compensating ${this.executedSteps.length} executed steps`
     );
 
     // Reverse order for compensation
@@ -61,7 +61,7 @@ export class TransactionSaga {
         // ⚠️ Compensation failed - critical error!
         this.logger.error(
           `Compensation failed for step ${index + 1}`,
-          compensationError,
+          compensationError
         );
         // Continue compensating other steps
       }

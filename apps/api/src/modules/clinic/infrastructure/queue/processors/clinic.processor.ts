@@ -1,9 +1,9 @@
 import { Job } from 'bullmq';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { UserModuleApi } from '@modules/user/user-module.api';
+import { UserModuleApi } from '@modules/user/user.module.api';
 
 @Processor('clinic-cleanup')
-export class ClinicCleanupProcessor extends WorkerHost {
+export class ClinicProcessor extends WorkerHost {
   constructor(private readonly userApi: UserModuleApi) {
     super();
   }
@@ -13,6 +13,6 @@ export class ClinicCleanupProcessor extends WorkerHost {
 
     console.log(`Job Id:${job.id} Clinic Clean Up: Klinik ${clinicId}`);
 
-    await this.userApi.softDeleteManyUserForCascade(clinicId);
+    await this.userApi.softDeleteManyWithAClinicId(clinicId);
   }
 }

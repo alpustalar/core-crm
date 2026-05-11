@@ -9,77 +9,64 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
-import { AuthGuard } from '@modules/auth/guards';
-import { Actor, HasCapability } from '@common/decorators';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
-import {
-  FindAllUsersUseCase,
-  FindOneWithUserIdOrEmailUseCase,
-  SendVerificationEmailUseCase,
-  SoftDeleteUserByActorUseCase,
-  UpdateUserByActorUseCase,
-} from '@modules/user/application/use-cases';
-import { ActorContext } from '@common/interfaces';
-import { UserPaths } from '@modules/user/presentation/controllers/paths';
+import { AuthGuard } from '@modules/auth/guards';
+import { HasCapability } from '@common/decorators';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
-import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
+import { THROTTLE_CONFIG } from '@common/constants';
 import { CheckEmailDto } from '@shared/modules/user/dto/registry/check-email.dto';
-import { UpdateUserByActorDto, UserSoftDeleteByActorDto } from '@shared';
-import { UserResponseDto } from '@modules/user/application/dto';
-import { PaginationDto } from '@shared/common';
+import {
+  PaginationDto,
+  UpdateUserByActorDto,
+  UserSoftDeleteByActorDto,
+} from '@shared';
+import { Serialize } from '@modules/user/presentation/decorators/serialize.decorator';
+import {
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
+import { UpdateUserByStaffCommand } from '@modules/user/application/commands/update-user-by-staff';
+import { SoftDeleteUserByStaffCommand } from '@modules/user/application/commands/soft-delete-user-by-staff';
+import { SendVerificationEmailCommand } from '@modules/user/application/commands/send-verification-email';
+import { FindOneWithIdOrEmailQuery } from '@modules/user/application/queries/find-one-with-id-or-email';
+import { FindAllUsersForManagerQuery } from '@modules/user/application/queries/find-all-users-for-manager';
+import { UserTransformInterceptor } from '@modules/user/presentation/user-transform.interceptor';
 
 const { USER } = CAPABILITIES;
 
 @UseGuards(AuthGuard, CapabilityGuard)
-@Controller(UserPaths.ROOT)
+@Controller()
 export class UserController {
   constructor(
-    private readonly updateUserByActorUseCase: UpdateUserByActorUseCase,
-    private readonly findOneWithUserIdOrEmailUseCase: FindOneWithUserIdOrEmailUseCase,
-    private readonly findAllUsersUseCase: FindAllUsersUseCase,
-    private readonly softDeleteUserByActorUseCase: SoftDeleteUserByActorUseCase,
-    private readonly sendVerificationEmailUseCase: SendVerificationEmailUseCase
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus
   ) {}
 
+  @UseInterceptors(UserTransformInterceptor)
   @Get('details/:userIdOrEmail')
   @Version('1')
   @HasCapability(USER.read)
-  async findOneWithUserIdOrEmail(
-    @Actor() actor: ActorContext,
+  @Serialize()
+  findOneWithUserIdOrEmail(
+    @GetContext() context: IGetContext,
     @Param('userIdOrEmail') userIdOrEmail: string
   ) {
-    const result = await this.findOneWithUserIdOrEmailUseCase.execute(
-      userIdOrEmail,
-      actor
+    return this.queryBus.execute(
+      new FindOneWithIdOrEmailQuery(userIdOrEmail, context)
     );
-
-    return plainToInstance(UserResponseDto, result.user, {
-      ...(result.isGroupActive && {
-        groups: result.groups,
-      }),
-      excludeExtraneousValues: true,
-    });
-  }
-
-  @Get()
-  @Version('1')
-  @HasCapability(USER.read)
-  async findAllUsers(
-    @Actor() actor: ActorContext,
-    @Query() paginationDto: PaginationDto
-  ) {
-    return await this.findAllUsersUseCase.execute(paginationDto);
   }
 
   @Post('email-verification')
   @Version('1')
-  @Throttle({ default: { limit: 3, ttl: 60 * 1000 } })
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   @HttpCode(HttpStatus.NO_CONTENT)
   sendEmailVerificationLink(@Body('email') { email }: CheckEmailDto) {
-    return this.sendVerificationEmailUseCase.execute(email);
+    return this.commandBus.execute(new SendVerificationEmailCommand(email));
   }
   @Patch(':id')
   @Version('1')
@@ -87,22 +74,36 @@ export class UserController {
   updateUserByActor(
     @Param('id') id: string,
     @Body() dto: UpdateUserByActorDto,
-    @Actor() actor: ActorContext
+    @GetContext() context: IGetContext
   ) {
-    return this.updateUserByActorUseCase.execute({
-      targetUpdateUserId: id,
-      dto,
-      actor,
-    });
+    return this.commandBus.execute(
+      new UpdateUserByStaffCommand(id, dto, context)
+    );
   }
 
   @Patch('soft-delete')
   @Version('1')
   @HasCapability(USER.delete)
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   softDelete(
     @Body() dto: UserSoftDeleteByActorDto,
-    @Actor() actor: ActorContext
+    @GetContext() context: IGetContext
   ) {
-    return this.softDeleteUserByActorUseCase.execute(dto, actor);
+    return this.commandBus.execute(
+      new SoftDeleteUserByStaffCommand(dto, context)
+    );
+  }
+
+  @Get('all')
+  @Version('1')
+  @HasCapability(USER.read)
+  @Serialize()
+  findAllUsers(
+    @Query() paginationDto: PaginationDto,
+    @GetContext() context: IGetContext
+  ) {
+    return this.queryBus.execute(
+      new FindAllUsersForManagerQuery(paginationDto, context)
+    );
   }
 }

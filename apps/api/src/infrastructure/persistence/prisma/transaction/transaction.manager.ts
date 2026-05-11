@@ -4,7 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   TransactionContext,
   txStorage,
-} from '@src/infrastructure/persistence/prisma/als-storage';
+} from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 
 @Injectable()
 export class TransactionManager {

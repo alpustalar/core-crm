@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { ProviderResponseDto } from '@modules/provider/application/dto/provider-response.dto';
+import { ProviderResponseDto } from '@modules/provider/presentation/dto/provider-response.dto';
 import { UserResponseGroups } from '@modules/user/domain/constants';
 import { UserResponse } from '@shared';
 import { Role } from '@prisma/client';
@@ -74,5 +74,5 @@ export class UserResponseDto implements UserResponse {
 
   @Expose()
   @Type(() => ProviderResponseDto)
-  providerProfile?: ProviderResponseDto;
+  providerProfile?: { id: string };
 }

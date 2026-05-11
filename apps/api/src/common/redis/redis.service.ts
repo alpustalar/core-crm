@@ -32,7 +32,7 @@ export class RedisService {
       REDIS_KEYS.ORGANIZATION.DEACTIVATED(organizationId),
       'true',
       'EX',
-      86400,
+      86400
     );
   }
 

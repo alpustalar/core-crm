@@ -1,34 +1,55 @@
-import { Expose } from 'class-transformer';
-import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
+import { Expose, Type } from 'class-transformer';
+import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
 
-export class ClinicResponseDto {
+export class ClinicDetailsManagerDto {
   @Expose()
+  @IsString()
   id: string;
 
   @Expose()
+  @IsString()
+  displayName: string;
+
+  @Expose()
+  @IsString()
+  email: string;
+}
+
+export class ClinicDetailsStatsDto {
+  @Expose()
+  @IsNumber()
+  providerCount: number;
+
+  @Expose()
+  @IsNumber()
+  patientCount: number;
+
+  @Expose()
+  @IsNumber()
+  appointmentCount: number;
+}
+
+export class ClinicDetailsDto {
+  @Expose()
+  @IsString()
+  id: string;
+
+  @Expose()
+  @IsString()
   name: string;
 
   @Expose()
-  slug: string;
+  @IsString()
+  organizationName: string;
 
   @Expose()
-  phone?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ClinicDetailsManagerDto)
+  managers: ClinicDetailsManagerDto[];
 
   @Expose()
-  email?: string;
-
-  @Expose()
-  city?: string;
-
-  @Expose()
-  district?: string;
-
-  @Expose()
-  status: GlobalStatusType;
-
-  @Expose()
-  timezone: string;
-
-  @Expose()
-  createdAt: Date;
+  @ValidateNested()
+  @Type(() => ClinicDetailsStatsDto)
+  stats: ClinicDetailsStatsDto;
 }

@@ -7,12 +7,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AllExceptionsFilter } from './filters/all-exceptions-filter';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { API_CONFIG } from '@common/constants';
 
 export const SetupApp = (app: INestApplication) => {
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
-    prefix: 'api/v',
+    defaultVersion: API_CONFIG.CURRENT_VERSION,
+    prefix: `${API_CONFIG.PREFIX}/${API_CONFIG.VERSION_PREFIX}`,
   });
 
   app.use(helmet());

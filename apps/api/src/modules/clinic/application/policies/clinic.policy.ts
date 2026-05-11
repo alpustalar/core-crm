@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { UserPolicy } from '@modules/user/application/policies';
+import { BasePolicy } from '@modules/policy/application/base.policy';
 
 @Injectable()
-export class ClinicPolicy extends UserPolicy {
-  canAccessClinic(clinicId: string): boolean {
-    return this.actor.clinicId === clinicId;
+export class ClinicPolicy extends BasePolicy {
+  actorCanAccessTargetClinic(targetClinicId: string): boolean {
+    if (!targetClinicId || !this.actor.clinicId) return false;
+    return this.actor.clinicId === targetClinicId;
   }
 
-  canManageClinic(clinicId: string): boolean {
-    return this.isTargetInMyClinicForManage({ clinicId });
+  actorCanManageTargetClinic(
+    targetClinicId: string | undefined | null
+  ): boolean {
+    if (!targetClinicId) return false;
+    return !!this.actor.managedClinics?.some(
+      (clinic) => clinic.id === targetClinicId
+    );
   }
 }

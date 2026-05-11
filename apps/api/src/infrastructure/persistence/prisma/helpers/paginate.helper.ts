@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
 
-type QueryArgs = {
+export type QueryArgs = {
   where: Record<string, unknown>;
   skip: number | undefined;
   take: number | undefined;
@@ -9,6 +9,12 @@ type QueryArgs = {
   include?: Record<string, unknown>;
 };
 
+export type PaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
 export interface PaginateArgs<T, W> {
   delegate: {
     findMany: (args: QueryArgs) => Promise<T[]>;
@@ -58,7 +64,10 @@ export async function paginate<T, W>({
   return { items, total };
 }
 
-export function buildPaginationMeta(pagination: Pagination, total: number) {
+export function buildPaginationMeta(
+  pagination: Pagination,
+  total: number
+): PaginationMeta {
   const currentPage = Math.floor(pagination.skip / pagination.take) + 1;
   return {
     total,

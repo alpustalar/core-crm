@@ -1,14 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { IProviderResponse } from '@shared/modules/provider';
-
-const providerResMapper = (priority: number, isSelf: boolean) => {
-  if (priority >= 100) {
-    return ['all'];
-  }
-  if (priority >= 90) {
-    return ['all', 'sensitive'];
-  }
-};
+import { IProviderResponse } from '@shared';
 
 export class ProviderResponseDto implements IProviderResponse {
   @Expose()
@@ -23,7 +14,7 @@ export class ProviderResponseDto implements IProviderResponse {
   @Expose()
   publicPhone?: string;
 
-  @Expose({ groups: [] })
+  @Expose()
   publicEmail?: string;
 
   @Expose()

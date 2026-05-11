@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import { IRequestWithUser } from '@common/interfaces';
+import { IRequestWithActor } from '@common/interfaces';
 import {
   HAS_CAPABILITY_KEY,
   HasCapabilityType,
@@ -27,7 +27,7 @@ export class CapabilityGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<IRequestWithUser>();
+    const request = context.switchToHttp().getRequest<IRequestWithActor>();
     const actor = request.actor;
 
     if ((actor?.role?.priority ?? 0) >= 100) {

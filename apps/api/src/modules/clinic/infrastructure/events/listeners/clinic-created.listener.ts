@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ClinicCreatedEvent } from '@modules/clinic/domain/events';
 import { OnEvent } from '@nestjs/event-emitter';
-import { AuditLogService } from '../../../audit-log/audit-log.service';
-import { AuditAction } from '../../../audit-log/enums/audit-action.enum';
+import { AuditLogService } from '@modules/audit-log/audit-log.service';
 
 @Injectable()
 export class ClinicCreatedListener {
@@ -10,13 +9,6 @@ export class ClinicCreatedListener {
 
   @OnEvent(ClinicCreatedEvent.NAME, { async: true })
   async handleClinicCreated(event: ClinicCreatedEvent) {
-    await this.auditLogService.log({
-      action: AuditAction.CLINIC_CREATE,
-      source: event.source,
-      details: `clinic id: ${event.clinicId}, organization id: ${event.organizationId}`,
-      userId: event.userId,
-    });
-
     // İşlemler:
     // - Welcome email gönder
     // - Slack bildirimi

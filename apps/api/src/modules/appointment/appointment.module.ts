@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { UserUseCaseModule } from '@modules/user/application/use-cases/module';
+import { AppointmentModuleApi } from '@modules/appointment/appointment-module.api';
+import { AppointmentUseCaseModule } from '@modules/appointment/application/use-cases/appointment-use-case.module';
+import { AppointmentPresentationModule } from '@modules/appointment/presentation/appointment-presentation.module';
 
-const UseCases = [];
 @Module({
-  imports: [UserUseCaseModule],
-  controllers: [],
-  providers: [...UseCases],
-  exports: [...UseCases],
+  imports: [AppointmentUseCaseModule, AppointmentPresentationModule],
+  providers: [AppointmentModuleApi],
+  exports: [AppointmentModuleApi],
 })
 export class AppointmentModule {}

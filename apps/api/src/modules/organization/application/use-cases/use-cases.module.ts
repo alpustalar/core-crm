@@ -3,7 +3,7 @@ import {
   SoftDeleteOrganizationUseCase,
   UpdateOrganizationUseCase,
 } from './commands';
-import { FindOneUseCase } from './queries/find-one.use-case';
+import { FindOneUseCase } from './queries/find-one/find-one.use-case';
 import { Module } from '@nestjs/common';
 import { OrganizationRepository } from '@modules/organization/infrastructure/persistence/prisma/repositories/organization.repository';
 

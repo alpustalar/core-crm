@@ -1,17 +1,38 @@
 import { Module } from '@nestjs/common';
 import { RedisModule } from '@common/redis/redis.module';
-import { ClinicRepository } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic.repository';
-import { ClinicUseCaseModule } from '@modules/clinic/application/use-cases/module';
-import { ClinicCreatedListener, ClinicDeletedListener, } from './infrastructure/listeners';
-import { ClinicController } from '@modules/clinic/presentation/controllers';
+import { ClinicUseCaseModule } from '@modules/clinic/application/use-cases/clinic-use-case.module';
 import { ClinicModuleApi } from '@modules/clinic/clinic-module.api';
-
-const Listeners = [ClinicCreatedListener, ClinicDeletedListener];
+import { ClinicPresentationModule } from '@modules/clinic/presentation/clinic-presentation.module';
+import { ClinicEventModule } from '@modules/clinic/infrastructure/events/clinic-event.module';
+import { CLINIC_REPO_TOKEN } from '@modules/clinic/domain/repositories/clinic.repository.interface';
+import { ClinicRepository } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic.repository';
+import { CLINIC_MODULE_API_TOKEN } from '@modules/clinic/domain/interfaces/clinic-module.api.interface';
+import { CLINIC_AVAILABILITY_DOMAIN_SERVICE_TOKEN } from '@modules/clinic/domain/interfaces/clinic-availability.domain-service.interface';
+import { ClinicAvailabilityDomainService } from '@modules/clinic/domain/services/clinic-availability.domain-service';
+import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
-  imports: [RedisModule, ClinicUseCaseModule],
-  controllers: [ClinicController],
-  providers: [ClinicRepository, ClinicModuleApi, ...Listeners],
-  exports: [ClinicModuleApi],
+  imports: [
+    RedisModule,
+    ClinicUseCaseModule,
+    ClinicPresentationModule,
+    ClinicEventModule,
+    CqrsModule,
+  ],
+  providers: [
+    {
+      provide: CLINIC_REPO_TOKEN,
+      useClass: ClinicRepository,
+    },
+    {
+      provide: CLINIC_AVAILABILITY_DOMAIN_SERVICE_TOKEN,
+      useClass: ClinicAvailabilityDomainService,
+    },
+    {
+      provide: CLINIC_MODULE_API_TOKEN,
+      useClass: ClinicModuleApi,
+    },
+  ],
+  exports: [CLINIC_MODULE_API_TOKEN, CLINIC_AVAILABILITY_DOMAIN_SERVICE_TOKEN],
 })
 export class ClinicModule {}

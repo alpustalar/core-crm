@@ -1,5 +1,5 @@
 import { Organization, Role } from '@prisma/client';
-import { AuditSource } from '@modules/audit-log/enums/audit-action.enum';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 
 export type OwnedOrganization = Pick<Organization, 'id' | 'name'>;
 export type ManagedClinics = Pick<Organization, 'id' | 'name'>;
@@ -9,10 +9,11 @@ export type ActorContext = {
   roleId?: string;
   role?: Role;
   email: string;
-  capabilities?: string[]; // ['user:create', 'patient:read']
+  capabilities?: string[];
   rolePriority?: number;
   clinicId?: string;
   managedClinics?: ManagedClinics[];
   ownedOrganizations?: OwnedOrganization[];
-  source?: AuditSource;
+  source?: LogSource;
+  ip?: string;
 };

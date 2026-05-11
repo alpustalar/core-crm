@@ -1,11 +1,19 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { ActorContext } from '@common/interfaces';
 import { UserStatus } from '@prisma/client';
-import { rolesCreateManyInputs } from '../../infrastructure/persistence/prisma/data';
 import { getBearerToken } from '@common/utils';
-import { FirebaseService } from '@modules/firebase/firebase.service';
+import {
+  FIREBASE_SERVICE_TOKEN,
+  IFirebaseService,
+} from '@modules/firebase/domain/interfaces/firebase.service.interface';
+import { rolesCreateManyInputs } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const isDevelopment = process.env.NODE_MODE === 'development';
@@ -15,7 +23,8 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly firebaseService: FirebaseService
+    @Inject(FIREBASE_SERVICE_TOKEN)
+    private readonly firebaseService: IFirebaseService
   ) {}
 
   async validateAndGetContext(idToken: string) {
@@ -89,7 +98,7 @@ export class AuthService {
         data: { lastLogin: new Date() },
       })
       .catch((err) => {
-        this.logger.log(`auth service last login update: ${err}`);
+        this.logger.error(`auth service last login update: ${err}`);
       });
   }
 

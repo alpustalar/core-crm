@@ -1,0 +1,31 @@
+import { Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { FINANCE_JOBS, QUEUES } from '@common/constants';
+
+export interface ILedgerJobData {
+  paymentId: string;
+  appointmentId: string | null;
+  clinicId: string;
+  patientId: string;
+  amount: string;
+  currency: string;
+}
+
+@Injectable()
+export class FinanceLedgerProducer {
+  constructor(
+    @InjectQueue(QUEUES.FINANCE) private readonly ledgerQueue: Queue
+  ) {}
+
+  async addToLedgerQueue(data: ILedgerJobData): Promise<void> {
+    await this.ledgerQueue.add(FINANCE_JOBS.PROCESS_LEDGER, data, {
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+      removeOnComplete: true,
+    });
+  }
+}

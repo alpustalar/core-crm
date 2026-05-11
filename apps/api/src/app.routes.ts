@@ -1,0 +1,44 @@
+import { Routes } from '@nestjs/core';
+import { OrganizationModule } from '@modules/organization/organization.module';
+import { ClinicModule } from '@modules/clinic/clinic.module';
+import { PaymentModule } from '@modules/payment/payment.module';
+import { AppointmentModule } from '@modules/appointment/appointment.module';
+import { UserModule } from '@modules/user/user.module';
+import { ProviderModule } from '@modules/provider/provider.module';
+import { FinanceLedgerModule } from '@modules/finance-ledger/finance-ledger.module';
+import { PatientModule } from '@modules/patient/patient.module';
+
+export const APP_ROUTES: Routes = [
+  {
+    path: 'organizations',
+    module: OrganizationModule,
+  },
+  {
+    path: 'clinics',
+    module: ClinicModule,
+  },
+  {
+    path: 'appointments',
+    module: AppointmentModule,
+  },
+  {
+    path: 'users',
+    module: UserModule,
+  },
+  {
+    path: 'providers',
+    module: ProviderModule,
+  },
+  {
+    path: 'patients',
+    module: PatientModule,
+  },
+  {
+    path: 'finance',
+    module: FinanceLedgerModule,
+  },
+  {
+    path: 'payments',
+    module: PaymentModule,
+  },
+];

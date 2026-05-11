@@ -15,10 +15,9 @@ import {
 import { ActorContext } from '@common/interfaces';
 import { SystemAdminGuard } from '@modules/auth/guards/system-admin/system-admin.guard';
 import { CreateOrganizationDto } from '@shared';
-import { OrganizationPaths } from '@modules/organization/presentation/controllers/path';
 
 @UseGuards(AuthGuard, SystemAdminGuard)
-@Controller(OrganizationPaths.ADMIN)
+@Controller()
 export class AdminController {
   constructor(
     private readonly createOrganizationUseCase: CreateOrganizationUseCase,

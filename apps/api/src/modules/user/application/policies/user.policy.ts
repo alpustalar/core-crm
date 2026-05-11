@@ -1,23 +1,19 @@
 import { User } from '@prisma/client';
-import { BasePolicy } from '@modules/policy';
 import { ActorContext } from '@common/interfaces';
+import { UserResponseGroups } from '@modules/user/domain/constants';
+import { IUser } from '@modules/user/domain/repositories/user.repository';
+import { ClinicPolicy } from '@modules/clinic/application/policies';
 
-interface HasClinic {
-  clinicId?: string | null;
-}
-
-interface HasRole {
+interface HasPriority {
   priority: number;
   role?: {
     priority: number;
   };
 }
 
-interface HasPriority {
-  priority: number;
-}
-
-export class UserPolicy extends BasePolicy {
+const { ADMIN, INTERNAL, FINANCIAL, DATA_OWNER, MANAGEMENT } =
+  UserResponseGroups;
+export class UserPolicy extends ClinicPolicy {
   private readonly actorCapabilities: string[];
 
   constructor(actor: ActorContext) {
@@ -34,19 +30,21 @@ export class UserPolicy extends BasePolicy {
   /**
    * Hedef kendi yönettiği clinic'lerden birinde mi? (Manage için)
    */
-  isTargetInMyClinicForManage(target?: HasClinic): boolean {
-    if (!target?.clinicId) return false;
-    return !!this.actor.managedClinics?.some(
-      (clinic) => clinic.id === target.clinicId
-    );
+  isTargetInActorsManagedClinic(
+    targetUserClinicId: string | null | undefined
+  ): boolean {
+    if (!targetUserClinicId) return false;
+    return this.actorCanManageTargetClinic(targetUserClinicId);
   }
 
   /**
    * Hedef kendi çalıştığı clinic'te mi? (Read için)
    */
-  isTargetInMyClinicForRead(target: HasClinic | null | undefined): boolean {
-    if (!target?.clinicId || !this.actor.clinicId) return false;
-    return this.actor.clinicId === target.clinicId;
+  isTargetInActorsSameClinic(
+    targetUserClinicId: string | null | undefined
+  ): boolean {
+    if (!targetUserClinicId || !this.actor.clinicId) return false;
+    return this.actorCanAccessTargetClinic(targetUserClinicId);
   }
   /**
    * Privileged user mu? (Priority >= 80)
@@ -57,32 +55,29 @@ export class UserPolicy extends BasePolicy {
   /**
    * Aktör, hedeften KESİN OLARAK ÜST mü?
    */
-  hasHigherPriorityThan(
-    target: User | HasRole | HasPriority | number
+  actorHasHigherPriorityThanTarget(
+    targetUser: IUser | HasPriority | number
   ): boolean {
-    return this.actorPriority > this.getTargetPriority(target);
+    return this.actorPriority > this.getTargetPriority(targetUser);
   }
 
   /**
    * Aktör ve hedef AYNI seviyede mi?
    */
-  hasEqualPriorityWith(target: User | HasRole | HasPriority | number): boolean {
+  actorHasEqualPriorityWithTarget(
+    target: IUser | HasPriority | number
+  ): boolean {
     return this.actorPriority === this.getTargetPriority(target);
   }
 
   /**
    * Aktör, hedeften DÜŞÜK mü?
    */
-  hasLowerPriorityThan(target: User | HasRole | HasPriority | number): boolean {
+  actorHasLowerPriorityThanTarget(
+    target: IUser | HasPriority | number
+  ): boolean {
     return this.actorPriority < this.getTargetPriority(target);
   }
-  /**
-   * Partial user yönetimi (Create sırasında clinic kontrolü)
-   */
-  canManagePartialUser(clinicId: string): boolean {
-    return this.isTargetInMyClinicForManage({ clinicId });
-  }
-
   //? ==========================================
   //? PRIORITY CHECKS (Cached)
   //? ==========================================
@@ -90,21 +85,21 @@ export class UserPolicy extends BasePolicy {
   /**
    * Kullanıcıyı tamamen yönetebilir mi? (Update/Delete)*
    */
-  canManageUser(targetUser: User): boolean {
-    if (!this.isTargetInMyClinicForManage({ clinicId: targetUser.clinicId })) {
+  actorCanManageTargetUser(targetUser: IUser): boolean {
+    if (!this.isTargetInActorsManagedClinic(targetUser.clinicId)) {
       return false;
     }
-    return this.hasHigherPriorityThan(targetUser);
+    return this.actorHasHigherPriorityThanTarget(targetUser);
   }
 
   /**
    * Kullanıcıyı silebilir mi?
    */
-  canDeleteUser(targetUser: User): boolean {
+  actorCanDeleteTargetUser(targetUser: IUser): boolean {
     if (this.isSelf(targetUser.id)) {
       return false;
     }
-    return this.canManageUser(targetUser);
+    return this.actorCanManageTargetUser(targetUser);
   }
 
   //? ==========================================
@@ -116,12 +111,42 @@ export class UserPolicy extends BasePolicy {
    *
    * NOT: Hem targetUser.role hem newRole.priority gerekli
    */
-  canChangeUserRole(targetUser: User, newRolePriority: number): boolean {
-    if (!this.canManageUser(targetUser)) {
+  actorCanChangeTargetUserRole(
+    targetUser: IUser,
+    newRolePriority: number
+  ): boolean {
+    if (!this.actorCanManageTargetUser(targetUser)) {
       return false;
     }
 
-    return this.hasHigherPriorityThan({ priority: newRolePriority });
+    return this.actorHasHigherPriorityThanTarget({ priority: newRolePriority });
+  }
+
+  /**
+   * kullanıcı geri dönüş grupları
+   */
+
+  getUserSerializeOptions(
+    targetUserId: string,
+    targetUserClinicId: string | null | undefined
+  ) {
+    const isSameClinic = this.isTargetInActorsSameClinic(targetUserClinicId);
+    const isManager = this.isTargetInActorsManagedClinic(targetUserClinicId);
+    const isSelf = this.isSelf(targetUserId);
+    const isAdmin = this.isSystemAdmin();
+
+    const groups = [
+      isSelf && DATA_OWNER,
+      isManager && MANAGEMENT,
+      isManager && FINANCIAL,
+      isSameClinic && INTERNAL,
+      isAdmin && ADMIN,
+    ].filter((group) => typeof group === 'string');
+
+    return {
+      isGroupActive: isSameClinic || isSelf || isManager || isAdmin,
+      groups,
+    };
   }
 
   /**
@@ -139,9 +164,7 @@ export class UserPolicy extends BasePolicy {
     };
   }
 
-  private getTargetPriority(
-    target: User | HasRole | HasPriority | number
-  ): number {
+  private getTargetPriority(target: User | HasPriority | number): number {
     if (typeof target === 'number') {
       return target;
     }

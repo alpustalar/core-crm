@@ -19,6 +19,9 @@ import { Module } from '@nestjs/common';
         [ENV.REDIS_URL]: Joi.string().required(),
         [ENV.ADMIN_EMAIL]: Joi.string().email().required(),
         [ENV.BETTERSTACK_TOKEN]: Joi.string().required(),
+        [ENV.IYZICO_API_KEY]: Joi.string().required(),
+        [ENV.IYZICO_SECRET_KEY]: Joi.string().required(),
+        [ENV.IYZICO_BASE_URL]: Joi.string().uri().required(),
       }),
     }),
     ThrottlerModule.forRoot([

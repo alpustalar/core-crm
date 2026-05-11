@@ -5,55 +5,67 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
   Version,
 } from '@nestjs/common';
-import {
-  ChangePasswordUseCase,
-  FindOneWithUserIdOrEmailUseCase,
-  SendVerificationEmailUseCase,
-} from '@modules/user/application/use-cases';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@modules/auth/guards';
-import { Actor } from '@common/decorators';
-import { ActorContext } from '@common/interfaces';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
-import { UserPaths } from '@modules/user/presentation/controllers/paths';
+import { THROTTLE_CONFIG } from '@common/constants';
 import { ChangeUserPasswordDto } from '@shared';
-import { SendUserPasswordResetLinkBySelfUseCase } from '@modules/user/application/use-cases/commands/send-user-password-reset-link-by-self';
+import {
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
+import { ChangePasswordCommand } from '@modules/user/application/commands/change-password';
+import { SendVerificationEmailCommand } from '@modules/user/application/commands/send-verification-email';
+import { SendUserPasswordResetLinkBySelfCommand } from '@modules/user/application/commands/send-user-password-reset-link-by-self';
+import { FindOneWithIdOrEmailQuery } from '@modules/user/application/queries/find-one-with-id-or-email';
+import { UserTransformInterceptor } from '@modules/user/presentation/user-transform.interceptor';
 
 @UseGuards(AuthGuard, CapabilityGuard)
-@Controller(UserPaths.ME)
+@Controller('me')
 export class MeController {
   constructor(
-    private readonly sendVerificationEmailUseCase: SendVerificationEmailUseCase,
-    private readonly changePasswordUseCase: ChangePasswordUseCase,
-    private readonly findOneWithUserIdOrEmailUseCase: FindOneWithUserIdOrEmailUseCase,
-    private readonly sendUserPasswordResetLinkBySelfUseCase: SendUserPasswordResetLinkBySelfUseCase
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus
   ) {}
 
+  @UseInterceptors(UserTransformInterceptor)
   @Version('1')
   @Get('')
-  getProfile(@Actor() actor: ActorContext) {
-    return this.findOneWithUserIdOrEmailUseCase.execute(actor.userId, actor);
+  getProfile(@GetContext() context: IGetContext) {
+    return this.queryBus.execute(
+      new FindOneWithIdOrEmailQuery(context.actor.userId, context)
+    );
   }
 
   @Version('1')
   @Post('email-verify')
-  sendVerificationEmail(@Actor() actor: ActorContext) {
-    return this.sendVerificationEmailUseCase.execute(actor.email);
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
+  sendVerificationEmail(@GetContext() context: IGetContext) {
+    return this.commandBus.execute(
+      new SendVerificationEmailCommand(context.actor.email)
+    );
   }
 
   @Version('1')
   @Patch('change-password')
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   changePassword(
     @Body() dto: ChangeUserPasswordDto,
-    @Actor() actor: ActorContext
+    @GetContext() context: IGetContext
   ) {
-    return this.changePasswordUseCase.execute(dto, actor);
+    return this.commandBus.execute(new ChangePasswordCommand(dto, context));
   }
 
   @Version('1')
   @Post('reset-password')
-  sendResetPasswordEmail(@Actor() actor: ActorContext) {
-    return this.sendUserPasswordResetLinkBySelfUseCase.execute(actor);
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
+  sendResetPasswordEmail(@GetContext() context: IGetContext) {
+    return this.commandBus.execute(
+      new SendUserPasswordResetLinkBySelfCommand(context)
+    );
   }
 }

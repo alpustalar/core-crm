@@ -1,23 +1,51 @@
 import * as nodemailer from 'nodemailer';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { APP_CONFIG } from '@common/constants';
-import { verificationEmailTemplate } from './templates';
+import { APP_CONFIG, ENV } from '@common/constants';
+import { verificationEmailTemplate } from './domain/templates';
+import {
+  MailConfig,
+  mailConfigSchema,
+} from '@modules/mail/domain/config/mail-config.schema';
+import { IMailService } from '@modules/mail/domain/interfaces/mail.service.interface';
+import { clinicSoftDeleteRequestByOrganizationOwnerTemplate } from '@modules/mail/domain/templates/clinic-soft-delete-request-by-organization-owner-template';
 
 @Injectable()
-export class MailService {
-  private transporter: nodemailer.Transporter;
+export class MailService implements IMailService {
+  private readonly logger = new Logger(MailService.name);
 
-  constructor(private configService: ConfigService) {
-    const port = this.configService.get<number>('EMAIL_SMTP_PORT', 587);
+  private transporter: nodemailer.Transporter;
+  private readonly config: MailConfig;
+
+  constructor(private readonly configService: ConfigService) {
+    const result = mailConfigSchema.safeParse({
+      EMAIL_ADDRESS: this.configService.get<string>(ENV.EMAIL_ADDRESS),
+      EMAIL_PASSWORD: this.configService.get<string>(ENV.EMAIL_PASSWORD),
+      EMAIL_SMTP_HOST: this.configService.get<string>(ENV.EMAIL_SMTP_HOST),
+      EMAIL_SMTP_PORT: this.configService.get<string>(ENV.EMAIL_SMTP_PORT),
+      APP_NAME: APP_CONFIG.NAME,
+    });
+
+    if (!result.success) {
+      this.logger.error(result.error.format());
+      throw new Error(
+        'MailService başlatılamadı: Eksik veya hatalı yapılandırma.'
+      );
+    }
+
+    this.config = result.data;
 
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('EMAIL_SMTP_HOST'),
-      port: port,
-      secure: port === 465,
+      host: this.config.EMAIL_SMTP_HOST,
+      port: this.config.EMAIL_SMTP_PORT,
+      secure: this.config.EMAIL_SMTP_PORT === 465,
       auth: {
-        user: this.configService.get<string>('EMAIL_ADDRESS'),
-        pass: this.configService.get<string>('EMAIL_PASSWORD'),
+        user: this.config.EMAIL_ADDRESS,
+        pass: this.config.EMAIL_PASSWORD,
       },
     });
   }
@@ -37,6 +65,26 @@ export class MailService {
     } catch (e) {
       console.error(e);
       throw new InternalServerErrorException('Doğrulama maili gönderilemedi.');
+    }
+  }
+
+  async sendClinicSoftDeleteRequestMail(to: string) {
+    const EMAIL_ADDRESS = this.configService.get<string>('EMAIL_ADDRESS');
+    if (!EMAIL_ADDRESS) {
+      throw new Error('email ayar hatası ');
+    }
+    try {
+      await this.transporter.sendMail({
+        from: `"${APP_CONFIG.NAME}" <${EMAIL_ADDRESS}>`,
+        to,
+        subject: 'Klinik Silme Talebi',
+        html: clinicSoftDeleteRequestByOrganizationOwnerTemplate(),
+      });
+    } catch (e) {
+      console.error(e);
+      throw new InternalServerErrorException(
+        'Klinik silme talebi maili gönderilemedi.'
+      );
     }
   }
 }

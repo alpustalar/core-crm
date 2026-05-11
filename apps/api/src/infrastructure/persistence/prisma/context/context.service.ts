@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { txStorage } from './als-storage';
+import { txStorage } from '../transaction/als-storage';
 
 @Injectable()
 export class ContextService {
-  addEvent(name: string, eventInstance: unknown): void {
+  addEvent(name: string, eventInstance: object): void {
     const store = txStorage.getStore();
     if (store) {
       store.events.push({

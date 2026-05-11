@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction.manager';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @Global()
 @Module({

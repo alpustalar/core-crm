@@ -1,19 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { Clinic, GlobalStatus, Prisma } from '@prisma/client';
+import { Clinic, GlobalStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import {
+  IClinic,
+  IClinicCreate,
+  IClinicRepository,
+  IClinicUpdate,
+  UpdateAsManagerInput,
+} from '@modules/clinic/domain/repositories/clinic.repository.interface';
 
 @Injectable()
-export class ClinicRepository extends BaseRepository {
+export class ClinicRepository
+  extends BaseRepository
+  implements IClinicRepository
+{
   constructor(prisma: PrismaService) {
     super(prisma);
   }
 
-  async create(data: Prisma.ClinicCreateInput) {
+  async create(data: IClinicCreate) {
     return this.db.clinic.create({ data });
   }
 
-  async FindByIdWithDetails(id: string) {
+  async findByIdWithDetails(id: string) {
     return this.db.clinic.findUnique({
       where: { id, status: { not: GlobalStatus.DELETED } },
       include: {
@@ -42,7 +52,7 @@ export class ClinicRepository extends BaseRepository {
     });
   }
 
-  async update(id: string, data: Prisma.ClinicUpdateInput) {
+  async update(id: string, data: IClinicUpdate) {
     return this.db.clinic.update({
       where: { id },
       data,
@@ -60,7 +70,7 @@ export class ClinicRepository extends BaseRepository {
   }
 
   // ✅ Manager-specific queries
-  async findByIdAsManager(id: string, userId: string): Promise<Clinic | null> {
+  async findByIdAsManager(id: string, userId: string): Promise<IClinic | null> {
     return this.db.clinic.findFirst({
       where: {
         id,
@@ -74,22 +84,19 @@ export class ClinicRepository extends BaseRepository {
     });
   }
 
-  async softDeleteByOrganizationId(organizationId: string) {
-    return this.db.clinic.updateMany({
-      where: { organizationId },
+  async softDeleteManyClinicWithAnOrganizationId(organizationId: string) {
+    const { count: deletedCount } = await this.db.clinic.updateMany({
+      where: { organizationId, status: { not: GlobalStatus.DELETED } },
       data: { status: GlobalStatus.DELETED, deletedAt: new Date() },
     });
+    return { deletedCount };
   }
 
   async updateAsManager({
     id,
     userId,
     data,
-  }: {
-    id: string;
-    userId: string;
-    data: Prisma.ClinicUpdateInput;
-  }): Promise<Clinic | null> {
+  }: UpdateAsManagerInput): Promise<Clinic | null> {
     return this.db.clinic.update({
       where: { id, managers: { some: { id: userId } } },
       data,
@@ -111,7 +118,6 @@ export class ClinicRepository extends BaseRepository {
       where: { slug, status: { not: GlobalStatus.DELETED } },
       select: { id: true },
     });
-
     return !!clinic;
   }
 

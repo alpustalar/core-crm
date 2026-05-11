@@ -1,7 +1,7 @@
-import { AppointmentStatus, ExternalSystem } from '@prisma/client';
+import { Appointment, AppointmentStatus, ExternalSystem } from '@prisma/client';
 import { BadRequestException } from '@nestjs/common';
 
-export class Appointment {
+export class AppointmentEntity implements Appointment {
   id: string;
   patientName: string;
   patientPhone: string;
@@ -26,78 +26,8 @@ export class Appointment {
   isDeleted: boolean;
   deletedAt: Date | null;
 
-  constructor({
-    id,
-    patientName,
-    patientPhone,
-    patientEmail,
-    startTime,
-    endTime,
-    timezone,
-    treatmentType,
-    notes,
-    status,
-    canceledAt,
-    canceledBy,
-    cancelReason,
-    createdAt,
-    updatedAt,
-    externalSystem,
-    externalId,
-    treatmentId,
-    clinicId,
-    providerId,
-    patientId,
-    isDeleted,
-    deletedAt,
-  }: {
-    id: string;
-    patientName: string;
-    patientPhone: string;
-    patientEmail: string | null;
-    startTime: Date;
-    endTime: Date;
-    timezone: string;
-    treatmentType: string | null;
-    notes: string | null;
-    status: AppointmentStatus;
-    canceledAt: Date | null;
-    canceledBy: string | null;
-    cancelReason: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-    externalSystem: ExternalSystem | null;
-    externalId: string | null;
-    treatmentId: string | null;
-    clinicId: string;
-    providerId: string;
-    patientId: string | null;
-    isDeleted: boolean;
-    deletedAt: Date | null;
-  }) {
-    this.id = id;
-    this.patientName = patientName;
-    this.patientPhone = patientPhone;
-    this.patientEmail = patientEmail;
-    this.startTime = startTime;
-    this.endTime = endTime;
-    this.timezone = timezone;
-    this.treatmentType = treatmentType;
-    this.notes = notes;
-    this.status = status;
-    this.canceledAt = canceledAt;
-    this.canceledBy = canceledBy;
-    this.cancelReason = cancelReason;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-    this.externalSystem = externalSystem;
-    this.externalId = externalId;
-    this.treatmentId = treatmentId;
-    this.clinicId = clinicId;
-    this.providerId = providerId;
-    this.patientId = patientId;
-    this.isDeleted = isDeleted;
-    this.deletedAt = deletedAt;
+  constructor(data: Appointment) {
+    Object.assign(this, data);
   }
 
   public confirm(): void {
@@ -113,10 +43,11 @@ export class Appointment {
   public cancel(canceledBy: string, reason?: string): void {
     if (
       this.status === AppointmentStatus.COMPLETED ||
+      this.status === AppointmentStatus.CANCELLED ||
       this.status === AppointmentStatus.NOSHOW
     ) {
       throw new BadRequestException(
-        'Tamamlanan veya gelmeme olarak işaretlenmiş randevular iptal edilemez.'
+        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
       );
     }
 

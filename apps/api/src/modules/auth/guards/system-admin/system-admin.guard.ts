@@ -5,14 +5,14 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { IRequestWithUser } from '@common/interfaces';
+import { IRequestWithActor } from '@common/interfaces';
 
 @Injectable()
 export class SystemAdminGuard implements CanActivate {
   canActivate(
     context: ExecutionContext
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const actor = context.switchToHttp().getRequest<IRequestWithUser>().actor;
+    const actor = context.switchToHttp().getRequest<IRequestWithActor>().actor;
 
     if (!actor || !actor.role) return false;
     if (actor.role.priority < 100) {
