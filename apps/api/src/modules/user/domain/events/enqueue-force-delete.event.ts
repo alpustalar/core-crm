@@ -6,7 +6,7 @@ import {
 import { BaseEvent } from '@common/interfaces';
 import { USER_EVENTS } from '@src/domain/constants/events';
 
-export interface IEnqueueForceDeleteEventParams {
+export interface EnqueueForceDeleteEventPayload {
   firebaseUid: string;
   detail?: string;
   actorId: string;
@@ -24,24 +24,24 @@ export class EnqueueForceDeleteEvent extends BaseEvent {
   public readonly action: LogAction = LogAction.USER_DELETE; // Sabit action
   public readonly source: LogSource;
 
-  constructor(params: IEnqueueForceDeleteEventParams) {
-    const source = params.source ?? LogSource.SYSTEM;
+  constructor(payload: EnqueueForceDeleteEventPayload) {
+    const source = payload.source ?? LogSource.SYSTEM;
 
     super({
       action: LogAction.USER_DELETE,
-      actorId: params.actorId,
+      actorId: payload.actorId,
       details: {
-        targetUid: params.firebaseUid,
-        reason: params.detail,
+        targetUid: payload.firebaseUid,
+        reason: payload.detail,
       },
-      type: params.type,
+      type: payload.type,
       source: source,
     });
 
-    this.firebaseUid = params.firebaseUid;
-    this.detail = params.detail;
-    this.actorId = params.actorId;
-    this.type = params.type;
+    this.firebaseUid = payload.firebaseUid;
+    this.detail = payload.detail;
+    this.actorId = payload.actorId;
+    this.type = payload.type;
     this.source = source;
   }
 }

@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Clinic, GlobalStatus } from '@prisma/client';
+import { Clinic, GlobalStatus, Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
-  IClinic,
-  IClinicCreate,
   IClinicRepository,
-  IClinicUpdate,
   UpdateAsManagerInput,
 } from '@modules/clinic/domain/repositories/clinic.repository.interface';
+import { ClinicPersistencePrismaMapper } from '@modules/clinic/infrastructure/persistence/prisma/mappers/clinic-persistence-prisma.mapper';
+import { CreateClinicDto } from '@shared';
 
 @Injectable()
 export class ClinicRepository
@@ -19,8 +18,10 @@ export class ClinicRepository
     super(prisma);
   }
 
-  async create(data: IClinicCreate) {
-    return this.db.clinic.create({ data });
+  async create(data: CreateClinicDto) {
+    const toPersistence =
+      ClinicPersistencePrismaMapper.toCreateClinicInput(data);
+    return this.db.clinic.create({ data: toPersistence });
   }
 
   async findByIdWithDetails(id: string) {
@@ -52,7 +53,7 @@ export class ClinicRepository
     });
   }
 
-  async update(id: string, data: IClinicUpdate) {
+  async update(id: string, data: Prisma.ClinicUpdateInput) {
     return this.db.clinic.update({
       where: { id },
       data,
@@ -70,7 +71,7 @@ export class ClinicRepository
   }
 
   // ✅ Manager-specific queries
-  async findByIdAsManager(id: string, userId: string): Promise<IClinic | null> {
+  async findByIdAsManager(id: string, userId: string): Promise<Clinic | null> {
     return this.db.clinic.findFirst({
       where: {
         id,

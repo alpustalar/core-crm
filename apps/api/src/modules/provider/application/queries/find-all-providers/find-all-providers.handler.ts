@@ -1,18 +1,17 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import {
-  IProvider,
   IProviderRepository,
   PROVIDER_REPO_TOKEN,
 } from '@modules/provider/domain/repositories/provider.repository.interface';
 import { FindAllProvidersQuery } from './find-all-providers.query';
-import { QueryResult } from '@shared/common/response/response.interface';
+import { QueryResponse } from '@shared/common/response/response.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import { Provider } from '@shared';
 
 @QueryHandler(FindAllProvidersQuery)
 export class FindAllProvidersHandler
-  implements
-    IQueryHandler<FindAllProvidersQuery, QueryResult<IProvider[]>>
+  implements IQueryHandler<FindAllProvidersQuery, QueryResponse<Provider[]>>
 {
   constructor(
     @Inject(PROVIDER_REPO_TOKEN)
@@ -21,7 +20,7 @@ export class FindAllProvidersHandler
 
   async execute(
     query: FindAllProvidersQuery
-  ): Promise<QueryResult<IProvider[]>> {
+  ): Promise<QueryResponse<Provider[]>> {
     const {
       context: { actor },
       pagination,

@@ -5,16 +5,16 @@ import {
   PROVIDER_AVAILABILITY_REPO_TOKEN,
 } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
 import { GetProviderScheduleQuery } from './get-provider-schedule.query';
-import { ProviderAvailability, ProviderException } from '@shared';
-
-export interface ProviderScheduleResult {
-  availabilities: ProviderAvailability[];
-  exceptions: ProviderException[];
-}
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { ProviderScheduleResponse } from './get-provider-schedule.response';
 
 @QueryHandler(GetProviderScheduleQuery)
 export class GetProviderScheduleHandler
-  implements IQueryHandler<GetProviderScheduleQuery, ProviderScheduleResult>
+  implements
+    IQueryHandler<
+      GetProviderScheduleQuery,
+      QueryResponse<ProviderScheduleResponse>
+    >
 {
   constructor(
     @Inject(PROVIDER_AVAILABILITY_REPO_TOKEN)
@@ -23,7 +23,7 @@ export class GetProviderScheduleHandler
 
   async execute(
     query: GetProviderScheduleQuery
-  ): Promise<ProviderScheduleResult> {
+  ): Promise<QueryResponse<ProviderScheduleResponse>> {
     const { providerId, startDate, endDate } = query;
 
     const [availabilities, exceptions] = await Promise.all([
@@ -35,6 +35,8 @@ export class GetProviderScheduleHandler
       ),
     ]);
 
-    return { availabilities, exceptions };
+    return {
+      data: { availabilities, exceptions },
+    };
   }
 }

@@ -1,0 +1,34 @@
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+import { Public } from '@common/decorators/public.decorator';
+import { Throttle } from '@nestjs/throttler';
+import { ROUTE_PATHS, THROTTLE_CONFIG } from '@common/constants';
+import { HandleSubscriptionCallbackCommand } from '@modules/subscription/application/commands/handle-subscription-callback/handle-subscription-callback.command';
+
+@Controller(ROUTE_PATHS.SUBSCRIPTIONS.ROOT)
+export class SubscriptionController {
+  constructor(private readonly commandBus: CommandBus) {}
+
+  /**
+   * İyzico'nun abonelik ödemesi tamamlandıktan sonra çağırdığı callback.
+   * application/x-www-form-urlencoded formatında { token, conversationId, signature } gönderir.
+   */
+  @Post(ROUTE_PATHS.SUBSCRIPTIONS.CALLBACK)
+  @Public()
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
+  @HttpCode(HttpStatus.OK)
+  handleCallback(
+    @Body('token') token: string,
+    @Body('conversationId') conversationId: string
+  ) {
+    return this.commandBus.execute(
+      new HandleSubscriptionCallbackCommand({ token, conversationId })
+    );
+  }
+}

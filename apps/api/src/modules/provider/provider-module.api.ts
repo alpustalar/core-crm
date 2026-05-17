@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import {
-  GetProviderScheduleQuery,
-  ProviderScheduleResult,
-} from '@modules/provider/application/queries';
-import { IGetContext } from '@common/decorators/get-context.decorator';
+import { GetProviderScheduleQuery } from '@modules/provider/application/queries';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
-import { SoftDeleteProviderByClinicIdCommand } from '@modules/provider/application/commands';
-import { ProviderAvailabilityDomainService } from '@modules/provider/domain/services/provider-availability.domain-service';
+import {
+  ConvertUserToProviderCommand,
+  SoftDeleteProviderByClinicIdCommand,
+} from '@modules/provider/application/commands';
+import { ProviderScheduleEntity } from '@modules/provider/domain/entities/provider-schedule.entity';
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { ProviderScheduleResponse } from '@modules/provider/application/queries/get-provider-schedule/get-provider-schedule.response';
+import { ConvertUserToProviderDto } from '@shared';
 
 interface AssertProviderCanBookInput {
   providerId: string;
@@ -33,38 +35,51 @@ export class ProviderModuleApi {
     providerId,
     startDate,
     endDate,
-  }: FindScheduleInput): Promise<ProviderScheduleResult> {
-    return this.queryBus.execute<
-      GetProviderScheduleQuery,
-      ProviderScheduleResult
-    >(new GetProviderScheduleQuery(providerId, startDate, endDate));
+  }: FindScheduleInput): Promise<QueryResponse<ProviderScheduleResponse>> {
+    return this.queryBus.execute(
+      new GetProviderScheduleQuery(providerId, startDate, endDate)
+    );
   }
 
-  async assertCanBook({
+  async assertCanBookOrThrow({
     providerId,
     startTime,
     endTime,
   }: AssertProviderCanBookInput): Promise<void> {
-    const scheduleData = await this.queryBus.execute<
+    const {
+      availabilities: providerAvailabilities,
+      exceptions: providerExceptions,
+    } = await this.queryBus.execute<
       GetProviderScheduleQuery,
-      ProviderScheduleResult
+      ProviderScheduleResponse
     >(new GetProviderScheduleQuery(providerId, startTime, endTime));
 
-    const schedule = new ProviderAvailabilityDomainService(
-      scheduleData.availabilities,
-      scheduleData.exceptions
+    if (!providerAvailabilities[0].provider.canAcceptExamination) {
+      throw new Error('This provider cannot accept examinations');
+    }
+    const schedule = new ProviderScheduleEntity(
+      providerAvailabilities,
+      providerExceptions
     );
 
     schedule.validateBookingAvailabilityOrThrow(startTime, endTime);
   }
 
-  async softDeleteByClinicId(clinicId: string, context?: IGetContext) {
-    const internalContext = ExecutionContextFactory.createInternal(
-      ExecutionSources.INTERNAL_CASCADE,
-      context
+  createProvider(dto: ConvertUserToProviderDto): Promise<string> {
+    return this.commandBus.execute<ConvertUserToProviderCommand, string>(
+      new ConvertUserToProviderCommand(
+        ExecutionContextFactory.createInternal(ExecutionSources.INTERNAL_CASCADE),
+        dto
+      )
     );
+  }
+
+  softDeleteByClinicId(clinicId: string) {
     return this.commandBus.execute<SoftDeleteProviderByClinicIdCommand, void>(
-      new SoftDeleteProviderByClinicIdCommand(clinicId, internalContext)
+      new SoftDeleteProviderByClinicIdCommand(
+        clinicId,
+        ExecutionContextFactory.createInternal(ExecutionSources.INTERNAL_CASCADE)
+      )
     );
   }
 }

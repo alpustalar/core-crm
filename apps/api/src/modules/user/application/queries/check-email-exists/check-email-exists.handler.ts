@@ -6,14 +6,14 @@ import {
 } from '@modules/user/domain/repositories/user.repository';
 import { CheckEmailExistsQuery } from '@modules/user/application/queries/check-email-exists/check-email-exists.query';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { QueryResult } from '@shared/common/response/response.interface';
+import { QueryResponse } from '@shared/common/response/response.interface';
 
 @Injectable()
 export class CheckEmailIsExistUseCase {}
 
 @QueryHandler(CheckEmailExistsQuery)
 export class CheckEmailExistsHandler
-  implements IQueryHandler<CheckEmailExistsQuery, QueryResult<boolean>>
+  implements IQueryHandler<CheckEmailExistsQuery, QueryResponse<boolean>>
 {
   constructor(
     @Inject(USER_REPO_TOKEN)

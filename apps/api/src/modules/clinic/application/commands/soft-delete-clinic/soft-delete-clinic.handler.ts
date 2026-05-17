@@ -3,9 +3,8 @@ import {
   CLINIC_REPO_TOKEN,
   IClinicRepository,
 } from '@modules/clinic/domain/repositories/clinic.repository.interface';
-import { ContextService } from '@src/infrastructure/persistence/prisma/context/context.service';
+import { ContextService } from '@src/infrastructure/context/context.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { SoftDeleteClinicCommand } from '@modules/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.use-case-by-id.command';
 import { Inject } from '@nestjs/common';
 
@@ -30,10 +29,7 @@ export class SoftDeleteClinicHandler
 
       if (!removedClinic) return null;
 
-      // BURASI ÖNEMLİ:
-      // ContextService senin 'safeline'ın.
-      // Transaction bitene kadar bu event sadece listede bekler.
-      this.contextService.addEvent(CLINIC_EVENTS.SOFT_DELETED, {
+      this.contextService.addEvent({
         clinicId: removedClinic.id,
         clinicName: removedClinic.name,
         organizationId: removedClinic.organizationId,

@@ -1,6 +1,5 @@
 export interface DomainEvent {
-  name: string;
-  payload: any;
+  payload: object;
   occurredAt: Date;
   correlationId: string;
 }

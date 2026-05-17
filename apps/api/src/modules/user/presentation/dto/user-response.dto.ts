@@ -3,7 +3,7 @@ import { ProviderResponseDto } from '@modules/provider/presentation/dto/provider
 import { UserResponseGroups } from '@modules/user/domain/constants';
 import { UserResponse } from '@shared';
 import { Role } from '@prisma/client';
-import { UserStatusType } from '@input-type-schemas/UserStatusSchema';
+import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
 
 export class RelationalDto {
   @Expose()
@@ -50,7 +50,7 @@ export class UserResponseDto implements UserResponse {
   // Management & Operational (Internal Team)
   // --------------------
   @Expose({ groups: [MANAGEMENT, INTERNAL] })
-  status: UserStatusType;
+  status: GlobalStatusType;
 
   @Expose({ groups: [MANAGEMENT] })
   createdAt: Date;

@@ -3,40 +3,40 @@ import { EventBus } from '@nestjs/cqrs';
 import { IUserEventPublisher } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import {
   CreateUserEvent,
-  ICreateUserEventParams,
+  CreateUserEventPayload,
 } from '@modules/user/domain/events/create-user.event';
 import {
-  IUpdateUserByStaffEventParams,
   UpdateUserByStaffEvent,
+  UpdateUserByStaffEventPayload,
 } from '@modules/user/domain/events/update-user-by-staff.event';
 import {
   EnqueueForceDeleteEvent,
-  IEnqueueForceDeleteEventParams,
+  EnqueueForceDeleteEventPayload,
 } from '@modules/user/domain/events/enqueue-force-delete.event';
 import {
   SendUserPasswordResetLinkByActorEvent,
-  SendUserPasswordResetLinkByActorEventParams,
+  SendUserPasswordResetLinkByActorEventPayload,
 } from '@modules/user/domain/events/send-user-password-reset-link-by-actor.event';
 
 @Injectable()
 export class UserEventPublisher implements IUserEventPublisher {
   constructor(private readonly eventBus: EventBus) {}
 
-  create(event: ICreateUserEventParams) {
-    this.eventBus.publish(new CreateUserEvent(event));
+  create(payload: CreateUserEventPayload) {
+    this.eventBus.publish(new CreateUserEvent(payload));
   }
 
   sendUserPasswordResetLinkByActor(
-    event: SendUserPasswordResetLinkByActorEventParams
+    payload: SendUserPasswordResetLinkByActorEventPayload
   ) {
-    this.eventBus.publish(new SendUserPasswordResetLinkByActorEvent(event));
+    this.eventBus.publish(new SendUserPasswordResetLinkByActorEvent(payload));
   }
 
-  updateUserByStaff(event: IUpdateUserByStaffEventParams) {
-    this.eventBus.publish(new UpdateUserByStaffEvent(event));
+  updateUserByStaff(payload: UpdateUserByStaffEventPayload) {
+    this.eventBus.publish(new UpdateUserByStaffEvent(payload));
   }
 
-  enqueueForceDelete(event: IEnqueueForceDeleteEventParams) {
-    this.eventBus.publish(new EnqueueForceDeleteEvent(event));
+  enqueueForceDelete(payload: EnqueueForceDeleteEventPayload) {
+    this.eventBus.publish(new EnqueueForceDeleteEvent(payload));
   }
 }

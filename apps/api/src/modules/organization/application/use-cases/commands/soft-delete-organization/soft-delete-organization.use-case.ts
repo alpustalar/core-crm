@@ -1,7 +1,7 @@
 import { OrganizationRepository } from '@modules/organization/infrastructure/persistence/prisma/repositories/organization.repository';
 import { ActorContext } from '@common/interfaces';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { OrganizationEventPublisher } from '@modules/organization/infrastructure/events/publisher';
+import { OrganizationEventPublisher } from '@modules/organization/infrastructure/events/organization-event-publisher.service';
 
 export class SoftDeleteOrganizationUseCase {
   constructor(

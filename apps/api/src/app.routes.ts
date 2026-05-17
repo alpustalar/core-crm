@@ -1,4 +1,5 @@
 import { Routes } from '@nestjs/core';
+import { RegistrationModule } from '@modules/registration/registration.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
 import { ClinicModule } from '@modules/clinic/clinic.module';
 import { PaymentModule } from '@modules/payment/payment.module';
@@ -40,5 +41,9 @@ export const APP_ROUTES: Routes = [
   {
     path: 'payments',
     module: PaymentModule,
+  },
+  {
+    path: 'register',
+    module: RegistrationModule,
   },
 ];

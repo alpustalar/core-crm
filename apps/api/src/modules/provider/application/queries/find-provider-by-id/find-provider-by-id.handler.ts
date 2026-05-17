@@ -23,7 +23,7 @@ export class FindProviderByIdHandler
       context: { actor },
     } = query;
 
-    const provider = await this.providerRepo.findById(providerId);
+    const provider = await this.providerRepo.find(providerId);
 
     if (!provider) {
       throw new NotFoundException('Provider bulunamadı.');

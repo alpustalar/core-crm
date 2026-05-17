@@ -54,7 +54,7 @@ export class SendUserPasswordResetLinkByStaffHandler
         });
       });
 
-    const user = await this.userRepo.findOneWithAnIdOrEmail(dto.userId);
+    const user = await this.userRepo.findByIdOrEmail(dto.userId);
 
     if (!user) {
       throw new NotFoundException('Kullanıcı bulunamadı');

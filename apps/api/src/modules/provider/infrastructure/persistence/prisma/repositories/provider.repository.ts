@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProviderRepository } from '@modules/provider/domain/repositories/provider.repository.interface';
+import { ProviderPersistenceMapper } from '@modules/provider/infrastructure/persistence/prisma/mappers/provider-persistence.mapper';
+import { ConvertUserToProviderDto } from '@shared/modules/provider/dto/convert-user-to-provider.dto';
+import { UpdateProviderDto } from '@shared/modules/provider/dto/update-provider.dto';
 
 @Injectable()
 export class ProviderRepository
@@ -14,15 +16,16 @@ export class ProviderRepository
   constructor(prisma: PrismaService) {
     super(prisma);
   }
-  create(data: Prisma.ProviderCreateInput) {
-    return this.db.provider.create({ data });
+  create(data: ConvertUserToProviderDto) {
+    const toPersistence = ProviderPersistenceMapper.toCreate(data);
+    return this.db.provider.create({ data: toPersistence });
   }
 
-  findById(providerId: string) {
+  find(providerId: string) {
     return this.db.provider.findUnique({ where: { id: providerId } });
   }
 
-  findAllByClinicId(pagination: Pagination, clinicId: string) {
+  async findAllByClinicId(pagination: Pagination, clinicId: string) {
     return paginate({
       delegate: this.db.provider,
       pagination,
@@ -38,7 +41,11 @@ export class ProviderRepository
     });
   }
 
-  update(providerId: string, data: Prisma.ProviderUpdateInput) {
-    return this.db.provider.update({ where: { id: providerId }, data });
+  update(providerId: string, data: UpdateProviderDto) {
+    const toPersistence = ProviderPersistenceMapper.toUpdate(data);
+    return this.db.provider.update({
+      where: { id: providerId },
+      data: toPersistence,
+    });
   }
 }

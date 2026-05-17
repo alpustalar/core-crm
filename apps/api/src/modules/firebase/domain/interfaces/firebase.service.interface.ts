@@ -1,8 +1,7 @@
 import { auth } from 'firebase-admin';
-import { CreateUserDto } from '@shared/modules';
 
 export interface IFirebaseService {
-  createUser(dto: CreateUserDto): Promise<auth.UserRecord>;
+  createUser(dto: auth.CreateRequest): Promise<auth.UserRecord>;
   deleteUser(id: string): Promise<void>;
   changePassword(payload: {
     id: string;

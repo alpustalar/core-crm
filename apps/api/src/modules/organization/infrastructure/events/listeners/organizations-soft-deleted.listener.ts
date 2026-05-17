@@ -14,7 +14,7 @@ export class OrganizationsSoftDeletedListener {
 
   @OnEvent(OrganizationSoftDeleteEvent.NAME, { async: true })
   async handle(event: OrganizationSoftDeleteEvent) {
-    const { organizationId, actorId, metadata, log } = event;
+    const { organizationId, metadata, log } = event;
 
     if (log) {
       const { action, actorId, source, type } = log;
@@ -27,13 +27,13 @@ export class OrganizationsSoftDeletedListener {
           actorId,
         });
       }
-    }
 
-    this.logger.log(`Organization soft deletion process started`, {
-      organizationId,
-      actorId,
-      correlationId: metadata.correlationId,
-    });
+      this.logger.log(`Organization soft deletion process started`, {
+        organizationId,
+        actorId,
+        correlationId: metadata.correlationId,
+      });
+    }
 
     try {
       // TODO: 2. Asıl yan etki (Side Effect) burada tetiklenir

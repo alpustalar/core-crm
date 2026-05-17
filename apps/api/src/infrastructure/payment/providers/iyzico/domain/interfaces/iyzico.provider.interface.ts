@@ -3,7 +3,7 @@ import { LedgerSource } from '@prisma/client';
 import {
   CheckoutFormInitializeRequest,
   WithIyzicoError,
-} from '../iyzico.client';
+} from '../../iyzico.client';
 
 export interface CancelPaymentInput {
   conversationId: string;

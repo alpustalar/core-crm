@@ -1,31 +1,27 @@
-import { IEvent } from '@nestjs/cqrs';
-import { LogSource } from '@src/domain/constants/log-action.constant';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
+import { BaseEvent } from '@common/interfaces';
+import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
-export interface IClinicCreatedEvent {
+export interface ClinicCreatedEventPayload extends IAuditLog {
   readonly clinicId: string;
   readonly organizationId?: string;
-  readonly userId?: string;
-  readonly source?: LogSource;
-  readonly correlationId?: string;
 }
 
-export class ClinicCreatedEvent implements IEvent {
+export class ClinicCreatedEvent extends BaseEvent {
   static readonly NAME = CLINIC_EVENTS.CREATED;
 
   public readonly clinicId: string;
   public readonly organizationId?: string;
-  public readonly userId?: string;
-  public readonly source?: LogSource;
-  public readonly correlationId?: string;
-  public readonly occurredAt: Date;
 
-  constructor(event: IClinicCreatedEvent) {
-    this.clinicId = event.clinicId;
-    this.organizationId = event.organizationId;
-    this.userId = event.userId;
-    this.source = event.source || LogSource.SYSTEM;
-    this.correlationId = event.correlationId;
-    this.occurredAt = new Date();
+  constructor(payload: ClinicCreatedEventPayload) {
+    super({
+      source: payload.source,
+      action: payload.action,
+      details: payload.details,
+      actorId: payload.actorId,
+      type: payload.type,
+    });
+    this.clinicId = payload.clinicId;
+    this.organizationId = payload.organizationId;
   }
 }

@@ -2,7 +2,7 @@ import { PAYMENT_EVENTS } from '@src/domain/constants/events';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
 import { BaseEvent } from '@common/interfaces';
 
-export interface PaymentPaidEventParams extends IAuditLog {
+export interface PaymentPaidEventPayload extends IAuditLog {
   paymentId: string;
   appointmentId: string | null;
   clinicId: string;
@@ -15,16 +15,16 @@ export class PaymentPaidEvent extends BaseEvent {
   public readonly appointmentId: string | null;
   public readonly clinicId: string;
 
-  constructor(event: PaymentPaidEventParams) {
+  constructor(payload: PaymentPaidEventPayload) {
     super({
-      action: event.action,
-      source: event.source,
-      metadata: event.metadata,
-      details: event.details,
-      type: event.type,
+      action: payload.action,
+      source: payload.source,
+      metadata: payload.metadata,
+      details: payload.details,
+      type: payload.type,
     });
-    this.paymentId = event.paymentId;
-    this.appointmentId = event.appointmentId;
-    this.clinicId = event.clinicId;
+    this.paymentId = payload.paymentId;
+    this.appointmentId = payload.appointmentId;
+    this.clinicId = payload.clinicId;
   }
 }

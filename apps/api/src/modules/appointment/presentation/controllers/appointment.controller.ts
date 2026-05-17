@@ -34,6 +34,10 @@ import {
   StaffRescheduleDto,
 } from '@shared';
 import { ActorContext } from '@common/interfaces';
+import {
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
 
 const { APPOINTMENT } = CAPABILITIES;
 
@@ -110,8 +114,11 @@ export class AppointmentController {
 
   @Post('schedule')
   @HasCapability(APPOINTMENT.create)
-  schedule(@Body() dto: ScheduleAppointmentDto, @Actor() actor: ActorContext) {
-    return this.scheduleAppointmentUseCase.execute(dto, actor);
+  schedule(
+    @Body() dto: ScheduleAppointmentDto,
+    @GetContext() context: IGetContext
+  ) {
+    return this.scheduleAppointmentUseCase.execute(dto, context);
   }
 
   @Patch(':id/reschedule')

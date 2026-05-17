@@ -8,7 +8,7 @@ import {
 } from '@src/domain/constants/log-action.constant';
 import { BaseEvent } from '@common/interfaces';
 
-export interface ICreateUserEventParams {
+export interface CreateUserEventPayload {
   details: string;
   actorId: string;
   type?: LogType;
@@ -25,22 +25,22 @@ export class CreateUserEvent extends BaseEvent {
   public readonly source: LogSource;
   public readonly action: LogAction;
 
-  constructor(params: ICreateUserEventParams) {
-    const type = params.type ?? LogType.INFO;
-    const source = params.source ?? LogSource.WEB;
+  constructor(payload: CreateUserEventPayload) {
+    const type = payload.type ?? LogType.INFO;
+    const source = payload.source ?? LogSource.WEB;
 
     super({
       action: LogAction.USER_REGISTER,
-      actorId: params.actorId,
-      details: params.details,
+      actorId: payload.actorId,
+      details: payload.details,
       type,
       source,
     });
 
-    this.details = params.details;
-    this.actorId = params.actorId;
+    this.details = payload.details;
+    this.actorId = payload.actorId;
     this.type = type;
     this.source = source;
-    this.action = params.action;
+    this.action = payload.action;
   }
 }

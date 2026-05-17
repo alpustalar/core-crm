@@ -44,6 +44,6 @@ export class SoftDeleteUserByStaffHandler
         });
     }
 
-    await this.userRepo.softDeleteUserWithAnId(dto.userId);
+    await this.userRepo.softDelete(dto.userId);
   }
 }

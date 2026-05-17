@@ -1,19 +1,12 @@
-import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
 import { BaseEvent } from '@common/interfaces/base-event.interface';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
+import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
-export interface ClinicSoftDeleteByOrganizationIdEventParams {
+export interface ClinicSoftDeleteByOrganizationIdEventPayload
+  extends IAuditLog {
   organizationId?: string;
   actorId?: string;
   actorEmail?: string;
-  source?: LogSource;
-  action: LogAction;
-  type: LogType;
-  details: string;
 }
 
 export class ClinicSoftDeleteByOrganizationIdEvent extends BaseEvent {
@@ -24,7 +17,7 @@ export class ClinicSoftDeleteByOrganizationIdEvent extends BaseEvent {
   actorEmail?: string;
   details: string;
 
-  constructor(params: ClinicSoftDeleteByOrganizationIdEventParams) {
+  constructor(params: ClinicSoftDeleteByOrganizationIdEventPayload) {
     super({
       action: params.action,
       source: params.source,
@@ -34,7 +27,6 @@ export class ClinicSoftDeleteByOrganizationIdEvent extends BaseEvent {
     });
 
     this.organizationId = params.organizationId;
-    this.details = params.details;
     this.actorId = params.actorId;
     this.actorEmail = params.actorEmail;
   }

@@ -1,12 +1,8 @@
 import { USER_EVENTS } from '@src/domain/constants/events';
-import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
+import { LogAction, LogSource, LogType, } from '@src/domain/constants/log-action.constant';
 import { BaseEvent } from '@common/interfaces';
 
-export interface IUpdateUserByStaffEventParams {
+export interface UpdateUserByStaffEventPayload {
   userId: string;
   details: string;
   type: LogType;
@@ -19,31 +15,21 @@ export class UpdateUserByStaffEvent extends BaseEvent {
   static readonly NAME = USER_EVENTS.UPDATE_BY_STAFF;
 
   public readonly userId: string;
-  public readonly details: string;
-  public readonly type: LogType;
-  public readonly action: LogAction;
-  public readonly source: LogSource;
-  public readonly actorId: string;
 
-  constructor(params: IUpdateUserByStaffEventParams) {
-    const source = params.source ?? LogSource.WEB;
+  constructor(payload: UpdateUserByStaffEventPayload) {
+    const source = payload.source ?? LogSource.WEB;
 
     super({
-      action: params.action,
-      type: params.type,
-      actorId: params.actorId,
+      action: payload.action,
+      type: payload.type,
+      actorId: payload.actorId,
       source: source,
       details: {
-        targetUserId: params.userId,
-        description: params.details,
+        targetUserId: payload.userId,
+        description: payload.details,
       },
     });
 
-    this.userId = params.userId;
-    this.details = params.details;
-    this.type = params.type;
-    this.action = params.action;
-    this.source = source;
-    this.actorId = params.actorId;
+    this.userId = payload.userId;
   }
 }

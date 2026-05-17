@@ -1,6 +1,5 @@
 import { Inject, NotFoundException } from '@nestjs/common';
 import {
-  IUser,
   IUserRepository,
   USER_REPO_TOKEN,
 } from '@modules/user/domain/repositories/user.repository';
@@ -10,11 +9,12 @@ import {
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindOneWithIdOrEmailQuery } from '@modules/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.query';
-import { QueryResult } from '@shared/common/response/response.interface';
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { User } from '@shared';
 
 @QueryHandler(FindOneWithIdOrEmailQuery)
 export class FindOneWithIdOrEmailHandler
-  implements IQueryHandler<FindOneWithIdOrEmailQuery, QueryResult<IUser>>
+  implements IQueryHandler<FindOneWithIdOrEmailQuery, QueryResponse<User>>
 {
   constructor(
     @Inject(USER_REPO_TOKEN)
@@ -25,7 +25,7 @@ export class FindOneWithIdOrEmailHandler
 
   async execute(query: FindOneWithIdOrEmailQuery) {
     const { userIdOrEmail, context } = query;
-    const user = await this.userRepo.findOneWithAnIdOrEmail(userIdOrEmail);
+    const user = await this.userRepo.findByIdOrEmail(userIdOrEmail);
 
     if (!user) {
       throw new NotFoundException('Kullanıcı bulunamadı');

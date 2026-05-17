@@ -7,7 +7,7 @@ export class AppointmentPolicy extends ClinicPolicy {
   }
 
   // capability guard kullanımıyla yeterli
-  canScheduleAppointmentInClinic(clinicId: string): boolean {
+  canScheduleAppointmentInClinic(clinicId: string | undefined): boolean {
     return this.actorCanAccessTargetClinic(clinicId);
   }
 }

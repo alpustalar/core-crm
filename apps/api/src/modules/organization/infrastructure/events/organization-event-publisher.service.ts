@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ContextService } from '@src/infrastructure/persistence/prisma/context/context.service';
+import { ContextService } from '@src/infrastructure/context/context.service';
 import {
   OrganizationSoftDeleteEvent,
   OrganizationSoftDeleteEventPayload,
@@ -10,9 +10,6 @@ export class OrganizationEventPublisher {
   constructor(private readonly contextService: ContextService) {}
 
   softDeleteOrganization(payload: OrganizationSoftDeleteEventPayload) {
-    this.contextService.addEvent(
-      OrganizationSoftDeleteEvent.NAME,
-      new OrganizationSoftDeleteEvent(payload)
-    );
+    this.contextService.addEvent(new OrganizationSoftDeleteEvent(payload));
   }
 }

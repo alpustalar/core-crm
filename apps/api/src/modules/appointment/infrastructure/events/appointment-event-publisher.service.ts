@@ -1,0 +1,3 @@
+export class AppointmentEventPublisherService {
+  constructor() {}
+}

@@ -19,8 +19,8 @@ import { HasCapability } from '@common/decorators';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 import { THROTTLE_CONFIG } from '@common/constants';
-import { CheckEmailDto } from '@shared/modules/user/dto/registry/check-email.dto';
 import {
+  CheckEmailDto,
   PaginationDto,
   UpdateUserByActorDto,
   UserSoftDeleteByActorDto,

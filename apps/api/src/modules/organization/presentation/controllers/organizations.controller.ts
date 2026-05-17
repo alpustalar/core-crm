@@ -15,7 +15,7 @@ import { UpdateOrganizationUseCase } from '@modules/organization/application/use
 import { Actor, HasCapability } from '@common/decorators';
 import { ActorContext } from '@common/interfaces';
 import { plainToInstance } from 'class-transformer';
-import { OrganizationResponseDto } from '@modules/organization/application/dto/organization-response.dto';
+import { OrganizationResponseDto } from '@modules/organization/presentation/dto/organization-response.dto';
 import { UpdateOrganizationDto } from '@shared';
 
 const { ORGANIZATION } = CAPABILITIES;

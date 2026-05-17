@@ -23,12 +23,15 @@ import { OrganizationModule } from '@modules/organization/organization.module';
 import { MedicalFilesModule } from '@modules/medical-files/medical-files.module';
 import { LookupModule } from '@modules/lookup/lookup.module';
 import { AuthModule } from '@modules/auth/auth.module';
+import { RegistrationModule } from '@modules/registration/registration.module';
+import { RoleModule } from '@modules/role/role.module';
 import { InfrastructureModule } from '@src/infrastructure/infrastructure.module';
 import { PaymentModule } from '@modules/payment/payment.module';
 import { ProviderModule } from '@modules/provider/provider.module';
 import { TransactionInterceptor } from '@common/interceptors/transaction/transaction.interceptor';
 import { APP_ROUTES } from '@src/app.routes';
 import { ExecutionSourceInterceptor } from '@common/interceptors/execution-source/execution-source.interceptor';
+import { FinanceLedgerModule } from '@modules/finance-ledger/finance-ledger.module';
 
 @Module({
   imports: [
@@ -42,6 +45,7 @@ import { ExecutionSourceInterceptor } from '@common/interceptors/execution-sourc
     MailModule,
     AuditLogModule,
     AppointmentModule,
+    FinanceLedgerModule,
     ClinicModule,
     PatientModule,
     TreatmentModule,
@@ -50,6 +54,8 @@ import { ExecutionSourceInterceptor } from '@common/interceptors/execution-sourc
     OrganizationModule,
     MedicalFilesModule,
     LookupModule,
+    RoleModule,
+    RegistrationModule,
   ],
   controllers: [],
   providers: [

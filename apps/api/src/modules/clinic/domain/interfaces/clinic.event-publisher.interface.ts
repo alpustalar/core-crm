@@ -1,13 +1,13 @@
 import {
-  ClinicSoftDeleteByOrganizationIdEventParams,
-  IClinicCreatedEvent,
+  ClinicCreatedEventPayload,
+  ClinicSoftDeleteByOrganizationIdEventPayload,
 } from '@modules/clinic/domain/events';
 
 export const CLINIC_EVENT_PUBLISHER_TOKEN = Symbol('IClinicEventPublisher');
 
 export interface IClinicEventPublisher {
   softDeleteClinicByOrganizationId(
-    event: ClinicSoftDeleteByOrganizationIdEventParams
+    event: ClinicSoftDeleteByOrganizationIdEventPayload
   ): void;
-  createClinic(event: IClinicCreatedEvent): void;
+  createClinic(event: ClinicCreatedEventPayload): void;
 }

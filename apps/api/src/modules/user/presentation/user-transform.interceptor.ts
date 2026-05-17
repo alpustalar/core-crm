@@ -8,8 +8,8 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ClassTransformOptions, plainToInstance } from 'class-transformer';
 import { UserResponseDto } from '@modules/user/presentation/dto';
-import { IUser } from '@modules/user/domain/repositories/user.repository';
-import { QueryResult } from '@shared/common/response/response.interface';
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { User } from '@shared';
 
 @Injectable()
 export class UserTransformInterceptor implements NestInterceptor {
@@ -17,7 +17,7 @@ export class UserTransformInterceptor implements NestInterceptor {
     // ... üst kısımlar aynı
 
     return next.handle().pipe(
-      map((response: QueryResult<IUser>) => {
+      map((response: QueryResponse<User>) => {
         // 1. Temel kontrol: Eğer response formatı beklediğimiz gibi değilse olduğu gibi bırak
         if (!response || !response.meta?.serializationOptions) {
           return response;

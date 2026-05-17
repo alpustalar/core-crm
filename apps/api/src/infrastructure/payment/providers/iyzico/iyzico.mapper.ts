@@ -1,9 +1,9 @@
-import { InitializeIyzicoInput } from '@src/infrastructure/persistence/payment/providers/iyzico/interfaces/iyzico-provider.interface';
+import { IyzicoInitializeProps } from '@src/infrastructure/payment/providers/iyzico/domain/types/iyzico-initialize.props';
 import Iyzipay, { InstallmentInfoResult } from 'iyzipay';
 import { InstallmentOption } from '@modules/payment/application/use-cases/iyzico/queries';
 
 export type ToCheckoutFormRequestInput = {
-  input: InitializeIyzicoInput;
+  input: IyzicoInitializeProps;
   conversationId: string;
   callbackUrl: string;
 };

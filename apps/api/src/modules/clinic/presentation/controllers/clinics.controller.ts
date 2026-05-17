@@ -7,35 +7,32 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-
-import { Actor } from '@common/decorators';
 import { AuthGuard } from '@modules/auth/guards';
-import { ActorContext } from '@common/interfaces';
 import { CreateClinicDto, UpdateClinicDto } from '@shared';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreateClinicCommand } from '@modules/clinic/application/commands/create-clinic/create-clinic.command';
 import {
-  CreateClinicUseCase,
-  UpdateClinicUseCase,
-} from '@modules/clinic/application/use-cases/commands';
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
+import { UpdateClinicCommand } from '@modules/clinic/application/commands/update-clinic/update-clinic.command';
 
 @UseGuards(AuthGuard)
 @Controller()
 export class ClinicController {
-  constructor(
-    private readonly createClinic: CreateClinicUseCase,
-    private readonly updateClinic: UpdateClinicUseCase
-  ) {}
+  constructor(private readonly commandBus: CommandBus) {}
 
   @Post('')
-  create(@Body() dto: CreateClinicDto, @Actor() actor: ActorContext) {
-    return this.createClinic.execute(dto, actor);
+  create(@Body() dto: CreateClinicDto, @GetContext() context: IGetContext) {
+    return this.commandBus.execute(new CreateClinicCommand(dto, context));
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateClinicDto,
-    @Actor() actor: ActorContext
+    @GetContext() context: IGetContext
   ) {
-    return this.updateClinic.execute(id, dto, actor);
+    return this.commandBus.execute(new UpdateClinicCommand(id, dto, context));
   }
 }

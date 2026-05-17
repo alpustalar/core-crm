@@ -1,10 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { IyzicoProvider } from '@src/infrastructure/persistence/payment/providers/iyzico/iyzico.provider';
+import { IyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/iyzico.provider';
 import { PaymentRepository } from '@modules/payment/infrastructure/persistence/prisma/repositories';
 import { PaymentDomainService } from '@modules/payment/domain/services/payment-domain.service';
-import { PaymentEventPublisher } from '@modules/payment/infrastructure/events/publisher/payment.publisher';
-import { IyzicoTransactionRepository } from '@src/infrastructure/persistence/payment/providers/iyzico/repositories/iyzico-transaction.repository';
+import { PaymentEventPublisher } from '@modules/payment/infrastructure/events/payment-event-publisher.service';
+import { IyzicoTransactionRepository } from '@src/infrastructure/payment/providers/iyzico/repositories/iyzico-transaction.repository';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 export interface HandleCallbackInput {

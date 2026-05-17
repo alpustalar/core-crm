@@ -3,8 +3,8 @@ import { randomUUID } from 'crypto';
 import {
   IyzicoMapper,
   IyzicoSdkStatus,
-} from '@src/infrastructure/persistence/payment/providers/iyzico';
-import { IyzicoProvider } from '@src/infrastructure/persistence/payment/providers/iyzico/iyzico.provider';
+} from '@src/infrastructure/payment/providers/iyzico';
+import { IyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/iyzico.provider';
 
 export interface InstallmentOption {
   installmentNumber: number;

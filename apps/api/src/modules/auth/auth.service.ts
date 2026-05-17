@@ -7,13 +7,18 @@ import {
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { ActorContext } from '@common/interfaces';
-import { UserStatus } from '@prisma/client';
+
 import { getBearerToken } from '@common/utils';
 import {
   FIREBASE_SERVICE_TOKEN,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import { rolesCreateManyInputs } from '@src/infrastructure/persistence/prisma/data/modules';
+import {
+  IUserModuleApi,
+  USER_MODULE_API_TOKEN,
+} from '@modules/user/domain/interfaces/user.module.api.interface';
+import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const isDevelopment = process.env.NODE_MODE === 'development';
@@ -23,6 +28,8 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly prismaService: PrismaService,
+    @Inject(USER_MODULE_API_TOKEN)
+    private readonly userModuleApi: IUserModuleApi,
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService
   ) {}
@@ -53,22 +60,7 @@ export class AuthService {
   }
 
   async getActorContextOrThrow(decodedToken: DecodedIdToken) {
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        id: decodedToken.uid,
-        status: UserStatus.ACTIVE,
-      },
-      include: {
-        managedClinics: { select: { id: true, name: true } },
-        ownedOrganizations: { select: { id: true, name: true } },
-        providerProfile: { select: { id: true } },
-        role: {
-          include: {
-            capabilities: { include: { capability: true } },
-          },
-        },
-      },
-    });
+    const user = await this.userModuleApi.findUserForAuth(decodedToken.uid);
 
     if (!user) {
       throw new UnauthorizedException('Kullanıcı bulunamadı veya pasif');
@@ -78,28 +70,26 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       roleId: user.roleId ?? undefined,
-      role: user.role ?? undefined,
+      role: user?.role ?? undefined,
       clinicId: user.clinicId ?? undefined,
       managedClinics: user.managedClinics || [],
-      capabilities:
-        user.role?.capabilities.map(
-          (rc) => `${rc.capability.module}:${rc.capability.action}`
-        ) ?? [],
-      rolePriority: user.role?.priority ?? 0,
+      capabilities: user?.role
+        ? user?.role.capabilities.map(
+            (roleCapability) =>
+              `${roleCapability.capability.module}:${roleCapability.capability.action}`
+          )
+        : [],
+
+      rolePriority: user?.role?.priority ?? 0,
     };
 
     return actor;
   }
 
   updateLastLogin(userId: string): void {
-    this.prismaService.user
-      .update({
-        where: { id: userId },
-        data: { lastLogin: new Date() },
-      })
-      .catch((err) => {
-        this.logger.error(`auth service last login update: ${err}`);
-      });
+    this.userModuleApi.updateLastLogin(userId).catch((e) => {
+      this.logger.error(`auth service last login update: ${e}`);
+    });
   }
 
   private async createAdmin(decodedToken: DecodedIdToken) {
@@ -116,7 +106,7 @@ export class AuthService {
         id,
         email,
         displayName: 'System Admin',
-        status: UserStatus.ACTIVE,
+        status: GlobalStatusSchema.enum.ACTIVE,
         role: { connect: { slug } },
       },
     });

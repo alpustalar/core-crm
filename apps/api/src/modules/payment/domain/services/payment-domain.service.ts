@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { IyzicoTransactionStatus, PaymentStatus } from '@prisma/client';
 import { IyzicoTransaction, Payment } from '@shared';
-import { IyzicoSdkStatus } from '@src/infrastructure/persistence/payment/providers/iyzico';
+import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
 
 interface checkIyzicoSdkStatusOrThrowInput {
   status: string;

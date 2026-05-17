@@ -1,5 +1,8 @@
 import { ClinicAvailability, ClinicException } from '@shared';
 
+export type IClinicAvailability = ClinicAvailability;
+export type IClinicException = ClinicException;
+
 export const CLINIC_AVAILABILITY_REPO_TOKEN = Symbol(
   'IClinicAvailabilityRepository'
 );
@@ -11,12 +14,12 @@ export interface IClinicAvailabilityRepository {
   findByClinicAndDay(
     clinicId: string,
     dayOfWeek: number
-  ): Promise<ClinicAvailability | null>;
+  ): Promise<IClinicAvailability | null>;
 
   /**
    * Kliniğin tüm haftalık çalışma planını (en fazla 7 kayıt) getirir.
    */
-  findAllByClinicId(clinicId: string): Promise<ClinicAvailability[]>;
+  findAllByClinicId(clinicId: string): Promise<IClinicAvailability[]>;
 
   /**
    * Belirli bir tarihteki klinik istisnasını (tatil, özel gün vb.) getirir.
@@ -24,7 +27,7 @@ export interface IClinicAvailabilityRepository {
   findExceptionByClinicAndDate(
     clinicId: string,
     date: Date
-  ): Promise<ClinicException | null>;
+  ): Promise<IClinicException | null>;
 
   /**
    * Verilen tarih aralığındaki tüm klinik istisnalarını getirir.
@@ -33,7 +36,7 @@ export interface IClinicAvailabilityRepository {
     clinicId: string,
     startDate: Date,
     endDate: Date
-  ): Promise<ClinicException[]>;
+  ): Promise<IClinicException[]>;
 
   /**
    * Belirli bir tarihte kliniğin kapalı olduğuna dair istisna kaydını döner.
@@ -41,5 +44,5 @@ export interface IClinicAvailabilityRepository {
   findClosedExceptionByDate(
     clinicId: string,
     date: Date
-  ): Promise<Partial<ClinicException> | null>;
+  ): Promise<Partial<IClinicException> | null>;
 }

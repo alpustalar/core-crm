@@ -16,7 +16,7 @@ import {
 import {
   CLINIC_MODULE_API_TOKEN,
   IClinicModuleApi,
-} from '@modules/clinic/domain/interfaces/clinic-module.api.interface';
+} from '@modules/clinic/domain/interfaces/clinic.module.api.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY_TOKEN,
@@ -54,10 +54,10 @@ export class CreateProviderAvailabilityHandler
       .orThrow();
 
     await this.transactionManager.run(async () => {
-      const provider = await this.providerRepo.findById(providerId);
+      const provider = await this.providerRepo.find(providerId);
 
       if (!provider) {
-        throw new BadRequestException('Doktor bulunamadı.');
+        throw new BadRequestException('Hizmet sağlayıcı bulunamadı.');
       }
 
       const { clinicId } = provider;

@@ -5,7 +5,11 @@ import { ENV } from '@common/constants/env.constant';
 import { ConfigService } from '@nestjs/config';
 import Iyzipay from 'iyzipay';
 import { LedgerSource } from '@prisma/client';
-import { CancelPaymentInput, IIyzicoProvider, RetrieveCheckoutFormResult } from './iyzico.provider.interface';
+import {
+  CancelPaymentInput,
+  IIyzicoProvider,
+  RetrieveCheckoutFormResult,
+} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 
 @Injectable()
 export class IyzicoProvider implements IIyzicoProvider {
@@ -22,7 +26,9 @@ export class IyzicoProvider implements IIyzicoProvider {
   async refund(data: Iyzipay.RefundRequestData) {
     return this.client.refundPayment(data);
   }
-  async retrieveCheckoutForm(token: string): Promise<RetrieveCheckoutFormResult> {
+  async retrieveCheckoutForm(
+    token: string
+  ): Promise<RetrieveCheckoutFormResult> {
     const sdkResult = await this.client.retrieveCheckoutForm({ token });
 
     return {

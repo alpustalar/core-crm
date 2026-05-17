@@ -3,14 +3,11 @@ import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.modu
 import { FirebaseModule } from '../firebase/firebase.module';
 import { UserModuleApi } from '@modules/user/user.module.api';
 import { UserPresentationModule } from '@modules/user/presentation/user-presentation.module';
-import { BullModule } from '@nestjs/bullmq';
-import { QUEUES } from '@common/constants';
-import { UserProcessor } from '@modules/user/infrastructure/queue/processors/user.processor';
-import { UserProducer } from '@modules/user/infrastructure/queue/producer/user.producer';
 import { UserTransformInterceptor } from '@modules/user/presentation/user-transform.interceptor';
-import { UserEventsModule } from '@modules/user/infrastructure/events/user-events.module';
+import { UserEventModule } from '@modules/user/infrastructure/events/user-event.module';
 import { UserCommandModule } from '@modules/user/application/commands/command.module';
 import { UserQueryModule } from '@modules/user/application/queries/query.module';
+import { USER_MODULE_API_TOKEN } from '@modules/user/domain/interfaces/user.module.api.interface';
 
 @Module({
   imports: [
@@ -19,15 +16,12 @@ import { UserQueryModule } from '@modules/user/application/queries/query.module'
     UserCommandModule,
     UserQueryModule,
     UserPresentationModule,
-    BullModule.registerQueue({ name: QUEUES.USER }),
-    UserEventsModule,
+    UserEventModule,
   ],
   providers: [
-    UserModuleApi,
-    UserProcessor,
-    UserProducer,
+    { provide: USER_MODULE_API_TOKEN, useClass: UserModuleApi },
     UserTransformInterceptor,
   ],
-  exports: [UserModuleApi],
+  exports: [USER_MODULE_API_TOKEN],
 })
 export class UserModule {}

@@ -1,35 +1,17 @@
-import { Prisma, User, UserStatus } from '@prisma/client';
+import { GlobalStatus, Prisma, User } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { z } from 'zod';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import {
-  FindUsersByClinicIdsInput,
-  FindUsersByOrganizationIdsInput,
-  IUserCreate,
-  IUserRepository,
-} from '@modules/user/domain/repositories/user.repository';
-
-export const authUserInclude = Prisma.validator<Prisma.UserInclude>()({
-  managedClinics: {
-    select: { id: true, name: true },
-  },
-  ownedOrganizations: {
-    select: { id: true, name: true },
-  },
-  providerProfile: {
-    select: { id: true },
-  },
-  role: {
-    include: {
-      capabilities: {
-        include: { capability: true },
-      },
-    },
-  },
-});
+import { UserPersistencePrismaMapper } from '@modules/user/infrastructure/persistence/prisma/mappers/user-persistence.mapper';
+import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
+import { UpdateUserProps } from '@modules/user/domain/types/update-user.props';
+import { IUserRepository } from '@modules/user/domain/repositories/user.repository';
+import { UserWithRolePriority } from '@modules/user/domain/types/user-with-role-priority.type';
+import { FindUsersByOrganizationIdsProps } from '@modules/user/domain/types/find-users-by-organization-ids.props';
+import { FindUsersByClinicIdsProps } from '@modules/user/domain/types/find-users-by-clinic-ids.props';
 
 @Injectable()
 export class UserRepository extends BaseRepository implements IUserRepository {
@@ -37,51 +19,74 @@ export class UserRepository extends BaseRepository implements IUserRepository {
     super(prisma);
   }
 
-  async findOneWithAnIdOrEmail(userIdOrEmail: string) {
+  async findByIdOrEmail(
+    userIdOrEmail: string
+  ): Promise<UserWithRolePriority | null> {
     const { success: isEmail } = z.email().safeParse(userIdOrEmail);
     if (isEmail) {
       return this.findByEmail(userIdOrEmail);
     }
-    return this.findById(userIdOrEmail);
+    return this.find(userIdOrEmail);
   }
 
-  findById(id: string) {
-    return this.db.user.findFirstOrThrow({ where: { id } });
+  find(id: string): Promise<UserWithRolePriority | null> {
+    return this.db.user.findFirst({
+      where: { id },
+      include: {
+        role: {
+          select: {
+            priority: true,
+          },
+        },
+      },
+    });
   }
 
-  findByEmail(email: string) {
-    return this.db.user.findFirstOrThrow({ where: { email } });
+  findByEmail(email: string): Promise<UserWithRolePriority | null> {
+    return this.db.user.findFirst({
+      where: { email },
+      include: {
+        role: {
+          select: {
+            priority: true,
+          },
+        },
+      },
+    });
   }
 
-  checkEmailExists(email: string) {
+  checkEmailExists(email: string): Promise<number> {
     return this.db.user.count({ where: { email } });
   }
 
-  findUserForAuth(where: Prisma.UserWhereInput) {
-    return this.db.user.findFirst({ where, include: authUserInclude });
+  findForAuth(firebaseUid: string) {
+    const toPersistence =
+      UserPersistencePrismaMapper.toFindForAuthQuery(firebaseUid);
+    return this.db.user.findFirst(toPersistence);
   }
 
-  createUser(data: IUserCreate) {
-    return this.db.user.create({ data });
+  create(data: CreateUserProps) {
+    const toPersistence = UserPersistencePrismaMapper.toCreateUser(data);
+    return this.db.user.create({ data: toPersistence });
   }
 
-  softDeleteUserWithAnId(userId: string) {
-    return this.db.user.update({
-      where: { id: userId },
-      data: { status: UserStatus.DELETED, deletedAt: new Date() },
-    });
-  }
-
-  async updateUserWithAnId(id: string, data: Prisma.UserUpdateInput) {
+  softDelete(id: string) {
     return this.db.user.update({
       where: { id },
-      data,
+      data: { status: GlobalStatus.DELETED, deletedAt: new Date() },
     });
   }
 
-  async changeAllUserStatusInClinicWithClinicId(
+  update(id: string, data: UpdateUserProps) {
+    return this.db.user.update({
+      where: { id },
+      data: data as Prisma.UserUncheckedUpdateInput,
+    });
+  }
+
+  async changeAllStatusByClinicId(
     clinicId: string,
-    status: UserStatus
+    status: GlobalStatus
   ): Promise<{ deletedCount: number }> {
     const { count: deletedCount } = await this.db.user.updateMany({
       where: {
@@ -94,7 +99,7 @@ export class UserRepository extends BaseRepository implements IUserRepository {
     return { deletedCount };
   }
 
-  async softDeleteAllUsersByOrganizationId(
+  async softDeleteAllByOrganizationId(
     organizationId: string
   ): Promise<{ deletedCount: number }> {
     const { count: deletedCount } = await this.db.user.updateMany({
@@ -102,57 +107,43 @@ export class UserRepository extends BaseRepository implements IUserRepository {
         workingClinic: { is: { organizationId } },
       } as Prisma.UserWhereInput,
       data: {
-        status: UserStatus.DELETED,
+        status: GlobalStatus.DELETED,
         deletedAt: new Date(),
       },
     });
     return { deletedCount };
   }
 
-  async findAllUsers(pagination: Pagination, where?: Prisma.UserWhereInput) {
+  list(pagination: Pagination, where?: Record<string, unknown>) {
+    return paginate<User, Prisma.UserWhereInput>({
+      delegate: this.db.user,
+      pagination,
+      where: where as Prisma.UserWhereInput,
+    });
+  }
+
+  listByOrganizationIds({
+    pagination,
+    organizationId,
+  }: FindUsersByOrganizationIdsProps) {
+    const { where, select } =
+      UserPersistencePrismaMapper.toListByOrganizationIdsQuery(organizationId);
     return paginate<User, Prisma.UserWhereInput>({
       delegate: this.db.user,
       pagination,
       where,
-    });
-  }
-
-  findUsersByOrganizationIds({
-    pagination,
-    organizationId,
-    extraWhere,
-    select,
-  }: FindUsersByOrganizationIdsInput) {
-    const organizationIds = Array.isArray(organizationId)
-      ? organizationId
-      : [organizationId];
-
-    return paginate<User, Prisma.UserWhereInput>({
-      delegate: this.db.user,
-      pagination,
-      where: {
-        workingClinic: { is: { organizationId: { in: organizationIds } } },
-        ...extraWhere,
-      },
       select,
     });
   }
 
-  findUsersByClinicIds({
-    pagination,
-    clinicId,
-    extraWhere,
-    select,
-  }: FindUsersByClinicIdsInput) {
-    const clinicIds = Array.isArray(clinicId) ? clinicId : [clinicId];
+  listByClinicIds({ pagination, clinicId }: FindUsersByClinicIdsProps) {
+    const { where, select } =
+      UserPersistencePrismaMapper.toListByClinicIdsQuery(clinicId);
 
     return paginate<User, Prisma.UserWhereInput>({
       delegate: this.db.user,
       pagination,
-      where: {
-        clinicId: { in: clinicIds },
-        ...extraWhere,
-      },
+      where,
       select,
     });
   }

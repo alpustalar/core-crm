@@ -1,20 +1,16 @@
-import { IOrganization } from '@modules/organization/domain/repositories/organization.repository.interface';
-import { Clinic, Prisma } from '@prisma/client';
+import { Clinic } from '@prisma/client';
+import { CreateClinicDto, Organization, UpdateClinicDto } from '@shared';
 
 export const CLINIC_REPO_TOKEN = Symbol('IClinicRepository');
 
-export type IClinic = Clinic;
-
-export type IClinicCreate = Prisma.ClinicUncheckedCreateInput;
-export type IClinicUpdate = Prisma.ClinicUncheckedUpdateInput;
 export type UpdateAsManagerInput = {
   id: string;
   userId: string;
-  data: IClinicUpdate;
+  data: UpdateClinicDto;
 };
 
-export type IClinicDetails = IClinic & {
-  organization: IOrganization | null;
+export type ClinicDetails = Clinic & {
+  organization: Organization | null;
   managers: {
     id: string;
     displayName: string;
@@ -28,13 +24,13 @@ export type IClinicDetails = IClinic & {
 };
 
 export interface IClinicRepository {
-  create(data: IClinicCreate): Promise<IClinic>;
-  findByIdWithDetails(id: string): Promise<IClinicDetails | null>;
-  findBySlug(slug: string): Promise<IClinic | null>;
-  update(id: string, data: IClinicUpdate): Promise<IClinic>;
-  softDelete(id: string): Promise<IClinic>;
-  findByIdAsManager(id: string, userId: string): Promise<IClinic | null>;
-  findManyByOrganizationId(organizationId: string): Promise<IClinic[]>;
+  create(data: CreateClinicDto): Promise<Clinic>;
+  findByIdWithDetails(id: string): Promise<ClinicDetails | null>;
+  findBySlug(slug: string): Promise<Clinic | null>;
+  update(id: string, data: UpdateClinicDto): Promise<Clinic>;
+  softDelete(id: string): Promise<Clinic>;
+  findByIdAsManager(id: string, userId: string): Promise<Clinic | null>;
+  findManyByOrganizationId(organizationId: string): Promise<Clinic[]>;
   softDeleteManyClinicWithAnOrganizationId(
     organizationId: string
   ): Promise<{ deletedCount: number }>;
@@ -42,7 +38,7 @@ export interface IClinicRepository {
     id,
     userId,
     data,
-  }: UpdateAsManagerInput): Promise<IClinic | null>;
+  }: UpdateAsManagerInput): Promise<Clinic | null>;
   existsBySlug(slug: string): Promise<boolean>;
   canUserManageClinic(clinicId: string, userId: string): Promise<boolean>;
 }

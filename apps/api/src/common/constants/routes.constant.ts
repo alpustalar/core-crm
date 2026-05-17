@@ -6,6 +6,7 @@ const BASE_PATHS = {
   PAYMENTS: 'payments',
   IYZICO: 'iyzico',
   CALLBACK: 'callback',
+  SUBSCRIPTIONS: 'subscriptions',
 } as const;
 
 // 2. Hiyerarşiyi ve birleştirilmiş (computed) yolları kuruyoruz
@@ -20,6 +21,11 @@ export const ROUTE_PATHS = {
       CALLBACK: BASE_PATHS.CALLBACK,
       FULL_CALLBACK_PATH: `${BASE_PATHS.PAYMENTS}/${BASE_PATHS.IYZICO}/${BASE_PATHS.CALLBACK}`,
     },
+  },
+  SUBSCRIPTIONS: {
+    ROOT: BASE_PATHS.SUBSCRIPTIONS,
+    CALLBACK: BASE_PATHS.CALLBACK,
+    FULL_CALLBACK_PATH: `${BASE_PATHS.SUBSCRIPTIONS}/${BASE_PATHS.CALLBACK}`,
   },
 } as const;
 

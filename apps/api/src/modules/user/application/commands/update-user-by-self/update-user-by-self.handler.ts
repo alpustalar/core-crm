@@ -25,10 +25,7 @@ export class UpdateUserBySelfHandler
   async execute(command: UpdateUserBySelfCommand) {
     const { dto, actor } = command;
 
-    const updatedUser = await this.userRepo.updateUserWithAnId(
-      actor.userId,
-      dto
-    );
+    const updatedUser = await this.userRepo.update(actor.userId, dto);
 
     return updatedUser.id;
   }

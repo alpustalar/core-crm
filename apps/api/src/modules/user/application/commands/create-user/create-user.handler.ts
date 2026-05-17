@@ -1,7 +1,7 @@
 import { CreateUserCommand } from '@modules/user/application/commands/create-user/create-user.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
-import { Inject } from '@nestjs/common';
+import { Inject, InternalServerErrorException } from '@nestjs/common';
 import {
   IUserRepository,
   USER_REPO_TOKEN,
@@ -20,7 +20,8 @@ import {
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
-import { UserCommandsPrismaMapper } from '@modules/user/infrastructure/persistence/prisma/mappers/user-commands-prisma.mapper';
+import { ProviderModuleApi } from '@modules/provider/provider-module.api';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler
@@ -35,18 +36,61 @@ export class CreateUserHandler
     private readonly userEventPublisher: IUserEventPublisher,
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
-    private readonly transactionManager: TransactionManager
+    private readonly transactionManager: TransactionManager,
+    private readonly providerModuleApi: ProviderModuleApi
   ) {}
   @InternalOnly()
   async execute(command: CreateUserCommand) {
     const {
       dto,
-      context: { actor },
+      context: { actor, source },
     } = command;
 
-    const { evaluator } = this.policyFactory.user(actor);
-
     const clinicId = actor.clinicId ?? dto.clinicId;
+
+    if (ExecutionPolicy.isSystemInitiated(source)) {
+      if (command?.internalRelations?.firebaseUid) {
+        throw new InternalServerErrorException(
+          'System-initiated user creation requires firebaseUid'
+        );
+      }
+      return this.transactionManager.run(async () => {
+        const user = await this.userRepo.create({
+          id: command.internalRelations!.firebaseUid!,
+          email: dto.email,
+          displayName: dto.displayName,
+          picture: dto.picture,
+          roleId: dto.roleId,
+          clinicId,
+          ownedOrganizationIds: command.internalRelations?.ownedOrganizationIds,
+          managedClinicIds: command.internalRelations?.managedClinicIds,
+        });
+
+        if (dto.providerProfile) {
+          const {
+            providerSpecialtyId: specialtyId,
+            providerTitleId: titleId,
+            publicPhone,
+            publicEmail,
+            isActive,
+          } = dto.providerProfile;
+
+          await this.providerModuleApi.createProvider({
+            userId: user.id,
+            titleId: titleId!,
+            specialtyId: specialtyId!,
+            clinicId: clinicId!,
+            publicPhone,
+            publicEmail,
+            isActive,
+          });
+        }
+
+        return user.id;
+      });
+    }
+
+    const { evaluator } = this.policyFactory.user(actor);
 
     if (dto.roleId && clinicId) {
       evaluator
@@ -76,13 +120,36 @@ export class CreateUserHandler
       firebaseUid = firebaseUser.uid;
 
       const createdUser = await this.transactionManager.run(async () => {
-        const prismaInput = UserCommandsPrismaMapper.toCreateUserInput(
-          firebaseUid!,
-          dto,
-          clinicId
-        );
+        const user = await this.userRepo.create({
+          id: firebaseUid!,
+          email: dto.email,
+          displayName: dto.displayName,
+          picture: dto.picture,
+          roleId: dto.roleId,
+          clinicId,
+        });
 
-        return this.userRepo.createUser(prismaInput);
+        if (dto.providerProfile) {
+          const {
+            providerSpecialtyId: specialtyId,
+            providerTitleId: titleId,
+            publicPhone,
+            publicEmail,
+            isActive,
+          } = dto.providerProfile;
+
+          await this.providerModuleApi.createProvider({
+            userId: user.id,
+            titleId: titleId!,
+            specialtyId: specialtyId!,
+            clinicId: clinicId!,
+            publicPhone,
+            publicEmail,
+            isActive,
+          });
+        }
+
+        return user;
       });
 
       return createdUser.id;

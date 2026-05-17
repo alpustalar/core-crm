@@ -2,7 +2,6 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { auth } from 'firebase-admin';
 import * as path from 'node:path';
-import { CreateUserDto } from '@shared/modules/index';
 import { IFirebaseService } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import DecodedIdToken = auth.DecodedIdToken;
 
@@ -22,7 +21,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
     }
   }
 
-  async createUser(dto: CreateUserDto) {
+  async createUser(dto: auth.CreateRequest) {
     return await admin.auth().createUser(dto);
   }
 

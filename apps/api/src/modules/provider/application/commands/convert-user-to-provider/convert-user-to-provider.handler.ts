@@ -9,7 +9,7 @@ import {
   POLICY_FACTORY_TOKEN,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { ConvertUserToProviderCommand } from '@modules/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
-import { ProviderCommandsPrismaMapper } from '@modules/provider/infrastructure/persistence/prisma/mappers/provider-commands-prisma.mapper';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 
 @CommandHandler(ConvertUserToProviderCommand)
 export class ConvertUserToProviderHandler
@@ -24,17 +24,16 @@ export class ConvertUserToProviderHandler
 
   async execute(command: ConvertUserToProviderCommand) {
     const { context, dto } = command;
-    const { actor } = context;
+    const { actor, source } = context;
 
-    const { evaluator } = this.policyFactory.user(actor);
+    if (!ExecutionPolicy.isSystemInitiated(source)) {
+      const { evaluator } = this.policyFactory.user(actor);
+      evaluator
+        .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
+        .orThrow();
+    }
 
-    evaluator
-      .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
-      .orThrow();
-
-    const input = ProviderCommandsPrismaMapper.toCreateInput(dto);
-
-    const providerRaw = await this.providerRepo.create(input);
+    const providerRaw = await this.providerRepo.create(dto);
 
     return providerRaw.id;
   }

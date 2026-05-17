@@ -1,7 +1,7 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { IClinic } from '../repositories/clinic.repository.interface';
-import { QueryResult } from '@shared/common/response/response.interface';
+import { QueryResponse } from '@shared/common/response/response.interface';
 import { FindClinicAvailabilityByDayResponse } from '@modules/clinic/application/queries/find-clinic-availability-by-day/find-clinic-availability-by-day.response';
+import { Clinic, CreateClinicDto } from '@shared';
 
 export const CLINIC_MODULE_API_TOKEN = Symbol('IClinicModuleApi');
 
@@ -25,7 +25,8 @@ export interface IClinicModuleApi {
   findAvailabilityByDay(
     clinicId: string,
     date: Date
-  ): Promise<QueryResult<FindClinicAvailabilityByDayResponse>>;
-  findManyByOrganizationId(organizationId: string): Promise<IClinic[]>;
-  assertCanBook(input: AssertClinicCanBookInput): Promise<void>;
+  ): Promise<QueryResponse<FindClinicAvailabilityByDayResponse>>;
+  findManyByOrganizationId(organizationId: string): Promise<Clinic[]>;
+  assertCanBookOrThrow(input: AssertClinicCanBookInput): Promise<void>;
+  create(dto: CreateClinicDto, context: IGetContext): Promise<string | null>;
 }

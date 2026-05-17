@@ -3,6 +3,8 @@ import { PaymentUseCaseModule } from '@modules/payment/application/use-cases/pay
 import { PaymentPresentationModule } from '@modules/payment/presentation/payment-presentation.module';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUES } from '@common/constants';
+import { PAYMENT_MODULE_API_TOKEN } from '@modules/payment/domain/interfaces/payment.module.api.interface';
+import { PaymentModuleApi } from '@modules/payment/payment.module.api';
 
 @Module({
   imports: [
@@ -10,5 +12,12 @@ import { QUEUES } from '@common/constants';
     PaymentUseCaseModule,
     PaymentPresentationModule,
   ],
+  providers: [
+    {
+      provide: PAYMENT_MODULE_API_TOKEN,
+      useClass: PaymentModuleApi,
+    },
+  ],
+  exports: [PAYMENT_MODULE_API_TOKEN],
 })
 export class PaymentModule {}

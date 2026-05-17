@@ -1,15 +1,16 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { addMinutes } from 'date-fns';
 import {
   APPOINTMENT_REPO_TOKEN,
   IAppointmentRepository,
 } from '@modules/appointment/domain/repositories/appointment.repository.interface';
 import { AppointmentChecker } from '@modules/appointment/domain/services/appointment-checker.service';
-import { PatientModuleApi } from '@modules/patient/patient-module.api';
+import { PatientModuleApi } from '@modules/patient/patient.module.api';
 import { PolicyFactory } from '@modules/policy/application/policy-factory';
-import { ActorContext } from '@common/interfaces';
 import { ScheduleAppointmentDto } from '@shared';
-import { AuditLogService } from '@modules/audit-log/audit-log.service';
+import { IGetContext } from '@common/decorators/get-context.decorator';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { DateTimeManager } from '@common/utils';
+import { POLICY_FACTORY_TOKEN } from '@modules/policy/domain/interfaces/policy-factory.interface';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -30,11 +31,13 @@ export class ScheduleAppointmentUseCase {
     private readonly appointmentRepo: IAppointmentRepository,
     private readonly appointmentChecker: AppointmentChecker,
     private readonly patientModuleApi: PatientModuleApi,
-    private readonly policyFactory: PolicyFactory,
-    private readonly auditLog: AuditLogService
+    @Inject(POLICY_FACTORY_TOKEN)
+    private readonly policyFactory: PolicyFactory
   ) {}
 
-  async execute(dto: ScheduleAppointmentDto, actor: ActorContext) {
+  async execute(dto: ScheduleAppointmentDto, context: IGetContext) {
+    const { actor } = context;
+
     if (!actor.clinicId) {
       throw new BadRequestException('Actor için klinik tanımlanmamış.');
     }
@@ -42,7 +45,7 @@ export class ScheduleAppointmentUseCase {
     this.policyFactory
       .appointment(actor)
       .evaluator.check(
-        (p) => p.canScheduleAppointmentInClinic(actor.clinicId!),
+        (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
         'Sadece kendi kliniğinizde randevu oluşturabilirsiniz.'
       )
       // TODO: event fırlat
@@ -69,7 +72,10 @@ export class ScheduleAppointmentUseCase {
       });
 
     const start = new Date(startTime);
-    const endTime = addMinutes(start, duration ?? DEFAULT_DURATION_MINUTES);
+    const endTime = DateTimeManager.addMinutes(
+      start,
+      duration ?? DEFAULT_DURATION_MINUTES
+    );
 
     await this.appointmentChecker.assertNoConflictOrThrow({
       providerId,
@@ -98,7 +104,10 @@ export class ScheduleAppointmentUseCase {
     dtoPatientEmail,
   }: ResolvePatientInput) {
     if (patientId) {
-      const patient = await this.patientModuleApi.findPatientById(patientId);
+      const { data: patient } = await this.patientModuleApi.findPatientById(
+        patientId,
+        ExecutionContextFactory.createInternal()
+      );
       return {
         patientName: `${patient.firstName} ${patient.lastName}`,
         patientPhone: patient.phone,

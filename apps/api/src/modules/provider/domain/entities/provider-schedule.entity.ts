@@ -3,7 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ProviderAvailability, ProviderException } from '@shared';
 import { DateTimeManager } from '@common/utils';
 
-export class ProviderAvailabilityDomainService {
+export class ProviderScheduleEntity {
   constructor(
     private readonly availabilities: ProviderAvailability[],
     private readonly exceptions: ProviderException[]
@@ -19,11 +19,11 @@ export class ProviderAvailabilityDomainService {
       throw new BadRequestException('Doktor bu gün çalışmıyor.');
     }
 
-    // Dakika hesaplamalarını DateTimeManager üzerinden yapıyoruz
+    // Dakika hesaplamaları
     const apptStartMin = DateTimeManager.getDayMinutes(startTime);
     const apptEndMin = DateTimeManager.getDayMinutes(endTime);
 
-    // 1. Çalışma saatleri kontrolü
+    // Çalışma saatleri kontrolü
     const isWithinWorkingHours =
       DateTimeManager.isTimeWithinRange({
         checkTime: startTime,

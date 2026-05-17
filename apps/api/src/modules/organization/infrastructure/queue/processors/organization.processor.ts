@@ -3,7 +3,7 @@ import { Job } from 'bullmq';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ORGANIZATION_JOBS, QUEUES } from '@common/constants';
-import { ClinicModuleApi } from '@modules/clinic/clinic-module.api';
+import { ClinicModuleApi } from '@modules/clinic/clinic.module.api';
 import { UserModuleApi } from '@modules/user/user.module.api';
 import { AppointmentModuleApi } from '@modules/appointment/appointment-module.api';
 

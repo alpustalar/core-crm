@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import {
   ClinicSoftDeleteByOrganizationIdEvent,
-  ClinicSoftDeleteByOrganizationIdEventParams,
+  ClinicSoftDeleteByOrganizationIdEventPayload,
 } from '@modules/clinic/domain/events/clinic-soft-delete-by-organization-id.event';
 import {
   ClinicCreatedEvent,
-  IClinicCreatedEvent,
+  ClinicCreatedEventPayload,
 } from '@modules/clinic/domain/events';
-import { ContextService } from '@src/infrastructure/persistence/prisma/context/context.service';
+import { ContextService } from '@src/infrastructure/context/context.service';
 import { IClinicEventPublisher } from '@modules/clinic/domain/interfaces/clinic.event-publisher.interface';
 
 @Injectable()
@@ -15,18 +15,14 @@ export class ClinicEventPublisher implements IClinicEventPublisher {
   constructor(private readonly contextService: ContextService) {}
 
   softDeleteClinicByOrganizationId(
-    event: ClinicSoftDeleteByOrganizationIdEventParams
+    payload: ClinicSoftDeleteByOrganizationIdEventPayload
   ) {
     this.contextService.addEvent(
-      ClinicSoftDeleteByOrganizationIdEvent.NAME,
-      new ClinicSoftDeleteByOrganizationIdEvent(event)
+      new ClinicSoftDeleteByOrganizationIdEvent(payload)
     );
   }
 
-  createClinic(event: IClinicCreatedEvent) {
-    this.contextService.addEvent(
-      ClinicCreatedEvent.NAME,
-      new ClinicCreatedEvent(event)
-    );
+  createClinic(payload: ClinicCreatedEventPayload) {
+    this.contextService.addEvent(new ClinicCreatedEvent(payload));
   }
 }

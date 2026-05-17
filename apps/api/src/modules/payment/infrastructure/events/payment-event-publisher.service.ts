@@ -1,61 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { ContextService } from '@src/infrastructure/persistence/prisma/context/context.service';
+import { ContextService } from '@src/infrastructure/context/context.service';
 import {
   PaymentPaidEvent,
-  PaymentPaidEventParams,
+  PaymentPaidEventPayload,
 } from '@modules/payment/domain/events/payment-paid.event';
 import {
   PaymentRefundedEvent,
-  PaymentRefundedEventParams,
+  PaymentRefundedEventPayload,
 } from '@modules/payment/domain/events/payment-refunded.event';
 import {
   PaymentFailedEvent,
-  PaymentFailedParams,
+  PaymentFailedPayload,
 } from '@modules/payment/domain/events/payment-failed.event';
 import {
   PaymentInitiatedEvent,
-  PaymentInitiatedEventParams,
+  PaymentInitiatedEventPayload,
 } from '@modules/payment/domain/events/payment-initiated.event';
 import {
   PaymentCancelledEvent,
-  PaymentCancelledEventParams,
+  PaymentCancelledEventPayload,
 } from '@modules/payment/domain/events/payment-cancelled.event';
+import { IPaymentEventPublisher } from '@modules/payment/domain/interfaces/payment-event-publisher.interface';
 
 @Injectable()
-export class PaymentEventPublisher {
+export class PaymentEventPublisher implements IPaymentEventPublisher {
   constructor(private readonly contextService: ContextService) {}
 
-  paymentPaid(payload: PaymentPaidEventParams) {
-    this.contextService.addEvent(
-      PaymentPaidEvent.name,
-      new PaymentPaidEvent(payload)
-    );
+  paymentPaid(payload: PaymentPaidEventPayload) {
+    this.contextService.addEvent(new PaymentPaidEvent(payload));
   }
 
-  paymentRefund(payload: PaymentRefundedEventParams) {
-    this.contextService.addEvent(
-      PaymentRefundedEvent.name,
-      new PaymentRefundedEvent(payload)
-    );
+  paymentRefund(payload: PaymentRefundedEventPayload) {
+    this.contextService.addEvent(new PaymentRefundedEvent(payload));
   }
-  paymentFailed(payload: PaymentFailedParams) {
-    this.contextService.addEvent(
-      PaymentFailedEvent.name,
-      new PaymentFailedEvent(payload)
-    );
+  paymentFailed(payload: PaymentFailedPayload) {
+    this.contextService.addEvent(new PaymentFailedEvent(payload));
   }
 
-  paymentInitiated(payload: PaymentInitiatedEventParams) {
-    this.contextService.addEvent(
-      PaymentInitiatedEvent.name,
-      new PaymentInitiatedEvent(payload)
-    );
+  paymentInitiated(payload: PaymentInitiatedEventPayload) {
+    this.contextService.addEvent(new PaymentInitiatedEvent(payload));
   }
 
-  paymentCancelled(payload: PaymentCancelledEventParams) {
-    this.contextService.addEvent(
-      PaymentCancelledEvent.name,
-      new PaymentCancelledEvent(payload)
-    );
+  paymentCancelled(payload: PaymentCancelledEventPayload) {
+    this.contextService.addEvent(new PaymentCancelledEvent(payload));
   }
 }

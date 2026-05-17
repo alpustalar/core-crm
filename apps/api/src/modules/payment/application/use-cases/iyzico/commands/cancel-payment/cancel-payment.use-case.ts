@@ -7,8 +7,8 @@ import {
 import { randomUUID } from 'crypto';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PaymentRepository } from '@modules/payment/infrastructure/persistence/prisma/repositories';
-import { IyzicoProvider } from '@src/infrastructure/persistence/payment/providers/iyzico/iyzico.provider';
-import { PaymentEventPublisher } from '@modules/payment/infrastructure/events/publisher/payment.publisher';
+import { IyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/iyzico.provider';
+import { PaymentEventPublisher } from '@modules/payment/infrastructure/events/payment-event-publisher.service';
 import { PaymentDomainService } from '@modules/payment/domain/services/payment-domain.service';
 import { PAYMENT_ACTIONS } from '@modules/payment/domain/constants/payment.constant';
 

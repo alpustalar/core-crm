@@ -1,20 +1,14 @@
-import { Prisma, Provider } from '@prisma/client';
-import { Pagination } from '@shared';
+import { Pagination, Provider } from '@shared';
+import { MapPaginationResult } from '@src/infrastructure/persistence/prisma/base.repository';
+import { UpdateProviderDto } from '@shared/modules/provider/dto/update-provider.dto';
 
 export const PROVIDER_REPO_TOKEN = Symbol('IProviderRepository');
 
-export type IProvider = Provider;
-export type IProviderCreate = Prisma.ProviderCreateInput;
-export type IProviderUpdate = Prisma.ProviderUpdateInput;
-
-export type PaginatedProviders = {
-  items: IProvider[];
-  total: number;
-};
+export type PaginatedProviders = MapPaginationResult<Provider>;
 
 export interface IProviderRepository {
-  create(data: IProviderCreate): Promise<IProvider>;
-  findById(providerId: string): Promise<IProvider | null>;
+  create(data: UpdateProviderDto): Promise<Provider>;
+  find(providerId: string): Promise<Provider | null>;
   findAllByClinicId(
     pagination: Pagination,
     clinicId: string
@@ -23,5 +17,5 @@ export interface IProviderRepository {
     pagination: Pagination,
     organizationIds: string[]
   ): Promise<PaginatedProviders>;
-  update(providerId: string, data: IProviderUpdate): Promise<IProvider>;
+  update(providerId: string, data: UpdateProviderDto): Promise<Provider>;
 }

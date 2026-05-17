@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import {
-  IProviderAvailabilityCreate,
-  IProviderAvailabilityRepository,
-} from '@modules/provider/domain/repositories/provider-availability.repository.interface';
+import { IProviderAvailabilityRepository } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
+import { CreateProviderAvailabilityProps } from '@modules/provider/domain/types/create-provider-availability.props';
 
 @Injectable()
 export class ProviderAvailabilityRepository
@@ -15,7 +13,7 @@ export class ProviderAvailabilityRepository
     super(prisma);
   }
 
-  create(data: IProviderAvailabilityCreate) {
+  create(data: CreateProviderAvailabilityProps) {
     return this.db.providerAvailability.create({ data });
   }
 
@@ -23,6 +21,13 @@ export class ProviderAvailabilityRepository
     return this.db.providerAvailability.findMany({
       where: { providerId },
       orderBy: { dayOfWeek: 'asc' },
+      include: {
+        provider: {
+          select: {
+            canAcceptExamination: true,
+          },
+        },
+      },
     });
   }
 

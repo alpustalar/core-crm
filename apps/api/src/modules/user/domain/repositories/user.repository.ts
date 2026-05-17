@@ -1,67 +1,41 @@
-import { UserStatusType } from '@input-type-schemas/UserStatusSchema';
-import { Prisma, User } from '@prisma/client';
 import { Pagination } from '@shared';
-import { authUserInclude } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository';
-
-export type IUser = User;
-export type IUserStatus = UserStatusType;
-export type IUserCreate = Prisma.UserCreateInput;
-export type IUserUpdate = Prisma.UserUpdateInput;
-
-export interface FindUsersByOrganizationIdsInput {
-  pagination: Pagination;
-  organizationId: string | string[];
-  extraWhere?: Prisma.UserWhereInput;
-  select?: Prisma.UserSelect;
-}
-
-export interface FindUsersByClinicIdsInput {
-  pagination: Pagination;
-  clinicId: string | string[];
-  extraWhere?: Prisma.UserWhereInput;
-  select?: Prisma.UserSelect;
-}
-
-export type PaginatedUsers = {
-  items: IUser[];
-  total: number;
-};
-
-export type AuthUserResponse = Prisma.UserGetPayload<{
-  include: typeof authUserInclude;
-}>;
+import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
+import { User } from '@prisma/client';
+import { UserWithRolePriority } from '@modules/user/domain/types/user-with-role-priority.type';
+import { AuthUserResponse } from '@modules/user/domain/types/auth-user-response.type';
+import { UpdateUserProps } from '@modules/user/domain/types/update-user.props';
+import { FindUsersByClinicIdsProps } from '@modules/user/domain/types/find-users-by-clinic-ids.props';
+import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
+import { FindUsersByOrganizationIdsProps } from '@modules/user/domain/types/find-users-by-organization-ids.props';
+import { PaginatedUsers } from '@modules/user/domain/types/paginated-users.type';
 
 export const USER_REPO_TOKEN = Symbol('IUserRepository');
 
 export interface IUserRepository {
-  findOneWithAnIdOrEmail(userIdOrEmail: string): Promise<IUser | null>;
-  findById(id: string): Promise<IUser | null>;
-  findByEmail(email: string): Promise<IUser | null>;
-  findUserForAuth(
-    where: Prisma.UserWhereInput
-  ): Promise<AuthUserResponse | null>;
+  findByIdOrEmail(userIdOrEmail: string): Promise<UserWithRolePriority | null>;
+  find(id: string): Promise<UserWithRolePriority | null>;
+  findByEmail(email: string): Promise<UserWithRolePriority | null>;
+  findForAuth(firebaseUid: string): Promise<AuthUserResponse | null>;
   checkEmailExists(email: string): Promise<number>;
-  createUser(user: IUserCreate): Promise<IUser>;
-  updateUserWithAnId(id: string, user: IUserUpdate): Promise<IUser>;
-  changeAllUserStatusInClinicWithClinicId(
+  create(user: CreateUserProps): Promise<User>;
+  update(id: string, user: UpdateUserProps): Promise<User>;
+  changeAllStatusByClinicId(
     clinicId: string,
-    status: IUserStatus
+    status: GlobalStatusType
   ): Promise<{ deletedCount: number }>;
-  softDeleteUserWithAnId(userId: string): Promise<IUser>;
-  softDeleteAllUsersByOrganizationId(
+  softDelete(userId: string): Promise<User>;
+  softDeleteAllByOrganizationId(
     organizationId: string
   ): Promise<{ deletedCount: number }>;
-  findAllUsers(
-    pagination: any,
-    where?: any
+  list(
+    pagination: Pagination,
+    where?: Record<string, unknown>
   ): Promise<{
-    items: IUser[];
+    items: User[];
     total: number;
   }>;
-  findUsersByOrganizationIds(
-    input: FindUsersByOrganizationIdsInput
+  listByOrganizationIds(
+    input: FindUsersByOrganizationIdsProps
   ): Promise<PaginatedUsers>;
-  findUsersByClinicIds(
-    input: FindUsersByClinicIdsInput
-  ): Promise<PaginatedUsers>;
+  listByClinicIds(input: FindUsersByClinicIdsProps): Promise<PaginatedUsers>;
 }

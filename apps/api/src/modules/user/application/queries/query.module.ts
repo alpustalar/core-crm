@@ -1,3 +1,4 @@
+import { FindUserForAuthHandler } from './find-user-for-auth/find-user-for-auth.handler';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PolicyModule } from '@modules/policy/policy.module';
@@ -11,6 +12,7 @@ import { FindAllUsersForManagerHandler } from '@modules/user/application/queries
 import { FindOneWithIdOrEmailHandler } from '@modules/user/application/queries/find-one-with-id-or-email';
 
 const QueryHandlers = [
+  FindUserForAuthHandler,
   CheckEmailExistsHandler,
   FindAllUsersForManagerHandler,
   FindOneWithIdOrEmailHandler,

@@ -1,13 +1,19 @@
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { GlobalStatus, Prisma } from '@prisma/client';
+import { GlobalStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { CreateOrganizationProps } from '@modules/organization/domain/types/create-organization.props';
+import { UpdateOrganizationProps } from '@modules/organization/domain/types/update-organization.props';
+import { IOrganizationRepository } from '@modules/organization/domain/repositories/organization.repository.interface';
 
-export class OrganizationRepository extends BaseRepository {
+export class OrganizationRepository
+  extends BaseRepository
+  implements IOrganizationRepository
+{
   constructor(protected readonly prisma: PrismaService) {
     super(prisma);
   }
 
-  create(data: Prisma.OrganizationCreateInput) {
+  create(data: CreateOrganizationProps) {
     return this.db.organization.create({ data });
   }
 
@@ -33,7 +39,7 @@ export class OrganizationRepository extends BaseRepository {
     });
   }
 
-  updateByOwner(organizationId: string, data: Prisma.OrganizationUpdateInput) {
+  updateByOwner(organizationId: string, data: UpdateOrganizationProps) {
     return this.db.organization.update({
       where: { id: organizationId },
       data,

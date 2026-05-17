@@ -1,16 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs'; // Değişiklik burada
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  TransactionContext,
-  txStorage,
-} from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import { TransactionContext, txStorage, } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 
 @Injectable()
 export class TransactionManager {
   constructor(
     private prisma: PrismaService,
-    private eventEmitter: EventEmitter2
+    private eventBus: EventBus
   ) {}
 
   async run<T>(work: () => Promise<T>): Promise<T> {
@@ -23,8 +20,9 @@ export class TransactionManager {
 
       const result = await txStorage.run(context, work);
 
+      // Event Bus kullanımı
       for (const event of context.events) {
-        await this.eventEmitter.emitAsync(event.name, event.payload);
+        await this.eventBus.publish(event.payload);
       }
 
       return result;

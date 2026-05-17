@@ -1,15 +1,18 @@
-import { User } from '@prisma/client';
 import { ActorContext } from '@common/interfaces';
 import { UserResponseGroups } from '@modules/user/domain/constants';
-import { IUser } from '@modules/user/domain/repositories/user.repository';
 import { ClinicPolicy } from '@modules/clinic/application/policies';
+import { User } from '@shared';
 
-interface HasPriority {
+export type HasPriority = {
   priority: number;
   role?: {
     priority: number;
   };
-}
+};
+
+export type HasPriorityAndClinicId = {
+  clinicId: string;
+} & HasPriority;
 
 const { ADMIN, INTERNAL, FINANCIAL, DATA_OWNER, MANAGEMENT } =
   UserResponseGroups;
@@ -56,7 +59,7 @@ export class UserPolicy extends ClinicPolicy {
    * Aktör, hedeften KESİN OLARAK ÜST mü?
    */
   actorHasHigherPriorityThanTarget(
-    targetUser: IUser | HasPriority | number
+    targetUser: HasPriority | number | undefined | null
   ): boolean {
     return this.actorPriority > this.getTargetPriority(targetUser);
   }
@@ -64,18 +67,14 @@ export class UserPolicy extends ClinicPolicy {
   /**
    * Aktör ve hedef AYNI seviyede mi?
    */
-  actorHasEqualPriorityWithTarget(
-    target: IUser | HasPriority | number
-  ): boolean {
+  actorHasEqualPriorityWithTarget(target: HasPriority | number): boolean {
     return this.actorPriority === this.getTargetPriority(target);
   }
 
   /**
    * Aktör, hedeften DÜŞÜK mü?
    */
-  actorHasLowerPriorityThanTarget(
-    target: IUser | HasPriority | number
-  ): boolean {
+  actorHasLowerPriorityThanTarget(target: HasPriority | number): boolean {
     return this.actorPriority < this.getTargetPriority(target);
   }
   //? ==========================================
@@ -85,7 +84,7 @@ export class UserPolicy extends ClinicPolicy {
   /**
    * Kullanıcıyı tamamen yönetebilir mi? (Update/Delete)*
    */
-  actorCanManageTargetUser(targetUser: IUser): boolean {
+  actorCanManageTargetUser(targetUser: HasPriorityAndClinicId): boolean {
     if (!this.isTargetInActorsManagedClinic(targetUser.clinicId)) {
       return false;
     }
@@ -95,7 +94,9 @@ export class UserPolicy extends ClinicPolicy {
   /**
    * Kullanıcıyı silebilir mi?
    */
-  actorCanDeleteTargetUser(targetUser: IUser): boolean {
+  actorCanDeleteTargetUser(
+    targetUser: HasPriorityAndClinicId & { id: string }
+  ): boolean {
     if (this.isSelf(targetUser.id)) {
       return false;
     }
@@ -112,7 +113,7 @@ export class UserPolicy extends ClinicPolicy {
    * NOT: Hem targetUser.role hem newRole.priority gerekli
    */
   actorCanChangeTargetUserRole(
-    targetUser: IUser,
+    targetUser: HasPriorityAndClinicId,
     newRolePriority: number
   ): boolean {
     if (!this.actorCanManageTargetUser(targetUser)) {
@@ -164,7 +165,13 @@ export class UserPolicy extends ClinicPolicy {
     };
   }
 
-  private getTargetPriority(target: User | HasPriority | number): number {
+  private getTargetPriority(
+    target: User | HasPriority | number | undefined | null
+  ): number {
+    if (!target) {
+      return 0;
+    }
+
     if (typeof target === 'number') {
       return target;
     }

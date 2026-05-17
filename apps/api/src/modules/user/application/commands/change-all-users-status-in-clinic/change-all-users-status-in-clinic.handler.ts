@@ -19,9 +19,6 @@ export class ChangeAllUsersStatusInClinicHandler
   @InternalOnly()
   async execute(command: ChangeAllUsersStatusInClinicCommand) {
     const { status, clinicId } = command;
-    await this.userRepo.changeAllUserStatusInClinicWithClinicId(
-      clinicId,
-      status
-    );
+    await this.userRepo.changeAllStatusByClinicId(clinicId, status);
   }
 }

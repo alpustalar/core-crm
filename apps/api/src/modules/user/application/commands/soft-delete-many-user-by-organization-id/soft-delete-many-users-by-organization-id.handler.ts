@@ -27,7 +27,7 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
     const { organizationId } = command;
 
     const result =
-      await this.userRepo.softDeleteAllUsersByOrganizationId(organizationId);
+      await this.userRepo.softDeleteAllByOrganizationId(organizationId);
 
     return result.deletedCount;
   }

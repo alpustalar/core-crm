@@ -5,15 +5,11 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
-export interface OrganizationSoftDeleteEventParams {
+export interface OrganizationSoftDeleteEventPayload extends IAuditLog {
   organizationId: string;
   organizationName: string;
-  details: string;
-  actorId: string;
-  type?: LogType;
-  source?: LogSource;
-  action: LogAction;
 }
 
 export class OrganizationSoftDeleteEvent extends BaseEvent {
@@ -22,26 +18,19 @@ export class OrganizationSoftDeleteEvent extends BaseEvent {
   readonly organizationId: string;
   readonly organizationName: string;
 
-  public readonly details: string;
-  public readonly actorId: string;
-  public readonly type: LogType;
-  public readonly source: LogSource;
-  public readonly action: LogAction;
-
-  constructor(params: OrganizationSoftDeleteEventParams) {
-    const type = params.type ?? LogType.INFO;
-    const source = params.source ?? LogSource.WEB;
+  constructor(payload: OrganizationSoftDeleteEventPayload) {
+    const type = payload.type ?? LogType.INFO;
+    const source = payload.source ?? LogSource.WEB;
 
     super({
       action: LogAction.USER_REGISTER,
-      actorId: params.actorId,
-      details: params.details,
+      actorId: payload.actorId,
+      details: payload.details,
       type,
       source,
     });
 
-    this.organizationId = params.organizationId;
-    this.organizationName = params.organizationName;
-    this.actorId = params.actorId;
+    this.organizationId = payload.organizationId;
+    this.organizationName = payload.organizationName;
   }
 }

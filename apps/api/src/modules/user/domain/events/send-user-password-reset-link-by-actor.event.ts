@@ -6,7 +6,7 @@ import {
   LogType,
 } from '@src/domain/constants/log-action.constant';
 
-export interface SendUserPasswordResetLinkByActorEventParams {
+export interface SendUserPasswordResetLinkByActorEventPayload {
   actorId: string;
   source?: LogSource;
   type?: LogType;
@@ -24,16 +24,16 @@ export class SendUserPasswordResetLinkByActorEvent extends BaseEvent {
   public readonly source: LogSource = LogSource.WEB;
   public readonly details: string;
 
-  constructor(params: SendUserPasswordResetLinkByActorEventParams) {
+  constructor(payload: SendUserPasswordResetLinkByActorEventPayload) {
     super({
       action: LogAction.USER_SEND_PASSWORD_RESET_LINK,
-      actorId: params.actorId,
+      actorId: payload.actorId,
       details: '',
       type: LogType.INFO,
       source: LogSource.WEB,
     });
 
-    this.actorId = params.actorId;
-    this.details = params.details ?? '';
+    this.actorId = payload.actorId;
+    this.details = payload.details ?? '';
   }
 }

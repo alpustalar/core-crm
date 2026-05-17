@@ -6,7 +6,10 @@ import {
   FIREBASE_SERVICE_TOKEN,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
-import { MailService } from '@modules/mail/mail.service';
+import {
+  IMailService,
+  MAIL_SERVICE_TOKEN,
+} from '@modules/mail/domain/interfaces/mail.service.interface';
 
 @CommandHandler(SendUserPasswordResetLinkBySelfCommand)
 export class SendUserPasswordResetLinkBySelfHandler
@@ -15,7 +18,8 @@ export class SendUserPasswordResetLinkBySelfHandler
   constructor(
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
-    private readonly mailService: MailService
+    @Inject(MAIL_SERVICE_TOKEN)
+    private readonly mailService: IMailService
   ) {}
 
   @InternalOnly()

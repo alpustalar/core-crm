@@ -28,6 +28,12 @@ generator zod {
 //! ENUMS
 //? ====================================================================================
 
+
+enum OperationMode {
+  STATIC
+  SHIFT
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -37,7 +43,6 @@ enum GlobalStatus {
   ACTIVE
   DELETED
   SUSPENDED
-  TRIAL
 }
 
 enum ExternalSystem {
@@ -108,6 +113,76 @@ model Sector {
 }
 
 //? ====================================================================================
+//! SUBSCRIPTION
+//? ====================================================================================
+
+enum PlanId {
+  FREE_TRIAL
+  BASIC
+  PREMIUM
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+model Module {
+  id           String  @id @default(uuid())
+  key          String  @unique // "E_INVOICE", "POS_INTEGRATION"
+  name         String
+  description  String?
+  monthlyPrice Decimal @map("monthly_price") @db.Decimal(10, 2)
+  isActive     Boolean @default(true) @map("is_active")
+
+  items SubscriptionItem[]
+
+  @@map("modules")
+}
+
+model Subscription {
+  id             String    @id @default(uuid())
+  organizationId String    @unique @map("organization_id")
+  externalId     String?   @unique @map("external_id")
+  status         SubStatus @default(ACTIVE)
+
+  trialEndsAt        DateTime? @map("trial_ends_at")
+  currentPeriodStart DateTime? @map("current_period_start")
+  currentPeriodEnd   DateTime? @map("current_period_end")
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  items        SubscriptionItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+model SubscriptionItem {
+  id             String @id @default(uuid())
+  subscriptionId String @map("subscription_id")
+
+  planId   PlanId?
+  moduleId String? @map("module_id")
+
+  priceAtPurchase Decimal @map("price_at_purchase") @db.Decimal(10, 2)
+  externalPriceId String? @map("external_price_id")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  module       Module?      @relation(fields: [moduleId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([subscriptionId, planId])
+  @@unique([subscriptionId, moduleId])
+  @@map("subscription_items")
+}
+
+//? ====================================================================================
 //! ORGANIZATION
 //? ====================================================================================
 
@@ -125,13 +200,13 @@ model Organization {
   status   GlobalStatus @default(ACTIVE)
   timezone String       @default("Europe/Istanbul")
 
-  clinics Clinic[]
+  clinics            Clinic[]
+  organizationOwners User[]   @relation("organization_owners")
 
-  organizationOwners User[] @relation("organization_owners")
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  deletedAt    DateTime?     @map("deleted_at")
+  subscription Subscription?
 
   @@map("organizations")
 }
@@ -140,10 +215,7 @@ model Organization {
 //! CLINIC
 //? ====================================================================================
 
-enum ClinicOperationMode {
-  STATIC
-  SHIFT
-}
+
 
 model Clinic {
   id   String @id @default(uuid())
@@ -162,17 +234,14 @@ model Clinic {
   // patient book için
   consultationSlotDuration Int @default(15)
 
-  // çalışma saatleri sabit mi haftalık shift mi
-  operationMode ClinicOperationMode @default(STATIC) @map("operation_mode")
-
   status   GlobalStatus @default(ACTIVE)
   timezone String       @default("Europe/Istanbul")
 
   logo String?
 
   // bağlı olduğu organizasyon
-  organizationId String?       @map("organization_id")
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // diğer ilişkiler
   managers     User[]        @relation("clinic_managers")
@@ -182,6 +251,7 @@ model Clinic {
   appointments Appointment[]
   patients     Patient[]
   medicalFiles MedicalFile[]
+  resources    Resource[]
 
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
@@ -226,13 +296,54 @@ model ClinicException {
 }
 
 //? ====================================================================================
+//! RESOURCE (EKİPMAN / ODA)
+//? ====================================================================================
+
+enum ResourceType {
+  EQUIPMENT
+  ROOM
+}
+
+model Resource {
+  id          String       @id @default(uuid())
+  name        String
+  type        ResourceType
+  description String?
+  isActive    Boolean      @default(true) @map("is_active")
+
+  clinicId String @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  appointments           Appointment[]
+  resourceAvailabilities ResourceAvailability[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([clinicId])
+  @@map("resources")
+}
+
+model ResourceAvailability {
+  id String @id @default(uuid())
+
+  dayOfWeek   Int     @map("day_of_week") // 0-6
+  startMinute Int     @map("start_minute")
+  endMinute   Int     @map("end_minute")
+  isClosed    Boolean @default(false) @map("is_closed")
+
+  resourceId String   @map("resource_id")
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, dayOfWeek])
+  @@map("resource_availabilities")
+}
+
+
+//? ====================================================================================
 //! USER
 //? ====================================================================================
-enum UserStatus {
-  ACTIVE
-  DELETED
-  SUSPENDED
-}
 
 model User {
   id String @id
@@ -241,11 +352,11 @@ model User {
   email         String  @unique
   emailVerified Boolean @default(false) @map("email_verified")
 
-  status UserStatus @default(ACTIVE)
+  status GlobalStatus @default(ACTIVE)
 
-  role   Role?   @relation(fields: [roleId], references: [id])
-  roleId String?
+  roleId String
 
+  role    Role    @relation(fields: [roleId], references: [id])
   picture String?
 
   // 1. Çalıştığı/Bağlı olduğu klinik (One-to-Many)
@@ -332,9 +443,12 @@ model Provider {
   isActive             Boolean @default(true) @map("is_active")
   canAcceptExamination Boolean @default(true)
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime @map("deleted_at")
+  // çalışma saatleri static ise provider availability shift ise provider shift modeli kontrol edilsin appointment için
+  operationMode OperationMode @default(STATIC)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   // Bağlı olduğu
   clinicId String @map("clinic_id")
@@ -549,6 +663,7 @@ model Appointment {
   clinicId    String  @map("clinic_id")
   providerId  String  @map("provider_id")
   patientId   String? @map("patient_id")
+  resourceId  String? @map("resource_id")
 
   isDeleted Boolean   @default(false) @map("is-deleted")
   deletedAt DateTime? @map("deleted-at")
@@ -558,6 +673,7 @@ model Appointment {
   clinic    Clinic     @relation(fields: [clinicId], references: [id])
   provider  Provider   @relation(fields: [providerId], references: [id])
   patient   Patient?   @relation(fields: [patientId], references: [id])
+  resource  Resource?  @relation(fields: [resourceId], references: [id])
 
   // child rel
   medicalFile MedicalFile[]
@@ -861,10 +977,11 @@ enum PaymentMethod {
 }
 
 model Payment {
-  id            String  @id @default(uuid())
-  clinicId      String  @map("clinic_id")
-  patientId     String  @map("patient_id")
-  appointmentId String? @unique @map("appointment_id")
+  id            String        @id @default(uuid())
+  clinicId      String        @map("clinic_id")
+  patientId     String        @map("patient_id")
+  appointmentId String?       @unique @map("appointment_id")
+  method        PaymentMethod @default(CREDIT_CARD)
 
   expectedAmount Decimal @map("expected_amount") @db.Decimal(10, 2)
   currency       String  @default("TRY")

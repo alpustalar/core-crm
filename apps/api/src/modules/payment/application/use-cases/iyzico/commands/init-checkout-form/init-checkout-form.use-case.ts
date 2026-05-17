@@ -3,10 +3,10 @@ import { randomUUID } from 'crypto';
 import { PaymentRepository } from '@modules/payment/infrastructure/persistence/prisma/repositories';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { InitCheckoutFormDto } from '@shared';
-import { IyzicoProvider } from '@src/infrastructure/persistence/payment/providers/iyzico/iyzico.provider';
-import { PaymentEventPublisher } from '@modules/payment/infrastructure/events/publisher/payment.publisher';
-import { IyzicoMapper } from '@src/infrastructure/persistence/payment/providers/iyzico';
-import { IyzicoTransactionRepository } from '@src/infrastructure/persistence/payment/providers/iyzico/repositories/iyzico-transaction.repository';
+import { IyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/iyzico.provider';
+import { PaymentEventPublisher } from '@modules/payment/infrastructure/events/payment-event-publisher.service';
+import { IyzicoMapper } from '@src/infrastructure/payment/providers/iyzico';
+import { IyzicoTransactionRepository } from '@src/infrastructure/payment/providers/iyzico/repositories/iyzico-transaction.repository';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 export interface InitCheckoutFormInput extends InitCheckoutFormDto {

@@ -1,28 +1,20 @@
 import { ProviderAvailability, ProviderException } from '@shared';
+import { CreateProviderAvailabilityProps } from '@modules/provider/domain/types/create-provider-availability.props';
+import { ProviderAvailabilityWithCanAcceptExamination } from '@modules/provider/domain/types/provider-availability-with-can-accept-examination';
 
 export const PROVIDER_AVAILABILITY_REPO_TOKEN = Symbol(
   'IProviderAvailabilityRepository'
 );
 
-export type IProviderAvailability = ProviderAvailability;
-
-export interface IProviderAvailabilityCreate {
-  id?: string;
-  providerId: string;
-  dayOfWeek: number;
-  startMinute: number;
-  endMinute: number;
-  breakStartMinute?: number | null;
-  breakEndMinute?: number | null;
-}
-
 export interface IProviderAvailabilityRepository {
-  create(data: IProviderAvailabilityCreate): Promise<IProviderAvailability>;
-  findByProviderId(providerId: string): Promise<IProviderAvailability[]>;
+  create(data: CreateProviderAvailabilityProps): Promise<ProviderAvailability>;
+  findByProviderId(
+    providerId: string
+  ): Promise<ProviderAvailabilityWithCanAcceptExamination[]>;
   findByProviderAndDay(
     providerId: string,
     dayOfWeek: number
-  ): Promise<IProviderAvailability | null>;
+  ): Promise<ProviderAvailability | null>;
   deleteByProviderId(providerId: string): Promise<{ deletedCount: number }>;
   findExceptionsByDateRange(
     providerId: string,

@@ -1,5 +1,6 @@
 import { CAPABILITIES } from './capabilities';
 import { ACTIONS, allOfCapabilities, getAllSystemCapabilities } from '../utils';
+import { ROLE_SLUGS } from '@src/domain/constants/db/role/role-slugs';
 
 const {
   USER,
@@ -17,14 +18,14 @@ const {
 
 export const rolesCreateManyInputs = [
   {
-    slug: 'admin',
+    slug: ROLE_SLUGS.ADMIN,
     name: 'Sistem Yöneticisi',
     priority: 100,
     caps: getAllSystemCapabilities(),
     isSystemRole: true,
   },
   {
-    slug: 'organization_owner',
+    slug: ROLE_SLUGS.ORGANIZATION_OWNER,
     name: 'Organizasyon Sahibi',
     priority: 95,
     isSystemRole: true,
@@ -42,7 +43,7 @@ export const rolesCreateManyInputs = [
     ],
   },
   {
-    slug: 'branch_manager',
+    slug: ROLE_SLUGS.BRANCH_MANAGER,
     name: 'Bölge / Şube Müdürü',
     priority: 85,
     isSystemRole: true,
@@ -65,15 +66,15 @@ export const rolesCreateManyInputs = [
     ],
   },
   {
-    slug: 'clinic_owner',
+    slug: ROLE_SLUGS.CLINIC_OWNER,
     name: 'Klinik Sahibi / Mesul Müdür',
     priority: 80,
     isSystemRole: true,
     caps: [CLINIC.update, CLINIC.read, ...allOfCapabilities(USER)],
   },
   {
-    slug: 'doctor',
-    name: 'Doktor',
+    slug: ROLE_SLUGS.PROVIDER,
+    name: 'Hizmet Veren',
     priority: 70,
     isSystemRole: true,
     caps: [
@@ -84,21 +85,21 @@ export const rolesCreateManyInputs = [
     ],
   },
   {
-    slug: 'nurse',
+    slug: ROLE_SLUGS.ASSISTANT,
     name: 'Hemşire / Asistan',
     priority: 60,
     isSystemRole: true,
     caps: [PATIENT.read, APPOINTMENT.read],
   },
   {
-    slug: 'accountant',
+    slug: ROLE_SLUGS.ACCOUNTANT,
     name: 'Muhasebe / Finans Sorumlusu',
     priority: 55,
     isSystemRole: true,
     caps: [],
   },
   {
-    slug: 'receptionist',
+    slug: ROLE_SLUGS.RECEPTIONIST,
     name: 'Resepsiyonist / Ön Büro',
     priority: 50,
     isSystemRole: true,
@@ -109,14 +110,14 @@ export const rolesCreateManyInputs = [
     ],
   },
   {
-    slug: 'inventory_manager',
+    slug: ROLE_SLUGS.INVENTORY_MANAGER,
     name: 'Depo / Stok Sorumlusu',
     priority: 40,
     isSystemRole: true,
     caps: [TREATMENT.read, PROVIDERTREATMENT.read, PROVIDERTREATMENT.update],
   },
   {
-    slug: 'staff',
+    slug: ROLE_SLUGS.STAFF,
     name: 'Destek Personeli',
     priority: 10,
     isSystemRole: true,

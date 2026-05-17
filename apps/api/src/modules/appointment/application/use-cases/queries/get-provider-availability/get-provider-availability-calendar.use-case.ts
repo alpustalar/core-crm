@@ -3,7 +3,7 @@ import {
   APPOINTMENT_REPO_TOKEN,
   IAppointmentRepository,
 } from '@modules/appointment/domain/repositories/appointment.repository.interface';
-import { ClinicModuleApi } from '@modules/clinic/clinic-module.api';
+import { ClinicModuleApi } from '@modules/clinic/clinic.module.api';
 import { ProviderModuleApi } from '@modules/provider/provider-module.api';
 import { PolicyFactory } from '@modules/policy/application/policy-factory';
 import { ActorContext } from '@common/interfaces';
@@ -46,8 +46,8 @@ export class GetProviderAvailabilityCalendarUseCase {
       );
     }
 
-    const [clinicSchedule, providerSchedule, occupiedSlots] = await Promise.all(
-      [
+    const [clinicScheduleResult, providerScheduleResult, occupiedSlots] =
+      await Promise.all([
         this.clinicModuleApi.findSchedule({ clinicId, startDate, endDate }),
         this.providerModuleApi.findSchedule({ providerId, startDate, endDate }),
         this.appointmentRepo.findProviderOccupiedSlots(
@@ -55,8 +55,10 @@ export class GetProviderAvailabilityCalendarUseCase {
           startDate,
           endDate
         ),
-      ]
-    );
+      ]);
+
+    const clinicSchedule = clinicScheduleResult.data;
+    const providerSchedule = providerScheduleResult.data;
 
     const clinicAvailByDay = new Map(
       clinicSchedule.availabilities.map((a) => [a.dayOfWeek, a])

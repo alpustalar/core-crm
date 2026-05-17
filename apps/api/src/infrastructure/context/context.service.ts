@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { txStorage } from '../transaction/als-storage';
+import { txStorage } from '../persistence/prisma/transaction/als-storage';
 
 @Injectable()
 export class ContextService {
-  addEvent(name: string, eventInstance: object): void {
+  addEvent(eventInstance: object): void {
     const store = txStorage.getStore();
     if (store) {
       store.events.push({
-        name,
         payload: eventInstance,
         occurredAt: new Date(),
         correlationId: store.correlationId,
