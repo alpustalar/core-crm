@@ -31,7 +31,7 @@ export class DateTimeManager {
   }
 
   /**
-   * Dakikayı HH:mm formatına çevirir (Örn: 540 -> "09:00")
+   * number olan Dakikayı HH:mm formatına çevirir (Örn: 540 -> "09:00")
    */
   static minutesToHHMM(minutes: number): string {
     return dayjs.duration(minutes, 'minutes').format('HH:mm');
@@ -81,5 +81,27 @@ export class DateTimeManager {
    */
   static addMinutes(date: Date, minutes: number): Date {
     return dayjs(date).add(minutes, 'minute').toDate();
+  }
+
+  static addDays(date: Date, days: number): Date {
+    return dayjs(date).add(days, 'day').toDate();
+  }
+
+  static addHours(date: Date, hours: number): Date {
+    return dayjs(date).add(hours, 'hour').toDate();
+  }
+
+  static startOfDay(date: Date): Date {
+    return dayjs(date).startOf('day').toDate();
+  }
+
+  static endOfDay(date: Date): Date {
+    return dayjs(date).endOf('day').toDate();
+  }
+  /**
+   * DD.MM.YYYY formatı döner
+   */
+  static toDateKey(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 }

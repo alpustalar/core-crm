@@ -1,0 +1,192 @@
+model TreatmentCategory {
+  id       String @id @default(uuid())
+  sectorId String @map("sector_id")
+  slug     String @unique
+
+  sector           Sector            @relation(fields: [sectorId], references: [id])
+  masterTreatments MasterTreatment[]
+  treatments       Treatment[]
+
+  translations TreatmentCategoryTranslation[]
+
+  @@map("treatment_categories")
+}
+
+model TreatmentCategoryTranslation {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  languageId          String @map("language_id")
+  treatmentCategoryId String @map("treatment_category_id")
+
+  language          Language          @relation(fields: [languageId], references: [id])
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+}
+
+model MasterTreatment {
+  id   String @id @default(uuid())
+  slug String @unique
+
+  treatmentCategoryId String @map("treatment_category_id")
+
+  defaultDuration Int     @map("default_duration")
+  // Resmi SUT prosedür kodu — AppointmentProcedure oluşturulurken default olarak kullanılır
+  sutCode         String? @map("sut_code")
+
+  treatments   Treatment[]
+  translations TreatmentTranslation[]
+
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+
+  @@map("master_treatments")
+}
+
+model TreatmentTranslation {
+  id String @id @default(uuid())
+
+  masterTreatmentId String? @map("master_treatment_id")
+  languageId        String  @map("language_id")
+  treatmentId       String? @map("treatment_id")
+
+  name                  String
+  description           String?
+  aftercareInstructions String? @map("aftercare_instructions")
+
+  language        Language         @relation(fields: [languageId], references: [id])
+  masterTreatment MasterTreatment? @relation(fields: [masterTreatmentId], references: [id])
+  treatment       Treatment?       @relation(fields: [treatmentId], references: [id])
+
+  @@unique([masterTreatmentId, languageId])
+  @@unique([treatmentId, languageId])
+  @@map("master_treatment_translations")
+}
+
+model Treatment {
+  id String @id @default(uuid())
+
+  slug                String
+  treatmentCategoryId String @map("treatment_category_id")
+
+  duration    Int?
+  minDuration Int? @map("min_duration")
+  maxDuration Int? @map("max_duration")
+
+  // MasterTreatment.sutCode'u override etmek için — null ise master'ınki kullanılır
+  sutCode String? @map("sut_code")
+
+  description      String? @db.Text
+  isActive         Boolean @default(true) @map("is_active")
+  requiresApproval Boolean @default(false) @map("requires_approval")
+  isPackageOnly    Boolean @default(false) @map("is_package_only")
+  displayOrder     Int     @default(0) @map("display_order")
+
+  clinicId          String  @map("clinic_id")
+  masterTreatmentId String? @map("master_treatment_id")
+
+  translations       TreatmentTranslation[]
+  appointments       Appointment[]
+  providerTreatments ProviderTreatment[]
+  medicalFile        MedicalFile[]
+
+  clinic            Clinic            @relation(fields: [clinicId], references: [id])
+  masterTreatment   MasterTreatment?  @relation(fields: [masterTreatmentId], references: [id])
+  treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  packageItems TreatmentPackageItem[]
+
+  @@unique([clinicId, slug])
+  @@index([deletedAt])
+  @@map("treatments")
+}
+
+// ─── Treatment Packages ───────────────────────────────────────────────────────
+
+enum PatientPackageStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  SUSPENDED
+}
+
+model TreatmentPackage {
+  id       String @id @default(uuid())
+  clinicId String @map("clinic_id")
+
+  name             String
+  examinationCount Int     @map("examination_count")
+  controlCount     Int     @map("control_count")
+  validityDays     Int     @map("validity_days")
+  price            Decimal @db.Decimal(10, 2)
+
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  items           TreatmentPackageItem[]
+  providers       TreatmentPackageProvider[]
+  patientPackages PatientTreatmentPackage[]
+
+  @@index([clinicId])
+  @@map("treatment_packages")
+}
+
+model TreatmentPackageItem {
+  id          String @id @default(uuid())
+  packageId   String @map("package_id")
+  treatmentId String @map("treatment_id")
+  count       Int
+
+  package   TreatmentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  treatment Treatment        @relation(fields: [treatmentId], references: [id])
+
+  @@unique([packageId, treatmentId])
+  @@map("treatment_package_items")
+}
+
+model TreatmentPackageProvider {
+  id         String @id @default(uuid())
+  packageId  String @map("package_id")
+  providerId String @map("provider_id")
+
+  package  TreatmentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  provider Provider         @relation(fields: [providerId], references: [id])
+
+  @@unique([packageId, providerId])
+  @@map("treatment_package_providers")
+}
+
+model PatientTreatmentPackage {
+  id         String @id @default(uuid())
+  patientId  String @map("patient_id")
+  packageId  String @map("package_id")
+  providerId String @map("provider_id")
+  paymentId  String? @unique @map("payment_id")
+
+  startDate DateTime             @map("start_date")
+  endDate   DateTime             @map("end_date")
+  notes     String?              @db.Text
+  status    PatientPackageStatus @default(ACTIVE)
+
+  usedExaminationCount Int @default(0) @map("used_examination_count")
+  usedControlCount     Int @default(0) @map("used_control_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  patient  Patient          @relation(fields: [patientId], references: [id])
+  package  TreatmentPackage @relation(fields: [packageId], references: [id])
+  provider Provider         @relation(fields: [providerId], references: [id])
+  payment  Payment?         @relation(fields: [paymentId], references: [id])
+
+  @@index([patientId])
+  @@index([packageId])
+  @@map("patient_treatment_packages")
+}

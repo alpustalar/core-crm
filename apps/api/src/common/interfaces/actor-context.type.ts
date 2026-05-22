@@ -1,19 +1,30 @@
+import { Role } from '@shared';
 import { LogSource } from '@src/domain/constants/log-action.constant';
-import { Clinic, Organization, Role } from '@shared';
 
-export type OwnedOrganization = Pick<Organization, 'id'>;
-export type ManagedClinics = Pick<Clinic, 'id'>;
+export type OwnedOrganization = {
+  id: string;
+};
+export type ManagedClinics = {
+  id: string;
+};
 
 export type ActorContext = {
   userId: string;
-  roleId?: string;
-  role?: Role;
   email: string;
-  capabilities?: string[];
-  rolePriority?: number;
-  clinicId?: string;
+  source: LogSource;
+  capabilities: string[];
+  rolePriority: number;
   managedClinics?: ManagedClinics[];
   ownedOrganizations?: OwnedOrganization[];
-  source?: LogSource;
+  roleId?: string;
+  role?: Role;
+  clinicId?: string;
+  patientId?: string;
+  organizationId?: string;
   ip?: string;
+};
+
+export type PatientActorContext = {
+  patientId: string;
+  organizationId: string;
 };

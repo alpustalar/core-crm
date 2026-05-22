@@ -1,0 +1,31 @@
+enum GlobalStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+}
+
+model Organization {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  phone    String?
+  email    String? @unique
+  address  String? @db.Text
+  city     String?
+  district String?
+
+  status   GlobalStatus @default(ACTIVE)
+  timezone String       @default("Europe/Istanbul")
+
+  clinics            Clinic[]
+  patients           Patient[]
+  organizationOwners User[]   @relation("organization_owners")
+
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  deletedAt    DateTime?     @map("deleted_at")
+  subscription Subscription?
+
+  @@map("organizations")
+}

@@ -11,35 +11,35 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@modules/auth/guards';
 import { Public } from '@common/decorators/public.decorator';
-import { UserIp } from '@common/decorators';
+import { GetContext, IGetContext, UserIp } from '@common/decorators';
 import {
   CancelPaymentDto,
   GetInstallmentsDto,
   InitCheckoutFormDto,
   RefundPaymentDto,
 } from '@shared';
-import { InitCheckoutFormUseCase } from '@modules/payment/application/use-cases/iyzico/commands/init-checkout-form/init-checkout-form.use-case';
-import { HandlePaymentCallbackUseCase } from '@modules/payment/application/use-cases/iyzico/commands/handle-payment/handle-payment-callback.use-case';
-import { CancelPaymentUseCase } from '@modules/payment/application/use-cases/iyzico/commands/cancel-payment/cancel-payment.use-case';
-import { RefundPaymentUseCase } from '@modules/payment/application/use-cases/iyzico/commands/refund-payment/refund-payment.use-case';
-import { GetInstallmentInfoUseCase } from '@modules/payment/application/use-cases/iyzico/queries/get-installment-info/get-installment-info.use-case';
+
 import { ROUTE_PATHS, THROTTLE_CONFIG } from '@common/constants';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { HandlePaymentCallbackCommand } from '@modules/payment/application/commands/iyzico/handle-payment-callback/handle-payment-callback.command';
+import { InitCheckoutFormCommand } from '@modules/payment/application/commands/iyzico/init-checkout-form/init-checkout-form.command';
+import { CancelPaymentCommand } from '@modules/payment/application/commands/iyzico/cancel-payment/cancel-payment.command';
+import { RefundPaymentCommand } from '@modules/payment/application/commands/iyzico/refund-payment/refund-payment.command';
+import { GetInstallmentInfoQuery } from '@modules/payment/application/queries/iyzico/get-installment-info/get-installment-info.query';
 
 @UseGuards(AuthGuard)
 @Controller(ROUTE_PATHS.PAYMENTS.IYZICO.ROOT)
 export class IyzicoController {
   constructor(
-    private readonly initCheckoutFormUseCase: InitCheckoutFormUseCase,
-    private readonly handlePaymentCallbackUseCase: HandlePaymentCallbackUseCase,
-    private readonly cancelPaymentUseCase: CancelPaymentUseCase,
-    private readonly refundPaymentUseCase: RefundPaymentUseCase,
-    private readonly getInstallmentInfoUseCase: GetInstallmentInfoUseCase
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @Post('initialize-checkout')
   @HttpCode(HttpStatus.OK)
   initCheckout(@Body() dto: InitCheckoutFormDto, @UserIp() ip: string) {
-    return this.initCheckoutFormUseCase.execute({ ...dto, callbackIp: ip });
+    return this.commandBus.execute(new InitCheckoutFormCommand(dto, ip));
   }
 
   /**
@@ -55,30 +55,29 @@ export class IyzicoController {
     @Body('conversationId') conversationId: string,
     @Body('signature') signature: string
   ) {
-    return this.handlePaymentCallbackUseCase.execute({
-      token,
-      conversationId,
-      signature,
-    });
+    return this.commandBus.execute(
+      new HandlePaymentCallbackCommand(token, conversationId, signature)
+    );
   }
 
   @Post('cancel')
   @HttpCode(HttpStatus.OK)
-  cancelPayment(@Body() dto: CancelPaymentDto, @UserIp() ip: string) {
-    return this.cancelPaymentUseCase.execute({ paymentId: dto.paymentId, ip });
+  cancelPayment(
+    @Body() dto: CancelPaymentDto,
+    @UserIp() ip: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(new CancelPaymentCommand(dto, ip, ctx));
   }
 
   @Post('refund')
   @HttpCode(HttpStatus.OK)
   refundPayment(@Body() dto: RefundPaymentDto, @UserIp() ip: string) {
-    return this.refundPaymentUseCase.execute({ paymentId: dto.paymentId, ip });
+    return this.commandBus.execute(new RefundPaymentCommand(dto.paymentId, ip));
   }
 
   @Get('installments')
   getInstallmentInfo(@Query() dto: GetInstallmentsDto) {
-    return this.getInstallmentInfoUseCase.execute({
-      binNumber: dto.binNumber,
-      price: dto.price,
-    });
+    return this.queryBus.execute(new GetInstallmentInfoQuery(dto));
   }
 }

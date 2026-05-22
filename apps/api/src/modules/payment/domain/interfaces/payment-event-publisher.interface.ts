@@ -4,6 +4,7 @@ import { PaymentFailedPayload } from '@modules/payment/domain/events/payment-fai
 import { PaymentInitiatedEventPayload } from '@modules/payment/domain/events/payment-initiated.event';
 import { PaymentCancelledEventPayload } from '@modules/payment/domain/events/payment-cancelled.event';
 
+export const PAYMENT_EVENT_PUBLISHER = Symbol('IPaymentEventPublisher');
 export interface IPaymentEventPublisher {
   /**
    * Ödeme başarıyla tamamlandığında tetiklenir.
@@ -30,5 +31,3 @@ export interface IPaymentEventPublisher {
    */
   paymentCancelled(payload: PaymentCancelledEventPayload): void;
 }
-
-export const PAYMENT_EVENT_PUBLISHER_TOKEN = Symbol('IPaymentEventPublisher');

@@ -1,8 +1,11 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
+import { IQuery } from '@nestjs/cqrs';
+import { FindProviderByIdQueryResponse } from '@modules/provider/application/queries/find-provider-by-id/find-provider-by-id.response';
 
-export class FindProviderByIdQuery {
+export class FindProviderByIdQuery implements IQuery {
+  readonly __responseType!: FindProviderByIdQueryResponse;
   constructor(
     public readonly providerId: string,
-    public readonly context: IGetContext
+    public readonly ctx: IGetContext
   ) {}
 }

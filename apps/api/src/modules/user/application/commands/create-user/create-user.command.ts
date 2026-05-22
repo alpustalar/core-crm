@@ -5,7 +5,7 @@ import { CreateUserInternalRelations } from '@modules/user/domain/types/create-u
 export class CreateUserCommand {
   constructor(
     public readonly dto: CreateUserDto,
-    public readonly context: IGetContext,
+    public readonly ctx: IGetContext,
     public readonly internalRelations?: CreateUserInternalRelations
   ) {}
 }

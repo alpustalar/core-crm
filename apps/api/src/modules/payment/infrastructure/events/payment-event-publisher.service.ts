@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { ContextService } from '@src/infrastructure/context/context.service';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   PaymentPaidEvent,
   PaymentPaidEventPayload,
@@ -21,10 +20,17 @@ import {
   PaymentCancelledEventPayload,
 } from '@modules/payment/domain/events/payment-cancelled.event';
 import { IPaymentEventPublisher } from '@modules/payment/domain/interfaces/payment-event-publisher.interface';
+import {
+  CONTEXT_SERVICE,
+  IContextService,
+} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
 
 @Injectable()
 export class PaymentEventPublisher implements IPaymentEventPublisher {
-  constructor(private readonly contextService: ContextService) {}
+  constructor(
+    @Inject(CONTEXT_SERVICE)
+    private readonly contextService: IContextService
+  ) {}
 
   paymentPaid(payload: PaymentPaidEventPayload) {
     this.contextService.addEvent(new PaymentPaidEvent(payload));

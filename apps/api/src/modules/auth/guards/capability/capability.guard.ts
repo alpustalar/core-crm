@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import { IRequestWithActor } from '@common/interfaces';
 import {
   HAS_CAPABILITY_KEY,
   HasCapabilityType,
-} from 'src/modules/auth/decorators/has-capability.decorator';
+} from '@common/decorators/has-capability.decorator';
+import { ActorContext, IRequestWithActor } from '@common/interfaces';
 
 @Injectable()
 export class CapabilityGuard implements CanActivate {
@@ -28,7 +28,7 @@ export class CapabilityGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<IRequestWithActor>();
-    const actor = request.actor;
+    const actor = request.actor as ActorContext;
 
     if ((actor?.role?.priority ?? 0) >= 100) {
       return true;

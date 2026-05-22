@@ -1,49 +1,41 @@
 import { BadRequestException, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  IProviderRepository,
-  PROVIDER_REPO_TOKEN,
-} from '@modules/provider/domain/repositories/provider.repository.interface';
+
 import {
   IProviderAvailabilityRepository,
-  PROVIDER_AVAILABILITY_REPO_TOKEN,
+  PROVIDER_AVAILABILITY_REPOSITORY,
 } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
 import {
-  CLINIC_AVAILABILITY_DOMAIN_SERVICE_TOKEN,
-  IClinicAvailabilityDomainService,
-} from '@modules/clinic/domain/interfaces/clinic-availability.domain-service.interface';
-import {
-  CLINIC_MODULE_API_TOKEN,
-  IClinicModuleApi,
-} from '@modules/clinic/domain/interfaces/clinic.module.api.interface';
-import {
   IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
+  POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { CreateProviderAvailabilityCommand } from './create-provider-availability.command';
+import {
+  IProviderQueryRepository,
+  PROVIDER_QUERY_REPOSITORY,
+} from '@modules/provider/domain/repositories/provider.repository.interface';
+import { ValidateTimeWithinClinicHoursOrThrowQuery } from '@modules/clinic/application/queries/validate-time-within-clinic-hours/validate-time-within-clinic-hours.query';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @CommandHandler(CreateProviderAvailabilityCommand)
 export class CreateProviderAvailabilityHandler
   implements ICommandHandler<CreateProviderAvailabilityCommand, void>
 {
   constructor(
-    @Inject(PROVIDER_REPO_TOKEN)
-    private readonly providerRepo: IProviderRepository,
-    @Inject(PROVIDER_AVAILABILITY_REPO_TOKEN)
+    @Inject(PROVIDER_QUERY_REPOSITORY)
+    private readonly providerQueryRepo: IProviderQueryRepository,
+    @Inject(PROVIDER_AVAILABILITY_REPOSITORY)
     private readonly providerAvailabilityRepo: IProviderAvailabilityRepository,
-    @Inject(CLINIC_AVAILABILITY_DOMAIN_SERVICE_TOKEN)
-    private readonly clinicAvailabilityDomainService: IClinicAvailabilityDomainService,
-    @Inject(CLINIC_MODULE_API_TOKEN)
-    private readonly clinicModuleApi: IClinicModuleApi,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly transactionManager: TransactionManager
+    private readonly transactionManager: TransactionManager,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(command: CreateProviderAvailabilityCommand) {
     const {
-      context: { actor },
+      ctx: { actor },
       dto: { providerId, availabilities },
     } = command;
 
@@ -54,26 +46,23 @@ export class CreateProviderAvailabilityHandler
       .orThrow();
 
     await this.transactionManager.run(async () => {
-      const provider = await this.providerRepo.find(providerId);
+      const provider = await this.providerQueryRepo.findById(providerId);
 
       if (!provider) {
-        throw new BadRequestException('Hizmet sağlayıcı bulunamadı.');
+        throw new BadRequestException('Uzman bulunamadı.');
+      }
+
+      if (!provider.isStaticMode()) {
+        throw new BadRequestException(
+          'Statik müsaitlik yalnızca STATIC modundaki uzmanlar için tanımlanabilir.'
+        );
       }
 
       const { clinicId } = provider;
 
-      for (const item of availabilities) {
-        const { data: clinicSchedule } =
-          await this.clinicModuleApi.findAvailabilityByDay(clinicId, item.date);
-
-        this.clinicAvailabilityDomainService.validateTimeWithinClinicHoursOrThrow(
-          {
-            startMinute: item.startMinute,
-            endMinute: item.endMinute,
-            clinicSchedule,
-          }
-        );
-      }
+      await this.queryBus.execute(
+        new ValidateTimeWithinClinicHoursOrThrowQuery(clinicId, availabilities)
+      );
 
       return Promise.all(
         availabilities.map((item) =>

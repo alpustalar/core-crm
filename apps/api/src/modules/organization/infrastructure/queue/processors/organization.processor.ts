@@ -3,19 +3,18 @@ import { Job } from 'bullmq';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ORGANIZATION_JOBS, QUEUES } from '@common/constants';
-import { ClinicModuleApi } from '@modules/clinic/clinic.module.api';
-import { UserModuleApi } from '@modules/user/user.module.api';
-import { AppointmentModuleApi } from '@modules/appointment/appointment-module.api';
+import { CommandBus } from '@nestjs/cqrs';
+import { SoftDeleteAppointmentsByOrganizationIdCommand } from '@modules/appointment/application/commands/soft-delete-appointments-by-organization-id/soft-delete-appointments-by-organization-id.command';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { SoftDeleteManyUserByOrganizationIdCommand } from '@modules/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-users-by-organization-id.command';
+import { SoftDeleteManyClinicsByOrganizationIdCommand } from '@modules/clinic/application/commands/soft-delete-many-clinics-by-organization-id/soft-delete-many-clinics-by-organization-id.command';
 
 @Processor(QUEUES.ORGANIZATION)
 export class OrganizationProcessor extends WorkerHost {
   private readonly logger = new Logger(OrganizationProcessor.name);
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
 
-  constructor(
-    private readonly clinicApi: ClinicModuleApi,
-    private readonly userApi: UserModuleApi,
-    private readonly appointmentApi: AppointmentModuleApi
-  ) {
+  constructor(private readonly commandBus: CommandBus) {
     super();
   }
 
@@ -42,10 +41,24 @@ export class OrganizationProcessor extends WorkerHost {
 
   private async handleCleanup(data: { organizationId: string }) {
     const { organizationId } = data;
-    await this.appointmentApi.softDeleteAppointmentsByOrganizationId(
-      organizationId
+
+    await this.commandBus.execute(
+      new SoftDeleteAppointmentsByOrganizationIdCommand(
+        organizationId,
+        this.internalCtx
+      )
     );
-    await this.userApi.softDeleteManyWithAnOrganizationId(organizationId);
-    await this.clinicApi.softDeleteManyWithAnOrganizationId(organizationId);
+    await this.commandBus.execute(
+      new SoftDeleteManyUserByOrganizationIdCommand(
+        organizationId,
+        this.internalCtx
+      )
+    );
+    await this.commandBus.execute(
+      new SoftDeleteManyClinicsByOrganizationIdCommand(
+        organizationId,
+        this.internalCtx
+      )
+    );
   }
 }

@@ -1,5 +1,4 @@
 import { Body, Controller, Post, UseGuards, Version } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { HasCapability } from '@common/decorators';
 import { AuthGuard } from '@modules/auth/guards';
@@ -13,6 +12,8 @@ import {
 } from '@common/decorators/get-context.decorator';
 import { CreateUserCommand } from '@modules/user/application/commands/create-user';
 import { CheckEmailExistsQuery } from '@modules/user/application/queries/check-email-exists';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 const { USER } = CAPABILITIES;
 
@@ -21,15 +22,15 @@ const { USER } = CAPABILITIES;
 @Controller('registry')
 export class RegistryController {
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @Post('')
   @Version('1')
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
-  create(@Body() dto: CreateUserDto, @GetContext() context: IGetContext) {
-    return this.commandBus.execute(new CreateUserCommand(dto, context));
+  create(@Body() dto: CreateUserDto, @GetContext() ctx: IGetContext) {
+    return this.commandBus.execute(new CreateUserCommand(dto, ctx));
   }
 
   @Post('check-email')

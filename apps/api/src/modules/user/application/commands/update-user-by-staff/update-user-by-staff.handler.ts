@@ -3,34 +3,42 @@ import { UpdateUserByStaffCommand } from './update-user-by-staff.command';
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserCommandRepository,
+  IUserQueryRepository,
+  USER_COMMAND_REPOSITORY,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import {
   IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
+  POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import {
   IUserEventPublisher,
-  USER_EVENT_PUBLISHER_TOKEN,
+  USER_EVENT_PUBLISHER,
 } from '@modules/user/domain/interfaces/user-event-publisher.interface';
+import { UpdateUserByStaffResponse } from '@modules/user/application/commands/update-user-by-staff/update-user-by-staff.response';
 
 @CommandHandler(UpdateUserByStaffCommand)
 export class UpdateUserByStaffHandler
-  implements ICommandHandler<UpdateUserByStaffCommand, string>
+  implements
+    ICommandHandler<UpdateUserByStaffCommand, UpdateUserByStaffResponse>
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(USER_COMMAND_REPOSITORY)
+    private readonly userCommandRepo: IUserCommandRepository,
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userQueryRepo: IUserQueryRepository,
+    @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
-    @Inject(USER_EVENT_PUBLISHER_TOKEN)
+    @Inject(USER_EVENT_PUBLISHER)
     private readonly userEventPublisher: IUserEventPublisher
   ) {}
 
-  async execute(command: UpdateUserByStaffCommand) {
-    const { targetUserId, dto, context } = command;
-    const { actor } = context;
+  async execute(
+    command: UpdateUserByStaffCommand
+  ): Promise<UpdateUserByStaffResponse> {
+    const { targetUserId, dto, ctx } = command;
+    const { actor } = ctx;
 
     this.policyFactory
       .user(actor)
@@ -40,10 +48,10 @@ export class UpdateUserByStaffHandler
       )
       .orThrow();
 
-    const targetUser = await this.userRepo.findByIdOrEmail(targetUserId);
+    const targetUser = await this.userQueryRepo.findByIdOrEmail(targetUserId);
     if (!targetUser) throw new NotFoundException('Kullanıcı bulunamadı');
 
-    // 2. Privilege Policy Checks & Security Event
+    // Privilege Policy Checks & Security Event
     this.policyFactory
       .user(actor)
       .evaluator.check(
@@ -70,15 +78,15 @@ export class UpdateUserByStaffHandler
         });
       });
 
-    // 3. Business Logic
+    // Business Logic
     if (dto.providerProfile && !dto.clinicId) {
       throw new BadRequestException(
         'Provider profil oluşturmak için Klinik ID zorunludur.'
       );
     }
 
-    // 4. Persistence
-    const updatedUser = await this.userRepo.update(targetUserId, dto);
+    // Persistence
+    await this.userCommandRepo.update(targetUserId, dto);
 
     this.userEventPublisher.updateUserByStaff({
       userId: targetUserId,
@@ -88,7 +96,5 @@ export class UpdateUserByStaffHandler
       source: actor.source,
       action: LogAction.USER_UPDATE,
     });
-
-    return updatedUser.id;
   }
 }

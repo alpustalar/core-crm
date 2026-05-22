@@ -2,31 +2,30 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindManyByOrganizationIdQuery } from './find-many-by-organization-id.query';
 import { Inject } from '@nestjs/common';
 import {
-  CLINIC_REPO_TOKEN,
-  IClinicRepository,
+  CLINIC_QUERY_REPOSITORY,
+  IClinicQueryRepository,
 } from '@modules/clinic/domain/repositories/clinic.repository.interface';
-import { QueryResponse } from '@shared/common/response/response.interface';
-import { Clinic } from '@prisma/client';
+import { FindManyByOrganizationIdQueryResponse } from '@modules/clinic/application/queries/find-many-by-organization-id/find-many-by-organization-id.response';
 
 @QueryHandler(FindManyByOrganizationIdQuery)
 export class FindManyByOrganizationIdHandler
   implements
     IQueryHandler<
       FindManyByOrganizationIdQuery,
-      QueryResponse<Clinic[] | null>
+      FindManyByOrganizationIdQueryResponse
     >
 {
   constructor(
-    @Inject(CLINIC_REPO_TOKEN)
-    private readonly clinicRepo: IClinicRepository
+    @Inject(CLINIC_QUERY_REPOSITORY)
+    private readonly clinicQueryRepo: IClinicQueryRepository
   ) {}
 
   async execute(
     query: FindManyByOrganizationIdQuery
-  ): Promise<QueryResponse<Clinic[] | null>> {
+  ): Promise<FindManyByOrganizationIdQueryResponse> {
     const { organizationId } = query;
     const clinicsRaw =
-      await this.clinicRepo.findManyByOrganizationId(organizationId);
+      await this.clinicQueryRepo.findManyByOrganizationId(organizationId);
 
     return {
       data: clinicsRaw,

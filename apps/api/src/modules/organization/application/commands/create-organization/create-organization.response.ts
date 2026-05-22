@@ -1,1 +1,1 @@
-export type CreateOrganizationResponse = { id: string } | undefined;
+export type CreateOrganizationResponse = string;

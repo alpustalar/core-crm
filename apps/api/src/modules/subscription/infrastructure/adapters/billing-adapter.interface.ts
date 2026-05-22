@@ -1,4 +1,4 @@
-export const BILLING_ADAPTER_TOKEN = Symbol('IBillingAdapter');
+export const BILLING_ADAPTER = Symbol('IBillingAdapter');
 
 export interface SubscriptionBuyerInfo {
   id: string;

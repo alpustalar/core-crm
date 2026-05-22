@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  FIREBASE_SERVICE_TOKEN,
+  FIREBASE_SERVICE,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import { ChangePasswordHandler } from './change-password.handler';
@@ -19,14 +19,14 @@ describe('ChangePasswordHandler', () => {
       providers: [
         ChangePasswordHandler,
         {
-          provide: FIREBASE_SERVICE_TOKEN,
+          provide: FIREBASE_SERVICE,
           useValue: mockFirebaseService,
         },
       ],
     }).compile();
 
     handler = module.get<ChangePasswordHandler>(ChangePasswordHandler);
-    firebaseService = module.get<IFirebaseService>(FIREBASE_SERVICE_TOKEN);
+    firebaseService = module.get<IFirebaseService>(FIREBASE_SERVICE);
   });
 
   afterEach(() => {

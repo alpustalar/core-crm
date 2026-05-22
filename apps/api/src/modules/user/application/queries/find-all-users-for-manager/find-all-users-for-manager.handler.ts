@@ -1,34 +1,58 @@
 import { BadRequestException, Inject } from '@nestjs/common';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindAllUsersForManagerQuery } from '@modules/user/application/queries/find-all-users-for-manager/find-all-users-for-manager.query';
-import { QueryResponse } from '@shared/common/response/response.interface';
-import { User } from '@shared';
+import { FindAllUsersForManagerQueryResponse } from '@modules/user/application/queries/find-all-users-for-manager/find-all-users-for-manager.response';
+import { UserResponseGroups } from '@modules/user/domain/constants';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { SerializationOptions } from '@shared';
+
+const { ADMIN, MANAGEMENT } = UserResponseGroups;
 
 @QueryHandler(FindAllUsersForManagerQuery)
 export class FindAllUsersForManagerHandler
-  implements IQueryHandler<FindAllUsersForManagerQuery, QueryResponse<User[]>>
+  implements
+    IQueryHandler<
+      FindAllUsersForManagerQuery,
+      FindAllUsersForManagerQueryResponse
+    >
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userRepo: IUserQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
-  async execute(query: FindAllUsersForManagerQuery) {
-    const { dto, context } = query;
+  async execute(
+    query: FindAllUsersForManagerQuery
+  ): Promise<FindAllUsersForManagerQueryResponse> {
+    const { dto, ctx } = query;
 
-    const { actor } = context;
-    let clinicIds: string | string[] | undefined;
-    let organizationIds: string | string[] | undefined;
+    const { actor } = ctx;
+    let clinicIds: string[] | undefined;
+    let organizationIds: string[] | undefined;
+
+    const user = this.policyFactory.user(actor).policy;
+
+    const groups = [MANAGEMENT, user.isSystemAdmin() && ADMIN].filter(
+      (group) => typeof group === 'string'
+    );
+
+    const serializationOptions: SerializationOptions = {
+      isGroupActive: true,
+      groups,
+    };
 
     if (actor.managedClinics) {
       clinicIds = actor.managedClinics.map((clinic) => clinic.id);
-    } else {
-      clinicIds = actor.clinicId;
     }
 
     if (actor.ownedOrganizations) {
@@ -45,6 +69,7 @@ export class FindAllUsersForManagerHandler
         data: items,
         meta: {
           pagination: buildPaginationMeta(dto, total),
+          serializationOptions,
         },
       };
     }
@@ -59,6 +84,7 @@ export class FindAllUsersForManagerHandler
         data: items,
         meta: {
           pagination: buildPaginationMeta(dto, total),
+          serializationOptions,
         },
       };
     }

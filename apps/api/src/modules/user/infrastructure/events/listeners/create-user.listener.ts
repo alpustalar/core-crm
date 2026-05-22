@@ -1,15 +1,16 @@
-import { Logger } from '@nestjs/common';
-import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { CreateUserEvent } from '@modules/user/domain/events/create-user.event';
 import { AuditLogService } from '@modules/audit-log/audit-log.service';
 import { LogType } from '@src/domain/constants/log-action.constant';
 
-@EventsHandler(CreateUserEvent)
-export class CreateUserListener implements IEventHandler<CreateUserEvent> {
+@Injectable()
+export class CreateUserListener {
   private readonly logger = new Logger(CreateUserListener.name);
 
   constructor(private readonly auditLogService: AuditLogService) {}
 
+  @OnEvent(CreateUserEvent.NAME, { async: true })
   async handle(event: CreateUserEvent) {
     const {
       log,

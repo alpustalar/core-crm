@@ -1,106 +1,80 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, InternalServerErrorException } from '@nestjs/common';
 import type { CreateUser } from '@shared';
 import { RegisterClinicAccountCommand } from './register-clinic-account.command';
-import {
-  FIREBASE_SERVICE_TOKEN,
-  IFirebaseService,
-} from '@modules/firebase/domain/interfaces/firebase.service.interface';
-import {
-  IUserModuleApi,
-  USER_MODULE_API_TOKEN,
-} from '@modules/user/domain/interfaces/user.module.api.interface';
-import {
-  CLINIC_MODULE_API_TOKEN,
-  IClinicModuleApi,
-} from '@modules/clinic/domain/interfaces/clinic.module.api.interface';
-import {
-  IRoleModuleApi,
-  ROLE_MODULE_API_TOKEN,
-} from '@modules/role/domain/interfaces/role.module.api.interface';
-import {
-  IOrganizationModuleApi,
-  ORGANIZATION_MODULE_API_TOKEN,
-} from '@modules/organization/domain/interfaces/organization.module.api.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 import { ROLE_SLUGS } from '@src/domain/constants/db/role/role-slugs';
+import { RegisterClinicAccountResponse } from '@modules/registration/application/commands/register-clinic-account/register-clinic-account.response';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { CreateUserCommand } from '@modules/user/application/commands/create-user';
+import { GetRoleBySlugQuery } from '@modules/role/application/queries/get-role-by-slug/get-role-by-slug.query';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { CreateOrganizationCommand } from '@modules/organization/application/commands/create-organization/create-organization.command';
+import { CreateClinicCommand } from '@modules/clinic/application/commands/create-clinic/create-clinic.command';
 
 @CommandHandler(RegisterClinicAccountCommand)
 export class RegisterClinicAccountHandler
-  implements ICommandHandler<RegisterClinicAccountCommand>
+  implements
+    ICommandHandler<
+      RegisterClinicAccountCommand,
+      RegisterClinicAccountResponse
+    >
 {
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
-    @Inject(FIREBASE_SERVICE_TOKEN)
-    private readonly firebaseService: IFirebaseService,
-    @Inject(USER_MODULE_API_TOKEN)
-    private readonly userModuleApi: IUserModuleApi,
-    @Inject(CLINIC_MODULE_API_TOKEN)
-    private readonly clinicModuleApi: IClinicModuleApi,
-    @Inject(ROLE_MODULE_API_TOKEN)
-    private readonly roleModuleApi: IRoleModuleApi,
-    @Inject(ORGANIZATION_MODULE_API_TOKEN)
-    private readonly organizationModuleApi: IOrganizationModuleApi,
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus,
     private readonly transactionManager: TransactionManager
   ) {}
 
-  async execute(command: RegisterClinicAccountCommand) {
+  async execute(
+    command: RegisterClinicAccountCommand
+  ): Promise<RegisterClinicAccountResponse> {
     const { dto } = command;
-    const { organization, clinic, owner } = dto;
+    const { clinic: clinicDto, owner: ownerDto } = dto;
 
-    const role = await this.roleModuleApi.getBySlug(ROLE_SLUGS.CLINIC_OWNER);
-
-    const internalCtx = ExecutionContextFactory.createInternal(
-      ExecutionSources.INTERNAL_CASCADE
+    const { data: role } = await this.queryBus.execute(
+      new GetRoleBySlugQuery(ROLE_SLUGS.CLINIC_OWNER)
     );
+    const roleId = role.id;
 
-    let firebaseUid: string | undefined;
+    const organizationId = crypto.randomUUID();
+    const clinicId = crypto.randomUUID();
+    await this.transactionManager.run(async () => {
+      const organizationDto = {
+        name: clinicDto.name,
+        phone: clinicDto.phone,
+        email: clinicDto.email,
+        address: clinicDto.address,
+        city: clinicDto.city,
+        district: clinicDto.district,
+      };
+      await this.commandBus.execute(
+        new CreateOrganizationCommand(organizationDto, this.internalCtx, {
+          id: organizationId,
+        })
+      );
 
-    try {
-      const firebaseUser = await this.firebaseService.createUser({
-        displayName: owner.displayName,
-        email: owner.email,
-        password: owner.password,
-      });
-      firebaseUid = firebaseUser.uid;
-
-      await this.transactionManager.run(async () => {
-        const result = await this.organizationModuleApi.create(organization);
-
-        if (!result?.id) {
-          throw new InternalServerErrorException('Organizasyon oluşturulamadı');
-        }
-
-        const clinicId = await this.clinicModuleApi.create(
-          { ...clinic, organizationId: result.id },
-          internalCtx
-        );
-
-        if (!clinicId) {
-          throw new InternalServerErrorException('Klinik oluşturulamadı');
-        }
-
-        const userDto: CreateUser = {
-          email: owner.email,
-          displayName: owner.displayName,
-          password: owner.password,
-          picture: owner.picture,
-          roleId: role.id,
+      await this.commandBus.execute(
+        new CreateClinicCommand(clinicDto, this.internalCtx, {
           clinicId,
-        };
+          organizationId,
+        })
+      );
 
-        await this.userModuleApi.create(userDto, internalCtx, {
-          firebaseUid,
-          ownedOrganizationIds: [result.id],
+      const userDto: CreateUser = {
+        ...ownerDto,
+        roleId,
+        organizationId,
+        clinicId,
+      };
+
+      await this.commandBus.execute(
+        new CreateUserCommand(userDto, this.internalCtx, {
+          ownedOrganizationIds: [organizationId],
           managedClinicIds: [clinicId],
-        });
-      });
-    } catch (error) {
-      if (firebaseUid) {
-        await this.firebaseService.deleteUser(firebaseUid).catch(() => {});
-      }
-      throw error;
-    }
+        })
+      );
+    });
   }
 }

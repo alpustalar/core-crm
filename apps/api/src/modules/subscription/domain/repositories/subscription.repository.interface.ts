@@ -1,34 +1,30 @@
-import { Module, PlanId, Subscription, SubscriptionItem, SubStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Module as PrismaModule, SubStatus } from '@prisma/client';
+import { Subscription } from '@modules/subscription/domain/entities/subscription.entity';
+import { SubscriptionItem } from '@modules/subscription/domain/entities/subscription-item.entity';
+import { CreateSubscriptionProps } from '@modules/subscription/domain/types/create-subscription.props';
+import { AddItemProps } from '@modules/subscription/domain/types/add-item.props';
+import { SubscriptionWithItems } from '@modules/subscription/domain/types/subscription-with-items.type';
 
-export const SUBSCRIPTION_REPO_TOKEN = Symbol('ISubscriptionRepository');
+export const SUBSCRIPTION_COMMAND_REPOSITORY = Symbol(
+  'ISubscriptionCommandRepository'
+);
+export const SUBSCRIPTION_QUERY_REPOSITORY = Symbol(
+  'ISubscriptionQueryRepository'
+);
 
-export type SubscriptionWithItems = Subscription & {
-  items: (SubscriptionItem & { module: Module | null })[];
-};
+export interface ISubscriptionCommandRepository {
+  create(data: CreateSubscriptionProps): Promise<Subscription>;
+  addItem(data: AddItemProps): Promise<SubscriptionItem>;
+  updateStatus(id: string, status: SubStatus): Promise<void>;
+  updateExternalId(id: string, externalId: string): Promise<void>;
+  save(entity: Subscription): Promise<void>;
+}
 
-export type CreateSubscriptionInput = {
-  organizationId: string;
-  externalId?: string;
-};
-
-export type AddItemInput = {
-  subscriptionId: string;
-  planId?: PlanId;
-  moduleId?: string;
-  priceAtPurchase: Decimal;
-  externalPriceId?: string;
-};
-
-export interface ISubscriptionRepository {
-  create(data: CreateSubscriptionInput): Promise<Subscription>;
+export interface ISubscriptionQueryRepository {
   findByOrganizationId(
     organizationId: string
   ): Promise<SubscriptionWithItems | null>;
   findByExternalId(externalId: string): Promise<Subscription | null>;
-  addItem(data: AddItemInput): Promise<SubscriptionItem>;
-  findModuleByKey(key: string): Promise<Module | null>;
+  findModuleByKey(key: string): Promise<PrismaModule | null>;
   existsByOrganizationId(organizationId: string): Promise<boolean>;
-  updateStatus(id: string, status: SubStatus): Promise<void>;
-  updateExternalId(id: string, externalId: string): Promise<void>;
 }

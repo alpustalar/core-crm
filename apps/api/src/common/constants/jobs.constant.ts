@@ -10,3 +10,7 @@ export const ORGANIZATION_JOBS = {
 export const USER_JOBS = {
   FIREBASE_ROLLBACK: 'firebase-rollback',
 } as const;
+
+export const OUTBOX_JOBS = {
+  PROCESS: 'process-outbox',
+} as const;

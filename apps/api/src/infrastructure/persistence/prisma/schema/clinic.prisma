@@ -1,0 +1,79 @@
+model Clinic {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  sectorId String @map("sector_id")
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  phone    String?
+  email    String?
+  address  String? @db.Text
+  city     String?
+  district String?
+
+  consultationSlotDuration Int @default(15)
+
+  // Sağlık Bakanlığı tesis kodu — e-Nabız bildirimi için zorunlu
+  healthFacilityCode String? @map("health_facility_code")
+
+  status   GlobalStatus @default(ACTIVE)
+  timezone String       @default("Europe/Istanbul")
+
+  logo String?
+
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  managers       User[]         @relation("clinic_managers")
+  staffs         User[]         @relation("clinic_staff")
+  treatments         Treatment[]
+  treatmentPackages  TreatmentPackage[]
+  providers          Provider[]
+  appointments       Appointment[]
+  patients           Patient[]
+  medicalFiles       MedicalFile[]
+  resources          Resource[]
+  patientGroups      PatientGroup[]
+
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  deletedAt            DateTime?            @map("deleted_at")
+  clinicAvailabilities ClinicAvailability[]
+  clinicExceptions     ClinicException[]
+  productBatches       ProductBatch[]
+  stockMovements       StockMovement[]
+  productUsages        ProductUsage[]
+
+  @@map("clinics")
+}
+
+model ClinicAvailability {
+  id String @id @default(uuid())
+
+  dayOfWeek   Int @map("day_of_week") // 0-6
+  startMinute Int @map("start_minute") // Örn: 540 (09:00)
+  endMinute   Int @map("end_minute") // Örn: 1080 (18:00)
+
+  isClosed Boolean @default(false) @map("is_closed")
+
+  clinicId String @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, dayOfWeek])
+  @@map("clinic_availabilities")
+}
+
+model ClinicException {
+  id String @id @default(uuid())
+
+  date     DateTime
+  isClosed Boolean  @default(true)
+  reason   String?
+
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  @@unique([clinicId, date])
+  @@map("clinic_exceptions")
+}

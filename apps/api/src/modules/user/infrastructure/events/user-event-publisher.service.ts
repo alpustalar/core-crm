@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { EventBus } from '@nestjs/cqrs';
+import { Inject, Injectable } from '@nestjs/common';
 import { IUserEventPublisher } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import {
   CreateUserEvent,
@@ -17,26 +16,35 @@ import {
   SendUserPasswordResetLinkByActorEvent,
   SendUserPasswordResetLinkByActorEventPayload,
 } from '@modules/user/domain/events/send-user-password-reset-link-by-actor.event';
+import {
+  CONTEXT_SERVICE,
+  IContextService,
+} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
 
 @Injectable()
 export class UserEventPublisher implements IUserEventPublisher {
-  constructor(private readonly eventBus: EventBus) {}
+  constructor(
+    @Inject(CONTEXT_SERVICE)
+    private readonly contextService: IContextService
+  ) {}
 
   create(payload: CreateUserEventPayload) {
-    this.eventBus.publish(new CreateUserEvent(payload));
+    this.contextService.addEvent(new CreateUserEvent(payload));
   }
 
   sendUserPasswordResetLinkByActor(
     payload: SendUserPasswordResetLinkByActorEventPayload
   ) {
-    this.eventBus.publish(new SendUserPasswordResetLinkByActorEvent(payload));
+    this.contextService.addEvent(
+      new SendUserPasswordResetLinkByActorEvent(payload)
+    );
   }
 
   updateUserByStaff(payload: UpdateUserByStaffEventPayload) {
-    this.eventBus.publish(new UpdateUserByStaffEvent(payload));
+    this.contextService.addEvent(new UpdateUserByStaffEvent(payload));
   }
 
   enqueueForceDelete(payload: EnqueueForceDeleteEventPayload) {
-    this.eventBus.publish(new EnqueueForceDeleteEvent(payload));
+    this.contextService.addEvent(new EnqueueForceDeleteEvent(payload));
   }
 }

@@ -3,7 +3,7 @@ export interface CreateUserProps {
   email: string;
   displayName: string;
   picture?: string;
-  roleId?: string;
+  roleId: string;
   clinicId?: string;
   providerProfile?: {
     titleId: string;

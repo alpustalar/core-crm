@@ -18,4 +18,4 @@ export type AuthUserResponse = {
   ownedOrganizations: Array<{ id: string }>;
   providerProfile: { id: string } | null;
   role: RoleWithCapabilities | null;
-};
+} | null;

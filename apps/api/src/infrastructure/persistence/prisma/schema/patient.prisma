@@ -1,0 +1,109 @@
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  DECEASED
+  BLACKLISTED
+}
+
+enum BloodType {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  O_POS
+  O_NEG
+  AB_POS
+  AB_NEG
+}
+
+enum PatientType {
+  ACTIVE
+  PASSIVE
+  POTENTIAL
+}
+
+model PatientGroup {
+  id          String    @id @default(uuid())
+  clinicId    String?   @map("clinic_id")
+  name        String
+  description String?   @db.Text
+  color       String?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  patients Patient[]
+  clinic   Clinic?   @relation(fields: [clinicId], references: [id])
+
+  @@index([clinicId])
+  @@map("patient_groups")
+}
+
+model Patient {
+  id String @id @default(uuid())
+
+  organizationId String  @map("organization_id")
+  clinicId       String? @map("clinic_id")
+  sectorId       String? @map("sector_id")
+
+  firstName String  @map("first_name")
+  lastName  String? @map("last_name")
+  tcNo      String? @map("tc_no")
+  birthDate DateTime? @map("birth_date")
+  gender    Gender?
+
+  phone            String
+  alternativePhone String? @map("alternative_phone")
+  email            String?
+  address          String? @db.Text
+  emergencyContact String? @map("emergency_contact")
+
+  companionName  String? @map("companion_name")
+  companionPhone String? @map("companion_phone")
+
+  profilePhoto String? @map("profile_photo")
+  protocolNo   String? @map("protocol_no")
+
+  allergies       String?    @db.Text
+  chronicDiseases String?    @map("chronic_diseases") @db.Text
+  bloodType       BloodType? @map("blood_type")
+
+  status      PatientStatus @default(ACTIVE)
+  patientType PatientType?  @map("patient_type")
+
+  responsibleProviderId String?   @map("responsible_provider_id")
+  checkupDate           DateTime? @map("checkup_date")
+
+  discountRate Decimal? @map("discount_rate") @db.Decimal(5, 2)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  medicalFile  MedicalFile[]
+  appointments Appointment[]
+
+  organization        Organization    @relation(fields: [organizationId], references: [id])
+  clinic              Clinic?         @relation(fields: [clinicId], references: [id])
+  sector              Sector?         @relation(fields: [sectorId], references: [id])
+  payments            Payment[]
+  financeLedgers      FinanceLedger[]
+  responsibleProvider Provider?       @relation(fields: [responsibleProviderId], references: [id])
+  groups              PatientGroup[]
+  treatmentPackages   PatientTreatmentPackage[]
+
+  @@unique([phone, organizationId])
+  @@index([email, clinicId])
+  @@index([firstName, lastName, deletedAt])
+  @@index([clinicId])
+  @@index([organizationId])
+  @@index([responsibleProviderId])
+  @@map("patients")
+}

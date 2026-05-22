@@ -10,7 +10,7 @@ export class ClinicPersistencePrismaMapper {
     return {
       name,
       slug: slugIt(dto.name),
-      organizationId,
+      organizationId: organizationId!,
       sectorId,
       status: status ?? GlobalStatusSchema.enum.ACTIVE,
       logo: null,

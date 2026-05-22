@@ -8,7 +8,7 @@ export interface PaymentCancelledEventPayload extends IAuditLog {
   clinicId: string;
 }
 export class PaymentCancelledEvent extends BaseEvent {
-  public readonly NAME = PAYMENT_EVENTS.CANCELLED;
+  static readonly NAME = PAYMENT_EVENTS.CANCELLED;
 
   public readonly paymentId: string;
   public readonly appointmentId: string | null;

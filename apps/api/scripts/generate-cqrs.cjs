@@ -57,10 +57,36 @@ async function generate() {
 
   if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
 
-  // 1. Command/Query ve Handler Dosyalarını Oluştur
+  // 1. Command/Query ve Handler Dosyaları (Tip Güvenli Hale Getirildi)
   const handlerClassName = `${pascalCase}Handler`;
-  const mainTemplate = `export class ${pascalCase}${typeLabel} {\n  constructor(public readonly payload: any) {}\n}`;
-  const handlerTemplate = `import { I${typeLabel}Handler, ${typeLabel}Handler } from '@nestjs/cqrs';\nimport { ${pascalCase}${typeLabel} } from './${kebabCase}.${type}';\n\n@${typeLabel}Handler(${pascalCase}${typeLabel})\nexport class ${handlerClassName} implements I${typeLabel}Handler<${pascalCase}${typeLabel}> {\n  constructor() {}\n\n  async execute(${type}: ${pascalCase}${typeLabel}): Promise<any> {\n    const { payload } = ${type};\n    return;\n  }\n}`;
+  const responseClassName = `${pascalCase}${typeLabel}Response`;
+
+  const mainTemplate = `import { I${typeLabel} } from '@nestjs/cqrs';
+import { ${responseClassName} } from './${kebabCase}.response';
+
+export class ${pascalCase}${typeLabel} implements I${typeLabel} {
+  readonly __responseType!: ${responseClassName};
+
+  constructor(public readonly payload: any) {}
+}`;
+
+  const handlerTemplate = `import { I${typeLabel}Handler, ${typeLabel}Handler } from '@nestjs/cqrs';
+import { ${pascalCase}${typeLabel} } from './${kebabCase}.${type}';
+import { ${responseClassName} } from './${kebabCase}.response';
+
+@${typeLabel}Handler(${pascalCase}${typeLabel})
+export class ${handlerClassName} implements I${typeLabel}Handler<${pascalCase}${typeLabel}, ${responseClassName}> {
+  constructor() {}
+
+  async execute(${type}: ${pascalCase}${typeLabel}): Promise<${responseClassName}> {
+    const { payload } = ${type};
+    
+    // TODO: Implement business logic
+    return {};
+  }
+}`;
+
+  const responseTemplate = `export type ${responseClassName} = {};`;
 
   fs.writeFileSync(
     path.join(targetDir, `${kebabCase}.${type}.ts`),
@@ -69,6 +95,11 @@ async function generate() {
   fs.writeFileSync(
     path.join(targetDir, `${kebabCase}.handler.ts`),
     handlerTemplate
+  );
+
+  fs.writeFileSync(
+    path.join(targetDir, `${kebabCase}.response.ts`),
+    responseTemplate
   );
 
   // 2. Alt Modül Yönetimi (command.module.ts veya query.module.ts)

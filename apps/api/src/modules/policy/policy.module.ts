@@ -1,15 +1,15 @@
 import { Global, Module } from '@nestjs/common';
 import { PolicyFactory } from './application/policy-factory';
-import { POLICY_FACTORY_TOKEN } from './domain/interfaces/policy-factory.interface';
+import { POLICY_FACTORY } from './domain/interfaces/policy-factory.interface';
 
 @Global()
 @Module({
   providers: [
     {
-      provide: POLICY_FACTORY_TOKEN,
+      provide: POLICY_FACTORY,
       useClass: PolicyFactory,
     },
   ],
-  exports: [POLICY_FACTORY_TOKEN],
+  exports: [POLICY_FACTORY],
 })
 export class PolicyModule {}

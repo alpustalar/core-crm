@@ -1,10 +1,10 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetActiveSubscriptionQuery } from './get-active-subscription.query';
-import { GetActiveSubscriptionResponse } from './get-active-subscription.response';
+import { GetActiveSubscriptionQueryResponse } from './get-active-subscription.response';
 import {
-  ISubscriptionRepository,
-  SUBSCRIPTION_REPO_TOKEN,
+  ISubscriptionQueryRepository,
+  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/subscription/domain/repositories/subscription.repository.interface';
 import { QueryResponse } from '@shared/common/response/response.interface';
 
@@ -13,21 +13,21 @@ export class GetActiveSubscriptionHandler
   implements
     IQueryHandler<
       GetActiveSubscriptionQuery,
-      QueryResponse<GetActiveSubscriptionResponse | null>
+      QueryResponse<GetActiveSubscriptionQueryResponse | null>
     >
 {
   constructor(
-    @Inject(SUBSCRIPTION_REPO_TOKEN)
-    private readonly subscriptionRepo: ISubscriptionRepository
+    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
+    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository
   ) {}
 
   async execute(
     query: GetActiveSubscriptionQuery
-  ): Promise<QueryResponse<GetActiveSubscriptionResponse | null>> {
+  ): Promise<QueryResponse<GetActiveSubscriptionQueryResponse | null>> {
     const { organizationId } = query;
 
     const subscription =
-      await this.subscriptionRepo.findByOrganizationId(organizationId);
+      await this.subscriptionQueryRepo.findByOrganizationId(organizationId);
 
     if (!subscription) {
       return { data: null };

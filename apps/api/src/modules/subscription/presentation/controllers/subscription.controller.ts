@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { Public } from '@common/decorators/public.decorator';
 import { Throttle } from '@nestjs/throttler';
@@ -28,7 +22,7 @@ export class SubscriptionController {
     @Body('conversationId') conversationId: string
   ) {
     return this.commandBus.execute(
-      new HandleSubscriptionCallbackCommand({ token, conversationId })
+      new HandleSubscriptionCallbackCommand(token, conversationId)
     );
   }
 }

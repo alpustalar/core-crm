@@ -1,0 +1,40 @@
+enum ResourceType {
+  EQUIPMENT
+  ROOM
+}
+
+model Resource {
+  id          String       @id @default(uuid())
+  name        String
+  type        ResourceType
+  description String?
+  isActive    Boolean      @default(true) @map("is_active")
+
+  clinicId String @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  appointments           Appointment[]
+  resourceAvailabilities ResourceAvailability[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([clinicId])
+  @@map("resources")
+}
+
+model ResourceAvailability {
+  id String @id @default(uuid())
+
+  dayOfWeek   Int     @map("day_of_week") // 0-6
+  startMinute Int     @map("start_minute")
+  endMinute   Int     @map("end_minute")
+  isClosed    Boolean @default(false) @map("is_closed")
+
+  resourceId String   @map("resource_id")
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, dayOfWeek])
+  @@map("resource_availabilities")
+}

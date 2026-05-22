@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
-import { OrganizationUseCasesModule } from '@modules/organization/application/use-cases/use-cases.module';
 import {
   AdminController,
   OrganizationController,
 } from '@modules/organization/presentation/controllers';
+import { CqrsModule } from '@nestjs/cqrs';
+import { OrganizationCommandModule } from '@modules/organization/application/commands/command.module';
+import { OrganizationQueryModule } from '@modules/organization/application/queries/query.module';
 
 @Module({
-  imports: [OrganizationUseCasesModule],
+  imports: [CqrsModule, OrganizationCommandModule, OrganizationQueryModule],
   controllers: [OrganizationController, AdminController],
 })
 export class OrganizationPresentationModule {}

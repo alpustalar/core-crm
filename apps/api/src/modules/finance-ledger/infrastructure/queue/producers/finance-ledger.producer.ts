@@ -4,6 +4,7 @@ import { Queue } from 'bullmq';
 import { FINANCE_JOBS, QUEUES } from '@common/constants';
 
 export interface ILedgerJobData {
+  installmentId: string;
   paymentId: string;
   appointmentId: string | null;
   clinicId: string;

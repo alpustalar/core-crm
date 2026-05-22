@@ -1,93 +1,87 @@
-import { CreateUserCommand } from '@modules/user/application/commands/create-user/create-user.command';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { InternalOnly } from '@common/decorators/internal-only.decorator';
-import { Inject, InternalServerErrorException } from '@nestjs/common';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
-} from '@modules/user/domain/repositories/user.repository';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
-} from '@modules/policy/domain/interfaces/policy-factory.interface';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER_TOKEN,
-} from '@modules/user/domain/interfaces/user-event-publisher.interface';
-import {
-  FIREBASE_SERVICE_TOKEN,
+  FIREBASE_SERVICE,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
-import { ProviderModuleApi } from '@modules/provider/provider-module.api';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { CreateUserCommand } from '@modules/user/application/commands/create-user/create-user.command';
+import {
+  IUserEventPublisher,
+  USER_EVENT_PUBLISHER,
+} from '@modules/user/domain/interfaces/user-event-publisher.interface';
+import {
+  IUserCommandRepository,
+  USER_COMMAND_REPOSITORY,
+} from '@modules/user/domain/repositories/user.repository';
+import { Inject, InternalServerErrorException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { CreateProviderDto, CreateUserDto } from '@shared';
+import { ActorContext } from '@common/interfaces';
+import { CreateUserResponse } from '@modules/user/application/commands/create-user/create-user.response';
+import { CreateUserInternalRelations } from '@modules/user/domain/types/create-user-internal-relations.type';
+import { ConvertUserToProviderCommand } from '@modules/provider/application/commands';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler
-  implements ICommandHandler<CreateUserCommand, string>
+  implements ICommandHandler<CreateUserCommand, CreateUserResponse>
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(USER_COMMAND_REPOSITORY)
+    private readonly userRepo: IUserCommandRepository,
+    @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
-    @Inject(USER_EVENT_PUBLISHER_TOKEN)
+    @Inject(USER_EVENT_PUBLISHER)
     private readonly userEventPublisher: IUserEventPublisher,
-    @Inject(FIREBASE_SERVICE_TOKEN)
+    @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
-    private readonly transactionManager: TransactionManager,
-    private readonly providerModuleApi: ProviderModuleApi
+    private readonly commandBus: TSCommandBus,
+    private readonly transactionManager: TransactionManager
   ) {}
-  @InternalOnly()
-  async execute(command: CreateUserCommand) {
+
+  async execute(command: CreateUserCommand): Promise<CreateUserResponse> {
     const {
       dto,
-      context: { actor, source },
+      ctx: { actor, source },
+      internalRelations,
     } = command;
-
     const clinicId = actor.clinicId ?? dto.clinicId;
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
-      if (command?.internalRelations?.firebaseUid) {
-        throw new InternalServerErrorException(
-          'System-initiated user creation requires firebaseUid'
-        );
-      }
-      return this.transactionManager.run(async () => {
-        const user = await this.userRepo.create({
-          id: command.internalRelations!.firebaseUid!,
-          email: dto.email,
-          displayName: dto.displayName,
-          picture: dto.picture,
-          roleId: dto.roleId,
-          clinicId,
-          ownedOrganizationIds: command.internalRelations?.ownedOrganizationIds,
-          managedClinicIds: command.internalRelations?.managedClinicIds,
-        });
+      let firebaseUid: string | undefined;
 
-        if (dto.providerProfile) {
-          const {
-            providerSpecialtyId: specialtyId,
-            providerTitleId: titleId,
-            publicPhone,
-            publicEmail,
-            isActive,
-          } = dto.providerProfile;
-
-          await this.providerModuleApi.createProvider({
-            userId: user.id,
-            titleId: titleId!,
-            specialtyId: specialtyId!,
-            clinicId: clinicId!,
-            publicPhone,
-            publicEmail,
-            isActive,
+      try {
+        const firebaseResult = await this.createFirebaseUser(dto);
+        firebaseUid = firebaseResult.firebaseUid;
+        const uid = firebaseUid;
+        await this.transactionManager.run(async () => {
+          const user = await this.createUser({
+            dto,
+            clinicId,
+            internalRelations,
+            firebaseUid: uid,
           });
-        }
 
-        return user.id;
-      });
+          if (dto.providerProfile && clinicId) {
+            await this.createProviderProfile(
+              user.id,
+              clinicId,
+              dto.providerProfile
+            );
+          }
+
+          return { id: user.id };
+        });
+      } catch (e) {
+        this.rollback(actor, e, firebaseUid);
+      }
     }
 
     const { evaluator } = this.policyFactory.user(actor);
@@ -112,57 +106,114 @@ export class CreateUserHandler
     let firebaseUid: string | undefined;
 
     try {
-      const firebaseUser = await this.firebaseService.createUser({
-        displayName: dto.displayName,
-        email: dto.email,
-        password: dto.password,
-      });
-      firebaseUid = firebaseUser.uid;
+      const firebaseResult = await this.createFirebaseUser(dto);
+      firebaseUid = firebaseResult.firebaseUid;
 
-      const createdUser = await this.transactionManager.run(async () => {
-        const user = await this.userRepo.create({
-          id: firebaseUid!,
-          email: dto.email,
-          displayName: dto.displayName,
-          picture: dto.picture,
-          roleId: dto.roleId,
+      await this.transactionManager.run(async () => {
+        const user = await this.createUser({
+          dto,
           clinicId,
+          firebaseUid: firebaseUid!,
         });
 
-        if (dto.providerProfile) {
-          const {
-            providerSpecialtyId: specialtyId,
-            providerTitleId: titleId,
-            publicPhone,
-            publicEmail,
-            isActive,
-          } = dto.providerProfile;
-
-          await this.providerModuleApi.createProvider({
-            userId: user.id,
-            titleId: titleId!,
-            specialtyId: specialtyId!,
-            clinicId: clinicId!,
-            publicPhone,
-            publicEmail,
-            isActive,
-          });
+        if (dto.providerProfile && clinicId) {
+          await this.createProviderProfile(
+            user.id,
+            clinicId,
+            dto.providerProfile
+          );
         }
-
-        return user;
       });
-
-      return createdUser.id;
-    } catch (error) {
-      if (firebaseUid) {
-        this.userEventPublisher.enqueueForceDelete({
-          firebaseUid,
-          actorId: actor.userId,
-          source: actor.source,
-          type: LogType.ERROR,
-        });
-      }
-      throw error;
+    } catch (e) {
+      this.rollback(actor, e, firebaseUid);
     }
+  }
+
+  private async createUser({
+    dto,
+    internalRelations,
+    firebaseUid,
+    clinicId,
+  }: {
+    dto: CreateUserDto;
+    clinicId?: string;
+    firebaseUid: string;
+    internalRelations?: CreateUserInternalRelations;
+  }) {
+    if (!firebaseUid) {
+      throw new InternalServerErrorException('Firebase Uid bulunamadı');
+    }
+
+    return await this.userRepo.create({
+      id: firebaseUid,
+      email: dto.email,
+      displayName: dto.displayName,
+      picture: dto.picture,
+      roleId: dto.roleId,
+      clinicId,
+      ownedOrganizationIds: internalRelations?.ownedOrganizationIds,
+      managedClinicIds: internalRelations?.managedClinicIds,
+    });
+  }
+
+  private rollback(
+    actor: ActorContext,
+    error: any,
+    firebaseUid?: string
+  ): never {
+    if (firebaseUid) {
+      this.userEventPublisher.enqueueForceDelete({
+        firebaseUid,
+        actorId: actor.userId,
+        source: actor.source,
+        type: LogType.ERROR,
+      });
+    }
+    throw error;
+  }
+
+  private async createProviderProfile(
+    userId: string,
+    clinicId: string,
+    profileDto: CreateProviderDto
+  ) {
+    const {
+      providerSpecialtyId,
+      providerTitleId,
+      publicPhone,
+      publicEmail,
+      isActive,
+    } = profileDto;
+
+    await this.commandBus.execute(
+      new ConvertUserToProviderCommand(
+        ExecutionContextFactory.createInternal(
+          ExecutionSources.INTERNAL_CASCADE
+        ),
+        {
+          userId,
+          titleId: providerTitleId!,
+          specialtyId: providerSpecialtyId!,
+          clinicId,
+          publicPhone,
+          publicEmail,
+          isActive,
+        }
+      )
+    );
+  }
+
+  private async createFirebaseUser(
+    dto: CreateUserDto
+  ): Promise<{ firebaseUid: string }> {
+    const firebaseUser = await this.firebaseService.createUser({
+      displayName: dto.displayName,
+      email: dto.email,
+      password: dto.password,
+    });
+
+    return {
+      firebaseUid: firebaseUser.uid,
+    };
   }
 }

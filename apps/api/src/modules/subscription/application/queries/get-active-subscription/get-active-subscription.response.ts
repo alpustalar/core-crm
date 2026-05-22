@@ -9,7 +9,7 @@ export interface SubscriptionItemResponse {
   module: { key: string; name: string; monthlyPrice: Decimal } | null;
 }
 
-export interface GetActiveSubscriptionResponse {
+export interface GetActiveSubscriptionQueryResponse {
   id: string;
   organizationId: string;
   status: SubStatus;

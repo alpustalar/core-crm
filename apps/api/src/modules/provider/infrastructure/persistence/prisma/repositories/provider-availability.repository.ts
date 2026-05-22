@@ -3,6 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProviderAvailabilityRepository } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
 import { CreateProviderAvailabilityProps } from '@modules/provider/domain/types/create-provider-availability.props';
+import { CreateProviderShiftProps } from '@modules/provider/domain/types/create-provider-shift.props';
 
 @Injectable()
 export class ProviderAvailabilityRepository
@@ -25,6 +26,7 @@ export class ProviderAvailabilityRepository
         provider: {
           select: {
             canAcceptExamination: true,
+            operationMode: true,
           },
         },
       },
@@ -57,5 +59,26 @@ export class ProviderAvailabilityRepository
       },
       orderBy: { startTime: 'asc' },
     });
+  }
+
+  findShiftsByDateRange(providerId: string, startDate: Date, endDate: Date) {
+    return this.db.providerShift.findMany({
+      where: {
+        providerId,
+        date: { gte: startDate, lte: endDate },
+      },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  async upsertManyShifts(data: CreateProviderShiftProps[]): Promise<void> {
+    if (!data.length) return;
+    const { providerId } = data[0];
+    const dates = data.map((d) => d.date);
+
+    await this.db.providerShift.deleteMany({
+      where: { providerId, date: { in: dates } },
+    });
+    await this.db.providerShift.createMany({ data });
   }
 }

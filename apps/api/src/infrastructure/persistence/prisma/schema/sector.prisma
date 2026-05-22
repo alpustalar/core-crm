@@ -1,0 +1,20 @@
+enum SectorType {
+  ALL
+  DENTAL
+  HAIR_TRANSPLANT
+  AESTHETICS
+}
+
+model Sector {
+  id   String     @id @default(uuid())
+  slug String     @unique
+  name SectorType
+
+  categories  TreatmentCategory[]
+  specialties ProviderSpecialty[]
+  providers   Provider[]
+  clinics     Clinic[]
+  patients    Patient[]
+
+  @@map("sectors")
+}

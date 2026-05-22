@@ -16,33 +16,33 @@ export class PaymentCompletedListener {
 
   @OnEvent(PAYMENT_EVENTS.PAID, { async: true })
   async handlePaymentPaid(event: PaymentPaidEvent): Promise<void> {
-    this.logger.log(`Ödeme eventi yakalandı: ${event.paymentId}`);
+    this.logger.log(`Ödeme eventi yakalandı: installmentId=${event.installmentId}`);
 
     try {
-      const payment = await this.prisma.payment.findUnique({
-        where: { id: event.paymentId },
+      const installment = await this.prisma.paymentInstallment.findUnique({
+        where: { id: event.installmentId },
+        include: { payment: true },
       });
 
-      if (!payment) {
-        this.logger.warn(
-          `Ödeme bulunamadı, ledger atlandı: ${event.paymentId}`
-        );
+      if (!installment) {
+        this.logger.warn(`Taksit bulunamadı, ledger atlandı: ${event.installmentId}`);
         return;
       }
 
       await this.financeLedgerProducer.addToLedgerQueue({
-        paymentId: payment.id,
+        installmentId: installment.id,
+        paymentId: installment.paymentId,
         appointmentId: event.appointmentId,
-        clinicId: payment.clinicId,
-        patientId: payment.patientId,
-        amount: payment.expectedAmount.toString(),
-        currency: payment.currency,
+        clinicId: installment.payment.clinicId,
+        patientId: installment.payment.patientId,
+        amount: installment.amount.toString(),
+        currency: installment.currency,
       });
 
-      this.logger.log(`Ledger kuyruğuna eklendi: ${event.paymentId}`);
+      this.logger.log(`Ledger kuyruğuna eklendi: installmentId=${event.installmentId}`);
     } catch (error) {
       this.logger.error(
-        `Kuyruğa iş eklenirken hata oluştu: ${event.paymentId}`,
+        `Kuyruğa iş eklenirken hata oluştu: installmentId=${event.installmentId}`,
         error
       );
     }

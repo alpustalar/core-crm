@@ -7,11 +7,13 @@ import {
 } from '@nestjs/common';
 import { AddModuleCommand } from './add-module.command';
 import {
-  ISubscriptionRepository,
-  SUBSCRIPTION_REPO_TOKEN,
+  ISubscriptionCommandRepository,
+  ISubscriptionQueryRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/subscription/domain/repositories/subscription.repository.interface';
 import {
-  BILLING_ADAPTER_TOKEN,
+  BILLING_ADAPTER,
   IBillingAdapter,
 } from '@modules/subscription/infrastructure/adapters/billing-adapter.interface';
 
@@ -24,9 +26,11 @@ export class AddModuleHandler
   implements ICommandHandler<AddModuleCommand, AddModuleResult>
 {
   constructor(
-    @Inject(SUBSCRIPTION_REPO_TOKEN)
-    private readonly subscriptionRepo: ISubscriptionRepository,
-    @Inject(BILLING_ADAPTER_TOKEN)
+    @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
+    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
+    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
+    @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter
   ) {}
 
@@ -38,14 +42,14 @@ export class AddModuleHandler
     }
 
     const subscription =
-      await this.subscriptionRepo.findByOrganizationId(organizationId);
+      await this.subscriptionQueryRepo.findByOrganizationId(organizationId);
     if (!subscription) {
       throw new NotFoundException(
         'No subscription found for this organization'
       );
     }
 
-    const module = await this.subscriptionRepo.findModuleByKey(moduleKey);
+    const module = await this.subscriptionQueryRepo.findModuleByKey(moduleKey);
     if (!module) {
       throw new NotFoundException(`Module "${moduleKey}" not found`);
     }
@@ -64,7 +68,7 @@ export class AddModuleHandler
         buyer,
       });
 
-    await this.subscriptionRepo.addItem({
+    await this.subscriptionCommandRepo.addItem({
       subscriptionId: subscription.id,
       moduleId: module.id,
       priceAtPurchase: module.monthlyPrice,

@@ -1,22 +1,27 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetRoleBySlugQuery } from './get-role-by-slug.query';
-import { GetRoleBySlugResponse } from './get-role-by-slug.response';
+import { GetRoleBySlugQueryResponse } from './get-role-by-slug.response';
 import {
   IRoleRepository,
-  ROLE_REPO_TOKEN,
+  ROLE_REPO,
 } from '@modules/role/domain/repositories/role.repository.interface';
 
 @QueryHandler(GetRoleBySlugQuery)
 export class GetRoleBySlugHandler
-  implements IQueryHandler<GetRoleBySlugQuery, GetRoleBySlugResponse>
+  implements IQueryHandler<GetRoleBySlugQuery, GetRoleBySlugQueryResponse>
 {
   constructor(
-    @Inject(ROLE_REPO_TOKEN)
-    private readonly roleRepository: IRoleRepository,
+    @Inject(ROLE_REPO)
+    private readonly roleRepository: IRoleRepository
   ) {}
 
-  execute(query: GetRoleBySlugQuery): Promise<GetRoleBySlugResponse> {
-    return this.roleRepository.findBySlug(query.slug);
+  async execute(
+    query: GetRoleBySlugQuery
+  ): Promise<GetRoleBySlugQueryResponse> {
+    const result = await this.roleRepository.findBySlug(query.slug);
+    return {
+      data: result,
+    };
   }
 }

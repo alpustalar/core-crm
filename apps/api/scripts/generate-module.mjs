@@ -51,7 +51,6 @@ const directories = [
   'domain/interfaces',
   'domain/types',
   'domain/events',
-  'infrastructure/persistence/prisma/mappers',
   'infrastructure/persistence/prisma/repositories',
   'infrastructure/queue/processors',
   'infrastructure/queue/producers',
@@ -79,8 +78,7 @@ import { Module } from '@nestjs/common';
 import { ${pascal}PresentationModule } from '@modules/fns/presentation/fns-presentation.module';
 import { ${pascal}PersistenceModule } from './infrastructure/persistence/prisma/${lower}-persistence.module';
 import { ${pascal}EventModule } from './infrastructure/events/${lower}-event.module';
-import { ${pascal}ModuleApi } from '@modules/fns/fns.module.api';
-import { ${upper}_MODULE_API_TOKEN } from './domain/interfaces/fns.module.api.interface';
+
 
 @Module({
   imports: [
@@ -88,40 +86,9 @@ import { ${upper}_MODULE_API_TOKEN } from './domain/interfaces/fns.module.api.in
     ${pascal}EventModule,
     ${pascal}PresentationModule,
   ],
-  providers: [
-    { 
-      provide: ${upper}_MODULE_API_TOKEN, 
-      useClass: ${pascal}ModuleApi 
-    }
-  ],
-  exports: [${upper}_MODULE_API_TOKEN],
 })
 export class ${pascal}Module {}
 `
-);
-
-// --- 2. Module API (Facade) ---
-createFile(
-  `${lower}.module.api.ts`,
-  `
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export class ${pascal}ModuleApi {
-  constructor() {}
-}
-`
-);
-
-// module api interface
-createFile(
-  `domain/interfaces/${lower}.module.api.interface.ts`,
-  `
-export const ${upper}_MODULE_API_TOKEN = Symbol('I${pascal}ModuleApi');
-
-export interface I${pascal}ModuleApi {}
-
-  `
 );
 
 // --- 4. Presentation Module ---
@@ -162,7 +129,7 @@ export class ${pascal}Repository extends BaseRepository implements I${pascal}Rep
 createFile(
   `domain/repositories/${lower}.repository.ts`,
   `
-export const ${upper}_REPO_TOKEN = Symbol('I${pascal}Repository');
+export const ${upper}_REPOSITORY = Symbol('I${pascal}Repository');
 
 export interface I${pascal}Repository {}
 `
@@ -172,7 +139,7 @@ export interface I${pascal}Repository {}
 createFile(
   `domain/interfaces/${lower}-event-publisher.interface.ts`,
   `
-export const ${upper}_EVENT_PUBLISHER_TOKEN = Symbol('I${pascal}EventPublisher');
+export const ${upper}_EVENT_PUBLISHER = Symbol('I${pascal}EventPublisher');
 
 export interface I${pascal}EventPublisher {}
 `
@@ -183,7 +150,7 @@ createFile(
   `infrastructure/events/${lower}-event-publisher.service.ts`,
   `
 import { Injectable } from '@nestjs/common';
-import { I${pascal}EventPublisher } from '@modules/${lower}/domain/interfaces/$lower}-event-publisher.interface';
+import { I${pascal}EventPublisher } from '@modules/${lower}/domain/interfaces/${lower}-event-publisher.interface';
 
 
 @Injectable()
@@ -196,18 +163,18 @@ createFile(
   `infrastructure/events/${lower}-event.module.ts`,
   `
 import { Module } from '@nestjs/common';
-import { ${upper}_EVENT_PUBLISHER_TOKEN } from '../../domain/interfaces/${lower}-event-publisher.interface';
+import { ${upper}_EVENT_PUBLISHER } from '../../domain/interfaces/${lower}-event-publisher.interface';
 import { ${pascal}EventPublisher } from './${lower}-event-publisher.service';
 
 @Module({
   imports: [],
   providers: [
     {
-      provide: ${upper}_EVENT_PUBLISHER_TOKEN,
+      provide: ${upper}_EVENT_PUBLISHER,
       useClass: ${pascal}EventPublisher,
     },
   ],
-  exports: [${upper}_EVENT_PUBLISHER_TOKEN],
+  exports: [${upper}_EVENT_PUBLISHER],
 })
 export class ${pascal}EventModule {}
 `
@@ -230,17 +197,17 @@ createFile(
   `infrastructure/persistence/prisma/${lower}-persistence.module.ts`,
   `
 import { Module } from '@nestjs/common';
-import { ${upper}_REPO_TOKEN } from '@modules/fns/domain/repositories/fns.repository';
+import { ${upper}_REPOSITORY } from '@modules/fns/domain/repositories/fns.repository';
 import { ${pascal}Repository } from './repositories/${lower}.repository';
 
 @Module({
   providers: [
     {
-      provide: ${upper}_REPO_TOKEN,
+      provide: ${upper}_REPOSITORY,
       useClass: ${pascal}Repository,
     },
   ],
-  exports: [${upper}_REPO_TOKEN],
+  exports: [${upper}_REPOREPOSITORY],
 })
 export class ${pascal}PersistenceModule {}
 `

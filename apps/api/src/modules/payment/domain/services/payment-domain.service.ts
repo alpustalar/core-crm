@@ -1,12 +1,10 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { IyzicoTransactionStatus, PaymentStatus } from '@prisma/client';
-import { IyzicoTransaction, Payment } from '@shared';
 import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
 
-interface checkIyzicoSdkStatusOrThrowInput {
+interface checkIyzicoSdkStatusOrThrowProps {
   status: string;
   sdkErrorMessage?: string;
-  action: string;
   paymentId: string;
   conversationId: string;
 }
@@ -15,7 +13,7 @@ export class PaymentDomainService {
   readonly logger = new Logger(PaymentDomainService.name);
 
   isAlreadyProcessed(
-    iyzicoTx: IyzicoTransaction,
+    iyzicoTx: { status: IyzicoTransactionStatus },
     conversationId: string
   ): boolean {
     if (iyzicoTx.status === IyzicoTransactionStatus.SUCCESS) {
@@ -27,7 +25,10 @@ export class PaymentDomainService {
     return false;
   }
 
-  validateRefundEligibilityOrThrow(payment: Payment) {
+  validateRefundEligibilityOrThrow(payment: {
+    id: string;
+    status: PaymentStatus;
+  }) {
     if (payment.status !== PaymentStatus.COMPLETED) {
       this.logger.warn(`İade reddedildi: Ödeme tamamlanmış durumda değil.`, {
         paymentId: payment.id,
@@ -40,26 +41,22 @@ export class PaymentDomainService {
     }
   }
 
-  checkIyzicoSdkStatusOrThrow(input: checkIyzicoSdkStatusOrThrowInput) {
-    const { status, action, sdkErrorMessage, paymentId, conversationId } =
-      input;
+  checkIyzicoSdkStatusOrThrow(props: checkIyzicoSdkStatusOrThrowProps) {
+    const { status, sdkErrorMessage, paymentId, conversationId } = props;
 
     if (status?.toLowerCase() !== IyzicoSdkStatus.SUCCESS.toLowerCase()) {
-      this.logger.warn(
-        `İyzico işlemi başarısız: - ${action} - ${sdkErrorMessage}`,
-        {
-          paymentId,
-          conversationId,
-        }
-      );
+      this.logger.warn(`İyzico işlemi başarısız: - ${sdkErrorMessage}`, {
+        paymentId,
+        conversationId,
+      });
 
       throw new BadRequestException(
-        `İşlem gerçekleştirilemedi: ${action} 'Bilinmeyen hata'}`
+        `İşlem gerçekleştirilemedi: 'Bilinmeyen hata - SDK Error - Message: ${sdkErrorMessage}'`
       );
     }
   }
 
-  paymentIsCompleteOrThrow(payment: Payment) {
+  paymentIsCompleteOrThrow(payment: { id: string; status: PaymentStatus }) {
     if (payment.status !== PaymentStatus.COMPLETED) {
       throw new BadRequestException(
         `Yalnızca tamamlanmış ödemeler iptal edilebilir. Mevcut durum: ${payment.status}`

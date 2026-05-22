@@ -5,6 +5,6 @@ import { IGetContext } from '@common/decorators/get-context.decorator';
 export class SoftDeleteUserByStaffCommand {
   constructor(
     public readonly dto: UserSoftDeleteByActorDto,
-    public readonly context: IGetContext
+    public readonly ctx: IGetContext
   ) {}
 }

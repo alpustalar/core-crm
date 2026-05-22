@@ -2,10 +2,9 @@ import { FindUserForAuthHandler } from './find-user-for-auth/find-user-for-auth.
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PolicyModule } from '@modules/policy/policy.module';
-import { USER_REPO_TOKEN } from '@modules/user/domain/repositories/user.repository';
-import { POLICY_FACTORY_TOKEN } from '@modules/policy/domain/interfaces/policy-factory.interface';
-import { UserRepository } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository';
+import { POLICY_FACTORY } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { PolicyFactory } from '@modules/policy/application/policy-factory';
+import { UserRepositoryModule } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository.module';
 
 import { CheckEmailExistsHandler } from './check-email-exists/check-email-exists.handler';
 import { FindAllUsersForManagerHandler } from '@modules/user/application/queries/find-all-users-for-manager';
@@ -19,11 +18,10 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, PolicyModule],
+  imports: [CqrsModule, PolicyModule, UserRepositoryModule],
   providers: [
     ...QueryHandlers,
-    { provide: USER_REPO_TOKEN, useClass: UserRepository },
-    { provide: POLICY_FACTORY_TOKEN, useClass: PolicyFactory },
+    { provide: POLICY_FACTORY, useClass: PolicyFactory },
   ],
   exports: [...QueryHandlers],
 })

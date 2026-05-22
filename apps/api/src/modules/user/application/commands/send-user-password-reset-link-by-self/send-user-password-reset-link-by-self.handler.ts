@@ -3,32 +3,40 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { Inject } from '@nestjs/common';
 import {
-  FIREBASE_SERVICE_TOKEN,
+  FIREBASE_SERVICE,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import {
   IMailService,
-  MAIL_SERVICE_TOKEN,
+  MAIL_SERVICE,
 } from '@modules/mail/domain/interfaces/mail.service.interface';
+import { SendUserPasswordResetLinkBySelfResponse } from '@modules/user/application/commands/send-user-password-reset-link-by-self/send-user-password-reset-link-by-self.response';
 
 @CommandHandler(SendUserPasswordResetLinkBySelfCommand)
 export class SendUserPasswordResetLinkBySelfHandler
-  implements ICommandHandler<SendUserPasswordResetLinkBySelfCommand, void>
+  implements
+    ICommandHandler<
+      SendUserPasswordResetLinkBySelfCommand,
+      SendUserPasswordResetLinkBySelfResponse
+    >
 {
   constructor(
-    @Inject(FIREBASE_SERVICE_TOKEN)
+    @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
-    @Inject(MAIL_SERVICE_TOKEN)
+    @Inject(MAIL_SERVICE)
     private readonly mailService: IMailService
   ) {}
 
   @InternalOnly()
-  async execute(command: SendUserPasswordResetLinkBySelfCommand) {
+  async execute(
+    command: SendUserPasswordResetLinkBySelfCommand
+  ): Promise<SendUserPasswordResetLinkBySelfResponse> {
     const {
-      context: {
+      ctx: {
         actor: { email },
       },
     } = command;
+
     const link = await this.firebaseService.sendEmailVerificationLink(email);
     await this.mailService.sendVerificationEmail(email, link);
   }

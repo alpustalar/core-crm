@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 import { ActorContext, IRequestWithUser } from '../interfaces';
 
 export const Actor = createParamDecorator(
@@ -12,9 +13,15 @@ export const Actor = createParamDecorator(
         (rc) => `${rc.capability.module}:${rc.capability.action}`
       ) ?? [];
 
+    const rawSource = req.headers['x-source'] as string;
+    const source = Object.values(LogSource).includes(rawSource as LogSource)
+      ? (rawSource as LogSource)
+      : LogSource.WEB;
+
     return {
       userId: user.id,
       roleId: user.role?.id,
+      source,
       role: user.role ?? undefined,
       email: user.email,
       capabilities: flatCapabilities,

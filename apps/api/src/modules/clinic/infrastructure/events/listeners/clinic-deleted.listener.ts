@@ -5,7 +5,7 @@ import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { ClinicSoftDeleteByOrganizationIdEvent } from '@modules/clinic/domain/events';
 import {
   IMailService,
-  MAIL_SERVICE_TOKEN,
+  MAIL_SERVICE,
 } from '@modules/mail/domain/interfaces/mail.service.interface';
 import { LogType } from '@src/domain/constants/log-action.constant';
 
@@ -14,7 +14,7 @@ export class ClinicDeletedListener {
   private readonly logger = new Logger(ClinicDeletedListener.name);
   constructor(
     private auditLogService: AuditLogService,
-    @Inject(MAIL_SERVICE_TOKEN)
+    @Inject(MAIL_SERVICE)
     private readonly mailService: IMailService
   ) {}
 

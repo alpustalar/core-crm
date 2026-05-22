@@ -32,23 +32,33 @@ import { TransactionInterceptor } from '@common/interceptors/transaction/transac
 import { APP_ROUTES } from '@src/app.routes';
 import { ExecutionSourceInterceptor } from '@common/interceptors/execution-source/execution-source.interceptor';
 import { FinanceLedgerModule } from '@modules/finance-ledger/finance-ledger.module';
+import { TreatmentPackageModule } from '@modules/treatment-package/treatment-package.module';
+import { OutboxModule } from '@src/infrastructure/persistence/prisma/outbox/outbox.module';
+import { PatientAuthModule } from '@modules/patient-auth/patient-auth.module';
+import { ContextModule } from '@src/infrastructure/context/context.module';
+import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
 
 @Module({
   imports: [
     InfrastructureModule,
+    ContextModule,
     RouterModule.register(APP_ROUTES),
-    PaymentModule,
     FirebaseModule,
     PrismaModule,
     AuthModule,
+    TSCqrsModule,
+    PaymentModule,
     UserModule,
     MailModule,
     AuditLogModule,
     AppointmentModule,
     FinanceLedgerModule,
+    OutboxModule,
     ClinicModule,
     PatientModule,
+    PatientAuthModule,
     TreatmentModule,
+    TreatmentPackageModule,
     ProviderModule,
     RedisModule,
     OrganizationModule,

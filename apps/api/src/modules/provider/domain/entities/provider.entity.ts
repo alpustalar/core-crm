@@ -1,80 +1,165 @@
-import { Appointment, Provider as PrismaProvider, User } from '@prisma/client';
-import {
-  Clinic,
-  MedicalFile,
-  ProviderAvailability,
-  ProviderException,
-  ProviderShift,
-  ProviderSpecialty,
-  ProviderTitle,
-  ProviderTreatment,
-  Sector,
-} from '@shared';
+import { OperationMode, Provider as IProvider } from '@prisma/client';
+import { AggregateRoot } from '@common/domain/aggregate-root';
 
-export class Provider implements PrismaProvider {
-  readonly id: string;
-  providerTitleId: string | null;
-  providerSpecialtyId: string | null;
-  publicPhone: string | null;
-  publicEmail: string | null;
-  isActive: boolean;
-  canAcceptExamination: boolean;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
-  deletedAt: Date;
-  clinicId: string;
-  userId: string;
-  sectorId: string | null;
+export class Provider extends AggregateRoot implements IProvider {
+  constructor(data: IProvider) {
+    super();
+    this._id = data.id;
+    this._providerTitleId = data.providerTitleId;
+    this._providerSpecialtyId = data.providerSpecialtyId;
+    this._publicPhone = data.publicPhone;
+    this._publicEmail = data.publicEmail;
+    this._diplomaNo = data.diplomaNo;
+    this._hlrNo = data.hlrNo;
+    this._isActive = data.isActive;
+    this._canAcceptExamination = data.canAcceptExamination;
+    this._operationMode = data.operationMode;
+    this._clinicId = data.clinicId;
+    this._userId = data.userId;
+    this._sectorId = data.sectorId;
+    this._createdAt = data.createdAt;
+    this._updatedAt = data.updatedAt;
+    this._deletedAt = data.deletedAt;
+  }
 
-  // Relations
-  title?: ProviderTitle;
-  specialty?: ProviderSpecialty;
-  clinic?: Clinic;
-  user?: User;
-  appointments?: Appointment[];
-  treatments?: ProviderTreatment[];
-  providerAvailabilities?: ProviderAvailability[];
-  medicalFiles?: MedicalFile[];
-  sector?: Sector;
-  providerExceptions?: ProviderException[];
-  providerShifts?: ProviderShift[];
+  private _id: string;
+  get id(): string {
+    return this._id;
+  }
 
-  constructor(props: Provider) {
-    this.id = props.id;
-    this.providerTitleId = props.providerTitleId;
-    this.providerSpecialtyId = props.providerSpecialtyId;
-    this.publicPhone = props.publicPhone;
-    this.publicEmail = props.publicEmail;
-    this.isActive = props.isActive;
-    this.canAcceptExamination = props.canAcceptExamination;
-    this.createdAt = props.createdAt;
-    this.updatedAt = props.updatedAt;
-    this.deletedAt = props.deletedAt;
-    this.clinicId = props.clinicId;
-    this.userId = props.userId;
-    this.sectorId = props.sectorId;
+  private _providerTitleId: string | null;
+  get providerTitleId(): string | null {
+    return this._providerTitleId;
+  }
 
-    // Relation assignments
-    this.title = props.title;
-    this.specialty = props.specialty;
-    this.clinic = props.clinic;
-    this.user = props.user;
-    this.appointments = props.appointments;
-    this.treatments = props.treatments;
-    this.providerAvailabilities = props.providerAvailabilities;
-    this.medicalFiles = props.medicalFiles;
-    this.sector = props.sector;
-    this.providerExceptions = props.providerExceptions;
-    this.providerShifts = props.providerShifts;
+  private _providerSpecialtyId: string | null;
+  get providerSpecialtyId(): string | null {
+    return this._providerSpecialtyId;
+  }
+
+  private _publicPhone: string | null;
+  get publicPhone(): string | null {
+    return this._publicPhone;
+  }
+
+  private _publicEmail: string | null;
+  get publicEmail(): string | null {
+    return this._publicEmail;
+  }
+
+  private _diplomaNo: string | null;
+  get diplomaNo(): string | null {
+    return this._diplomaNo;
+  }
+
+  private _hlrNo: string | null;
+  get hlrNo(): string | null {
+    return this._hlrNo;
+  }
+
+  private _isActive: boolean;
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  private _canAcceptExamination: boolean;
+  get canAcceptExamination(): boolean {
+    return this._canAcceptExamination;
+  }
+
+  private _operationMode: OperationMode;
+  get operationMode(): OperationMode {
+    return this._operationMode;
+  }
+
+  private _clinicId: string;
+  get clinicId(): string {
+    return this._clinicId;
+  }
+
+  private _userId: string;
+  get userId(): string {
+    return this._userId;
+  }
+
+  private _sectorId: string | null;
+  get sectorId(): string | null {
+    return this._sectorId;
+  }
+
+  private _createdAt: Date;
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+
+  private _updatedAt: Date;
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+
+  private _deletedAt: Date | null;
+  get deletedAt(): Date | null {
+    return this._deletedAt;
   }
 
   get isDeleted(): boolean {
-    return !!this.deletedAt;
+    return !!this._deletedAt;
   }
 
-  canWorkAt(date: Date): boolean {
-    if (!this.isActive || this.isDeleted) return false;
-    // TODO: shift ve exception kontrolleri yap
-    return true;
+  public activate(): void {
+    this._isActive = true;
+  }
+
+  public deactivate(): void {
+    this._isActive = false;
+  }
+
+  public setExaminationCapability(value: boolean): void {
+    this._canAcceptExamination = value;
+  }
+
+  public setOperationMode(mode: OperationMode): void {
+    this._operationMode = mode;
+  }
+
+  public softDelete(): void {
+    if (this.isDeleted) {
+      throw new Error('Provider zaten silinmiş.');
+    }
+    this._deletedAt = new Date();
+    this._isActive = false;
+  }
+
+  public canWorkAt(): boolean {
+    return this._isActive && !this.isDeleted;
+  }
+
+  public isStaticMode(): boolean {
+    return this._operationMode === OperationMode.STATIC;
+  }
+
+  public isShiftMode(): boolean {
+    return this._operationMode === OperationMode.SHIFT;
+  }
+
+  public toPersistence(): IProvider {
+    return {
+      id: this._id,
+      providerTitleId: this._providerTitleId,
+      providerSpecialtyId: this._providerSpecialtyId,
+      publicPhone: this._publicPhone,
+      publicEmail: this._publicEmail,
+      diplomaNo: this._diplomaNo,
+      hlrNo: this._hlrNo,
+      isActive: this._isActive,
+      canAcceptExamination: this._canAcceptExamination,
+      operationMode: this._operationMode,
+      clinicId: this._clinicId,
+      userId: this._userId,
+      sectorId: this._sectorId,
+      createdAt: this._createdAt,
+      updatedAt: new Date(),
+      deletedAt: this._deletedAt,
+    };
   }
 }

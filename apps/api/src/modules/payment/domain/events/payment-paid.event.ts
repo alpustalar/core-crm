@@ -3,14 +3,16 @@ import { IAuditLog } from '@common/interfaces/audit-log.interface';
 import { BaseEvent } from '@common/interfaces';
 
 export interface PaymentPaidEventPayload extends IAuditLog {
+  installmentId: string;
   paymentId: string;
   appointmentId: string | null;
   clinicId: string;
 }
 
 export class PaymentPaidEvent extends BaseEvent {
-  public readonly NAME = PAYMENT_EVENTS.PAID;
+  static readonly NAME = PAYMENT_EVENTS.PAID;
 
+  public readonly installmentId: string;
   public readonly paymentId: string;
   public readonly appointmentId: string | null;
   public readonly clinicId: string;
@@ -23,6 +25,7 @@ export class PaymentPaidEvent extends BaseEvent {
       details: payload.details,
       type: payload.type,
     });
+    this.installmentId = payload.installmentId;
     this.paymentId = payload.paymentId;
     this.appointmentId = payload.appointmentId;
     this.clinicId = payload.clinicId;

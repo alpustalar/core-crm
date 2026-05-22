@@ -3,7 +3,7 @@ import { CreateProviderAvailabilityDto } from '@shared';
 
 export class CreateProviderAvailabilityCommand {
   constructor(
-    public readonly context: IGetContext,
+    public readonly ctx: IGetContext,
     public readonly dto: CreateProviderAvailabilityDto
   ) {}
 }

@@ -2,28 +2,24 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetClinicScheduleQuery } from './get-clinic-schedule.query';
 import { Inject } from '@nestjs/common';
 import {
-  CLINIC_AVAILABILITY_REPO_TOKEN,
-  IClinicAvailabilityRepository,
+  CLINIC_AVAILABILITY_QUERY_REPOSITORY,
+  IClinicAvailabilityQueryRepository,
 } from '@modules/clinic/domain/repositories/clinic-availability.repository.interface';
-import { QueryResponse } from '@shared/common/response/response.interface';
-import { GetClinicScheduleResponse } from '@modules/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.response';
+import { GetClinicScheduleQueryResponse } from '@modules/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.response';
 
 @QueryHandler(GetClinicScheduleQuery)
 export class GetClinicScheduleHandler
   implements
-    IQueryHandler<
-      GetClinicScheduleQuery,
-      QueryResponse<GetClinicScheduleResponse>
-    >
+    IQueryHandler<GetClinicScheduleQuery, GetClinicScheduleQueryResponse>
 {
   constructor(
-    @Inject(CLINIC_AVAILABILITY_REPO_TOKEN)
-    private readonly clinicAvailabilityRepo: IClinicAvailabilityRepository
+    @Inject(CLINIC_AVAILABILITY_QUERY_REPOSITORY)
+    private readonly clinicAvailabilityRepo: IClinicAvailabilityQueryRepository
   ) {}
 
   async execute(
     query: GetClinicScheduleQuery
-  ): Promise<QueryResponse<GetClinicScheduleResponse>> {
+  ): Promise<GetClinicScheduleQueryResponse> {
     const { clinicId, startDate, endDate } = query;
 
     const [availabilities, exceptions] = await Promise.all([

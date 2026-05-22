@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { PaymentUseCaseModule } from '@modules/payment/application/use-cases/payment-use-case.module';
 import { IyzicoController } from './controllers/iyzico.controller';
+import { PaymentCommandModule } from '@modules/payment/application/commands/command.module';
+import { PaymentQueryModule } from '@modules/payment/application/queries/query.module';
+import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
-  imports: [PaymentUseCaseModule],
+  imports: [CqrsModule, PaymentCommandModule, PaymentQueryModule],
   controllers: [IyzicoController],
 })
 export class PaymentPresentationModule {}

@@ -1,0 +1,33 @@
+enum FileType {
+  XRAY
+  PRESCRIPTION
+  PHOTO
+  CONSENT_FORM
+  LAB_RESULT
+  OTHER
+}
+
+model MedicalFile {
+  id String @id @default(uuid())
+
+  clinicId      String  @map("clinic_id")
+  patientId     String  @map("patient_id")
+  providerId    String  @map("provider_id")
+  appointmentId String? @map("appointment_id")
+  treatmentId   String
+
+  fileName String   @map("file_name")
+  fileUrl  String   @map("file_url")
+  fileType FileType @map("file_type")
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  provider    Provider     @relation(fields: [providerId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  treatment   Treatment    @relation(fields: [treatmentId], references: [id])
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([clinicId])
+  @@map("medical_files")
+}

@@ -1,3 +1,6 @@
 export * from './actor.decorator';
 export * from './user-ip.decorator';
-export * from '../../modules/auth/decorators/has-capability.decorator';
+export * from './has-capability.decorator';
+export * from './get-context.decorator';
+export * from './public.decorator';
+export * from './internal-only.decorator';

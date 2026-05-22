@@ -1,22 +1,22 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
-  IProviderRepository,
-  PROVIDER_REPO_TOKEN,
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
 } from '@modules/provider/domain/repositories/provider.repository.interface';
-import { SoftDeleteProviderByClinicIdCommand } from './soft-delete-provider-by-clinic-id.command';
+import { SoftDeleteProviderByClinicIdCommand } from '@modules/provider/application/commands';
 
 @CommandHandler(SoftDeleteProviderByClinicIdCommand)
 export class SoftDeleteProviderByClinicIdHandler
   implements ICommandHandler<SoftDeleteProviderByClinicIdCommand, void>
 {
   constructor(
-    @Inject(PROVIDER_REPO_TOKEN)
-    private readonly providerRepo: IProviderRepository
+    @Inject(PROVIDER_COMMAND_REPOSITORY)
+    private readonly providerCommandRepo: IProviderCommandRepository
   ) {}
 
   async execute(command: SoftDeleteProviderByClinicIdCommand): Promise<void> {
-    const { providerId, context } = command;
-    const { actor, source } = context;
+    const { providerId } = command;
+    await this.providerCommandRepo.softDelete(providerId);
   }
 }

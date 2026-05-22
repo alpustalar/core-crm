@@ -1,0 +1,17 @@
+enum LanguageDirection {
+  LTR
+  RTL
+}
+
+model Language {
+  id        String            @id @default(uuid())
+  code      String            @unique // "EN", "TR", "AR"
+  name      String // "English", "Türkçe", "العربية"
+  direction LanguageDirection @default(LTR)
+  isActive  Boolean           @default(true)
+
+  masterTreatmentTranslations   TreatmentTranslation[]
+  providerTitleTranslations     ProviderTitleTranslation[]
+  providerSpecialtyTranslations ProviderSpecialtyTranslation[]
+  treatmentCategoryTranslations TreatmentCategoryTranslation[]
+}

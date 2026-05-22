@@ -1,40 +1,53 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { CreateClinicCommand } from './create-clinic.command';
-import { Inject } from '@nestjs/common';
 import {
-  CLINIC_REPO_TOKEN,
-  IClinicRepository,
-} from '@modules/clinic/domain/repositories/clinic.repository.interface';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
-} from '@modules/policy/domain/interfaces/policy-factory.interface';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
-import {
-  CLINIC_EVENT_PUBLISHER_TOKEN,
+  CLINIC_EVENT_PUBLISHER,
   IClinicEventPublisher,
 } from '@modules/clinic/domain/interfaces/clinic.event-publisher.interface';
+import {
+  CLINIC_COMMAND_REPOSITORY,
+  IClinicCommandRepository,
+} from '@modules/clinic/domain/repositories/clinic.repository.interface';
+import { CreateClinicProps } from '@modules/clinic/domain/types/create-clinic.props';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { Inject } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { CreateClinicCommand } from './create-clinic.command';
 
 @CommandHandler(CreateClinicCommand)
 export class CreateClinicHandler
-  implements ICommandHandler<CreateClinicCommand, string | null | undefined>
+  implements ICommandHandler<CreateClinicCommand, string>
 {
   constructor(
-    @Inject(CLINIC_REPO_TOKEN)
-    private readonly clinicRepo: IClinicRepository,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(CLINIC_COMMAND_REPOSITORY)
+    private readonly clinicCommandRepo: IClinicCommandRepository,
+    @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    @Inject(CLINIC_EVENT_PUBLISHER_TOKEN)
+    @Inject(CLINIC_EVENT_PUBLISHER)
     private readonly clinicEventPublisher: IClinicEventPublisher
   ) {}
 
   async execute(command: CreateClinicCommand) {
-    const { dto, context } = command;
-    const { actor, source } = context;
+    const { dto, ctx, internalRelations } = command;
+    const { actor, source } = ctx;
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
-      const clinicRaw = await this.clinicRepo.create(dto);
-      return clinicRaw?.id ?? null;
+      const { organizationId: dtoOrganizationId, ...restClinicDto } = dto;
+
+      const organizationId =
+        internalRelations?.organizationId ?? dtoOrganizationId;
+      const clinicId = internalRelations?.clinicId;
+
+      const clinicDto: CreateClinicProps = {
+        ...restClinicDto,
+        organizationId,
+        id: clinicId,
+      };
+
+      const clinicRaw = await this.clinicCommandRepo.create(clinicDto);
+      return clinicRaw.id;
     }
 
     const { organizationId } = dto;
@@ -50,8 +63,7 @@ export class CreateClinicHandler
 
     // TODO: create clinic başarılı eventi Fırlat
 
-    const clinicRaw = await this.clinicRepo.create(dto);
-
-    return clinicRaw?.id ?? null;
+    const clinic = await this.clinicCommandRepo.create(dto);
+    return clinic.id;
   }
 }

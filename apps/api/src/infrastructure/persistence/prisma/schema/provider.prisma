@@ -1,0 +1,185 @@
+enum OperationMode {
+  STATIC
+  SHIFT
+}
+
+enum ExceptionType {
+  OFF
+  ON
+}
+
+model Provider {
+  id String @id @default(uuid())
+
+  title     ProviderTitle?     @relation(fields: [providerTitleId], references: [id])
+  specialty ProviderSpecialty? @relation(fields: [providerSpecialtyId], references: [id])
+
+  publicPhone String? @map("public_phone")
+  publicEmail String? @map("public_email")
+
+  // e-Nabız / HKS hekim tanımlama alanları
+  diplomaNo String? @map("diploma_no")
+  hlrNo     String? @map("hlr_no")
+
+  isActive             Boolean @default(true) @map("is_active")
+  canAcceptExamination Boolean @default(true)
+
+  operationMode OperationMode @default(STATIC)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  clinicId String @map("clinic_id")
+  userId   String @unique @map("user_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
+
+  appointments           Appointment[]
+  payments               Payment[]
+  treatments             ProviderTreatment[]
+  providerAvailabilities ProviderAvailability[]
+  medicalFiles           MedicalFile[]
+  productUsages          ProductUsage[]
+  sector                 Sector?                @relation(fields: [sectorId], references: [id])
+  sectorId               String?
+  providerTitleId        String?
+  providerSpecialtyId    String?
+  providerExceptions     ProviderException[]
+  providerShifts         ProviderShift[]
+  responsibleFor         Patient[]
+  packageProviders       TreatmentPackageProvider[]
+  patientPackages        PatientTreatmentPackage[]
+
+  @@index([clinicId])
+  @@map("providers")
+}
+
+model ProviderTreatment {
+  id String @id @default(uuid())
+
+  customPrice    Decimal? @map("custom_price") @db.Decimal(10, 2)
+  customDuration Int?     @map("custom_duration")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  providerId  String @map("provider_id")
+  treatmentId String @map("treatment_id")
+
+  provider  Provider  @relation(fields: [providerId], references: [id])
+  treatment Treatment @relation(fields: [treatmentId], references: [id])
+
+  @@unique([providerId, treatmentId])
+  @@map("provider_treatments")
+}
+
+model ProviderShift {
+  id         String @id @default(uuid())
+  providerId String @map("provider_id")
+
+  date        DateTime @map("date")
+  startMinute Int      @map("start_minute")
+  endMinute   Int      @map("end_minute")
+
+  breakStartMinute Int? @map("break_start_minute")
+  breakEndMinute   Int? @map("break_end_minute")
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, date])
+  @@index([date])
+  @@map("provider_shifts")
+}
+
+model ProviderAvailability {
+  id String @id @default(uuid())
+
+  dayOfWeek   Int @map("day_of_week")
+  startMinute Int @map("start_minute")
+  endMinute   Int @map("end_minute")
+
+  breakStartMinute Int? @map("break_start_minute")
+  breakEndMinute   Int? @map("break_end_minute")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  providerId String   @map("provider_id")
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, dayOfWeek])
+  @@map("provider_availabilities")
+}
+
+model ProviderException {
+  id String @id @default(uuid())
+
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+
+  type   ExceptionType @default(OFF)
+  reason String?
+
+  providerId String   @map("provider_id")
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([providerId, startTime, endTime])
+  @@map("provider_exceptions")
+}
+
+model ProviderTitle {
+  id        String @id @default(uuid())
+  slug      String @unique
+  sortOrder Int    @default(0) @map("sort_order")
+
+  providers    Provider[]
+  translations ProviderTitleTranslation[]
+
+  @@map("provider_titles")
+}
+
+model ProviderTitleTranslation {
+  id         String @id @default(uuid())
+  titleId    String @map("title_id")
+  languageId String @map("language_id")
+
+  name         String
+  abbreviation String?
+
+  title    ProviderTitle @relation(fields: [titleId], references: [id])
+  language Language      @relation(fields: [languageId], references: [id])
+
+  @@unique([titleId, languageId])
+  @@map("provider_title_translations")
+}
+
+model ProviderSpecialty {
+  id       String @id @default(uuid())
+  slug     String @unique
+  sectorId String @map("sector_id")
+
+  sector       Sector                         @relation(fields: [sectorId], references: [id])
+  providers    Provider[]
+  translations ProviderSpecialtyTranslation[]
+
+  @@map("provider_specialties")
+}
+
+model ProviderSpecialtyTranslation {
+  id          String @id @default(uuid())
+  specialtyId String @map("specialty_id")
+  languageId  String @map("language_id")
+
+  name String
+
+  specialty ProviderSpecialty @relation(fields: [specialtyId], references: [id])
+  language  Language          @relation(fields: [languageId], references: [id])
+
+  @@unique([specialtyId, languageId])
+  @@map("provider_specialty_translations")
+}

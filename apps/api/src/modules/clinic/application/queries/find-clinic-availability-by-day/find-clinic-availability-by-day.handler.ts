@@ -2,28 +2,27 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindClinicAvailabilityByDayQuery } from './find-clinic-availability-by-day.query';
 import { Inject } from '@nestjs/common';
 import {
-  CLINIC_AVAILABILITY_REPO_TOKEN,
-  IClinicAvailabilityRepository,
+  CLINIC_AVAILABILITY_QUERY_REPOSITORY,
+  IClinicAvailabilityQueryRepository,
 } from '@modules/clinic/domain/repositories/clinic-availability.repository.interface';
-import { FindClinicAvailabilityByDayResponse } from '@modules/clinic/application/queries/find-clinic-availability-by-day/find-clinic-availability-by-day.response';
-import { QueryResponse } from '@shared/common/response/response.interface';
+import { FindClinicAvailabilityByDayQueryResponse } from '@modules/clinic/application/queries/find-clinic-availability-by-day/find-clinic-availability-by-day.response';
 
 @QueryHandler(FindClinicAvailabilityByDayQuery)
 export class FindClinicAvailabilityByDayHandler
   implements
     IQueryHandler<
       FindClinicAvailabilityByDayQuery,
-      QueryResponse<FindClinicAvailabilityByDayResponse>
+      FindClinicAvailabilityByDayQueryResponse
     >
 {
   constructor(
-    @Inject(CLINIC_AVAILABILITY_REPO_TOKEN)
-    private readonly clinicAvailabilityRepo: IClinicAvailabilityRepository
+    @Inject(CLINIC_AVAILABILITY_QUERY_REPOSITORY)
+    private readonly clinicAvailabilityRepo: IClinicAvailabilityQueryRepository
   ) {}
 
   async execute(
     query: FindClinicAvailabilityByDayQuery
-  ): Promise<QueryResponse<FindClinicAvailabilityByDayResponse>> {
+  ): Promise<FindClinicAvailabilityByDayQueryResponse> {
     const { clinicId, date } = query;
     const dayOfWeek = date.getDay();
 

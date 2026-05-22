@@ -50,8 +50,8 @@ import { Module } from '@nestjs/common';
       useFactory: (config: ConfigService) => ({
         connection: {
           url: config.get<string>(ENV.REDIS_URL),
-          keyPrefix: 'bull_queue',
         },
+        prefix: 'bull_queue',
       }),
     }),
     EventEmitterModule.forRoot(),

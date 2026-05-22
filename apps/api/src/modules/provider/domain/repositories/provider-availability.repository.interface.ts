@@ -1,8 +1,9 @@
-import { ProviderAvailability, ProviderException } from '@shared';
+import { ProviderAvailability, ProviderException, ProviderShift } from '@shared';
 import { CreateProviderAvailabilityProps } from '@modules/provider/domain/types/create-provider-availability.props';
+import { CreateProviderShiftProps } from '@modules/provider/domain/types/create-provider-shift.props';
 import { ProviderAvailabilityWithCanAcceptExamination } from '@modules/provider/domain/types/provider-availability-with-can-accept-examination';
 
-export const PROVIDER_AVAILABILITY_REPO_TOKEN = Symbol(
+export const PROVIDER_AVAILABILITY_REPOSITORY = Symbol(
   'IProviderAvailabilityRepository'
 );
 
@@ -21,4 +22,10 @@ export interface IProviderAvailabilityRepository {
     startDate: Date,
     endDate: Date
   ): Promise<ProviderException[]>;
+  findShiftsByDateRange(
+    providerId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<ProviderShift[]>;
+  upsertManyShifts(data: CreateProviderShiftProps[]): Promise<void>;
 }

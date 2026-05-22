@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   ClinicSoftDeleteByOrganizationIdEvent,
   ClinicSoftDeleteByOrganizationIdEventPayload,
@@ -7,12 +7,18 @@ import {
   ClinicCreatedEvent,
   ClinicCreatedEventPayload,
 } from '@modules/clinic/domain/events';
-import { ContextService } from '@src/infrastructure/context/context.service';
 import { IClinicEventPublisher } from '@modules/clinic/domain/interfaces/clinic.event-publisher.interface';
+import {
+  CONTEXT_SERVICE,
+  IContextService,
+} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
 
 @Injectable()
 export class ClinicEventPublisher implements IClinicEventPublisher {
-  constructor(private readonly contextService: ContextService) {}
+  constructor(
+    @Inject(CONTEXT_SERVICE)
+    private readonly contextService: IContextService
+  ) {}
 
   softDeleteClinicByOrganizationId(
     payload: ClinicSoftDeleteByOrganizationIdEventPayload

@@ -3,26 +3,21 @@ import { SoftDeleteManyClinicsByOrganizationIdHandler } from './soft-delete-many
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateClinicHandler } from './create-clinic/create-clinic.handler';
+import { SoftDeleteClinicHandler } from './soft-delete-clinic/soft-delete-clinic.handler';
 import { ClinicEventModule } from '@modules/clinic/infrastructure/events/clinic-event.module';
 import { PolicyModule } from '@modules/policy/policy.module';
-import { CLINIC_REPO_TOKEN } from '@modules/clinic/domain/repositories/clinic.repository.interface';
-import { ClinicRepository } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic.repository';
+import { ClinicRepositoryModule } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic/clinic.repository.module';
 
 const CommandHandlers = [
   UpdateClinicHandler,
   SoftDeleteManyClinicsByOrganizationIdHandler,
   CreateClinicHandler,
+  SoftDeleteClinicHandler,
 ];
 
 @Module({
-  imports: [CqrsModule, ClinicEventModule, PolicyModule],
-  providers: [
-    ...CommandHandlers,
-    {
-      provide: CLINIC_REPO_TOKEN,
-      useClass: ClinicRepository,
-    },
-  ],
+  imports: [CqrsModule, ClinicEventModule, PolicyModule, ClinicRepositoryModule],
+  providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })
 export class ClinicCommandModule {}

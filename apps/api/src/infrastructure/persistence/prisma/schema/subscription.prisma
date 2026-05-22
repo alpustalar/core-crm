@@ -1,0 +1,65 @@
+enum PlanId {
+  FREE_TRIAL
+  BASIC
+  PREMIUM
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+model Module {
+  id           String  @id @default(uuid())
+  key          String  @unique // "E_INVOICE", "POS_INTEGRATION"
+  name         String
+  description  String?
+  monthlyPrice Decimal @map("monthly_price") @db.Decimal(10, 2)
+  isActive     Boolean @default(true) @map("is_active")
+
+  items SubscriptionItem[]
+
+  @@map("modules")
+}
+
+model Subscription {
+  id             String    @id @default(uuid())
+  organizationId String    @unique @map("organization_id")
+  externalId     String?   @unique @map("external_id")
+  status         SubStatus @default(ACTIVE)
+
+  trialEndsAt        DateTime? @map("trial_ends_at")
+  currentPeriodStart DateTime? @map("current_period_start")
+  currentPeriodEnd   DateTime? @map("current_period_end")
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  items        SubscriptionItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+model SubscriptionItem {
+  id             String @id @default(uuid())
+  subscriptionId String @map("subscription_id")
+
+  planId   PlanId?
+  moduleId String? @map("module_id")
+
+  priceAtPurchase Decimal @map("price_at_purchase") @db.Decimal(10, 2)
+  externalPriceId String? @map("external_price_id")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  module       Module?      @relation(fields: [moduleId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([subscriptionId, planId])
+  @@unique([subscriptionId, moduleId])
+  @@map("subscription_items")
+}

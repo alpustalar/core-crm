@@ -1,0 +1,70 @@
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NOSHOW
+}
+
+enum ExternalSystem {
+  WHATSAPP
+  N8N
+  GOOGLE_CALENDAR
+}
+
+model Appointment {
+  id String @id @default(uuid())
+
+  patientName  String  @map("patient_name")
+  patientPhone String  @map("patient_phone")
+  patientEmail String? @map("patient_email")
+
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+
+  timezone String @default("Europe/Istanbul") @map("timezone")
+
+  treatmentType String? @map("treatment_type")
+  notes         String? @db.Text
+
+  status AppointmentStatus @default(PENDING)
+
+  canceledAt   DateTime? @map("canceled_at")
+  canceledBy   String?   @map("canceled_by")
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  examinationType ExaminationType? @map("examination_type")
+  visitType       VisitType?       @map("visit_type")
+
+  externalSystem ExternalSystem? @map("external_system")
+  externalId     String?         @unique @map("external_id")
+
+  treatmentId String? @map("treatment_id")
+  clinicId    String  @map("clinic_id")
+  providerId  String  @map("provider_id")
+  patientId   String? @map("patient_id")
+  resourceId  String? @map("resource_id")
+
+  isDeleted Boolean   @default(false) @map("is-deleted")
+  deletedAt DateTime? @map("deleted-at")
+
+  treatment Treatment? @relation(fields: [treatmentId], references: [id])
+  clinic    Clinic     @relation(fields: [clinicId], references: [id])
+  provider  Provider   @relation(fields: [providerId], references: [id])
+  patient   Patient?   @relation(fields: [patientId], references: [id])
+  resource  Resource?  @relation(fields: [resourceId], references: [id])
+
+  medicalFile          MedicalFile[]
+  payment              Payment?
+  productUsages        ProductUsage[]
+  diagnoses            AppointmentDiagnosis[]
+  procedures           AppointmentProcedure[]
+  eNabizSync           ENabizSync?
+
+  @@index([patientPhone])
+  @@index([startTime])
+  @@map("appointments")
+}

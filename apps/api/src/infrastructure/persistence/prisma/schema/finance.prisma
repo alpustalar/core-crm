@@ -1,0 +1,171 @@
+enum LedgerStatus {
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum LedgerType {
+  INCOME
+  EXPENSE
+}
+
+enum LedgerSource {
+  PAYMENT_MODULE  // Bir Payment kaydına bağlı otomatik oluşan gelir
+  INVENTORY_MODULE // Stok alımı/satımı sonucu oluşan hareket
+  MANUAL_ENTRY     // elle girilen kira, maaş,
+}
+
+enum LedgerCategory {
+  TREATMENT_PAYMENT
+  REFUND
+  MATERIAL_PURCHASE
+  STOCK_ADJUSTMENT
+  SALARY
+  RENT
+  OTHER
+}
+
+model FinanceLedger {
+  id            String  @id @default(uuid())
+  clinicId      String  @map("clinic_id")
+  patientId     String? @map("patient_id")
+  paymentId     String? @map("payment_id")
+  installmentId String? @unique @map("installment_id")
+  performedById String? @map("performed_by_id")
+
+  type     LedgerType
+  source   LedgerSource
+  category LedgerCategory
+  status   LedgerStatus   @default(COMPLETED)
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("TRY")
+
+  taxRate   Int     @default(0) @map("tax_rate")
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(10, 2)
+
+  description String?
+  documentNo  String? @map("document_no")
+
+  entryDate DateTime @default(now()) @map("entry_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  payment       Payment?            @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  installment   PaymentInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  patient       Patient?            @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  performedBy   User?               @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  stockMovement StockMovement?
+
+  @@index([clinicId, entryDate])
+  @@index([patientId])
+  @@map("finance_ledger")
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+  EFT
+  MAIL_ORDER
+  CHEQUE
+  BOND
+}
+
+enum InstallmentStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+model Payment {
+  id            String  @id @default(uuid())
+  clinicId      String  @map("clinic_id")
+  patientId     String  @map("patient_id")
+  appointmentId String? @unique @map("appointment_id")
+  providerId    String? @map("provider_id")
+
+  totalAmount Decimal @map("total_amount") @db.Decimal(10, 2)
+  currency    String  @default("TRY")
+
+  status PaymentStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  provider    Provider?    @relation(fields: [providerId], references: [id])
+
+  installments   PaymentInstallment[]
+  financeLedgers FinanceLedger[]
+  patientPackage PatientTreatmentPackage?
+
+  @@map("payments")
+}
+
+model PaymentInstallment {
+  id            String @id @default(uuid())
+  paymentId     String @map("payment_id")
+  installmentNo Int    @map("installment_no")
+
+  amount   Decimal       @db.Decimal(10, 2)
+  currency String        @default("TRY")
+  method   PaymentMethod @default(CREDIT_CARD)
+  dueDate  DateTime?     @map("due_date")
+  paidAt   DateTime?     @map("paid_at")
+  note     String?
+  status   InstallmentStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  payment           Payment            @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  iyzicoTransaction IyzicoTransaction?
+  financeLedger     FinanceLedger?
+
+  @@unique([paymentId, installmentNo])
+  @@index([paymentId])
+  @@map("payment_installments")
+}
+
+enum IyzicoTransactionStatus {
+  INITIALIZE
+  SUCCESS
+  FAILURE
+  REFUNDED
+}
+
+model IyzicoTransaction {
+  id            String @id @default(uuid())
+  installmentId String @unique @map("installment_id")
+
+  conversationId             String  @unique @map("conversation_id")
+  token                      String? @map("token")
+  iyzicoPaymentId            String? @map("iyzico_payment_id")
+  iyzicoPaymentTransactionId String? @map("iyzico_payment_transaction_id")
+
+  rawResponse Json? @map("raw_response")
+
+  status       IyzicoTransactionStatus
+  errorCode    String?                 @map("error_code")
+  errorMessage String?                 @map("error_message")
+
+  installment PaymentInstallment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("iyzico_transactions")
+}

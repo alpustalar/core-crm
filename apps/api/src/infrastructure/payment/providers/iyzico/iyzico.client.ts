@@ -4,23 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { ENV } from '@common/constants/env.constant';
 import Iyzipay from 'iyzipay';
 import { promisify } from 'node:util';
-
-/** İyzico başarısız yanıtlarında dönen ama SDK tiplerinde tanımlanmamış alanlar */
-export type WithIyzicoError<T> = T & {
-  errorMessage?: string;
-  errorCode?: string;
-};
-
-export interface CheckoutFormInitializeRequest
-  extends Omit<Iyzipay.PaymentRequestData, 'installments' | 'paymentCard'> {
-  callbackUrl: string;
-  enabledInstallments?: number[];
-}
+import { WithIyzicoError } from '@src/infrastructure/payment/providers/iyzico/domain/types/with-iyzico-error.type';
+import { CreateCheckoutFormRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/create-checkout-form.request';
 
 @Injectable()
 export class IyzicoClient {
   readonly createCheckoutForm: (
-    request: CheckoutFormInitializeRequest
+    request: CreateCheckoutFormRequest
   ) => Promise<
     WithIyzicoError<
       Iyzipay.CheckoutFormInitialResult & { paymentPageUrl?: string }

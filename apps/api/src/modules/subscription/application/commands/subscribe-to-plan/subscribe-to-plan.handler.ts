@@ -3,11 +3,13 @@ import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
 import { PlanId } from '@prisma/client';
 import { SubscribeToPlanCommand } from './subscribe-to-plan.command';
 import {
-  ISubscriptionRepository,
-  SUBSCRIPTION_REPO_TOKEN,
+  ISubscriptionCommandRepository,
+  ISubscriptionQueryRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/subscription/domain/repositories/subscription.repository.interface';
 import {
-  BILLING_ADAPTER_TOKEN,
+  BILLING_ADAPTER,
   IBillingAdapter,
 } from '@modules/subscription/infrastructure/adapters/billing-adapter.interface';
 
@@ -21,25 +23,22 @@ export class SubscribeToPlanHandler
   implements ICommandHandler<SubscribeToPlanCommand, SubscribeToPlanResult>
 {
   constructor(
-    @Inject(SUBSCRIPTION_REPO_TOKEN)
-    private readonly subscriptionRepo: ISubscriptionRepository,
-    @Inject(BILLING_ADAPTER_TOKEN)
+    @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
+    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
+    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
+    @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter
   ) {}
 
   async execute(
     command: SubscribeToPlanCommand
   ): Promise<SubscribeToPlanResult> {
-    const {
-      organizationId,
-      planId,
-      priceAtPurchase,
-      buyer,
-      externalPriceId,
-    } = command;
+    const { organizationId, planId, priceAtPurchase, buyer, externalPriceId } =
+      command;
 
     const alreadyExists =
-      await this.subscriptionRepo.existsByOrganizationId(organizationId);
+      await this.subscriptionQueryRepo.existsByOrganizationId(organizationId);
     if (alreadyExists) {
       throw new ConflictException(
         'Organization already has an active subscription'
@@ -49,9 +48,7 @@ export class SubscribeToPlanHandler
     const isFreeTrial = planId === PlanId.FREE_TRIAL;
 
     if (!isFreeTrial && !buyer) {
-      throw new BadRequestException(
-        'Buyer info is required for paid plans'
-      );
+      throw new BadRequestException('Buyer info is required for paid plans');
     }
 
     let checkoutUrl: string | null = null;
@@ -69,12 +66,12 @@ export class SubscribeToPlanHandler
       externalId = result.conversationId;
     }
 
-    const subscription = await this.subscriptionRepo.create({
+    const subscription = await this.subscriptionCommandRepo.create({
       organizationId,
       externalId,
     });
 
-    await this.subscriptionRepo.addItem({
+    await this.subscriptionCommandRepo.addItem({
       subscriptionId: subscription.id,
       planId,
       priceAtPurchase,

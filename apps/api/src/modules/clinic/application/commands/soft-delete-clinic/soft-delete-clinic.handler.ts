@@ -1,12 +1,15 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
-  CLINIC_REPO_TOKEN,
-  IClinicRepository,
+  CLINIC_COMMAND_REPOSITORY,
+  IClinicCommandRepository,
 } from '@modules/clinic/domain/repositories/clinic.repository.interface';
-import { ContextService } from '@src/infrastructure/context/context.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { SoftDeleteClinicCommand } from '@modules/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.use-case-by-id.command';
 import { Inject } from '@nestjs/common';
+import {
+  CONTEXT_SERVICE,
+  IContextService,
+} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
 
 /* eslint-disable */
 @CommandHandler(SoftDeleteClinicCommand)
@@ -15,9 +18,10 @@ export class SoftDeleteClinicHandler
 {
   /* eslint-enable */
   constructor(
-    @Inject(CLINIC_REPO_TOKEN)
-    private readonly clinicRepo: IClinicRepository,
-    private readonly contextService: ContextService,
+    @Inject(CLINIC_COMMAND_REPOSITORY)
+    private readonly clinicCommandRepo: IClinicCommandRepository,
+    @Inject(CONTEXT_SERVICE)
+    private readonly contextService: IContextService,
     private readonly transactionManager: TransactionManager
   ) {}
 
@@ -25,7 +29,7 @@ export class SoftDeleteClinicHandler
     const { clinicId, actor } = command;
 
     return await this.transactionManager.run(async () => {
-      const removedClinic = await this.clinicRepo.softDelete(clinicId);
+      const removedClinic = await this.clinicCommandRepo.softDelete(clinicId);
 
       if (!removedClinic) return null;
 

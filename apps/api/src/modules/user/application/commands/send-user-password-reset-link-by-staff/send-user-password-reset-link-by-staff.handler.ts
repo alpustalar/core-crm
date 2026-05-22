@@ -3,42 +3,49 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { Inject, NotFoundException } from '@nestjs/common';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import {
-  FIREBASE_SERVICE_TOKEN,
+  FIREBASE_SERVICE,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import {
   IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
+  POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import {
   IUserEventPublisher,
-  USER_EVENT_PUBLISHER_TOKEN,
+  USER_EVENT_PUBLISHER,
 } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { SendUserPasswordResetLinkByStaffResponse } from '@modules/user/application/commands/send-user-password-reset-link-by-staff/send-user-password-reset-link-by-staff.response';
 
 @CommandHandler(SendUserPasswordResetLinkByStaffCommand)
 export class SendUserPasswordResetLinkByStaffHandler
-  implements ICommandHandler<SendUserPasswordResetLinkByStaffCommand, void>
+  implements
+    ICommandHandler<
+      SendUserPasswordResetLinkByStaffCommand,
+      SendUserPasswordResetLinkByStaffResponse
+    >
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository,
-    @Inject(FIREBASE_SERVICE_TOKEN)
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userRepo: IUserQueryRepository,
+    @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
-    @Inject(USER_EVENT_PUBLISHER_TOKEN)
+    @Inject(USER_EVENT_PUBLISHER)
     private readonly userEventPublisher: IUserEventPublisher
   ) {}
 
   @InternalOnly()
-  async execute(command: SendUserPasswordResetLinkByStaffCommand) {
+  async execute(
+    command: SendUserPasswordResetLinkByStaffCommand
+  ): Promise<SendUserPasswordResetLinkByStaffResponse> {
     const {
-      context: { actor },
+      ctx: { actor },
       dto,
     } = command;
     const { evaluator } = this.policyFactory.user(actor);

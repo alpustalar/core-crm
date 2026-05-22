@@ -2,34 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { IyzicoTransactionStatus, Prisma } from '@prisma/client';
-
-interface CreateIyzicoTransactionInput {
-  paymentId: string;
-  conversationId: string;
-  token?: string;
-}
-
-interface MarkPaidInput {
-  iyzicoTransactionId: string;
-  iyzicoPaymentId: string;
-  iyzicoPaymentTransactionId?: string;
-  rawResponse?: unknown;
-}
-
-interface MarkRefundedInput {
-  iyzicoTransactionId: string;
-  rawResponse?: unknown;
-}
-
-interface MarkFailedInput {
-  iyzicoTransactionId: string;
-  errorCode?: string;
-  errorMessage?: string;
-  rawResponse?: unknown;
-}
+import {
+  CreateIyzicoTransactionInput,
+  IIyzicoTransactionRepository,
+  MarkFailedInput,
+  MarkPaidInput,
+  MarkRefundedInput,
+} from '../domain/interfaces/iyzico-transaction.repository.interface';
 
 @Injectable()
-export class IyzicoTransactionRepository extends BaseRepository {
+export class IyzicoTransactionRepository
+  extends BaseRepository
+  implements IIyzicoTransactionRepository
+{
   constructor(prisma: PrismaService) {
     super(prisma);
   }
@@ -37,14 +22,24 @@ export class IyzicoTransactionRepository extends BaseRepository {
   findTransactionByConversationId(conversationId: string) {
     return this.db.iyzicoTransaction.findUnique({
       where: { conversationId },
-      include: { payment: true },
+      include: {
+        installment: {
+          include: { payment: true },
+        },
+      },
+    });
+  }
+
+  findByInstallmentId(installmentId: string) {
+    return this.db.iyzicoTransaction.findUnique({
+      where: { installmentId },
     });
   }
 
   createTransaction(input: CreateIyzicoTransactionInput) {
     return this.db.iyzicoTransaction.create({
       data: {
-        paymentId: input.paymentId,
+        installmentId: input.installmentId,
         conversationId: input.conversationId,
         token: input.token,
         status: IyzicoTransactionStatus.INITIALIZE,

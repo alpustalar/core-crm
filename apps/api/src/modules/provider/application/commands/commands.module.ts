@@ -1,32 +1,37 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PolicyModule } from '@modules/policy/policy.module';
-import { PROVIDER_REPO_TOKEN } from '@modules/provider/domain/repositories/provider.repository.interface';
-import { ProviderRepository } from '@modules/provider/infrastructure/persistence/prisma/repositories/provider.repository';
+import { ClinicModule } from '@modules/clinic/clinic.module';
+import { ProviderRepositoryModule } from '@modules/provider/infrastructure/persistence/prisma/repositories/provider/provider.repository.module';
+import { ProviderAvailabilityRepository } from '@modules/provider/infrastructure/persistence/prisma/repositories/provider-availability.repository';
+import { PROVIDER_AVAILABILITY_REPOSITORY } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
 
-// Command Handlers
 import { ConvertUserToProviderHandler } from './convert-user-to-provider/convert-user-to-provider.handler';
 import { CreateProviderAvailabilityHandler } from './create-provider-availability/create-provider-availability.handler';
-import { UpdateProviderByStaffHandler } from './update-provider-by-staff/update-provider-by-staff.handler';
 import { SoftDeleteProviderByClinicIdHandler } from './soft-delete-provider-by-clinic-id/soft-delete-provider-by-clinic-id.use-case';
-import { PROVIDER_AVAILABILITY_REPO_TOKEN } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
-import { ProviderAvailabilityRepository } from '@modules/provider/infrastructure/persistence/prisma/repositories/provider-availability.repository';
-import { ClinicModule } from '@modules/clinic/clinic.module';
+import { UpdateProviderInfoHandler } from './update-provider-info/update-provider-info.handler';
+import { SetProviderActiveHandler } from './set-provider-active/set-provider-active.handler';
+import { SetProviderOperationModeHandler } from './set-provider-operation-mode/set-provider-operation-mode.handler';
+import { SetProviderExaminationHandler } from './set-provider-examination/set-provider-examination.handler';
+import { CreateProviderShiftHandler } from './create-provider-shift/create-provider-shift.handler';
 
 const CommandHandlers = [
   ConvertUserToProviderHandler,
   CreateProviderAvailabilityHandler,
-  UpdateProviderByStaffHandler,
+  CreateProviderShiftHandler,
   SoftDeleteProviderByClinicIdHandler,
+  UpdateProviderInfoHandler,
+  SetProviderActiveHandler,
+  SetProviderOperationModeHandler,
+  SetProviderExaminationHandler,
 ];
 
 @Module({
-  imports: [CqrsModule, PolicyModule, ClinicModule],
+  imports: [CqrsModule, PolicyModule, ClinicModule, ProviderRepositoryModule],
   providers: [
     ...CommandHandlers,
-    { provide: PROVIDER_REPO_TOKEN, useClass: ProviderRepository },
     {
-      provide: PROVIDER_AVAILABILITY_REPO_TOKEN,
+      provide: PROVIDER_AVAILABILITY_REPOSITORY,
       useClass: ProviderAvailabilityRepository,
     },
   ],

@@ -3,30 +3,31 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateUserBySelfCommand } from './update-user-by-self.command';
 import { Inject } from '@nestjs/common';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserCommandRepository,
+  USER_COMMAND_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import {
   IUserEventPublisher,
-  USER_EVENT_PUBLISHER_TOKEN,
+  USER_EVENT_PUBLISHER,
 } from '@modules/user/domain/interfaces/user-event-publisher.interface';
+import { UpdateUserBySelfResponse } from '@modules/user/application/commands/update-user-by-self/update-user-by-self.response';
 
 @CommandHandler(UpdateUserBySelfCommand)
 export class UpdateUserBySelfHandler
-  implements ICommandHandler<UpdateUserBySelfCommand>
+  implements ICommandHandler<UpdateUserBySelfCommand, UpdateUserBySelfResponse>
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository,
-    @Inject(USER_EVENT_PUBLISHER_TOKEN)
+    @Inject(USER_COMMAND_REPOSITORY)
+    private readonly userRepo: IUserCommandRepository,
+    @Inject(USER_EVENT_PUBLISHER)
     private readonly userEventPublisher: IUserEventPublisher
   ) {}
 
-  async execute(command: UpdateUserBySelfCommand) {
+  async execute(
+    command: UpdateUserBySelfCommand
+  ): Promise<UpdateUserBySelfResponse> {
     const { dto, actor } = command;
 
-    const updatedUser = await this.userRepo.update(actor.userId, dto);
-
-    return updatedUser.id;
+    await this.userRepo.update(actor.userId, dto);
   }
 }

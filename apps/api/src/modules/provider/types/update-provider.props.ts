@@ -1,3 +1,3 @@
-import { UpdateProvider } from '@shared';
+import { UpdateProviderInfo } from '@shared';
 
-export type UpdateProviderProps = UpdateProvider;
+export type UpdateProviderProps = UpdateProviderInfo;

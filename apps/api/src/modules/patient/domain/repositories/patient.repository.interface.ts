@@ -1,9 +1,9 @@
-import { Patient } from '@shared';
+import { FindOrCreatePatientForAuth } from '@shared/modules/patients/types/queries';
+import { Patient } from '@modules/patient/domain/entities/patient.entity';
 
-export const PATIENT_REPO_TOKEN = Symbol('PATIENT_REPO_TOKEN');
+export const PATIENT_REPOSITORY = Symbol('IPatientRepository');
 export interface IPatientRepository {
-  /**
-   * ID ile hastayı bulur, sadece kimlik bilgilerini döner.
-   */
   find(id: string): Promise<Patient | null>;
+  findOrCreateByPhone(dto: FindOrCreatePatientForAuth): Promise<Patient>;
+  save(entity: Patient): Promise<void>;
 }

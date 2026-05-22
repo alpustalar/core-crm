@@ -7,18 +7,20 @@ import {
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { ActorContext } from '@common/interfaces';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 
 import { getBearerToken } from '@common/utils';
 import {
-  FIREBASE_SERVICE_TOKEN,
+  FIREBASE_SERVICE,
   IFirebaseService,
 } from '@modules/firebase/domain/interfaces/firebase.service.interface';
 import { rolesCreateManyInputs } from '@src/infrastructure/persistence/prisma/data/modules';
-import {
-  IUserModuleApi,
-  USER_MODULE_API_TOKEN,
-} from '@modules/user/domain/interfaces/user.module.api.interface';
+
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
+import { FindUserForAuthQuery } from '@modules/user/application/queries/find-user-for-auth/find-user-for-auth.query';
+import { UpdateLastLoginCommand } from '@modules/user/application/commands/update-last-login/update-last-login.command';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const isDevelopment = process.env.NODE_MODE === 'development';
@@ -27,10 +29,11 @@ const isDevelopment = process.env.NODE_MODE === 'development';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(
+    // TODO: prod'ta prisma service kaldır
     private readonly prismaService: PrismaService,
-    @Inject(USER_MODULE_API_TOKEN)
-    private readonly userModuleApi: IUserModuleApi,
-    @Inject(FIREBASE_SERVICE_TOKEN)
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus,
+    @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService
   ) {}
 
@@ -60,7 +63,11 @@ export class AuthService {
   }
 
   async getActorContextOrThrow(decodedToken: DecodedIdToken) {
-    const user = await this.userModuleApi.findUserForAuth(decodedToken.uid);
+    const { data } = await this.queryBus.execute(
+      new FindUserForAuthQuery(decodedToken.uid)
+    );
+
+    const user = data;
 
     if (!user) {
       throw new UnauthorizedException('Kullanıcı bulunamadı veya pasif');
@@ -69,29 +76,31 @@ export class AuthService {
     const actor: ActorContext = {
       userId: user.id,
       email: user.email,
-      roleId: user.roleId ?? undefined,
-      role: user?.role ?? undefined,
-      clinicId: user.clinicId ?? undefined,
-      managedClinics: user.managedClinics || [],
-      capabilities: user?.role
-        ? user?.role.capabilities.map(
+      capabilities: user.role
+        ? user.role.capabilities.map(
             (roleCapability) =>
               `${roleCapability.capability.module}:${roleCapability.capability.action}`
           )
         : [],
-
-      rolePriority: user?.role?.priority ?? 0,
+      rolePriority: user.role?.priority ?? 0,
+      source: LogSource.SYSTEM,
+      managedClinics: user.managedClinics ?? [],
+      ownedOrganizations: user.ownedOrganizations ?? [],
+      roleId: user.roleId ?? undefined,
+      role: user.role ?? undefined,
+      clinicId: user.clinicId ?? undefined,
     };
 
     return actor;
   }
 
   updateLastLogin(userId: string): void {
-    this.userModuleApi.updateLastLogin(userId).catch((e) => {
+    this.commandBus.execute(new UpdateLastLoginCommand(userId)).catch((e) => {
       this.logger.error(`auth service last login update: ${e}`);
     });
   }
 
+  // TODO: prod'ta kaldır
   private async createAdmin(decodedToken: DecodedIdToken) {
     const { uid: id, email } = decodedToken;
     if (!email || !ADMIN_EMAIL?.includes(email)) return;

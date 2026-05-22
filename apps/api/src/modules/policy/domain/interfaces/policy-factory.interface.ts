@@ -25,4 +25,4 @@ export interface IPolicyFactory {
   };
 }
 
-export const POLICY_FACTORY_TOKEN = Symbol('IPolicyFactory');
+export const POLICY_FACTORY = Symbol('IPolicyFactory');

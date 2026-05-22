@@ -1,13 +1,8 @@
-export interface HandleSubscriptionCallbackCommandProps {
-  token: string;
-  conversationId: string;
-}
+import { ICommand } from '@nestjs/cqrs';
 
-export class HandleSubscriptionCallbackCommand {
-  token: string;
-  conversationId: string;
-
-  constructor(props: HandleSubscriptionCallbackCommandProps) {
-    Object.assign(this, props);
-  }
+export class HandleSubscriptionCallbackCommand implements ICommand {
+  constructor(
+    public readonly token: string,
+    public readonly conversationId: string
+  ) {}
 }

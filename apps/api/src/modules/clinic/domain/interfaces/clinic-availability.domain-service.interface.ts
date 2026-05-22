@@ -15,7 +15,7 @@ export interface ValidateClinicAvailabilityInput {
   clinicSchedule: ClinicSchedule;
 }
 
-export const CLINIC_AVAILABILITY_DOMAIN_SERVICE_TOKEN = Symbol(
+export const CLINIC_AVAILABILITY_DOMAIN_SERVICE = Symbol(
   'IClinicAvailabilityDomainService'
 );
 

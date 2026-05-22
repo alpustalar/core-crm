@@ -1,20 +1,24 @@
 import { Injectable } from '@nestjs/common';
+import {
+  FinanceLedger,
+  LedgerStatus,
+  LedgerType,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+} from '@prisma/client';
+import { Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
   CreateLedgerEntryData,
   GetSummaryFilter,
   IFinanceLedgerRepository,
   LedgerSummary,
+  PatientFinanceSummary,
+  PatientLedgerItem,
 } from '../../../../domain/repositories/finance-ledger.repository.interface';
-import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { Pagination } from '@shared';
-import {
-  FinanceLedger,
-  LedgerStatus,
-  LedgerType,
-  Prisma,
-} from '@prisma/client';
 
 @Injectable()
 export class FinanceLedgerRepository
@@ -76,6 +80,86 @@ export class FinanceLedgerRepository
       where: { paymentId },
       data: { status },
     });
+  }
+
+  async findManyByPatientIdWithDetails(
+    patientId: string,
+    pagination: Pagination
+  ): Promise<{ items: PatientLedgerItem[]; total: number }> {
+    type RawRow = {
+      id: string;
+      amount: Prisma.Decimal;
+      category: FinanceLedger['category'];
+      entryDate: Date;
+      status: FinanceLedger['status'];
+      description: string | null;
+      payment: {
+        method: PaymentMethod;
+        provider: { name: string } | null;
+      } | null;
+    };
+
+    const result = (await paginate({
+      delegate: this.db.financeLedger as never,
+      pagination,
+      where: { patientId },
+      include: {
+        payment: {
+          select: {
+            method: true,
+            provider: { select: { name: true } },
+          },
+        },
+      },
+    })) as { items: RawRow[]; total: number };
+
+    return {
+      total: result.total,
+      items: result.items.map((row) => ({
+        id: row.id,
+        amount: row.amount.toFixed(2),
+        category: row.category,
+        entryDate: row.entryDate,
+        status: row.status,
+        description: row.description,
+        paymentMethod: row.payment?.method ?? null,
+        providerName: row.payment?.provider?.name ?? null,
+      })),
+    };
+  }
+
+  async getPatientSummary(patientId: string): Promise<PatientFinanceSummary> {
+    const [ledgerRows, paymentAgg] = await Promise.all([
+      this.db.financeLedger.groupBy({
+        by: ['type'],
+        where: { patientId, status: 'COMPLETED' },
+        _sum: { amount: true },
+      }),
+      this.db.payment.aggregate({
+        where: {
+          patientId,
+          status: { notIn: [PaymentStatus.CANCELLED, PaymentStatus.FAILED] },
+        },
+        _sum: { totalAmount: true },
+      }),
+    ]);
+
+    let totalPayments = new Prisma.Decimal(0);
+    for (const row of ledgerRows) {
+      if (row.type === LedgerType.INCOME) {
+        totalPayments = totalPayments.add(row._sum.amount ?? 0);
+      }
+    }
+
+    const totalServiceAmount =
+      paymentAgg._sum?.totalAmount ?? new Prisma.Decimal(0);
+    const balance = totalPayments.sub(totalServiceAmount);
+
+    return {
+      balance: balance.toFixed(2),
+      totalServiceAmount: totalServiceAmount.toFixed(2),
+      totalPayments: totalPayments.toFixed(2),
+    };
   }
 
   async getClinicSummary(

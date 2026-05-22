@@ -1,8 +1,10 @@
 import { RoleSlug } from '@src/domain/constants/db/role/role-slugs';
-import { GetRoleBySlugResponse } from '@modules/role/application/queries/get-role-by-slug/get-role-by-slug.response';
+import { FindBySlugResponse } from '@modules/role/domain/types/find-by-slug-response.type';
+import { Role } from '@modules/role/domain/entities/role.entity';
 
-export const ROLE_REPO_TOKEN = Symbol('IRoleRepository');
+export const ROLE_REPO = Symbol('IRoleRepository');
 
 export interface IRoleRepository {
-  findBySlug(slug: RoleSlug): Promise<GetRoleBySlugResponse>;
+  findById(id: string): Promise<Role | null>;
+  findBySlug(slug: RoleSlug): Promise<FindBySlugResponse>;
 }

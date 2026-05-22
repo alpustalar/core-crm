@@ -1,31 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { CheckoutFormInitializeRequest, IyzicoClient } from './iyzico.client';
+import { IyzicoClient } from './iyzico.client';
 import { getGlobalPrefix, ROUTE_PATHS } from '@common/constants';
 import { ENV } from '@common/constants/env.constant';
 import { ConfigService } from '@nestjs/config';
 import Iyzipay from 'iyzipay';
-import { LedgerSource } from '@prisma/client';
-import {
-  CancelPaymentInput,
-  IIyzicoProvider,
-  RetrieveCheckoutFormResult,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+import { IIyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+import type { PaymentInitializeRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/payment-initialize.request';
+import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/providers/iyzico/domain/types/retrieve-checkout-form.result';
+import { CancelPaymentRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/cancel-payment.request';
 
 @Injectable()
 export class IyzicoProvider implements IIyzicoProvider {
-  public readonly name = LedgerSource.IYZICO;
+  public readonly name = IyzicoProvider.name;
   constructor(
     private readonly client: IyzicoClient,
     private readonly configService: ConfigService
   ) {}
 
-  async paymentInitialize(request: CheckoutFormInitializeRequest) {
-    return this.client.createCheckoutForm(request);
+  get callbackUrl(): string {
+    const origin = this.configService.get(ENV.ORIGIN) as string;
+    const prefix = getGlobalPrefix();
+
+    return `${origin}/${prefix}/${ROUTE_PATHS.PAYMENTS.IYZICO.FULL_CALLBACK_PATH}`;
+  }
+
+  async paymentInitialize(request: PaymentInitializeRequest) {
+    return this.client.createCheckoutForm({
+      callbackUrl: this.callbackUrl,
+      ...request,
+    });
   }
 
   async refund(data: Iyzipay.RefundRequestData) {
     return this.client.refundPayment(data);
   }
+
   async retrieveCheckoutForm(
     token: string
   ): Promise<RetrieveCheckoutFormResult> {
@@ -55,19 +64,12 @@ export class IyzicoProvider implements IIyzicoProvider {
     });
   }
 
-  cancelPayment({ conversationId, paymentId, ip }: CancelPaymentInput) {
+  cancelPayment({ conversationId, paymentId, ip }: CancelPaymentRequest) {
     return this.client.createCancelPayment({
       locale: 'TR',
       conversationId,
       paymentId,
       ip,
     });
-  }
-
-  getCallbackUrl(): string {
-    const origin = this.configService.get(ENV.ORIGIN) as string;
-    const prefix = getGlobalPrefix();
-
-    return `${origin}/${prefix}/${ROUTE_PATHS.PAYMENTS.IYZICO.FULL_CALLBACK_PATH}`;
   }
 }

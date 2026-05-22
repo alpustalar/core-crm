@@ -1,13 +1,15 @@
+import { AppointmentQueryModule } from '@modules/appointment/application/queries/query.module';
 import { AppointmentCommandModule } from '@modules/appointment/application/commands/command.module';
 import { Module } from '@nestjs/common';
-import { AppointmentModuleApi } from '@modules/appointment/appointment-module.api';
-import { AppointmentUseCaseModule } from '@modules/appointment/application/use-cases/appointment-use-case.module';
 import { AppointmentPresentationModule } from '@modules/appointment/presentation/appointment-presentation.module';
+import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
   imports: [
-    AppointmentCommandModule,AppointmentUseCaseModule, AppointmentPresentationModule],
-  providers: [AppointmentModuleApi],
-  exports: [AppointmentModuleApi],
+    CqrsModule,
+    AppointmentQueryModule,
+    AppointmentCommandModule,
+    AppointmentPresentationModule,
+  ],
 })
 export class AppointmentModule {}

@@ -1,3 +1,4 @@
+import { IRequestWithActor } from '@common/interfaces';
 import {
   CanActivate,
   ExecutionContext,
@@ -5,7 +6,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { IRequestWithActor } from '@common/interfaces';
 
 @Injectable()
 export class SystemAdminGuard implements CanActivate {

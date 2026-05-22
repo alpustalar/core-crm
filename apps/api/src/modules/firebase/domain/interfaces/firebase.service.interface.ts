@@ -12,4 +12,4 @@ export interface IFirebaseService {
   verifyToken(idToken: string): Promise<auth.DecodedIdToken | null>;
 }
 
-export const FIREBASE_SERVICE_TOKEN = 'IFirebaseService';
+export const FIREBASE_SERVICE = 'IFirebaseService';

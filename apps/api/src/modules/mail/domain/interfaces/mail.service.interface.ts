@@ -3,4 +3,4 @@ export interface IMailService {
   sendClinicSoftDeleteRequestMail(to: string): Promise<void>;
 }
 
-export const MAIL_SERVICE_TOKEN = Symbol('MAIL_SERVICE_TOKEN');
+export const MAIL_SERVICE = Symbol('MAIL_SERVICE_TOKEN');

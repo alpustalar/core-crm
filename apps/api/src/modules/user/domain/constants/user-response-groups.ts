@@ -6,5 +6,5 @@ export const UserResponseGroups = {
   ADMIN: 'ADMIN',
 } as const;
 
-export type UserResponseGroupsType =
+export type UserResponseGroup =
   (typeof UserResponseGroups)[keyof typeof UserResponseGroups];

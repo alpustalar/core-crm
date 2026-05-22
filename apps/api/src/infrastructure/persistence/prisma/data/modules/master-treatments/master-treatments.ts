@@ -5,7 +5,6 @@ export type MasterTreatmentsCreateManyInputs = {
   defaultDuration: number;
   slug: string;
   treatmentCategorySlug: string;
-  sectorSlug: string;
   translations: {
     name: Partial<Record<LanguageCode, string>>;
     description: Partial<Record<LanguageCode, string>>;

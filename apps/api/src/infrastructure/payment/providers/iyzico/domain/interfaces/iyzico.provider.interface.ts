@@ -1,30 +1,13 @@
 import Iyzipay from 'iyzipay';
-import { LedgerSource } from '@prisma/client';
-import {
-  CheckoutFormInitializeRequest,
-  WithIyzicoError,
-} from '../../iyzico.client';
+import { PaymentInitializeRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/payment-initialize.request';
+import { WithIyzicoError } from '@src/infrastructure/payment/providers/iyzico/domain/types/with-iyzico-error.type';
+import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/providers/iyzico/domain/types/retrieve-checkout-form.result';
+import { CancelPaymentRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/cancel-payment.request';
 
-export interface CancelPaymentInput {
-  conversationId: string;
-  paymentId: string;
-  ip: string;
-}
-
-export interface RetrieveCheckoutFormResult {
-  isSuccess: boolean;
-  paymentId: string;
-  paymentTransactionId: string | undefined;
-  errorCode: string | undefined;
-  errorMessage: string | undefined;
-  rawResponse: unknown;
-}
-
+export const IYZICO_PROVIDER = Symbol('IIyzicoProvider');
 export interface IIyzicoProvider {
-  readonly name: LedgerSource;
-
   paymentInitialize(
-    request: CheckoutFormInitializeRequest
+    request: PaymentInitializeRequest
   ): Promise<
     WithIyzicoError<
       Iyzipay.CheckoutFormInitialResult & { paymentPageUrl?: string }
@@ -42,8 +25,8 @@ export interface IIyzicoProvider {
   ): Promise<WithIyzicoError<Iyzipay.InstallmentInfoResult>>;
 
   cancelPayment(
-    input: CancelPaymentInput
+    request: CancelPaymentRequest
   ): Promise<WithIyzicoError<Iyzipay.CancelPaymentResult>>;
 
-  getCallbackUrl(): string;
+  get callbackUrl(): string;
 }

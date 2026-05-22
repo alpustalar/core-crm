@@ -12,7 +12,6 @@ import {
   UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@modules/auth/guards';
 import { HasCapability } from '@common/decorators';
@@ -36,6 +35,8 @@ import { SendVerificationEmailCommand } from '@modules/user/application/commands
 import { FindOneWithIdOrEmailQuery } from '@modules/user/application/queries/find-one-with-id-or-email';
 import { FindAllUsersForManagerQuery } from '@modules/user/application/queries/find-all-users-for-manager';
 import { UserTransformInterceptor } from '@modules/user/presentation/user-transform.interceptor';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 const { USER } = CAPABILITIES;
 
@@ -43,8 +44,8 @@ const { USER } = CAPABILITIES;
 @Controller()
 export class UserController {
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @UseInterceptors(UserTransformInterceptor)
@@ -53,11 +54,11 @@ export class UserController {
   @HasCapability(USER.read)
   @Serialize()
   findOneWithUserIdOrEmail(
-    @GetContext() context: IGetContext,
+    @GetContext() ctx: IGetContext,
     @Param('userIdOrEmail') userIdOrEmail: string
   ) {
     return this.queryBus.execute(
-      new FindOneWithIdOrEmailQuery(userIdOrEmail, context)
+      new FindOneWithIdOrEmailQuery(userIdOrEmail, ctx)
     );
   }
 
@@ -74,11 +75,9 @@ export class UserController {
   updateUserByActor(
     @Param('id') id: string,
     @Body() dto: UpdateUserByActorDto,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(
-      new UpdateUserByStaffCommand(id, dto, context)
-    );
+    return this.commandBus.execute(new UpdateUserByStaffCommand(id, dto, ctx));
   }
 
   @Patch('soft-delete')
@@ -87,11 +86,9 @@ export class UserController {
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   softDelete(
     @Body() dto: UserSoftDeleteByActorDto,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(
-      new SoftDeleteUserByStaffCommand(dto, context)
-    );
+    return this.commandBus.execute(new SoftDeleteUserByStaffCommand(dto, ctx));
   }
 
   @Get('all')
@@ -100,10 +97,10 @@ export class UserController {
   @Serialize()
   findAllUsers(
     @Query() paginationDto: PaginationDto,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(
-      new FindAllUsersForManagerQuery(paginationDto, context)
+      new FindAllUsersForManagerQuery(paginationDto, ctx)
     );
   }
 }

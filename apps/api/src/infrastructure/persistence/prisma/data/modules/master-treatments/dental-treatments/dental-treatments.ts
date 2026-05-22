@@ -1,6 +1,4 @@
-import { slugIt } from '@common/utils';
 import { MasterTreatmentsCreateManyInputs } from '@src/infrastructure/persistence/prisma/data/modules/master-treatments/master-treatments';
-import { sectorSlugs } from '@src/infrastructure/persistence/prisma/data/modules/sectors';
 import { cosmetic } from '@src/infrastructure/persistence/prisma/data/modules/master-treatments/dental-treatments/cosmetic';
 import { diagnosis } from '@src/infrastructure/persistence/prisma/data/modules/master-treatments/dental-treatments/diagnosis';
 import { orthodontics } from '@src/infrastructure/persistence/prisma/data/modules/master-treatments/dental-treatments/orthodontics';
@@ -22,7 +20,4 @@ export const dentalMasterTreatments: MasterTreatmentsCreateManyInputs[] = [
   ...prosthodontics,
   ...restorative,
   ...surgery,
-].map((treatment) => ({
-  ...treatment,
-  sectorSlug: slugIt(sectorSlugs.DENTAL),
-}));
+];

@@ -4,6 +4,7 @@ import {
   LedgerSource,
   LedgerStatus,
   LedgerType,
+  PaymentMethod,
 } from '@prisma/client';
 import { Pagination } from '@shared';
 
@@ -11,6 +12,7 @@ export interface CreateLedgerEntryData {
   clinicId: string;
   patientId?: string | null;
   paymentId?: string | null;
+  installmentId?: string | null;
   performedById?: string | null;
   type: LedgerType;
   source: LedgerSource;
@@ -35,27 +37,48 @@ export interface GetSummaryFilter {
   dateTo?: Date;
 }
 
-export abstract class IFinanceLedgerRepository {
-  abstract create(data: CreateLedgerEntryData): Promise<FinanceLedger>;
-  abstract findById(id: string): Promise<FinanceLedger | null>;
-  abstract findManyByClinicId(
+export interface PatientFinanceSummary {
+  balance: string;
+  totalServiceAmount: string;
+  totalPayments: string;
+}
+
+export interface PatientLedgerItem {
+  id: string;
+  amount: string;
+  category: LedgerCategory;
+  entryDate: Date;
+  status: LedgerStatus;
+  description: string | null;
+  paymentMethod: PaymentMethod | null;
+  providerName: string | null;
+}
+
+export const FINANCE_LEDGER_REPOSITORY = Symbol('IFinanceLedgerRepository');
+
+export interface IFinanceLedgerRepository {
+  create(data: CreateLedgerEntryData): Promise<FinanceLedger>;
+  findById(id: string): Promise<FinanceLedger | null>;
+  findManyByClinicId(
     clinicId: string,
     pagination: Pagination
   ): Promise<{ items: FinanceLedger[]; total: number }>;
-  abstract findManyByPatientId(
+  findManyByPatientId(
     patientId: string,
     pagination: Pagination
   ): Promise<{ items: FinanceLedger[]; total: number }>;
-  abstract findManyByPaymentId(paymentId: string): Promise<FinanceLedger[]>;
-  abstract updateStatus(
-    id: string,
-    status: LedgerStatus
-  ): Promise<FinanceLedger>;
-  abstract updateManyStatusByPaymentId(
+  findManyByPatientIdWithDetails(
+    patientId: string,
+    pagination: Pagination
+  ): Promise<{ items: PatientLedgerItem[]; total: number }>;
+  getPatientSummary(patientId: string): Promise<PatientFinanceSummary>;
+  findManyByPaymentId(paymentId: string): Promise<FinanceLedger[]>;
+  updateStatus(id: string, status: LedgerStatus): Promise<FinanceLedger>;
+  updateManyStatusByPaymentId(
     paymentId: string,
     status: LedgerStatus
   ): Promise<void>;
-  abstract getClinicSummary(
+  getClinicSummary(
     clinicId: string,
     filter: GetSummaryFilter
   ): Promise<LedgerSummary>;

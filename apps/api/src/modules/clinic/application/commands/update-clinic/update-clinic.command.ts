@@ -5,6 +5,6 @@ export class UpdateClinicCommand {
   constructor(
     public readonly clinicId: string,
     public readonly dto: UpdateClinicDto,
-    public readonly context: IGetContext
+    public readonly ctx: IGetContext
   ) {}
 }

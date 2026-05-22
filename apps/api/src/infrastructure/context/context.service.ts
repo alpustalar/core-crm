@@ -1,17 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { DomainEventMetadata } from '@common/interfaces';
 import { txStorage } from '../persistence/prisma/transaction/als-storage';
+import { IContextService } from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+
+type WithMetadata = {
+  metadata?: Partial<DomainEventMetadata>;
+};
 
 @Injectable()
-export class ContextService {
+export class ContextService implements IContextService {
   addEvent(eventInstance: object): void {
     const store = txStorage.getStore();
-    if (store) {
-      store.events.push({
-        payload: eventInstance,
-        occurredAt: new Date(),
-        correlationId: store.correlationId,
-      });
-    }
+    if (!store) return;
+
+    const ctor = (eventInstance as any)?.constructor;
+    const name: string = ctor?.NAME ?? ctor?.name ?? 'UnknownEvent';
+
+    const existingMeta =
+      'metadata' in eventInstance
+        ? (eventInstance as WithMetadata).metadata
+        : undefined;
+
+    store.events.push({
+      name,
+      payload: eventInstance,
+      metadata: {
+        correlationId: existingMeta?.correlationId ?? store.correlationId,
+        eventId: existingMeta?.eventId ?? crypto.randomUUID(),
+        occurredAt: existingMeta?.occurredAt ?? new Date(),
+        version: existingMeta?.version ?? 1,
+      },
+    });
   }
 
   getCorrelationId(): string {

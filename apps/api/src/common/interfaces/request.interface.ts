@@ -1,7 +1,7 @@
-import { Request } from 'express';
+import { ActorContext, PatientActorContext } from '@common/interfaces/actor-context.type';
 import { Capability, Role, RoleCapability, User } from '@prisma/client';
-import { ActorContext } from '@common/interfaces/actor-context.type';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import { Request } from 'express';
 
 export type RoleWithCapabilities = Role & {
   capabilities: (RoleCapability & {
@@ -22,4 +22,8 @@ export interface IRequestWithUser extends Request {
 export interface IRequestWithActor extends Request {
   actor: ActorContext;
   executionSource?: ExecutionSource;
+}
+
+export interface IRequestWithPatient extends Request {
+  patientActor: PatientActorContext;
 }

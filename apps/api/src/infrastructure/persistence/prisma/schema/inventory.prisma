@@ -1,0 +1,223 @@
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum ProductUnit {
+  PIECE // Adet
+  ML // Mililitre
+  GR // Gram
+  KG // Kilogram
+  LITER // Litre
+  BOX // Kutu
+  AMPULE // Ampul
+  VIAL // Vial
+  BOTTLE // Şişe
+  TUBE // Tüp
+}
+
+enum ProductCondition {
+  NEW
+  USED
+}
+
+enum PriceType {
+  PURCHASE // Alış
+  SALE // Satış
+}
+
+enum StockMovementType {
+  PURCHASE // Satın alma girişi
+  USAGE // Randevuda kullanım çıkışı
+  RETURN_TO_SUPPLIER // Tedarikçiye iade
+  RETURN_FROM_PATIENT // Hastadan iade girişi
+  WASTE // Zayi / fire
+  ADJUSTMENT // Sayım düzeltme
+  TRANSFER_IN // Klinikler arası transfer girişi
+  TRANSFER_OUT // Klinikler arası transfer çıkışı
+}
+
+enum StockMovementDirection {
+  IN
+  OUT
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model ProductCategory {
+  id             String  @id @default(uuid())
+  name           String
+  organizationId String  @map("organization_id")
+  parentId       String? @map("parent_id")
+
+  parent   ProductCategory?  @relation("category_hierarchy", fields: [parentId], references: [id])
+  children ProductCategory[] @relation("category_hierarchy")
+  products Product[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("product_categories")
+}
+
+model Supplier {
+  id             String  @id @default(uuid())
+  name           String
+  contactName    String? @map("contact_name")
+  phone          String?
+  email          String?
+  address        String? @db.Text
+  taxNumber      String? @map("tax_number")
+  taxOffice      String? @map("tax_office")
+  organizationId String  @map("organization_id")
+  isActive       Boolean @default(true) @map("is_active")
+
+  products Product[]
+  batches  ProductBatch[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("suppliers")
+}
+
+model Product {
+  id               String           @id @default(uuid())
+  name             String
+  stockCode        String           @unique @map("stock_code")
+  barcode          String?          @unique
+  brand            String?
+  description      String?          @db.Text
+  imageUrl         String?          @map("image_url")
+  unit             ProductUnit
+  condition        ProductCondition @default(NEW)
+  vatRate          Decimal          @default(0) @map("vat_rate") @db.Decimal(5, 2)
+  criticalStockQty Decimal          @default(0) @map("critical_stock_qty") @db.Decimal(10, 3)
+  reorderQty       Decimal          @default(0) @map("reorder_qty") @db.Decimal(10, 3)
+  organizationId   String           @map("organization_id")
+  categoryId       String?          @map("category_id")
+  supplierId       String?          @map("supplier_id")
+  isActive         Boolean          @default(true) @map("is_active")
+
+  category  ProductCategory? @relation(fields: [categoryId], references: [id])
+  supplier  Supplier?        @relation(fields: [supplierId], references: [id])
+  batches   ProductBatch[]
+  prices    ProductPrice[]
+  movements StockMovement[]
+  usages    ProductUsage[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([organizationId])
+  @@index([stockCode])
+  @@map("products")
+}
+
+model ProductBatch {
+  id            String    @id @default(uuid())
+  productId     String    @map("product_id")
+  clinicId      String    @map("clinic_id")
+  supplierId    String?   @map("supplier_id")
+  lotNumber     String?   @map("lot_number")
+  expiresAt     DateTime? @map("expires_at")
+  // Denormalized running total — source of truth is StockMovement records
+  quantity      Decimal   @db.Decimal(10, 3)
+  purchasePrice Decimal   @map("purchase_price") @db.Decimal(10, 2)
+  currency      String    @default("TRY")
+  receivedAt    DateTime  @default(now()) @map("received_at")
+  notes         String?   @db.Text
+
+  product   Product         @relation(fields: [productId], references: [id])
+  clinic    Clinic          @relation(fields: [clinicId], references: [id])
+  supplier  Supplier?       @relation(fields: [supplierId], references: [id])
+  movements StockMovement[]
+  usages    ProductUsage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([productId, clinicId])
+  @@index([expiresAt])
+  @@map("product_batches")
+}
+
+model ProductPrice {
+  id          String    @id @default(uuid())
+  productId   String    @map("product_id")
+  // null = org-wide; set = clinic-level override
+  clinicId    String?   @map("clinic_id")
+  type        PriceType
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("TRY")
+  validFrom   DateTime  @default(now()) @map("valid_from")
+  // null = currently active
+  validTo     DateTime? @map("valid_to")
+  createdById String?   @map("created_by_id")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([productId, type, validTo])
+  @@map("product_prices")
+}
+
+model StockMovement {
+  id              String                 @id @default(uuid())
+  productId       String                 @map("product_id")
+  clinicId        String                 @map("clinic_id")
+  batchId         String?                @map("batch_id")
+  type            StockMovementType
+  direction       StockMovementDirection
+  quantity        Decimal                @db.Decimal(10, 3)
+  unitPrice       Decimal?               @map("unit_price") @db.Decimal(10, 2)
+  currency        String                 @default("TRY")
+  vatRate         Decimal?               @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount       Decimal?               @map("vat_amount") @db.Decimal(10, 2)
+  totalAmount     Decimal?               @map("total_amount") @db.Decimal(10, 2)
+  // Linked ledger entry — created by the handler after a PURCHASE or WASTE movement
+  financeLedgerId String?                @unique @map("finance_ledger_id")
+  performedById   String?                @map("performed_by_id")
+  notes           String?                @db.Text
+
+  product       Product        @relation(fields: [productId], references: [id])
+  clinic        Clinic         @relation(fields: [clinicId], references: [id])
+  batch         ProductBatch?  @relation(fields: [batchId], references: [id])
+  performedBy   User?          @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  financeLedger FinanceLedger? @relation(fields: [financeLedgerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([clinicId, createdAt])
+  @@index([productId])
+  @@index([batchId])
+  @@map("stock_movements")
+}
+
+model ProductUsage {
+  id               String   @id @default(uuid())
+  productId        String   @map("product_id")
+  clinicId         String   @map("clinic_id")
+  batchId          String?  @map("batch_id")
+  appointmentId    String?  @map("appointment_id")
+  usedByProviderId String?  @map("used_by_provider_id")
+  quantity         Decimal  @db.Decimal(10, 3)
+  usedAt           DateTime @default(now()) @map("used_at")
+  notes            String?  @db.Text
+  // Auto-created USAGE StockMovement record
+  stockMovementId  String?  @unique @map("stock_movement_id")
+
+  product     Product       @relation(fields: [productId], references: [id])
+  clinic      Clinic        @relation(fields: [clinicId], references: [id])
+  batch       ProductBatch? @relation(fields: [batchId], references: [id])
+  appointment Appointment?  @relation(fields: [appointmentId], references: [id])
+  provider    Provider?     @relation(fields: [usedByProviderId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([appointmentId])
+  @@index([clinicId, usedAt])
+  @@map("product_usages")
+}

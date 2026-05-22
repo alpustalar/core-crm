@@ -6,6 +6,6 @@ export class UpdateUserByStaffCommand {
   constructor(
     public readonly targetUserId: string,
     public readonly dto: UpdateUserByActorDto,
-    public readonly context: IGetContext
+    public readonly ctx: IGetContext
   ) {}
 }

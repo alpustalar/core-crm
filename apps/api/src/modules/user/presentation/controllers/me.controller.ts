@@ -8,7 +8,6 @@ import {
   UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@modules/auth/guards';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
@@ -23,30 +22,32 @@ import { SendVerificationEmailCommand } from '@modules/user/application/commands
 import { SendUserPasswordResetLinkBySelfCommand } from '@modules/user/application/commands/send-user-password-reset-link-by-self';
 import { FindOneWithIdOrEmailQuery } from '@modules/user/application/queries/find-one-with-id-or-email';
 import { UserTransformInterceptor } from '@modules/user/presentation/user-transform.interceptor';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @UseGuards(AuthGuard, CapabilityGuard)
 @Controller('me')
 export class MeController {
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @UseInterceptors(UserTransformInterceptor)
   @Version('1')
   @Get('')
-  getProfile(@GetContext() context: IGetContext) {
+  getProfile(@GetContext() ctx: IGetContext) {
     return this.queryBus.execute(
-      new FindOneWithIdOrEmailQuery(context.actor.userId, context)
+      new FindOneWithIdOrEmailQuery(ctx.actor.userId, ctx)
     );
   }
 
   @Version('1')
   @Post('email-verify')
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
-  sendVerificationEmail(@GetContext() context: IGetContext) {
+  sendVerificationEmail(@GetContext() ctx: IGetContext) {
     return this.commandBus.execute(
-      new SendVerificationEmailCommand(context.actor.email)
+      new SendVerificationEmailCommand(ctx.actor.email)
     );
   }
 
@@ -55,17 +56,17 @@ export class MeController {
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   changePassword(
     @Body() dto: ChangeUserPasswordDto,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new ChangePasswordCommand(dto, context));
+    return this.commandBus.execute(new ChangePasswordCommand(dto, ctx));
   }
 
   @Version('1')
   @Post('reset-password')
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
-  sendResetPasswordEmail(@GetContext() context: IGetContext) {
+  sendResetPasswordEmail(@GetContext() ctx: IGetContext) {
     return this.commandBus.execute(
-      new SendUserPasswordResetLinkBySelfCommand(context)
+      new SendUserPasswordResetLinkBySelfCommand(ctx)
     );
   }
 }

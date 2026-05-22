@@ -1,7 +1,7 @@
 import { ActorContext } from '@common/interfaces';
 import { UserResponseGroups } from '@modules/user/domain/constants';
 import { ClinicPolicy } from '@modules/clinic/application/policies';
-import { User } from '@shared';
+import { User } from '@modules/user/domain/entities/user.entity';
 
 export type HasPriority = {
   priority: number;

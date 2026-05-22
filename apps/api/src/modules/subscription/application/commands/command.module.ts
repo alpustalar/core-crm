@@ -4,10 +4,10 @@ import { IyzicoModule } from '@src/infrastructure/payment/providers/iyzico/iyzic
 import { SubscribeToPlanHandler } from './subscribe-to-plan/subscribe-to-plan.handler';
 import { AddModuleHandler } from './add-module/add-module.handler';
 import { HandleSubscriptionCallbackHandler } from './handle-subscription-callback/handle-subscription-callback.handler';
-import { SUBSCRIPTION_REPO_TOKEN } from '@modules/subscription/domain/repositories/subscription.repository.interface';
-import { SubscriptionRepository } from '@modules/subscription/infrastructure/persistence/prisma/repositories/subscription.repository';
-import { BILLING_ADAPTER_TOKEN } from '@modules/subscription/infrastructure/adapters/billing-adapter.interface';
+import { BILLING_ADAPTER } from '@modules/subscription/infrastructure/adapters/billing-adapter.interface';
 import { IyzicoBillingAdapter } from '@modules/subscription/infrastructure/adapters/iyzico-billing.adapter';
+import { SubscriptionRepositoryModule } from '@modules/subscription/infrastructure/persistence/prisma/repositories/subscription.repository.module';
+import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
 
 const CommandHandlers = [
   SubscribeToPlanHandler,
@@ -16,17 +16,10 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, IyzicoModule],
+  imports: [CqrsModule, IyzicoModule, SubscriptionRepositoryModule, PrismaModule],
   providers: [
     ...CommandHandlers,
-    {
-      provide: SUBSCRIPTION_REPO_TOKEN,
-      useClass: SubscriptionRepository,
-    },
-    {
-      provide: BILLING_ADAPTER_TOKEN,
-      useClass: IyzicoBillingAdapter,
-    },
+    { provide: BILLING_ADAPTER, useClass: IyzicoBillingAdapter },
   ],
   exports: [...CommandHandlers],
 })

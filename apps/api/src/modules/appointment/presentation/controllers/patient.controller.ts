@@ -1,27 +1,25 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { GetPatientAppointmentsUseCase } from '@modules/appointment/application/use-cases/queries';
-import { BookAppointmentDto, PaginationDto } from '@shared';
-import { Public } from '@common/decorators/public.decorator';
-import { BookAppointmentUseCase } from '@modules/appointment/application/use-cases/commands';
+import { Body, Controller, Patch, UseGuards } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+import { PatientGuard } from '@modules/patient-auth/guards/patient.guard';
+import {
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
+import { PatientCancelAppointmentCommand } from '@modules/appointment/application/commands/patient-cancel-appointment/patient-cancel-appointment.command';
+import { CancelAppointmentDto } from '@shared/modules/appointment/dto/commands/cancel-appointment.dto';
 
-@Public()
 @Controller('patient')
 export class PatientController {
-  constructor(
-    private readonly getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
-    private readonly bookAppointmentUseCase: BookAppointmentUseCase
-  ) {}
+  constructor(private readonly commandBus: CommandBus) {}
 
-  @Get(':patientId')
-  getPatientAppointments(
-    @Param('patientId') patientId: string,
-    @Query() pagination: PaginationDto
+  @Patch('cancel')
+  @UseGuards(PatientGuard)
+  cancelAppointment(
+    @Body() dto: CancelAppointmentDto,
+    @GetContext() ctx: IGetContext
   ) {
-    return this.getPatientAppointmentsUseCase.execute(patientId, pagination);
-  }
-
-  @Post('book')
-  book(@Body() dto: BookAppointmentDto) {
-    return this.bookAppointmentUseCase.execute(dto);
+    return this.commandBus.execute(
+      new PatientCancelAppointmentCommand(dto, ctx)
+    );
   }
 }

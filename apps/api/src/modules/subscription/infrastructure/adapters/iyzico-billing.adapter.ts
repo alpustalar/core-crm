@@ -1,10 +1,10 @@
+import { getGlobalPrefix } from '@common/constants';
+import { ENV } from '@common/constants/env.constant';
+import { ROUTE_PATHS } from '@common/constants/routes.constant';
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { IyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/iyzico.provider';
-import { ENV } from '@common/constants/env.constant';
-import { getGlobalPrefix } from '@common/constants';
-import { ROUTE_PATHS } from '@common/constants/routes.constant';
+import { randomUUID } from 'crypto';
 import {
   IBillingAdapter,
   InitSubscriptionPaymentInput,
@@ -24,7 +24,6 @@ export class IyzicoBillingAdapter implements IBillingAdapter {
     input: InitSubscriptionPaymentInput
   ): Promise<{ checkoutUrl: string; conversationId: string }> {
     const conversationId = randomUUID();
-    const callbackUrl = this.buildCallbackUrl();
     const formattedPrice = input.amount.toFixed(2);
 
     const address = {
@@ -42,7 +41,6 @@ export class IyzicoBillingAdapter implements IBillingAdapter {
       currency: 'TRY',
       basketId: input.organizationId,
       paymentGroup: 'PRODUCT',
-      callbackUrl,
       enabledInstallments: [1, 2, 3, 6, 9, 12],
       buyer: {
         id: input.buyer.id,

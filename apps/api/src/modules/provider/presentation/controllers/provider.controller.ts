@@ -14,7 +14,10 @@ import { HasCapability } from '@common/decorators';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 import { ConvertUserToProviderDto } from '@shared/modules/provider/dto/convert-user-to-provider.dto';
 import { CreateProviderAvailabilityDto } from '@shared/modules/provider/dto/create-provider-availability.dto';
-import { UpdateProviderDto } from '@shared/modules/provider/dto/update-provider.dto';
+import { UpdateProviderInfoDto } from '@shared/modules/provider/dto/update-provider-info.dto';
+import { SetProviderActiveDto } from '@shared/modules/provider/dto/set-provider-active.dto';
+import { SetProviderOperationModeDto } from '@shared/modules/provider/dto/set-provider-operation-mode.dto';
+import { SetProviderExaminationDto } from '@shared/modules/provider/dto/set-provider-examination.dto';
 import { PaginationDto } from '@shared/common';
 import {
   GetContext,
@@ -23,11 +26,12 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FindAllProvidersQuery } from '@modules/provider/application/queries';
 import { FindProviderByIdQuery } from '@modules/provider/application/queries/find-provider-by-id/find-provider-by-id.query';
-import {
-  ConvertUserToProviderCommand,
-  CreateProviderAvailabilityCommand,
-  UpdateProviderByStaffCommand,
-} from '@modules/provider/application/commands';
+import { ConvertUserToProviderCommand } from '@modules/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
+import { CreateProviderAvailabilityCommand } from '@modules/provider/application/commands/create-provider-availability/create-provider-availability.command';
+import { UpdateProviderInfoCommand } from '@modules/provider/application/commands/update-provider-info/update-provider-info.command';
+import { SetProviderActiveCommand } from '@modules/provider/application/commands/set-provider-active/set-provider-active.command';
+import { SetProviderOperationModeCommand } from '@modules/provider/application/commands/set-provider-operation-mode/set-provider-operation-mode.command';
+import { SetProviderExaminationCommand } from '@modules/provider/application/commands/set-provider-examination/set-provider-examination.command';
 
 const { PROVIDER, PROVIDERAVAILABILITY } = CAPABILITIES;
 
@@ -45,22 +49,17 @@ export class ProviderController {
 
   @Get()
   @HasCapability(PROVIDER.read)
-  findAll(
-    @Query() pagination: PaginationDto,
-    @GetContext() context: IGetContext
-  ) {
-    return this.queryBus.execute(
-      new FindAllProvidersQuery(context, pagination)
-    );
+  findAll(@Query() pagination: PaginationDto, @GetContext() ctx: IGetContext) {
+    return this.queryBus.execute(new FindAllProvidersQuery(ctx, pagination));
   }
 
   @Get(':id')
   @HasCapability(PROVIDER.read)
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
-    return this.queryBus.execute(new FindProviderByIdQuery(id, context));
+    return this.queryBus.execute(new FindProviderByIdQuery(id, ctx));
   }
 
   //? ====================================================================================
@@ -71,33 +70,63 @@ export class ProviderController {
   @HasCapability(PROVIDER.create)
   convertUserToProvider(
     @Body() dto: ConvertUserToProviderDto,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(
-      new ConvertUserToProviderCommand(context, dto)
-    );
+    return this.commandBus.execute(new ConvertUserToProviderCommand(ctx, dto));
   }
 
   @Post('availability')
   @HasCapability(PROVIDERAVAILABILITY.create)
   createAvailability(
     @Body() dto: CreateProviderAvailabilityDto,
-    @GetContext() context: IGetContext
+    @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new CreateProviderAvailabilityCommand(context, dto)
+      new CreateProviderAvailabilityCommand(ctx, dto)
     );
   }
 
-  @Patch(':id')
+  @Patch(':id/info')
   @HasCapability(PROVIDER.update)
-  update(
+  updateInfo(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateProviderDto,
-    @GetContext() context: IGetContext
+    @Body() dto: UpdateProviderInfoDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(new UpdateProviderInfoCommand(id, dto, ctx));
+  }
+
+  @Patch(':id/active')
+  @HasCapability(PROVIDER.update)
+  setActive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetProviderActiveDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(new SetProviderActiveCommand(id, dto, ctx));
+  }
+
+  @Patch(':id/operation-mode')
+  @HasCapability(PROVIDER.update)
+  setOperationMode(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetProviderOperationModeDto,
+    @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new UpdateProviderByStaffCommand(id, dto, context)
+      new SetProviderOperationModeCommand(id, dto, ctx)
+    );
+  }
+
+  @Patch(':id/examination')
+  @HasCapability(PROVIDER.update)
+  setExamination(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetProviderExaminationDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new SetProviderExaminationCommand(id, dto, ctx)
     );
   }
 }

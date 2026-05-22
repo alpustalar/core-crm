@@ -15,7 +15,7 @@ export interface EnqueueForceDeleteEventPayload {
 }
 
 export class EnqueueForceDeleteEvent extends BaseEvent {
-  static readonly NAME = USER_EVENTS.UPDATE_BY_STAFF;
+  static readonly NAME = USER_EVENTS.ENQUEUE_FORCE_DELETE;
 
   public readonly firebaseUid: string;
   public readonly detail?: string;

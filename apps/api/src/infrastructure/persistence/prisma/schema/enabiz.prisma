@@ -1,0 +1,82 @@
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum ExaminationType {
+  FIRST_VISIT // İlk muayene
+  FOLLOW_UP   // Kontrol muayenesi
+  EMERGENCY   // Acil
+}
+
+enum VisitType {
+  SCHEDULED // Randevulu
+  WALK_IN   // Randevusuz
+  REFERRAL  // Sevkli
+}
+
+enum ENabizSyncStatus {
+  PENDING  // Senkronizasyon kuyruğunda
+  SYNCED   // Başarıyla iletildi
+  FAILED   // İletim başarısız
+  SKIPPED  // Atlandı (TC No eksik vb.)
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+// ICD-10 tanı kodları — bir randevuda birden fazla olabilir
+model AppointmentDiagnosis {
+  id            String  @id @default(uuid())
+  appointmentId String  @map("appointment_id")
+  icd10Code     String  @map("icd10_code")
+  description   String?
+  // Yalnızca bir kayıt isPrimary=true olabilir; uygulama katmanı enforce eder
+  isPrimary     Boolean @default(false) @map("is_primary")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([appointmentId])
+  @@map("appointment_diagnoses")
+}
+
+// SUT işlem kodları — faturalama ve e-Nabız bildirimi için
+model AppointmentProcedure {
+  id            String   @id @default(uuid())
+  appointmentId String   @map("appointment_id")
+  sutCode       String   @map("sut_code")
+  description   String?
+  quantity      Decimal  @default(1) @db.Decimal(10, 3)
+  unitPrice     Decimal? @map("unit_price") @db.Decimal(10, 2)
+  currency      String   @default("TRY")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([appointmentId])
+  @@map("appointment_procedures")
+}
+
+// e-Nabız senkronizasyon kaydı — her randevu için en fazla bir tane
+model ENabizSync {
+  id            String          @id @default(uuid())
+  appointmentId String          @unique @map("appointment_id")
+  status        ENabizSyncStatus @default(PENDING)
+  // e-Nabız'dan dönen başvuru/takip numarası
+  referenceNo   String?         @map("reference_no")
+  submittedAt   DateTime?       @map("submitted_at")
+  lastAttemptAt DateTime?       @map("last_attempt_at")
+  attemptCount  Int             @default(0) @map("attempt_count")
+  errorCode     String?         @map("error_code")
+  errorMessage  String?         @map("error_message") @db.Text
+  // Ham istek/cevap — hata ayıklama ve denetim için saklanır
+  rawRequest    Json?           @map("raw_request")
+  rawResponse   Json?           @map("raw_response")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("enabiz_syncs")
+}

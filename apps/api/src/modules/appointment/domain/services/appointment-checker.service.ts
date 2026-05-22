@@ -1,18 +1,24 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { format } from 'date-fns';
-import { AppointmentRepository } from '@modules/appointment/infrastructure/persistence/prisma/repositories';
-import { FindConflictingAppointmentInput } from '@modules/appointment/domain/repositories/appointment.repository.interface';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/appointment/domain/repositories/appointment.repository.interface';
+import { FindConflictingAppointmentProps } from '@modules/appointment/domain/types/find-conflicting-appointment.props';
 
 @Injectable()
 export class AppointmentChecker {
-  constructor(private readonly appointmentRepo: AppointmentRepository) {}
+  constructor(
+    @Inject(APPOINTMENT_QUERY_REPOSITORY)
+    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
+  ) {}
 
   async assertNoConflictOrThrow({
     providerId,
     startTime,
     endTime,
-  }: FindConflictingAppointmentInput) {
-    const conflict = await this.appointmentRepo.findConflictingAppointment({
+  }: FindConflictingAppointmentProps) {
+    const conflict = await this.appointmentQueryRepo.findConflictingAppointment({
       providerId,
       startTime,
       endTime,

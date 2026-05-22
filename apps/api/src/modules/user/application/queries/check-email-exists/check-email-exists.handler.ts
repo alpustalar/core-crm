@@ -1,26 +1,29 @@
 /* eslint-disable */
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import { CheckEmailExistsQuery } from '@modules/user/application/queries/check-email-exists/check-email-exists.query';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { QueryResponse } from '@shared/common/response/response.interface';
+import { CheckEmailExistsQueryResponse } from '@modules/user/application/queries/check-email-exists/check-email-exists.response';
 
 @Injectable()
 export class CheckEmailIsExistUseCase {}
 
 @QueryHandler(CheckEmailExistsQuery)
 export class CheckEmailExistsHandler
-  implements IQueryHandler<CheckEmailExistsQuery, QueryResponse<boolean>>
+  implements
+    IQueryHandler<CheckEmailExistsQuery, CheckEmailExistsQueryResponse>
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userRepo: IUserQueryRepository
   ) {}
 
-  async execute(query: CheckEmailExistsQuery) {
+  async execute(
+    query: CheckEmailExistsQuery
+  ): Promise<CheckEmailExistsQueryResponse> {
     const { email } = query;
     const count = await this.userRepo.checkEmailExists(email);
     return {

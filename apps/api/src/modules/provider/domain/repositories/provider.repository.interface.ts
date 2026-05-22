@@ -1,14 +1,22 @@
-import { Pagination, Provider } from '@shared';
-import { MapPaginationResult } from '@src/infrastructure/persistence/prisma/base.repository';
-import { UpdateProviderDto } from '@shared/modules/provider/dto/update-provider.dto';
+import { Pagination } from '@shared';
+import { Provider } from '@modules/provider/domain/entities/provider.entity';
+import { ConvertUserToProviderDto } from '@shared/modules/provider/dto/convert-user-to-provider.dto';
+import { UpdateProviderInfoDto } from '@shared/modules/provider/dto/update-provider-info.dto';
 
-export const PROVIDER_REPO_TOKEN = Symbol('IProviderRepository');
+export const PROVIDER_COMMAND_REPOSITORY = Symbol('IProviderCommandRepository');
+export const PROVIDER_QUERY_REPOSITORY = Symbol('IProviderQueryRepository');
 
-export type PaginatedProviders = MapPaginationResult<Provider>;
+export type PaginatedProviders = { items: Provider[]; total: number };
 
-export interface IProviderRepository {
-  create(data: UpdateProviderDto): Promise<Provider>;
-  find(providerId: string): Promise<Provider | null>;
+export interface IProviderCommandRepository {
+  create(data: ConvertUserToProviderDto): Promise<Provider>;
+  update(providerId: string, data: UpdateProviderInfoDto): Promise<Provider>;
+  save(entity: Provider): Promise<Provider>;
+  softDelete(providerId: string): Promise<void>;
+}
+
+export interface IProviderQueryRepository {
+  findById(providerId: string): Promise<Provider | null>;
   findAllByClinicId(
     pagination: Pagination,
     clinicId: string
@@ -17,5 +25,4 @@ export interface IProviderRepository {
     pagination: Pagination,
     organizationIds: string[]
   ): Promise<PaginatedProviders>;
-  update(providerId: string, data: UpdateProviderDto): Promise<Provider>;
 }

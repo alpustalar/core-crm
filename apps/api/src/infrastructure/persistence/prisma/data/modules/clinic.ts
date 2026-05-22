@@ -1,11 +1,11 @@
-import { ClinicOperationMode, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 type PreparedClinicCreateInput = Omit<
   Prisma.ClinicCreateInput,
-  'sectorId' | 'sector'
+  'sectorId' | 'sector' | 'organization'
 >;
 
-export const clinicCreateInput: PreparedClinicCreateInput = {
+export const clinicCreateInput: PreparedClinicCreateInput & { slug: string } = {
   slug: 'test-dis-klinigi',
   name: 'Test Diş Kliniği',
   phone: '02241234567',
@@ -14,5 +14,4 @@ export const clinicCreateInput: PreparedClinicCreateInput = {
   city: 'Bursa',
   district: 'Nilüfer',
   consultationSlotDuration: 15,
-  operationMode: ClinicOperationMode.STATIC,
 };

@@ -1,22 +1,27 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindUserForAuthQuery } from './find-user-for-auth.query';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import { Inject } from '@nestjs/common';
-import { AuthUserResponse } from '@modules/user/domain/types/auth-user-response.type';
+import { FindUserForAuthQueryResponse } from '@modules/user/application/queries/find-user-for-auth/find-user-for-auth.response';
 
 @QueryHandler(FindUserForAuthQuery)
 export class FindUserForAuthHandler
-  implements IQueryHandler<FindUserForAuthQuery, AuthUserResponse | null>
+  implements IQueryHandler<FindUserForAuthQuery, FindUserForAuthQueryResponse>
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userRepo: IUserQueryRepository
   ) {}
 
-  async execute(query: FindUserForAuthQuery) {
-    return await this.userRepo.findForAuth(query.firebaseUid);
+  async execute(
+    query: FindUserForAuthQuery
+  ): Promise<FindUserForAuthQueryResponse> {
+    const result = await this.userRepo.findForAuth(query.firebaseUid);
+    return {
+      data: result,
+    };
   }
 }

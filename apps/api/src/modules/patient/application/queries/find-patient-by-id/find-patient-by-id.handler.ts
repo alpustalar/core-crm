@@ -1,30 +1,29 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindPatientByIdQuery } from './find-patient-by-id.query';
-import { QueryResponse } from '@shared/common/response/response.interface';
 import {
   IPatientRepository,
-  PATIENT_REPO_TOKEN,
+  PATIENT_REPOSITORY,
 } from '@modules/patient/domain/repositories/patient.repository.interface';
 import { Inject } from '@nestjs/common';
-import { Patient } from '@shared';
+import { FindPatientByIdQueryResponse } from '@modules/patient/application/queries/find-patient-by-id/find-patient-by-id.response';
 
 @QueryHandler(FindPatientByIdQuery)
 export class FindPatientByIdHandler
-  implements IQueryHandler<FindPatientByIdQuery, QueryResponse<Patient | null>>
+  implements IQueryHandler<FindPatientByIdQuery, FindPatientByIdQueryResponse>
 {
   constructor(
-    @Inject(PATIENT_REPO_TOKEN)
+    @Inject(PATIENT_REPOSITORY)
     private readonly patientRepo: IPatientRepository
   ) {}
 
   async execute(
     query: FindPatientByIdQuery
-  ): Promise<QueryResponse<Patient | null>> {
+  ): Promise<FindPatientByIdQueryResponse> {
     const { patientId } = query;
-    const patientRaw = await this.patientRepo.find(patientId);
+    const patient = await this.patientRepo.find(patientId);
 
     return {
-      data: patientRaw,
+      data: patient,
     };
   }
 }

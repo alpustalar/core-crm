@@ -1,17 +1,16 @@
-import { EventsHandler, IEventHandler } from '@nestjs/cqrs'; // Yeni dekoratör ve interface
+import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { UpdateUserByStaffEvent } from '@modules/user/domain/events/update-user-by-staff.event';
-import { Logger } from '@nestjs/common';
 import { AuditLogService } from '@modules/audit-log/audit-log.service';
 import { LogType } from '@src/domain/constants/log-action.constant';
 
-@EventsHandler(UpdateUserByStaffEvent)
-export class UpdateUserByStaffListener
-  implements IEventHandler<UpdateUserByStaffEvent>
-{
+@Injectable()
+export class UpdateUserByStaffListener {
   private readonly logger = new Logger(UpdateUserByStaffListener.name);
 
   constructor(private readonly auditLogService: AuditLogService) {}
 
+  @OnEvent(UpdateUserByStaffEvent.NAME, { async: true })
   async handle(event: UpdateUserByStaffEvent) {
     const {
       log,
@@ -38,7 +37,7 @@ export class UpdateUserByStaffListener
       }
     } catch (error) {
       this.logger.error(
-        `AuditLog yazılamadı, correlationId: ${correlationId}, eventId: ${eventId}}`
+        `AuditLog yazılamadı, correlationId: ${correlationId}, eventId: ${eventId}`
       );
     }
   }

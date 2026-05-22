@@ -3,15 +3,17 @@ import { SoftDeleteManyClinicsByOrganizationIdCommand } from './soft-delete-many
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { ForbiddenException, Inject } from '@nestjs/common';
 import {
-  CLINIC_REPO_TOKEN,
-  IClinicRepository,
+  CLINIC_COMMAND_REPOSITORY,
+  CLINIC_QUERY_REPOSITORY,
+  IClinicCommandRepository,
+  IClinicQueryRepository,
 } from '@modules/clinic/domain/repositories/clinic.repository.interface';
 import {
   IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
+  POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import {
-  CLINIC_EVENT_PUBLISHER_TOKEN,
+  CLINIC_EVENT_PUBLISHER,
   IClinicEventPublisher,
 } from '@modules/clinic/domain/interfaces/clinic.event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
@@ -22,11 +24,13 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
     ICommandHandler<SoftDeleteManyClinicsByOrganizationIdCommand, void>
 {
   constructor(
-    @Inject(CLINIC_REPO_TOKEN)
-    private readonly clinicRepo: IClinicRepository,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(CLINIC_COMMAND_REPOSITORY)
+    private readonly clinicCommandRepo: IClinicCommandRepository,
+    @Inject(CLINIC_QUERY_REPOSITORY)
+    private readonly clinicQueryRepo: IClinicQueryRepository,
+    @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    @Inject(CLINIC_EVENT_PUBLISHER_TOKEN)
+    @Inject(CLINIC_EVENT_PUBLISHER)
     private readonly clinicEventPublisher: IClinicEventPublisher,
     private readonly transactionManager: TransactionManager
   ) {}
@@ -34,9 +38,9 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
   async execute(
     command: SoftDeleteManyClinicsByOrganizationIdCommand
   ): Promise<void> {
-    const { organizationId, context } = command;
+    const { organizationId, ctx } = command;
 
-    const { source, actor } = context;
+    const { source, actor } = ctx;
 
     if (ExecutionPolicy.isUserInitiated(source)) {
       const isOwn = this.policyFactory
@@ -51,10 +55,10 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
     }
     await this.transactionManager.run(async () => {
       const clinics =
-        await this.clinicRepo.findManyByOrganizationId(organizationId);
+        await this.clinicQueryRepo.findManyByOrganizationId(organizationId);
       if (clinics.length === 0) return;
 
-      await this.clinicRepo.softDeleteManyClinicWithAnOrganizationId(
+      await this.clinicCommandRepo.softDeleteManyClinicWithAnOrganizationId(
         organizationId
       );
     });

@@ -1,0 +1,40 @@
+model Role {
+  id           String  @id @default(uuid())
+  name         String
+  slug         String
+  priority     Int
+  isSystemRole Boolean @default(false)
+
+  capabilities RoleCapability[]
+  users        User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slug])
+}
+
+model RoleCapability {
+  id String @id @default(uuid())
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  capability   Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  capabilityId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([roleId, capabilityId])
+}
+
+model Capability {
+  id     String @id @default(uuid())
+  name   String
+  module String
+  action String
+
+  roles RoleCapability[]
+
+  @@unique([module, action])
+}

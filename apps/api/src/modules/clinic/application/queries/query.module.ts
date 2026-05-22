@@ -2,40 +2,29 @@ import { GetClinicScheduleHandler } from './get-clinic-schedule/get-clinic-sched
 import { FindManyByOrganizationIdHandler } from './find-many-by-organization-id/find-many-by-organization-id.handler';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { FindClinicAvailabilityByDayHandler } from './find-clinic-availability-by-day/find-clinic-availability-by-day.handler';
+import { ClinicRepositoryModule } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic/clinic.repository.module';
+import { ClinicAvailabilityRepositoryModule } from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic-availability/clinic-availability.repository.module';
+import { AssertClinicCanBookOrThrowHandler } from './assert-clinic-can-book-or-throw/assert-clinic-can-book-or-throw.handler';
+import { ValidateTimeWithinClinicHoursOrThrowHandler } from './validate-time-within-clinic-hours/validate-time-within-clinic-hours.handler';
 import {
-  FindClinicAvailabilityByDayHandler
-} from './find-clinic-availability-by-day/find-clinic-availability-by-day.handler';
-import {
-  CLINIC_AVAILABILITY_REPO_TOKEN
-} from '@modules/clinic/domain/repositories/clinic-availability.repository.interface';
-import {
-  ClinicAvailabilityRepository
-} from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic-availability.repository';
-import {
-  CLINIC_REPO_TOKEN
-} from '@modules/clinic/domain/repositories/clinic.repository.interface';
-import {
-  ClinicRepository
-} from '@modules/clinic/infrastructure/persistence/prisma/repositories/clinic.repository';
+  CLINIC_AVAILABILITY_DOMAIN_SERVICE,
+} from '@modules/clinic/domain/interfaces/clinic-availability.domain-service.interface';
+import { ClinicAvailabilityDomainService } from '@modules/clinic/domain/services/clinic-availability.domain-service';
 
 const QueryHandlers = [
   GetClinicScheduleHandler,
   FindManyByOrganizationIdHandler,
   FindClinicAvailabilityByDayHandler,
+  AssertClinicCanBookOrThrowHandler,
+  ValidateTimeWithinClinicHoursOrThrowHandler,
 ];
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, ClinicRepositoryModule, ClinicAvailabilityRepositoryModule],
   providers: [
     ...QueryHandlers,
-    {
-      provide: CLINIC_REPO_TOKEN,
-      useClass: ClinicRepository,
-    },
-    {
-      provide: CLINIC_AVAILABILITY_REPO_TOKEN,
-      useClass: ClinicAvailabilityRepository,
-    },
+    { provide: CLINIC_AVAILABILITY_DOMAIN_SERVICE, useClass: ClinicAvailabilityDomainService },
   ],
   exports: [...QueryHandlers],
 })

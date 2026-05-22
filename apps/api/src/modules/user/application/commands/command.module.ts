@@ -5,10 +5,9 @@ import { FirebaseModule } from '@modules/firebase/firebase.module';
 import { PolicyModule } from '@modules/policy/policy.module';
 import { MailModule } from '@modules/mail/mail.module';
 import { ProviderModule } from '@modules/provider/provider.module';
-import { USER_REPO_TOKEN } from '@modules/user/domain/repositories/user.repository';
-import { USER_EVENT_PUBLISHER_TOKEN } from '@modules/user/domain/interfaces/user-event-publisher.interface';
-import { UserRepository } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository';
+import { USER_EVENT_PUBLISHER } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { UserEventPublisher } from '@modules/user/infrastructure/events/user-event-publisher.service';
+import { UserRepositoryModule } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository.module';
 
 // Command Handlers
 import { ChangePasswordHandler } from './change-password/change-password.handler';
@@ -40,11 +39,17 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, FirebaseModule, PolicyModule, MailModule, ProviderModule],
+  imports: [
+    CqrsModule,
+    FirebaseModule,
+    PolicyModule,
+    MailModule,
+    ProviderModule,
+    UserRepositoryModule,
+  ],
   providers: [
     ...CommandHandlers,
-    { provide: USER_REPO_TOKEN, useClass: UserRepository },
-    { provide: USER_EVENT_PUBLISHER_TOKEN, useClass: UserEventPublisher },
+    { provide: USER_EVENT_PUBLISHER, useClass: UserEventPublisher },
   ],
   exports: [...CommandHandlers],
 })

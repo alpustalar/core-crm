@@ -1,37 +1,39 @@
 import { Inject, NotFoundException } from '@nestjs/common';
 import {
-  IUserRepository,
-  USER_REPO_TOKEN,
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
 import {
   IPolicyFactory,
-  POLICY_FACTORY_TOKEN,
+  POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindOneWithIdOrEmailQuery } from '@modules/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.query';
-import { QueryResponse } from '@shared/common/response/response.interface';
-import { User } from '@shared';
+import { FindOneWithIdOrEmailQueryResponse } from '@modules/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.response';
 
 @QueryHandler(FindOneWithIdOrEmailQuery)
 export class FindOneWithIdOrEmailHandler
-  implements IQueryHandler<FindOneWithIdOrEmailQuery, QueryResponse<User>>
+  implements
+    IQueryHandler<FindOneWithIdOrEmailQuery, FindOneWithIdOrEmailQueryResponse>
 {
   constructor(
-    @Inject(USER_REPO_TOKEN)
-    private readonly userRepo: IUserRepository,
-    @Inject(POLICY_FACTORY_TOKEN)
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userRepo: IUserQueryRepository,
+    @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory
   ) {}
 
-  async execute(query: FindOneWithIdOrEmailQuery) {
-    const { userIdOrEmail, context } = query;
+  async execute(
+    query: FindOneWithIdOrEmailQuery
+  ): Promise<FindOneWithIdOrEmailQueryResponse> {
+    const { userIdOrEmail, ctx } = query;
     const user = await this.userRepo.findByIdOrEmail(userIdOrEmail);
 
     if (!user) {
       throw new NotFoundException('Kullanıcı bulunamadı');
     }
 
-    const { policy } = this.policyFactory.user(context.actor);
+    const { policy } = this.policyFactory.user(ctx.actor);
 
     const serializationOptions = policy.getUserSerializeOptions(
       user.id,

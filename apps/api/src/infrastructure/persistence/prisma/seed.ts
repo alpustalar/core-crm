@@ -12,7 +12,7 @@ import {
 import { PrismaClient, SectorType } from '@prisma/client';
 import { LANGUAGE_CODES, LanguageCode } from '@src/domain/constants/db';
 
-import { connect } from '@src/infrastructure/persistence/prisma/helpers';
+
 import { treatmentCategories } from '@src/infrastructure/persistence/prisma/data/modules/treatment-categories/treatment-categories';
 
 const prisma = new PrismaClient();
@@ -50,14 +50,12 @@ async function main() {
       (sector) => sector.slug === sectorSlugs[SectorType.DENTAL]
     );
 
-    const { organization: _, ...clinicData } = clinicCreateInput;
-
     await tx.clinic.upsert({
       where: { slug: clinicCreateInput.slug },
       update: {},
       create: {
-        ...clinicData,
-        organization: connect(savedOrganization.id),
+        ...clinicCreateInput,
+        organization: { connect: { id: savedOrganization.id } },
         sector: { connect: { id: dentalSector!.id } },
       },
     });
@@ -176,7 +174,6 @@ async function main() {
           update: {},
           create: {
             slug: treatment.slug,
-            sectorId: sectorIds[treatment.sectorSlug],
             treatmentCategoryId:
               categoryIdsBySlug[treatment.treatmentCategorySlug],
             defaultDuration: treatment.defaultDuration,
@@ -184,7 +181,6 @@ async function main() {
               createMany: {
                 data: Object.values(LANGUAGE_CODES).map((code) => ({
                   languageId: languageIds[code],
-                  // Boş dize fallback'i ekleyerek 'undefined' hatasını çözüyoruz
                   name: treatment.translations.name[code] ?? '',
                   description: treatment.translations.description[code] ?? '',
                 })),

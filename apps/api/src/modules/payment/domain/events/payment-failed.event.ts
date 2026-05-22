@@ -9,7 +9,7 @@ export interface PaymentFailedPayload extends IAuditLog {
 }
 
 export class PaymentFailedEvent extends BaseEvent {
-  public readonly NAME = PAYMENT_EVENTS.FAILED;
+  static readonly NAME = PAYMENT_EVENTS.FAILED;
 
   public readonly paymentId: string;
   public readonly appointmentId: string | null;

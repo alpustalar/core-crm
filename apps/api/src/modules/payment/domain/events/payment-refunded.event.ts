@@ -3,14 +3,16 @@ import { PAYMENT_EVENTS } from '@src/domain/constants/events';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
 export interface PaymentRefundedEventPayload extends IAuditLog {
+  installmentId: string;
   paymentId: string;
   appointmentId: string | null;
   clinicId: string;
 }
 
 export class PaymentRefundedEvent extends BaseEvent {
-  readonly name = PAYMENT_EVENTS.REFUNDED;
+  static readonly NAME = PAYMENT_EVENTS.REFUNDED;
 
+  public readonly installmentId: string;
   public readonly paymentId: string;
   public readonly appointmentId: string | null;
   public readonly clinicId: string;
@@ -24,6 +26,7 @@ export class PaymentRefundedEvent extends BaseEvent {
       type: payload.type,
     });
 
+    this.installmentId = payload.installmentId;
     this.paymentId = payload.paymentId;
     this.appointmentId = payload.appointmentId;
     this.clinicId = payload.clinicId;

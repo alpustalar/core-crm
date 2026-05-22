@@ -1,13 +1,16 @@
 // modules/appointment/domain/models/provider-schedule.model.ts
 import { BadRequestException } from '@nestjs/common';
+import { AggregateRoot } from '@common/domain/aggregate-root';
 import { ProviderAvailability, ProviderException } from '@shared';
 import { DateTimeManager } from '@common/utils';
 
-export class ProviderScheduleEntity {
+export class ProviderScheduleEntity extends AggregateRoot {
   constructor(
     private readonly availabilities: ProviderAvailability[],
     private readonly exceptions: ProviderException[]
-  ) {}
+  ) {
+    super();
+  }
 
   validateBookingAvailabilityOrThrow(startTime: Date, endTime: Date): void {
     const dayOfWeek = startTime.getUTCDay();

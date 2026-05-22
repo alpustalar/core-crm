@@ -1,154 +1,84 @@
-import { Appointment, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { Pagination } from '@shared';
 import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSchema';
+import { Appointment as AppointmentEntity } from '@modules/appointment/domain/entities/appointment.entity';
+import { FindConflictingAppointmentProps } from '@modules/appointment/domain/types/find-conflicting-appointment.props';
+import { ConflictingAppointment } from '@modules/appointment/domain/types/conflicting-appointment.type';
+import { FindClinicCalendarProps } from '@modules/appointment/domain/types/find-calendar-clinic.props';
+import { BatchPayload } from '@common/interfaces/batcy-payload.type';
+import { FindByOrganizationIdProps } from '@modules/appointment/domain/types/find-by-organization-id.props';
+import { FindProviderCalendarProps } from '@modules/appointment/domain/types/find-provider-calendar.props';
+import { PaginatedAppointments } from '@modules/appointment/domain/types/paginated-appointments.types';
+import { ProviderDailyLoad } from '@modules/appointment/domain/types/provider-dailyload.type';
+import { RescheduleAppointmentProps } from '@modules/appointment/domain/types/reschedule-appointment.props';
+import { CancelAppointmentProps } from '@modules/appointment/domain/types/cancel-appointment.props';
+import { OccupiedSlot } from '@modules/appointment/domain/types/occupied-slot.type';
+import { AppointmentWithDetails } from '@modules/appointment/domain/types/appointment-with-details.type';
 
-export type IAppointment = Appointment;
-export type IAppointmentStatus = AppointmentStatusType;
-export type BatchPayload = { count: number };
+export const APPOINTMENT_COMMAND_REPOSITORY = Symbol(
+  'IAppointmentCommandRepository'
+);
+export const APPOINTMENT_QUERY_REPOSITORY = Symbol(
+  'IAppointmentQueryRepository'
+);
 
-export interface FindConflictingAppointmentInput {
-  providerId: IAppointment['providerId'];
-  startTime: IAppointment['startTime'];
-  endTime: IAppointment['endTime'];
-  ignoreAppointmentId?: IAppointment['id'];
+export interface IAppointmentCommandRepository {
+  create(
+    data: Prisma.AppointmentUncheckedCreateInput
+  ): Promise<AppointmentEntity>;
+  reschedule(
+    appointmentId: string,
+    data: RescheduleAppointmentProps
+  ): Promise<AppointmentEntity>;
+  cancelById(
+    appointmentId: string,
+    data: CancelAppointmentProps
+  ): Promise<AppointmentEntity>;
+  changeStatusById(
+    appointmentId: string,
+    status: AppointmentStatusType
+  ): Promise<AppointmentEntity>;
+  changeStatusByProviderId(
+    providerId: string,
+    status: AppointmentStatusType
+  ): Promise<BatchPayload>;
+  changeStatusByClinicId(
+    clinicId: string,
+    status: AppointmentStatusType
+  ): Promise<BatchPayload>;
+  softDeleteAllAppointmentsByClinicId(clinicId: string): Promise<BatchPayload>;
+  softDeleteAllByOrganizationId(organizationId: string): Promise<BatchPayload>;
+  softDeleteAllByProviderId(providerId: string): Promise<BatchPayload>;
+  save(appointment: AppointmentEntity): Promise<void>;
 }
 
-export type RescheduleAppointmentInput = {
-  startTime: IAppointment['startTime'];
-  endTime: IAppointment['endTime'];
-  providerId: IAppointment['providerId'];
-  notes?: IAppointment['notes'];
-  treatmentId?: IAppointment['treatmentId'];
-};
-
-export interface ConflictingAppointment {
-  id: IAppointment['id'];
-  startTime: IAppointment['startTime'];
-  endTime: IAppointment['endTime'];
-}
-
-export interface CancelAppointmentInput {
-  canceledBy: NonNullable<IAppointment['canceledBy']>;
-  cancelReason?: IAppointment['cancelReason'];
-}
-
-export interface FindClinicCalendarInput {
-  clinicId: IAppointment['clinicId'];
-  startDate: Date;
-  endDate: Date;
-  pagination: Pagination;
-}
-
-export interface FindProviderCalendarInput {
-  pagination: Pagination;
-  providerId: IAppointment['providerId'];
-  startDate: Date;
-  endDate: Date;
-}
-
-export interface FindByOrganizationIdInput {
-  organizationId: string;
-  pagination: Pagination;
-  clinicId?: IAppointment['clinicId'];
-  status?: IAppointmentStatus;
-  startDate?: Date;
-  endDate?: Date;
-}
-
-export interface ProviderDailyLoad {
-  providerId: string;
-  date: Date;
-  appointmentCount: number;
-}
-
-export interface OccupiedSlot {
-  id: string;
-  startTime: Date;
-  endTime: Date;
-  status: IAppointmentStatus;
-}
-
-export type PaginatedAppointments = Promise<{
-  items: IAppointment[];
-  total: number;
-}>;
-
-export const APPOINTMENT_REPO_TOKEN = Symbol('IAppointmentRepository');
-
-export interface IAppointmentRepository {
-  create(data: Prisma.AppointmentUncheckedCreateInput): Promise<IAppointment>;
-
-  findById(appointmentId: IAppointment['id']): Promise<IAppointment | null>;
-
+export interface IAppointmentQueryRepository {
+  findById(appointmentId: string): Promise<AppointmentEntity | null>;
   findByIdWithDetails(
-    appointmentId: IAppointment['id']
-  ): Promise<IAppointment | null>;
-
+    appointmentId: string
+  ): Promise<AppointmentWithDetails | null>;
   findConflictingAppointment(
-    input: FindConflictingAppointmentInput
+    props: FindConflictingAppointmentProps
   ): Promise<ConflictingAppointment | null>;
-
-  findProviderCalendar(input: FindProviderCalendarInput): PaginatedAppointments;
-
-  findClinicCalendar(input: FindClinicCalendarInput): PaginatedAppointments;
-
-  findByOrganizationId(input: FindByOrganizationIdInput): PaginatedAppointments;
-
+  findProviderCalendar(props: FindProviderCalendarProps): PaginatedAppointments;
+  findClinicCalendar(props: FindClinicCalendarProps): PaginatedAppointments;
+  findByOrganizationId(props: FindByOrganizationIdProps): PaginatedAppointments;
   findByPatientId(
     pagination: Pagination,
     patientId: string
   ): PaginatedAppointments;
-
   findActionRequired(
     clinicId: string,
     pagination: Pagination
   ): PaginatedAppointments;
-
   findUpcomingReminders(
     pagination: Pagination,
     hoursAhead?: number
   ): PaginatedAppointments;
-
   getProviderDailyLoad(
     providerId: string,
     date: Date
   ): Promise<ProviderDailyLoad>;
-
-  reschedule(
-    appointmentId: IAppointment['id'],
-    data: RescheduleAppointmentInput
-  ): Promise<IAppointment>;
-
-  cancelById(
-    appointmentId: IAppointment['id'],
-    data: CancelAppointmentInput
-  ): Promise<IAppointment>;
-
-  changeStatusById(
-    appointmentId: IAppointment['id'],
-    status: IAppointmentStatus
-  ): Promise<IAppointment>;
-
-  changeStatusByProviderId(
-    providerId: IAppointment['providerId'],
-    status: IAppointmentStatus
-  ): Promise<BatchPayload>;
-
-  changeStatusByClinicId(
-    clinicId: IAppointment['clinicId'],
-    status: IAppointmentStatus
-  ): Promise<BatchPayload>;
-
-  softDeleteAllAppointmentsByClinicId(
-    clinicId: IAppointment['clinicId']
-  ): Promise<BatchPayload>;
-
-  softDeleteAllByOrganizationId(organizationId: string): Promise<BatchPayload>;
-
-  softDeleteAllByProviderId(
-    providerId: IAppointment['providerId']
-  ): Promise<BatchPayload>;
-
   findProviderOccupiedSlots(
     providerId: string,
     startDate: Date,
