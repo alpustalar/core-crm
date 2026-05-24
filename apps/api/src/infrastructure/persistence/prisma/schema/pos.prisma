@@ -1,0 +1,59 @@
+enum PosTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+model PosDevice {
+  id         String @id @default(uuid())
+  clinicId   String @map("clinic_id")
+  label      String
+  terminalId String @map("terminal_id")
+  merchantId String @map("merchant_id")
+  host       String
+  port       Int    @default(10009)
+
+  isActive  Boolean  @default(true) @map("is_active")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  clinic       Clinic           @relation(fields: [clinicId], references: [id])
+  transactions PosTransaction[]
+
+  @@index([clinicId])
+  @@map("pos_devices")
+}
+
+model PosTransaction {
+  id            String               @id @default(uuid())
+  posDeviceId   String               @map("pos_device_id")
+  clinicId      String               @map("clinic_id")
+  patientId     String?              @map("patient_id")
+  appointmentId String?              @map("appointment_id")
+  paymentId     String?              @map("payment_id")
+
+  amount   Decimal @db.Decimal(12, 2)
+  currency String  @default("TRY")
+
+  status      PosTransactionStatus @default(PENDING)
+  externalRef String?              @map("external_ref")
+
+  rawRequest  Json?     @map("raw_request")
+  rawResponse Json?     @map("raw_response")
+  initiatedAt DateTime  @default(now()) @map("initiated_at")
+  completedAt DateTime? @map("completed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  posDevice   PosDevice    @relation(fields: [posDeviceId], references: [id])
+  patient     Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId])
+  @@index([posDeviceId])
+  @@map("pos_transactions")
+}

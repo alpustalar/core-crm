@@ -111,6 +111,7 @@ model Payment {
   installments   PaymentInstallment[]
   financeLedgers FinanceLedger[]
   patientPackage PatientTreatmentPackage?
+  invoice        Invoice?
 
   @@map("payments")
 }

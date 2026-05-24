@@ -14,3 +14,11 @@ export const USER_JOBS = {
 export const OUTBOX_JOBS = {
   PROCESS: 'process-outbox',
 } as const;
+
+export const POS_JOBS = {
+  RECONCILE_PENDING: 'pos-reconcile-pending',
+} as const;
+
+export const META_ADS_JOBS = {
+  SYNC_CAMPAIGN_METRICS: 'meta-ads-sync-campaign-metrics',
+} as const;

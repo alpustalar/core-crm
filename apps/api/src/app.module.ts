@@ -37,6 +37,9 @@ import { OutboxModule } from '@src/infrastructure/persistence/prisma/outbox/outb
 import { PatientAuthModule } from '@modules/patient-auth/patient-auth.module';
 import { ContextModule } from '@src/infrastructure/context/context.module';
 import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
+import { InvoiceModule } from '@modules/invoice/invoice.module';
+import { PosModule } from '@modules/pos/pos.module';
+import { MetaAdsModule } from '@modules/meta-ads/meta-ads.module';
 
 @Module({
   imports: [
@@ -66,6 +69,9 @@ import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
     LookupModule,
     RoleModule,
     RegistrationModule,
+    InvoiceModule,
+    PosModule,
+    MetaAdsModule,
   ],
   controllers: [],
   providers: [

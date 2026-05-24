@@ -1,0 +1,76 @@
+enum MetaLeadStatus {
+  NEW
+  MATCHED
+  CONVERTED
+  INVALID
+}
+
+model MetaAdAccount {
+  id           String   @id @default(uuid())
+  clinicId     String   @map("clinic_id")
+  adAccountId  String   @map("ad_account_id")
+  accessToken  String   @map("access_token") @db.Text
+  pageId       String?  @map("page_id")
+  businessName String?  @map("business_name")
+  isActive     Boolean  @default(true) @map("is_active")
+  lastSyncAt   DateTime? @map("last_sync_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  clinic  Clinic               @relation(fields: [clinicId], references: [id])
+  leads   MetaLead[]
+  metrics MetaCampaignMetric[]
+
+  @@unique([clinicId, adAccountId])
+  @@map("meta_ad_accounts")
+}
+
+model MetaCampaignMetric {
+  id              String   @id @default(uuid())
+  metaAdAccountId String   @map("meta_ad_account_id")
+  campaignId      String   @map("campaign_id")
+  campaignName    String   @map("campaign_name")
+  date            DateTime @db.Date
+  spend           Decimal  @db.Decimal(10, 2)
+  clicks          Int      @default(0)
+  impressions     Int      @default(0)
+  cpc             Decimal? @db.Decimal(10, 4)
+  ctr             Decimal? @db.Decimal(10, 4)
+  currency        String   @default("TRY")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  metaAdAccount MetaAdAccount @relation(fields: [metaAdAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([metaAdAccountId, campaignId, date])
+  @@index([metaAdAccountId, date])
+  @@map("meta_campaign_metrics")
+}
+
+model MetaLead {
+  id                   String         @id @default(uuid())
+  metaAdAccountId      String         @map("meta_ad_account_id")
+  metaLeadId           String         @unique @map("meta_lead_id")
+  formId               String?        @map("form_id")
+  campaignId           String?        @map("campaign_id")
+  campaignName         String?        @map("campaign_name")
+  adsetId              String?        @map("adset_id")
+  adId                 String?        @map("ad_id")
+  name                 String?
+  phone                String?
+  email                String?
+  rawData              Json?          @map("raw_data")
+  status               MetaLeadStatus @default(NEW)
+  matchedPatientId     String?        @map("matched_patient_id")
+  matchedAppointmentId String?        @map("matched_appointment_id")
+  matchedAt            DateTime?      @map("matched_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  metaAdAccount MetaAdAccount @relation(fields: [metaAdAccountId], references: [id], onDelete: Cascade)
+
+  @@index([metaAdAccountId, status])
+  @@index([phone])
+  @@index([email])
+  @@map("meta_leads")
+}

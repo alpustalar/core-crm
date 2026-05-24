@@ -12,6 +12,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(CompleteAppointmentCommand)
 export class CompleteAppointmentHandler
@@ -49,7 +50,12 @@ export class CompleteAppointmentHandler
       )
       .orThrow();
 
-    appointment.complete();
+    appointment.complete({
+      action: LogAction.APPOINTMENT_COMPLETE,
+      type: LogType.INFO,
+      actorId: actor.userId,
+      source: actor.source,
+    });
 
     await this.appointmentCommandRepo.save(appointment);
   }

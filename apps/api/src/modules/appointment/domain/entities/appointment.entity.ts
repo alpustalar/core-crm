@@ -7,6 +7,11 @@ import {
 } from '@prisma/client';
 import { DateTimeManager } from '@common/utils';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import {
+  AppointmentCompletedEvent,
+  AppointmentCompletedEventPayload,
+} from '@modules/appointment/domain/events/complete-appointment.event';
+import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
 export class Appointment extends AggregateRoot implements IAppointment {
   constructor(data: IAppointment) {
@@ -231,13 +236,27 @@ export class Appointment extends AggregateRoot implements IAppointment {
     }
   }
 
-  public complete(): void {
+  public complete(
+    eventPayload: Omit<
+      AppointmentCompletedEventPayload,
+      'appointmentId' | 'clinicId' | 'patientId' | 'providerId'
+    >
+  ): void {
     if (!this.isPending() && !this.iConfirmed()) {
       throw new Error(
         'Yalnızca onaylanan veya bekleyen randevular tamamlanabilir.'
       );
     }
     this._status = AppointmentStatus.COMPLETED;
+    this.addDomainEvent(
+      new AppointmentCompletedEvent({
+        ...eventPayload,
+        appointmentId: this._id,
+        clinicId: this._clinicId,
+        patientId: this._patientId,
+        providerId: this._providerId,
+      })
+    );
   }
 
   public markAsNoShow(): void {

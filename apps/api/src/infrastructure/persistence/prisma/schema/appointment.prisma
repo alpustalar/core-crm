@@ -63,6 +63,8 @@ model Appointment {
   diagnoses            AppointmentDiagnosis[]
   procedures           AppointmentProcedure[]
   eNabizSync           ENabizSync?
+  invoice              Invoice?
+  posTransactions      PosTransaction[]
 
   @@index([patientPhone])
   @@index([startTime])

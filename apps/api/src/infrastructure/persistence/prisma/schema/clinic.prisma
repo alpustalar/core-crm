@@ -44,6 +44,8 @@ model Clinic {
   productBatches       ProductBatch[]
   stockMovements       StockMovement[]
   productUsages        ProductUsage[]
+  posDevices           PosDevice[]
+  metaAdAccounts       MetaAdAccount[]
 
   @@map("clinics")
 }

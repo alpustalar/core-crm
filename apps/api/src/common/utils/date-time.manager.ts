@@ -87,6 +87,15 @@ export class DateTimeManager {
     return dayjs(date).add(days, 'day').toDate();
   }
 
+  static subtractDays(date: Date, days: number): Date {
+    return dayjs(date).subtract(days, 'day').toDate();
+  }
+
+  // YYYY-MM-DD formatında string döner
+  static toDateString(date: Date): string {
+    return dayjs(date).format('YYYY-MM-DD');
+  }
+
   static addHours(date: Date, hours: number): Date {
     return dayjs(date).add(hours, 'hour').toDate();
   }

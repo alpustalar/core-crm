@@ -39,4 +39,16 @@ export class RedisService {
   async isOrganizationDeactivated(organizationId: string) {
     await this.redis.get(REDIS_KEYS.ORGANIZATION.DEACTIVATED(organizationId));
   }
+
+  async setMetaOAuthState(state: string, payload: string): Promise<void> {
+    await this.redis.set(REDIS_KEYS.META_ADS.OAUTH_STATE(state), payload, 'EX', 600);
+  }
+
+  async getMetaOAuthState(state: string): Promise<string | null> {
+    return this.redis.get(REDIS_KEYS.META_ADS.OAUTH_STATE(state));
+  }
+
+  async deleteMetaOAuthState(state: string): Promise<void> {
+    await this.redis.del(REDIS_KEYS.META_ADS.OAUTH_STATE(state));
+  }
 }

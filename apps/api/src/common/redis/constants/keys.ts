@@ -10,4 +10,7 @@ export const REDIS_KEYS = {
     DEACTIVATED: (organizationId: string) =>
       `organization:deactivated:${organizationId}`,
   },
+  META_ADS: {
+    OAUTH_STATE: (state: string) => `meta-ads:oauth-state:${state}`,
+  },
 } as const;

@@ -183,3 +183,4 @@ model ProviderSpecialtyTranslation {
   @@unique([specialtyId, languageId])
   @@map("provider_specialty_translations")
 }
+

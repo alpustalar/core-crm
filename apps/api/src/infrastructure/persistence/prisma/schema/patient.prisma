@@ -98,6 +98,8 @@ model Patient {
   responsibleProvider Provider?       @relation(fields: [responsibleProviderId], references: [id])
   groups              PatientGroup[]
   treatmentPackages   PatientTreatmentPackage[]
+  invoices            Invoice[]
+  posTransactions     PosTransaction[]
 
   @@unique([phone, organizationId])
   @@index([email, clinicId])

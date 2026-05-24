@@ -8,6 +8,9 @@ import { PatientEvent } from '@src/domain/constants/events/patient.constant';
 import { ThrottleEvent } from '@src/domain/constants/events/throttle.constant';
 import { TreatmentEvent } from '@src/domain/constants/events/treatment.constant';
 import { SubscriptionEvent } from '@src/domain/constants/events/subscription.constant';
+import { InvoiceEvent } from '@src/domain/constants/events/invoice.constants';
+import { PosEvent } from '@src/domain/constants/events/pos.constants';
+import { MetaAdsEvent } from '@src/domain/constants/events/meta-ads.constants';
 
 export type AppEventName =
   | AppointmentEvent
@@ -19,7 +22,10 @@ export type AppEventName =
   | ThrottleEvent
   | TreatmentEvent
   | UserEvent
-  | SubscriptionEvent;
+  | SubscriptionEvent
+  | InvoiceEvent
+  | PosEvent
+  | MetaAdsEvent;
 
 export * from './appointment.constant';
 export * from './clinic.constants';
@@ -31,3 +37,6 @@ export * from './throttle.constant';
 export * from './treatment.constant';
 export * from './user.constant';
 export * from './subscription.constant';
+export * from './invoice.constants';
+export * from './pos.constants';
+export * from './meta-ads.constants';

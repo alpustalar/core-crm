@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPatientRepository } from '@modules/patient/domain/repositories/patient.repository.interface';
+import {
+  IPatientRepository,
+  FindPatientByContactProps,
+} from '@modules/patient/domain/repositories/patient.repository.interface';
 import { FindOrCreatePatientForAuth } from '@shared/modules/patients/types/queries';
 import { Patient } from '@modules/patient/domain/entities/patient.entity';
 
@@ -26,6 +29,20 @@ export class PatientRepository
       data: entity.toPersistence(),
     });
     entity.flushEvents();
+  }
+
+  async findByContact(props: FindPatientByContactProps): Promise<Patient | null> {
+    const { clinicId, phone, email } = props;
+    if (!phone && !email) return null;
+
+    const orConditions: Record<string, unknown>[] = [];
+    if (phone) orConditions.push({ phone });
+    if (email) orConditions.push({ email });
+
+    const raw = await this.db.patient.findFirst({
+      where: { clinicId, OR: orConditions },
+    });
+    return raw ? new Patient(raw) : null;
   }
 
   async findOrCreateByPhone(dto: FindOrCreatePatientForAuth) {

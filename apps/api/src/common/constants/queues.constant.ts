@@ -4,4 +4,6 @@ export const QUEUES = {
   CLIENT: 'client-queue',
   USER: 'user-queue',
   OUTBOX: 'outbox-queue',
+  POS: 'pos-queue',
+  META_ADS: 'meta-ads-queue',
 } as const;
