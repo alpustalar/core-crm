@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
+import { FindPosDevicesHandler } from './find-pos-devices/find-pos-devices.handler';
+import { PosDeviceRepositoryModule } from '@modules/pos/infrastructure/persistence/prisma/repositories/pos-device/pos-device.repository.module';
+
+export const POS_QUERY_HANDLERS = [FindPosDevicesHandler];
+
+@Module({
+  imports: [CqrsModule, PosDeviceRepositoryModule],
+  providers: POS_QUERY_HANDLERS,
+  exports: POS_QUERY_HANDLERS,
+})
+export class PosQueryModule {}
