@@ -8,7 +8,6 @@ import { CompleteAppointmentHandler } from './complete-appointment/complete-appo
 import { CancelAppointmentHandler } from './cancel-appointment/cancel-appointment.handler';
 import { PatientCancelAppointmentHandler } from './patient-cancel-appointment/patient-cancel-appointment.handler';
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { BookAppointmentHandler } from './book-appointment/book-appointment.handler';
 import { AppointmentEventModule } from '@modules/appointment/infrastructure/events/appointment-event.module';
 import { PatientModule } from '@modules/patient/patient.module';
@@ -30,7 +29,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
+  imports: [AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
   providers: [...CommandHandlers, AppointmentChecker, AppointmentSlotService],
   exports: [...CommandHandlers],
 })

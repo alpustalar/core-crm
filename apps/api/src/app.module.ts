@@ -40,6 +40,7 @@ import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
 import { InvoiceModule } from '@modules/invoice/invoice.module';
 import { PosModule } from '@modules/pos/pos.module';
 import { MetaAdsModule } from '@modules/meta-ads/meta-ads.module';
+import { LeadModule } from '@modules/lead/lead.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { MetaAdsModule } from '@modules/meta-ads/meta-ads.module';
     InvoiceModule,
     PosModule,
     MetaAdsModule,
+    LeadModule,
   ],
   controllers: [],
   providers: [

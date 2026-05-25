@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { FirebaseModule } from '@modules/firebase/firebase.module';
 import { UserModule } from '@modules/user/user.module';
 import { ClinicModule } from '@modules/clinic/clinic.module';
@@ -10,7 +9,6 @@ import { RegistrationCommandModule } from '@modules/registration/application/com
 
 @Module({
   imports: [
-    CqrsModule,
     RegistrationCommandModule,
     FirebaseModule,
     UserModule,

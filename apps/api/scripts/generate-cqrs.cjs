@@ -110,7 +110,7 @@ export class ${handlerClassName} implements I${typeLabel}Handler<${pascalCase}${
   const relativeHandlerPath = `./${kebabCase}/${kebabCase}.handler`;
 
   if (!fs.existsSync(subModuleFilePath)) {
-    const newModuleTemplate = `import { Module } from '@nestjs/common';\nimport { CqrsModule } from '@nestjs/cqrs';\nimport { ${handlerClassName} } from '${relativeHandlerPath}';\n\nconst ${handlerArrayName} = [\n  ${handlerClassName},\n];\n\n@Module({\n  imports: [CqrsModule],\n  providers: [...${handlerArrayName}],\n  exports: [...${handlerArrayName}],\n})\nexport class ${subModuleClassName} {}`;
+    const newModuleTemplate = `import { Module } from '@nestjs/common';\nimport { ${handlerClassName} } from '${relativeHandlerPath}';\n\nconst ${handlerArrayName} = [\n  ${handlerClassName},\n];\n\n@Module({\n  providers: [...${handlerArrayName}],\n  exports: [...${handlerArrayName}],\n})\nexport class ${subModuleClassName} {}`;
     fs.writeFileSync(subModuleFilePath, newModuleTemplate);
     console.log(`✨ Alt modül oluşturuldu: ${subModuleFileName}`);
   } else {

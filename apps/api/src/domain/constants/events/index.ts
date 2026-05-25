@@ -11,6 +11,7 @@ import { SubscriptionEvent } from '@src/domain/constants/events/subscription.con
 import { InvoiceEvent } from '@src/domain/constants/events/invoice.constants';
 import { PosEvent } from '@src/domain/constants/events/pos.constants';
 import { MetaAdsEvent } from '@src/domain/constants/events/meta-ads.constants';
+import { LeadEvent } from '@src/domain/constants/events/lead.constant';
 
 export type AppEventName =
   | AppointmentEvent
@@ -25,7 +26,8 @@ export type AppEventName =
   | SubscriptionEvent
   | InvoiceEvent
   | PosEvent
-  | MetaAdsEvent;
+  | MetaAdsEvent
+  | LeadEvent;
 
 export * from './appointment.constant';
 export * from './clinic.constants';
@@ -40,3 +42,4 @@ export * from './subscription.constant';
 export * from './invoice.constants';
 export * from './pos.constants';
 export * from './meta-ads.constants';
+export * from './lead.constant';

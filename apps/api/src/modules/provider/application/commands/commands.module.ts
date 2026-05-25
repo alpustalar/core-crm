@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { PolicyModule } from '@modules/policy/policy.module';
 import { ClinicModule } from '@modules/clinic/clinic.module';
 import { ProviderRepositoryModule } from '@modules/provider/infrastructure/persistence/prisma/repositories/provider/provider.repository.module';
@@ -27,7 +26,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, PolicyModule, ClinicModule, ProviderRepositoryModule],
+  imports: [PolicyModule, ClinicModule, ProviderRepositoryModule],
   providers: [
     ...CommandHandlers,
     {

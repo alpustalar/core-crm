@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { PolicyModule } from '@modules/policy/policy.module';
 import { PROVIDER_AVAILABILITY_REPOSITORY } from '@modules/provider/domain/repositories/provider-availability.repository.interface';
 import { POLICY_FACTORY } from '@modules/policy/domain/interfaces/policy-factory.interface';
@@ -19,7 +18,7 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, PolicyModule, ProviderRepositoryModule],
+  imports: [PolicyModule, ProviderRepositoryModule],
   providers: [
     ...QueryHandlers,
     {

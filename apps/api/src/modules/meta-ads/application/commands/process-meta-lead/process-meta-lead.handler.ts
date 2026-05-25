@@ -1,25 +1,29 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { ProcessMetaLeadCommand } from './process-meta-lead.command';
 import { ProcessMetaLeadResponse } from './process-meta-lead.response';
 import {
-  META_LEAD_COMMAND_REPOSITORY,
-  META_LEAD_QUERY_REPOSITORY,
   IMetaLeadCommandRepository,
   IMetaLeadQueryRepository,
+  META_LEAD_COMMAND_REPOSITORY,
+  META_LEAD_QUERY_REPOSITORY,
 } from '@modules/meta-ads/domain/repositories/meta-lead.repository.interface';
 import {
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
   IMetaAdAccountQueryRepository,
+  META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/meta-ads/domain/repositories/meta-ad-account.repository.interface';
 import {
-  META_ADS_EVENT_PUBLISHER,
   IMetaAdsEventPublisher,
+  META_ADS_EVENT_PUBLISHER,
 } from '@modules/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { FindPatientByContactQuery } from '@modules/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';
-import { FindPatientByContactResponse } from '@modules/patient/application/queries/find-patient-by-contact/find-patient-by-contact.response';
-import { LogAction, LogSource, LogType } from '@src/domain/constants/log-action.constant';
+import {
+  LogAction,
+  LogSource,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @CommandHandler(ProcessMetaLeadCommand)
 export class ProcessMetaLeadHandler
@@ -34,16 +38,16 @@ export class ProcessMetaLeadHandler
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
-    private readonly queryBus: QueryBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
-    command: ProcessMetaLeadCommand,
+    command: ProcessMetaLeadCommand
   ): Promise<ProcessMetaLeadResponse> {
     const { payload } = command;
 
     const existing = await this.leadQueryRepo.findByMetaLeadId(
-      payload.metaLeadId,
+      payload.metaLeadId
     );
     if (existing) {
       return {
@@ -54,7 +58,7 @@ export class ProcessMetaLeadHandler
     }
 
     const account = await this.accountQueryRepo.findById(
-      payload.metaAdAccountId,
+      payload.metaAdAccountId
     );
 
     let lead = await this.leadCommandRepo.create({
@@ -73,15 +77,12 @@ export class ProcessMetaLeadHandler
     });
 
     if (account && (payload.phone || payload.email)) {
-      const { patient } = await this.queryBus.execute<
-        FindPatientByContactQuery,
-        FindPatientByContactResponse
-      >(
+      const { patient } = await this.queryBus.execute(
         new FindPatientByContactQuery(
           account.clinicId,
           payload.phone,
-          payload.email,
-        ),
+          payload.email
+        )
       );
 
       if (patient) {

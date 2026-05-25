@@ -3,7 +3,6 @@ import { RefundPaymentHandler } from '@modules/payment/application/commands/iyzi
 import { InitCheckoutFormHandler } from '@modules/payment/application/commands/iyzico/init-checkout-form/init-checkout-form.handler';
 import { HandlePaymentCallbackHandler } from '@modules/payment/application/commands/iyzico/handle-payment-callback/handle-payment-callback.handler';
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { CancelPaymentHandler } from '@modules/payment/application/commands/iyzico/cancel-payment/cancel-payment.handler';
 import { PAYMENT_REPOSITORY } from '@modules/payment/domain/repositories/payment.repository.interface';
 import { PaymentRepository } from '@modules/payment/infrastructure/persistence/prisma/repositories';
@@ -20,7 +19,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, IyzicoModule, PaymentEventModule],
+  imports: [IyzicoModule, PaymentEventModule],
   providers: [
     ...CommandHandlers,
     {

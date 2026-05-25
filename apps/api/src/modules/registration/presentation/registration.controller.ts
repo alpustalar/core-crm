@@ -6,13 +6,13 @@ import {
   Post,
   Version,
 } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
 import { RegisterClinicAccountDto } from '@shared';
 import { RegisterClinicAccountCommand } from '@modules/registration/application/commands/register-clinic-account/register-clinic-account.command';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @Controller()
 export class RegistrationController {
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(private readonly commandBus: TSCommandBus) {}
 
   @Post('clinic')
   @Version('1')

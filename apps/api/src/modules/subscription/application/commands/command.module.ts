@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { IyzicoModule } from '@src/infrastructure/payment/providers/iyzico/iyzico.module';
 import { SubscribeToPlanHandler } from './subscribe-to-plan/subscribe-to-plan.handler';
 import { AddModuleHandler } from './add-module/add-module.handler';
@@ -16,7 +15,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, IyzicoModule, SubscriptionRepositoryModule, PrismaModule],
+  imports: [IyzicoModule, SubscriptionRepositoryModule, PrismaModule],
   providers: [
     ...CommandHandlers,
     { provide: BILLING_ADAPTER, useClass: IyzicoBillingAdapter },

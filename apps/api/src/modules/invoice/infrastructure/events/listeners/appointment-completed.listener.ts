@@ -1,18 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { AppointmentCompletedEvent } from '@modules/appointment/domain/events/complete-appointment.event';
 import { IssueInvoiceCommand } from '@modules/invoice/application/commands/issue-invoice/issue-invoice.command';
-import { LogAction, LogSource, LogType } from '@src/domain/constants/log-action.constant';
+import {
+  LogAction,
+  LogSource,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @Injectable()
 export class AppointmentCompletedInvoiceListener {
-  private readonly logger = new Logger(AppointmentCompletedInvoiceListener.name);
+  private readonly logger = new Logger(
+    AppointmentCompletedInvoiceListener.name
+  );
 
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @OnEvent(APPOINTMENT_EVENTS.COMPLETED, { async: true })

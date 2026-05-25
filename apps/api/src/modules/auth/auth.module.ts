@@ -4,11 +4,10 @@ import { FirebaseModule } from '@modules/firebase/firebase.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
 import { AuthGuard } from '@modules/auth/guards';
 import { UserModule } from '@modules/user/user.module';
-import { CqrsModule } from '@nestjs/cqrs';
 
 @Global()
 @Module({
-  imports: [CqrsModule, FirebaseModule, PrismaModule, UserModule],
+  imports: [FirebaseModule, PrismaModule, UserModule],
   providers: [AuthService, AuthGuard, Logger],
   exports: [AuthGuard, AuthService],
 })

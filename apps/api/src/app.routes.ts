@@ -12,6 +12,7 @@ import { SubscriptionModule } from '@modules/subscription/subscription.module';
 import { PosModule } from '@modules/pos/pos.module';
 import { PatientAuthModule } from '@modules/patient-auth/patient-auth.module';
 import { MetaAdsModule } from '@modules/meta-ads/meta-ads.module';
+import { LeadModule } from '@modules/lead/lead.module';
 
 export const APP_ROUTES: Routes = [
   {
@@ -65,5 +66,9 @@ export const APP_ROUTES: Routes = [
   {
     path: 'meta-ads',
     module: MetaAdsModule,
+  },
+  {
+    path: 'leads',
+    module: LeadModule,
   },
 ];

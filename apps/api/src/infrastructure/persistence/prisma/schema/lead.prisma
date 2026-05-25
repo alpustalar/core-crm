@@ -1,0 +1,44 @@
+enum LeadSource {
+  WHATSAPP
+  MANUAL
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+model Lead {
+  id                     String     @id @default(uuid())
+  clinicId               String
+  source                 LeadSource
+  status                 LeadStatus @default(NEW)
+
+  name                   String?
+  phone                  String?
+  email                  String?
+  notes                  String?    @db.Text
+
+  assignedToId           String?
+
+  patientId              String?
+  appointmentId          String?
+  convertedAt            DateTime?
+
+  lostReason             String?
+  lostAt                 DateTime?
+
+  whatsAppConversationId String?    @unique
+
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  clinic                 Clinic     @relation(fields: [clinicId], references: [id])
+
+  @@index([clinicId, status])
+  @@index([phone])
+  @@map("leads")
+}

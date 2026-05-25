@@ -1,15 +1,15 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
 import { Job } from 'bullmq';
 import { POS_JOBS, QUEUES } from '@common/constants';
 import { ReconcilePosTransactionsCommand } from '@modules/pos/application/commands/reconcile-pos-transactions/reconcile-pos-transactions.command';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @Processor(QUEUES.POS)
 export class PosReconcileProcessor extends WorkerHost {
   private readonly logger = new Logger(PosReconcileProcessor.name);
 
-  constructor(private readonly commandBus: CommandBus) {
+  constructor(private readonly commandBus: TSCommandBus) {
     super();
   }
 

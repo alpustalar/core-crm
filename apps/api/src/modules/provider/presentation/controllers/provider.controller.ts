@@ -23,7 +23,6 @@ import {
   GetContext,
   IGetContext,
 } from '@common/decorators/get-context.decorator';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FindAllProvidersQuery } from '@modules/provider/application/queries';
 import { FindProviderByIdQuery } from '@modules/provider/application/queries/find-provider-by-id/find-provider-by-id.query';
 import { ConvertUserToProviderCommand } from '@modules/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
@@ -32,6 +31,8 @@ import { UpdateProviderInfoCommand } from '@modules/provider/application/command
 import { SetProviderActiveCommand } from '@modules/provider/application/commands/set-provider-active/set-provider-active.command';
 import { SetProviderOperationModeCommand } from '@modules/provider/application/commands/set-provider-operation-mode/set-provider-operation-mode.command';
 import { SetProviderExaminationCommand } from '@modules/provider/application/commands/set-provider-examination/set-provider-examination.command';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 const { PROVIDER, PROVIDERAVAILABILITY } = CAPABILITIES;
 
@@ -39,8 +40,8 @@ const { PROVIDER, PROVIDERAVAILABILITY } = CAPABILITIES;
 @Controller()
 export class ProviderController {
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   //? ====================================================================================

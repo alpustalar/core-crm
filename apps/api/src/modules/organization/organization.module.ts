@@ -1,7 +1,6 @@
 import { OrganizationQueryModule } from '@modules/organization/application/queries/query.module';
 import { OrganizationCommandModule } from '@modules/organization/application/commands/command.module';
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUES } from '@common/constants';
 import { ClinicModule } from '@modules/clinic/clinic.module';
@@ -15,7 +14,6 @@ import { OrganizationEventModule } from '@modules/organization/infrastructure/ev
 
 @Module({
   imports: [
-    CqrsModule,
     OrganizationQueryModule,
     OrganizationCommandModule,
     OrganizationEventModule,

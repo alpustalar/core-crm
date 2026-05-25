@@ -9,21 +9,22 @@ import {
 
 @QueryHandler(FindPatientByContactQuery)
 export class FindPatientByContactHandler
-  implements IQueryHandler<FindPatientByContactQuery, FindPatientByContactResponse>
+  implements
+    IQueryHandler<FindPatientByContactQuery, FindPatientByContactResponse>
 {
   constructor(
     @Inject(PATIENT_REPOSITORY)
-    private readonly patientRepo: IPatientRepository,
+    private readonly patientRepo: IPatientRepository
   ) {}
 
   async execute(
-    query: FindPatientByContactQuery,
+    query: FindPatientByContactQuery
   ): Promise<FindPatientByContactResponse> {
     const patient = await this.patientRepo.findByContact({
       clinicId: query.clinicId,
       phone: query.phone,
       email: query.email,
     });
-    return { patient };
+    return { data: patient };
   }
 }

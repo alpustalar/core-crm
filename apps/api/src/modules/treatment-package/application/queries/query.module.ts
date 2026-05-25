@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { FindTreatmentPackagesHandler } from './find-treatment-packages/find-treatment-packages.handler';
 import { FindPatientPackagesHandler } from './find-patient-packages/find-patient-packages.handler';
 import { TreatmentPackageRepositoryModule } from '@modules/treatment-package/infrastructure/persistence/prisma/repositories/treatment-package/treatment-package.repository.module';
@@ -12,7 +11,6 @@ export const TREATMENT_PACKAGE_QUERY_HANDLERS = [
 
 @Module({
   imports: [
-    CqrsModule,
     TreatmentPackageRepositoryModule,
     PatientTreatmentPackageRepositoryModule,
   ],

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { ConnectMetaAccountHandler } from './connect-meta-account/connect-meta-account.handler';
 import { SyncCampaignMetricsHandler } from './sync-campaign-metrics/sync-campaign-metrics.handler';
 import { ProcessMetaLeadHandler } from './process-meta-lead/process-meta-lead.handler';
@@ -24,7 +23,6 @@ export const META_ADS_COMMAND_HANDLERS = [
 
 @Module({
   imports: [
-    CqrsModule,
     MetaAdAccountRepositoryModule,
     MetaLeadRepositoryModule,
     MetaCampaignMetricRepositoryModule,

@@ -1,13 +1,13 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
 import { Public } from '@common/decorators/public.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_CONFIG } from '@common/constants';
 import { HandleSubscriptionCallbackCommand } from '@modules/subscription/application/commands/handle-subscription-callback/handle-subscription-callback.command';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @Controller()
 export class SubscriptionController {
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(private readonly commandBus: TSCommandBus) {}
 
   /**
    * İyzico'nun abonelik ödemesi tamamlandıktan sonra çağırdığı callback.

@@ -4,7 +4,6 @@ import { Module } from '@nestjs/common';
 import { RedisModule } from '@common/redis/redis.module';
 import { ClinicPresentationModule } from '@modules/clinic/presentation/clinic.presentation.module';
 import { ClinicEventModule } from '@modules/clinic/infrastructure/events/clinic-event.module';
-import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
   imports: [
@@ -13,7 +12,6 @@ import { CqrsModule } from '@nestjs/cqrs';
     RedisModule,
     ClinicPresentationModule,
     ClinicEventModule,
-    CqrsModule,
   ],
 })
 export class ClinicModule {}

@@ -1,5 +1,4 @@
 export * from './app.constant';
-export * from './dto.constant';
 export * from './prisma-error-messages.constant';
 export * from './api-config.constant';
 export * from './queues.constant';

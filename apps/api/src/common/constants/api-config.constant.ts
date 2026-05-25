@@ -4,6 +4,6 @@ export const API_CONFIG = {
   CURRENT_VERSION: '1',
 };
 
-// Yardımcı bir fonksiyon ile tam prefix'i alabilirsin
+// Tam prefix
 export const getGlobalPrefix = () =>
   `${API_CONFIG.PREFIX}/${API_CONFIG.VERSION_PREFIX}${API_CONFIG.CURRENT_VERSION}`;

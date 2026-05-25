@@ -3,18 +3,18 @@ import { Job } from 'bullmq';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ORGANIZATION_JOBS, QUEUES } from '@common/constants';
-import { CommandBus } from '@nestjs/cqrs';
 import { SoftDeleteAppointmentsByOrganizationIdCommand } from '@modules/appointment/application/commands/soft-delete-appointments-by-organization-id/soft-delete-appointments-by-organization-id.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { SoftDeleteManyUserByOrganizationIdCommand } from '@modules/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-users-by-organization-id.command';
 import { SoftDeleteManyClinicsByOrganizationIdCommand } from '@modules/clinic/application/commands/soft-delete-many-clinics-by-organization-id/soft-delete-many-clinics-by-organization-id.command';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @Processor(QUEUES.ORGANIZATION)
 export class OrganizationProcessor extends WorkerHost {
   private readonly logger = new Logger(OrganizationProcessor.name);
   private readonly internalCtx = ExecutionContextFactory.createInternal();
 
-  constructor(private readonly commandBus: CommandBus) {
+  constructor(private readonly commandBus: TSCommandBus) {
     super();
   }
 

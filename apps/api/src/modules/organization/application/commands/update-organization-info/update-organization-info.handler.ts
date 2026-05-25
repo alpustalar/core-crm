@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateOrganizationInfoCommand } from './update-organization-info.command';
 import { UpdateOrganizationInfoCommandResponse } from './update-organization-info.response';
 import { Inject, NotFoundException } from '@nestjs/common';
@@ -7,6 +7,7 @@ import {
   IOrganizationCommandRepository,
   ORGANIZATION_COMMAND_REPOSITORY,
 } from '@modules/organization/domain/repositories/organization.repository.interface';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @CommandHandler(UpdateOrganizationInfoCommand)
 export class UpdateOrganizationInfoHandler
@@ -17,7 +18,7 @@ export class UpdateOrganizationInfoHandler
     >
 {
   constructor(
-    private readonly queryBus: QueryBus,
+    private readonly queryBus: TSQueryBus,
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
     private readonly orgRepo: IOrganizationCommandRepository
   ) {}
@@ -26,7 +27,9 @@ export class UpdateOrganizationInfoHandler
     command: UpdateOrganizationInfoCommand
   ): Promise<UpdateOrganizationInfoCommandResponse> {
     const { dto, organizationId, ctx } = command;
-    const org = await this.queryBus.execute(new FindQuery(ctx, organizationId));
+    const { data: org } = await this.queryBus.execute(
+      new FindQuery(ctx, organizationId)
+    );
 
     if (!org) {
       throw new NotFoundException('organizasyon bulunamadı');

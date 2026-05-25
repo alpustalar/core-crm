@@ -2,7 +2,6 @@ import { GetPatientFinanceSummaryHandler } from './get-patient-finance-summary/g
 import { GetLedgerByPatientIdHandler } from './get-ledger-by-patient-id/get-ledger-by-patient-id.handler';
 import { GetLedgerByClinicIdHandler } from './get-ledger-by-clinic-id/get-ledger-by-clinic-id.handler';
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { GetClinicFinanceSummaryHandler } from './get-clinic-finance-summary/get-clinic-finance-summary.handler';
 import { FINANCE_LEDGER_REPOSITORY } from '@modules/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { FinanceLedgerRepository } from '@modules/finance-ledger/infrastructure/persistence/prisma/repositories/finance-ledger.repository';
@@ -15,7 +14,6 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule],
   providers: [
     ...QueryHandlers,
     { provide: FINANCE_LEDGER_REPOSITORY, useClass: FinanceLedgerRepository },

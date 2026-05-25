@@ -1,6 +1,5 @@
 import { UpdateLastLoginHandler } from './update-last-login/update-last-login.handler';
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { FirebaseModule } from '@modules/firebase/firebase.module';
 import { PolicyModule } from '@modules/policy/policy.module';
 import { MailModule } from '@modules/mail/mail.module';
@@ -13,7 +12,7 @@ import { UserRepositoryModule } from '@modules/user/infrastructure/persistence/p
 import { ChangePasswordHandler } from './change-password/change-password.handler';
 import { ChangeAllUsersStatusInClinicHandler } from '@modules/user/application/commands/change-all-users-status-in-clinic';
 import { CreateUserHandler } from './create-user/create-user.handler';
-import { SendUserPasswordResetLinkByStaffHandler } from './send-user-password-reset-link-by-staff/send-user-password-reset-link-by-staff.handler';
+import { SendUserPasswordResetLinkByStaffHandler } from '@modules/user/application/commands/send-user-password-reset-link-by-staff';
 import { SendUserPasswordResetLinkBySelfHandler } from '@modules/user/application/commands/send-user-password-reset-link-by-self';
 import { SendVerificationEmailHandler } from './send-verification-email/send-verification-email.handler';
 
@@ -40,7 +39,6 @@ const CommandHandlers = [
 
 @Module({
   imports: [
-    CqrsModule,
     FirebaseModule,
     PolicyModule,
     MailModule,

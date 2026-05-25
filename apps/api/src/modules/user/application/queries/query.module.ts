@@ -1,6 +1,5 @@
 import { FindUserForAuthHandler } from './find-user-for-auth/find-user-for-auth.handler';
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { PolicyModule } from '@modules/policy/policy.module';
 import { POLICY_FACTORY } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { PolicyFactory } from '@modules/policy/application/policy-factory';
@@ -18,7 +17,7 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, PolicyModule, UserRepositoryModule],
+  imports: [PolicyModule, UserRepositoryModule],
   providers: [
     ...QueryHandlers,
     { provide: POLICY_FACTORY, useClass: PolicyFactory },

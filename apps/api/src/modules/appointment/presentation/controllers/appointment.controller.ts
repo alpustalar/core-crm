@@ -3,7 +3,8 @@ import { AuthGuard, CapabilityGuard } from '@modules/auth/guards';
 
 import { HasCapability } from '@common/decorators';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 const { APPOINTMENT } = CAPABILITIES;
 
@@ -11,8 +12,8 @@ const { APPOINTMENT } = CAPABILITIES;
 @Controller()
 export class AppointmentController {
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   //? ====================================================================================

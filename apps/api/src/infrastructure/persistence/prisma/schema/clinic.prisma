@@ -46,6 +46,7 @@ model Clinic {
   productUsages        ProductUsage[]
   posDevices           PosDevice[]
   metaAdAccounts       MetaAdAccount[]
+  leads                Lead[]
 
   @@map("clinics")
 }

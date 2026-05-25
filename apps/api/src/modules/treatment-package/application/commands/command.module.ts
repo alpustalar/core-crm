@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { CreateTreatmentPackageHandler } from './create-treatment-package/create-treatment-package.handler';
 import { UpdateTreatmentPackageHandler } from './update-treatment-package/update-treatment-package.handler';
 import { DeleteTreatmentPackageHandler } from './delete-treatment-package/delete-treatment-package.handler';
@@ -18,7 +17,6 @@ export const TREATMENT_PACKAGE_COMMAND_HANDLERS = [
 
 @Module({
   imports: [
-    CqrsModule,
     TreatmentPackageRepositoryModule,
     PatientTreatmentPackageRepositoryModule,
   ],
