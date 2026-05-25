@@ -3,7 +3,7 @@ import { PatientAuthService } from './patient-auth.service';
 import { PatientVerifyDto } from '@shared/modules/patients/dto/commands';
 import { Public } from '@common/decorators/public.decorator';
 
-@Controller('patient-auth')
+@Controller('')
 export class PatientAuthController {
   constructor(private readonly patientAuthService: PatientAuthService) {}
 

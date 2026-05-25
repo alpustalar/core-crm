@@ -15,7 +15,10 @@ import { GetContext, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ConnectMetaAccountDto } from '@shared/modules/meta-ads/dto/commands';
-import { GetMetaReportDto, GetMetaLeadsDto } from '@shared/modules/meta-ads/dto/queries';
+import {
+  GetMetaLeadsDto,
+  GetMetaReportDto,
+} from '@shared/modules/meta-ads/dto/queries';
 import { ConnectMetaAccountCommand } from '@modules/meta-ads/application/commands/connect-meta-account/connect-meta-account.command';
 import { MatchLeadToPatientCommand } from '@modules/meta-ads/application/commands/match-lead-to-patient/match-lead-to-patient.command';
 import { GetMetaReportQuery } from '@modules/meta-ads/application/queries/get-meta-report/get-meta-report.query';
@@ -25,21 +28,21 @@ import { MetaLeadStatus } from '@prisma/client';
 import { PaginationDto } from '@shared';
 
 @UseGuards(AuthGuard)
-@Controller('meta-ads')
+@Controller()
 export class MetaAdsController {
   constructor(
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @Post('clinics/:clinicId/accounts')
   connectAccount(
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
     @Body() dto: ConnectMetaAccountDto,
-    @GetContext() ctx: IGetContext,
+    @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new ConnectMetaAccountCommand(dto, clinicId, ctx),
+      new ConnectMetaAccountCommand(dto, clinicId, ctx)
     );
   }
 
@@ -51,7 +54,7 @@ export class MetaAdsController {
   @Get('clinics/:clinicId/accounts')
   getAccounts(
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
-    @GetContext() ctx: IGetContext,
+    @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(new GetMetaAccountsQuery(clinicId, ctx));
   }
@@ -60,10 +63,10 @@ export class MetaAdsController {
   getReport(
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
     @Query() dto: GetMetaReportDto,
-    @GetContext() ctx: IGetContext,
+    @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(
-      new GetMetaReportQuery(clinicId, dto.from, dto.to, ctx, dto.campaignId),
+      new GetMetaReportQuery(clinicId, dto.from, dto.to, ctx, dto.campaignId)
     );
   }
 
@@ -72,15 +75,15 @@ export class MetaAdsController {
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
     @Query() dto: GetMetaLeadsDto,
     @Query() pagination: PaginationDto,
-    @GetContext() ctx: IGetContext,
+    @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(
       new GetMetaLeadsQuery(
         clinicId,
         pagination,
         ctx,
-        dto.status as MetaLeadStatus | undefined,
-      ),
+        dto.status as MetaLeadStatus | undefined
+      )
     );
   }
 
@@ -88,10 +91,10 @@ export class MetaAdsController {
   matchLead(
     @Param('leadId', ParseUUIDPipe) leadId: string,
     @Body('patientId', ParseUUIDPipe) patientId: string,
-    @GetContext() ctx: IGetContext,
+    @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new MatchLeadToPatientCommand(leadId, patientId, ctx),
+      new MatchLeadToPatientCommand(leadId, patientId, ctx)
     );
   }
 }

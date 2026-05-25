@@ -5,8 +5,7 @@ import { GetRoleBySlugHandler } from './get-role-by-slug/get-role-by-slug.handle
 import { ROLE_REPO } from '@modules/role/domain/repositories/role.repository.interface';
 import { RoleRepository } from '@modules/role/infrastructure/persistence/prisma/repositories/role.repository';
 
-const QueryHandlers = [
-  GetRoleByIdHandler,GetRoleBySlugHandler];
+const QueryHandlers = [GetRoleByIdHandler, GetRoleBySlugHandler];
 
 @Module({
   imports: [CqrsModule],

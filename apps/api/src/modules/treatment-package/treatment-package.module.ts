@@ -9,7 +9,5 @@ import { TreatmentPackageQueryModule } from './application/queries/query.module'
     TreatmentPackageCommandModule,
     TreatmentPackageQueryModule,
   ],
-  providers: [],
-  exports: [],
 })
 export class TreatmentPackageModule {}

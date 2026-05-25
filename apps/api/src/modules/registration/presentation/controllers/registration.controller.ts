@@ -1,4 +1,4 @@
 import { Controller } from '@nestjs/common';
 
-@Controller('registration')
+@Controller()
 export class RegistrationController {}

@@ -1,17 +1,21 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { AuthGuard } from '@modules/auth/guards';
-import { GetContext, IGetContext } from '@common/decorators/get-context.decorator';
+import {
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
 import { RegisterPosDeviceCommand } from '@modules/pos/application/commands/register-pos-device/register-pos-device.command';
 import { InitiatePosTransactionCommand } from '@modules/pos/application/commands/initiate-pos-transaction/initiate-pos-transaction.command';
 import { FindPosDevicesQuery } from '@modules/pos/application/queries/find-pos-devices/find-pos-devices.query';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
-@Controller('pos/devices')
+@Controller('devices')
 @UseGuards(AuthGuard)
 export class PosDeviceController {
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @Get(':clinicId')
@@ -23,7 +27,10 @@ export class PosDeviceController {
   }
 
   @Post()
-  register(@Body() body: RegisterPosDeviceCommand['input'], @GetContext() ctx: IGetContext) {
+  register(
+    @Body() body: RegisterPosDeviceCommand['input'],
+    @GetContext() ctx: IGetContext
+  ) {
     return this.commandBus.execute(new RegisterPosDeviceCommand(body, ctx));
   }
 

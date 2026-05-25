@@ -39,7 +39,7 @@ interface MetaWebhookEntry {
   }>;
 }
 
-@Controller('meta-ads/webhook')
+@Controller('webhook')
 export class MetaWebhookController {
   private readonly logger = new Logger(MetaWebhookController.name);
 

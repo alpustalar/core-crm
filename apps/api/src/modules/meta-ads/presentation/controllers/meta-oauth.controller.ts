@@ -16,7 +16,7 @@ import { HandleMetaOAuthCallbackCommand } from '@modules/meta-ads/application/co
 import { ENV } from '@common/constants/env.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
-@Controller('meta-ads/oauth')
+@Controller('oauth')
 export class MetaOAuthController {
   constructor(
     private readonly commandBus: TSCommandBus,
