@@ -6,6 +6,7 @@ import {
   META_LEAD_QUERY_REPOSITORY,
   IMetaLeadQueryRepository,
 } from '@modules/meta-ads/domain/repositories/meta-lead.repository.interface';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetMetaLeadsQuery)
 export class GetMetaLeadsHandler
@@ -24,7 +25,7 @@ export class GetMetaLeadsHandler
     });
 
     return {
-      items: result.items.map((lead) => ({
+      data: result.items.map((lead) => ({
         id: lead.id,
         metaLeadId: lead.metaLeadId,
         campaignId: lead.campaignId,
@@ -38,7 +39,7 @@ export class GetMetaLeadsHandler
         matchedAt: lead.matchedAt,
         createdAt: lead.createdAt,
       })),
-      total: result.total,
+      meta: { pagination: buildPaginationMeta(query.pagination, result.total) },
     };
   }
 }

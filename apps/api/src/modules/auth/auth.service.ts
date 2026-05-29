@@ -21,6 +21,7 @@ import { FindUserForAuthQuery } from '@modules/user/application/queries/find-use
 import { UpdateLastLoginCommand } from '@modules/user/application/commands/update-last-login/update-last-login.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { RedisService } from '@common/redis/redis.service';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const isDevelopment = process.env.NODE_MODE === 'development';
@@ -33,25 +34,47 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus,
+    private readonly redis: RedisService,
     @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService
   ) {}
 
   async validateAndGetContext(idToken: string) {
-    const decodedToken = await this.firebaseService.verifyToken(idToken);
-    if (!decodedToken) {
-      throw new UnauthorizedException('Token geçersiz');
-    }
+    const blocked = await this.redis.isTokenBlocked(idToken);
+    if (blocked) throw new UnauthorizedException('Token geçersiz');
 
-    if (isDevelopment) {
-      await this.createAdmin(decodedToken);
+    const decodedToken = await this.firebaseService.verifyToken(idToken);
+    if (!decodedToken) throw new UnauthorizedException('Token geçersiz');
+
+    if (isDevelopment) await this.createAdmin(decodedToken);
+
+    const cached = await this.redis.getActorContext(decodedToken.uid);
+    if (cached) {
+      this.updateLastLogin(cached.userId);
+      return cached;
     }
 
     const result = await this.getActorContextOrThrow(decodedToken);
+    await this.redis.setActorContext(decodedToken.uid, result);
 
     this.updateLastLogin(result.userId);
-
     return result;
+  }
+
+  async logout(rawToken: string, userId: string): Promise<void> {
+    const parts = rawToken.split('.');
+    if (parts.length === 3) {
+      try {
+        const payload = JSON.parse(
+          Buffer.from(parts[1], 'base64url').toString(),
+        ) as { exp?: number };
+        const ttl = (payload.exp ?? 0) - Math.floor(Date.now() / 1000);
+        if (ttl > 0) await this.redis.blockToken(rawToken, ttl);
+      } catch {
+        // token decode edilemedi, sadece cache temizle
+      }
+    }
+    await this.redis.deleteActorContext(userId);
   }
 
   getBearerTokenOrThrow(header?: string): string {

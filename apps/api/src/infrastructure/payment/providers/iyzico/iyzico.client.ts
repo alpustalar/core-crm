@@ -6,6 +6,11 @@ import Iyzipay from 'iyzipay';
 import { promisify } from 'node:util';
 import { WithIyzicoError } from '@src/infrastructure/payment/providers/iyzico/domain/types/with-iyzico-error.type';
 import { CreateCheckoutFormRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/create-checkout-form.request';
+import {
+  CreateSubMerchantRequest,
+  SubMerchantResult,
+  UpdateSubMerchantRequest,
+} from '@src/infrastructure/payment/providers/iyzico/domain/types/create-submerchant.request';
 
 @Injectable()
 export class IyzicoClient {
@@ -28,6 +33,12 @@ export class IyzicoClient {
   readonly refundPayment: (
     request: Iyzipay.RefundRequestData
   ) => Promise<WithIyzicoError<Iyzipay.RefundResult>>;
+  readonly createSubMerchant: (
+    request: CreateSubMerchantRequest & { locale?: string; currency?: string }
+  ) => Promise<WithIyzicoError<SubMerchantResult>>;
+  readonly updateSubMerchant: (
+    request: UpdateSubMerchantRequest & { locale?: string; currency?: string }
+  ) => Promise<WithIyzicoError<SubMerchantResult>>;
 
   constructor(config: ConfigService) {
     const iyzipay = new Iyzipay({
@@ -53,5 +64,13 @@ export class IyzicoClient {
     this.retrieveInstallmentInfo = promisify(
       iyzipay.installmentInfo.retrieve
     ).bind(iyzipay.installmentInfo);
+
+    this.createSubMerchant = promisify(
+      (iyzipay as any).subMerchant.create
+    ).bind((iyzipay as any).subMerchant);
+
+    this.updateSubMerchant = promisify(
+      (iyzipay as any).subMerchant.update
+    ).bind((iyzipay as any).subMerchant);
   }
 }

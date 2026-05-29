@@ -18,13 +18,15 @@ export class FindPosDevicesHandler
 
   async execute(query: FindPosDevicesQuery): Promise<FindPosDevicesResponse> {
     const devices = await this.posDeviceQueryRepo.findByClinicId(query.clinicId);
-    return devices.map((d) => ({
-      id: d.id,
-      clinicId: d.clinicId,
-      label: d.label,
-      terminalId: d.terminalId,
-      merchantId: d.merchantId,
-      isActive: d.isActive,
-    }));
+    return {
+      data: devices.map((d) => ({
+        id: d.id,
+        clinicId: d.clinicId,
+        label: d.label,
+        terminalId: d.terminalId,
+        merchantId: d.merchantId,
+        isActive: d.isActive,
+      })),
+    };
   }
 }

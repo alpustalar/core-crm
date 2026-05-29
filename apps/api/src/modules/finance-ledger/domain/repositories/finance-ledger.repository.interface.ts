@@ -9,6 +9,7 @@ import {
 import { Pagination } from '@shared';
 
 export interface CreateLedgerEntryData {
+  organizationId: string;
   clinicId: string;
   patientId?: string | null;
   paymentId?: string | null;

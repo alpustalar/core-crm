@@ -15,6 +15,7 @@ import {
 } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { SoftDeleteUserByStaffResponse } from '@modules/user/application/commands/soft-delete-user-by-staff/soft-delete-user-by-staff.response';
+import { RedisService } from '@common/redis/redis.service';
 
 @CommandHandler(SoftDeleteUserByStaffCommand)
 export class SoftDeleteUserByStaffHandler
@@ -30,7 +31,8 @@ export class SoftDeleteUserByStaffHandler
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher
+    private readonly userEventPublisher: IUserEventPublisher,
+    private readonly redis: RedisService,
   ) {}
 
   async execute(
@@ -52,5 +54,6 @@ export class SoftDeleteUserByStaffHandler
     }
 
     await this.userRepo.softDelete(dto.userId);
+    await this.redis.deleteActorContext(dto.userId);
   }
 }

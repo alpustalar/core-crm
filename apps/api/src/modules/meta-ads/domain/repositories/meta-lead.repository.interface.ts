@@ -14,6 +14,7 @@ export interface IMetaLeadCommandRepository {
 export interface IMetaLeadQueryRepository {
   findById(id: string): Promise<MetaLead | null>;
   findByMetaLeadId(metaLeadId: string): Promise<MetaLead | null>;
+  findMatchedLeadByPatientId(patientId: string): Promise<MetaLead | null>;
   findByPhone(phone: string, clinicId: string): Promise<MetaLead | null>;
   findByEmail(email: string, clinicId: string): Promise<MetaLead | null>;
   findMany(

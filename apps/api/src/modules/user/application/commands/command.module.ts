@@ -4,6 +4,7 @@ import { FirebaseModule } from '@modules/firebase/firebase.module';
 import { PolicyModule } from '@modules/policy/policy.module';
 import { MailModule } from '@modules/mail/mail.module';
 import { ProviderModule } from '@modules/provider/provider.module';
+import { RedisModule } from '@common/redis/redis.module';
 import { USER_EVENT_PUBLISHER } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { UserEventPublisher } from '@modules/user/infrastructure/events/user-event-publisher.service';
 import { UserRepositoryModule } from '@modules/user/infrastructure/persistence/prisma/repositories/user.repository.module';
@@ -43,6 +44,7 @@ const CommandHandlers = [
     PolicyModule,
     MailModule,
     ProviderModule,
+    RedisModule,
     UserRepositoryModule,
   ],
   providers: [

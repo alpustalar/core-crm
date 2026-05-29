@@ -6,3 +6,5 @@ import { InvoiceEventModule } from './infrastructure/events/invoice-event.module
   imports: [InvoiceCommandModule, InvoiceEventModule],
 })
 export class InvoiceModule {}
+
+// TODO: FATURA ENTEGRATÖRÜ EKLE

@@ -1,3 +1,5 @@
+import { QueryResponse } from '@shared/common/response/response.interface';
+
 export interface PosDeviceItem {
   id: string;
   clinicId: string;
@@ -7,4 +9,4 @@ export interface PosDeviceItem {
   isActive: boolean;
 }
 
-export type FindPosDevicesResponse = PosDeviceItem[];
+export type FindPosDevicesResponse = QueryResponse<PosDeviceItem[]>;

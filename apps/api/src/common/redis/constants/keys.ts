@@ -13,4 +13,8 @@ export const REDIS_KEYS = {
   META_ADS: {
     OAUTH_STATE: (state: string) => `meta-ads:oauth-state:${state}`,
   },
+  AUTH: {
+    ACTOR_CACHE: (userId: string) => `auth:actor-cache:${userId}`,
+    TOKEN_BLOCKLIST: (tokenHash: string) => `auth:token-blocklist:${tokenHash}`,
+  },
 } as const;

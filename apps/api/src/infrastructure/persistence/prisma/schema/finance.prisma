@@ -26,9 +26,10 @@ enum LedgerCategory {
 }
 
 model FinanceLedger {
-  id            String  @id @default(uuid())
-  clinicId      String  @map("clinic_id")
-  patientId     String? @map("patient_id")
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  clinicId       String  @map("clinic_id")
+  patientId      String? @map("patient_id")
   paymentId     String? @map("payment_id")
   installmentId String? @unique @map("installment_id")
   performedById String? @map("performed_by_id")
@@ -57,6 +58,7 @@ model FinanceLedger {
   performedBy   User?               @relation(fields: [performedById], references: [id], onDelete: SetNull)
   stockMovement StockMovement?
 
+  @@index([organizationId, entryDate])
   @@index([clinicId, entryDate])
   @@index([patientId])
   @@map("finance_ledger")

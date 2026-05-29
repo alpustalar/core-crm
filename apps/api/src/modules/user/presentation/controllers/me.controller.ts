@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Patch,
   Post,
   UseGuards,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@modules/auth/guards';
+import { AuthService } from '@modules/auth/auth.service';
 import { CapabilityGuard } from '@modules/auth/guards/capability/capability.guard';
 import { THROTTLE_CONFIG } from '@common/constants';
 import { ChangeUserPasswordDto } from '@shared';
@@ -17,6 +19,7 @@ import {
   GetContext,
   IGetContext,
 } from '@common/decorators/get-context.decorator';
+import { getBearerToken } from '@common/utils';
 import { ChangePasswordCommand } from '@modules/user/application/commands/change-password';
 import { SendVerificationEmailCommand } from '@modules/user/application/commands/send-verification-email';
 import { SendUserPasswordResetLinkBySelfCommand } from '@modules/user/application/commands/send-user-password-reset-link-by-self';
@@ -30,7 +33,8 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 export class MeController {
   constructor(
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    private readonly authService: AuthService,
   ) {}
 
   @UseInterceptors(UserTransformInterceptor)
@@ -68,5 +72,15 @@ export class MeController {
     return this.commandBus.execute(
       new SendUserPasswordResetLinkBySelfCommand(ctx)
     );
+  }
+
+  @Version('1')
+  @Post('logout')
+  logout(
+    @Headers('authorization') auth: string,
+    @GetContext() ctx: IGetContext,
+  ) {
+    const token = getBearerToken(auth) ?? '';
+    return this.authService.logout(token, ctx.actor.userId);
   }
 }

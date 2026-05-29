@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetMetaReportQuery } from './get-meta-report.query';
-import { MetaReportResponse } from './get-meta-report.response';
+import { GetMetaReportResponse } from './get-meta-report.response';
 import {
   META_CAMPAIGN_METRIC_QUERY_REPOSITORY,
   IMetaCampaignMetricQueryRepository,
@@ -17,7 +17,7 @@ import {
 
 @QueryHandler(GetMetaReportQuery)
 export class GetMetaReportHandler
-  implements IQueryHandler<GetMetaReportQuery, MetaReportResponse>
+  implements IQueryHandler<GetMetaReportQuery, GetMetaReportResponse>
 {
   constructor(
     @Inject(META_CAMPAIGN_METRIC_QUERY_REPOSITORY)
@@ -28,7 +28,7 @@ export class GetMetaReportHandler
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
   ) {}
 
-  async execute(query: GetMetaReportQuery): Promise<MetaReportResponse> {
+  async execute(query: GetMetaReportQuery): Promise<GetMetaReportResponse> {
     const { clinicId, from, to, campaignId } = query;
 
     const [metrics, accounts] = await Promise.all([
@@ -86,16 +86,18 @@ export class GetMetaReportHandler
     );
 
     return {
-      period: { from, to },
-      totalSpend,
-      totalClicks,
-      averageCpc,
-      totalLeads,
-      convertedLeads,
-      costPerLead,
-      costPerAppointment,
-      conversionRate,
-      campaigns,
+      data: {
+        period: { from, to },
+        totalSpend,
+        totalClicks,
+        averageCpc,
+        totalLeads,
+        convertedLeads,
+        costPerLead,
+        costPerAppointment,
+        conversionRate,
+        campaigns,
+      },
     };
   }
 

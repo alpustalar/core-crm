@@ -7,6 +7,7 @@ export interface ILedgerJobData {
   installmentId: string;
   paymentId: string;
   appointmentId: string | null;
+  organizationId: string;
   clinicId: string;
   patientId: string;
   amount: string;

@@ -1,4 +1,6 @@
+import { ICommand } from '@nestjs/cqrs';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
+import { IssueInvoiceResponse } from './issue-invoice.response';
 
 export type InvoiceTrigger = 'PAYMENT' | 'APPOINTMENT';
 
@@ -12,6 +14,7 @@ export interface IssueInvoiceCommandInput extends IAuditLog {
   trigger: InvoiceTrigger;
 }
 
-export class IssueInvoiceCommand {
+export class IssueInvoiceCommand implements ICommand {
+  readonly __responseType!: IssueInvoiceResponse;
   constructor(public readonly input: IssueInvoiceCommandInput) {}
 }

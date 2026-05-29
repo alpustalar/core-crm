@@ -15,6 +15,13 @@ export class ClinicQueryRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<ClinicEntity | null> {
+    const raw = await this.db.clinic.findUnique({
+      where: { id, status: { not: GlobalStatus.DELETED } },
+    });
+    return raw ? new ClinicEntity(raw) : null;
+  }
+
   async findByIdWithDetails(id: string): Promise<ClinicDetails | null> {
     return this.db.clinic.findUnique({
       where: { id, status: { not: GlobalStatus.DELETED } },

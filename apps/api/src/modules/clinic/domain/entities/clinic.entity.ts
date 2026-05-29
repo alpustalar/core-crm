@@ -20,6 +20,7 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     this._district = data.district;
     this._consultationSlotDuration = data.consultationSlotDuration;
     this._healthFacilityCode = data.healthFacilityCode;
+    this._iyzicoSubMerchantKey = data.iyzicoSubMerchantKey;
     this._status = data.status;
     this._timezone = data.timezone;
     this._logo = data.logo;
@@ -84,6 +85,11 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     return this._healthFacilityCode;
   }
 
+  private _iyzicoSubMerchantKey: string | null;
+  get iyzicoSubMerchantKey(): string | null {
+    return this._iyzicoSubMerchantKey;
+  }
+
   private _status: GlobalStatus;
   get status(): GlobalStatus {
     return this._status;
@@ -141,6 +147,10 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     return this.isActive;
   }
 
+  public registerSubMerchant(subMerchantKey: string): void {
+    this._iyzicoSubMerchantKey = subMerchantKey;
+  }
+
   toPersistence(): PrismaClinic {
     return {
       id: this._id,
@@ -154,6 +164,7 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
       district: this._district,
       consultationSlotDuration: this._consultationSlotDuration,
       healthFacilityCode: this._healthFacilityCode,
+      iyzicoSubMerchantKey: this._iyzicoSubMerchantKey,
       status: this._status,
       timezone: this._timezone,
       logo: this._logo,

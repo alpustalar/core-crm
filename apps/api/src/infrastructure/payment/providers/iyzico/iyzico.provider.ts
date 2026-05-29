@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { IyzicoClient } from './iyzico.client';
 import { getGlobalPrefix, ROUTE_PATHS } from '@common/constants';
 import { ENV } from '@common/constants/env.constant';
@@ -8,6 +8,11 @@ import { IIyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/do
 import type { PaymentInitializeRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/payment-initialize.request';
 import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/providers/iyzico/domain/types/retrieve-checkout-form.result';
 import { CancelPaymentRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/cancel-payment.request';
+import type {
+  CreateSubMerchantRequest,
+  SubMerchantResult,
+  UpdateSubMerchantRequest,
+} from '@src/infrastructure/payment/providers/iyzico/domain/types/create-submerchant.request';
 
 @Injectable()
 export class IyzicoProvider implements IIyzicoProvider {
@@ -71,5 +76,32 @@ export class IyzicoProvider implements IIyzicoProvider {
       paymentId,
       ip,
     });
+  }
+
+  async createSubMerchant(request: CreateSubMerchantRequest): Promise<SubMerchantResult> {
+    const result = await this.client.createSubMerchant({
+      locale: 'TR',
+      currency: 'TRY',
+      ...request,
+    });
+    if ((result as any).status !== 'success') {
+      throw new BadRequestException(
+        (result as any).errorMessage ?? 'Alt üye işyeri oluşturulamadı.'
+      );
+    }
+    return { subMerchantKey: (result as any).subMerchantKey };
+  }
+
+  async updateSubMerchant(request: UpdateSubMerchantRequest): Promise<void> {
+    const result = await this.client.updateSubMerchant({
+      locale: 'TR',
+      currency: 'TRY',
+      ...request,
+    });
+    if ((result as any).status !== 'success') {
+      throw new BadRequestException(
+        (result as any).errorMessage ?? 'Alt üye işyeri güncellenemedi.'
+      );
+    }
   }
 }

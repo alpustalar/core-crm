@@ -17,6 +17,7 @@ import {
   USER_EVENT_PUBLISHER,
 } from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { UpdateUserByStaffResponse } from '@modules/user/application/commands/update-user-by-staff/update-user-by-staff.response';
+import { RedisService } from '@common/redis/redis.service';
 
 @CommandHandler(UpdateUserByStaffCommand)
 export class UpdateUserByStaffHandler
@@ -31,7 +32,8 @@ export class UpdateUserByStaffHandler
     @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
     @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher
+    private readonly userEventPublisher: IUserEventPublisher,
+    private readonly redis: RedisService,
   ) {}
 
   async execute(
@@ -67,7 +69,7 @@ export class UpdateUserByStaffHandler
         'Hedef kullanıcı ile aynı klinikte (yönetici olarak) olmalısınız'
       )
       .orThrow((msg) => {
-        // GÜVENLİK EVENT'İ: Burada event yapısını tetikliyoruz
+        // security log
         this.userEventPublisher.updateUserByStaff({
           userId: targetUserId,
           type: LogType.SECURITY,
@@ -85,8 +87,8 @@ export class UpdateUserByStaffHandler
       );
     }
 
-    // Persistence
     await this.userCommandRepo.update(targetUserId, dto);
+    await this.redis.deleteActorContext(targetUserId);
 
     this.userEventPublisher.updateUserByStaff({
       userId: targetUserId,

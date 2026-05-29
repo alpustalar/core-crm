@@ -36,6 +36,7 @@ export class FinanceLedgerProcessor extends WorkerHost {
     const ledgerEntry = {
       installmentId: data.installmentId,
       paymentId: data.paymentId,
+      organizationId: data.organizationId,
       clinicId: data.clinicId,
       patientId: data.patientId,
       type: LedgerType.INCOME,

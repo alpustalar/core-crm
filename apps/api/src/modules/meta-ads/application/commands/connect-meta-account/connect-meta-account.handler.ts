@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, ConflictException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { ConnectMetaAccountCommand } from './connect-meta-account.command';
@@ -15,7 +15,10 @@ import {
 } from '@modules/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { TokenCipherService } from '@modules/meta-ads/infrastructure/crypto/token-cipher.service';
 import { LogAction, LogSource, LogType } from '@src/domain/constants/log-action.constant';
-import { ConflictException } from '@nestjs/common';
+import {
+  POLICY_FACTORY,
+  IPolicyFactory,
+} from '@modules/policy/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ConnectMetaAccountCommand)
 export class ConnectMetaAccountHandler
@@ -28,6 +31,8 @@ export class ConnectMetaAccountHandler
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly tokenCipher: TokenCipherService,
   ) {}
 
@@ -36,6 +41,14 @@ export class ConnectMetaAccountHandler
   ): Promise<ConnectMetaAccountResponse> {
     const { dto, clinicId, ctx } = command;
     const { actor, source } = ctx;
+
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.check(
+        (p) => p.actorCanManageTargetClinic(clinicId),
+        'Bu klinik için Meta hesabı bağlama yetkiniz yok.',
+      )
+      .orThrow();
 
     const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
       clinicId,

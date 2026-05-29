@@ -29,10 +29,21 @@ export class PaymentCompletedListener {
         return;
       }
 
+      const clinic = await this.prisma.clinic.findUnique({
+        where: { id: installment.payment.clinicId },
+        select: { organizationId: true },
+      });
+
+      if (!clinic) {
+        this.logger.warn(`Klinik bulunamadı, ledger atlandı: ${installment.payment.clinicId}`);
+        return;
+      }
+
       await this.financeLedgerProducer.addToLedgerQueue({
         installmentId: installment.id,
         paymentId: installment.paymentId,
         appointmentId: event.appointmentId,
+        organizationId: clinic.organizationId,
         clinicId: installment.payment.clinicId,
         patientId: installment.payment.patientId,
         amount: installment.amount.toString(),

@@ -27,8 +27,7 @@ export class AppointmentCompletedInvoiceListener {
     if (!event.patientId) return;
 
     try {
-      // TODO: amount, ilgili QueryBus sorgusu ile çözülecek.
-      // Entegratör seçildiğinde GetAppointmentPaymentQuery dispatch edilmeli.
+      // TODO: Entegratör seçildiğinde GetAppointmentPaymentQuery dispatch edilmeli.amount, ilgili QueryBus sorgusu ile çözülecek.
       await this.commandBus.execute(
         new IssueInvoiceCommand({
           clinicId: event.clinicId,

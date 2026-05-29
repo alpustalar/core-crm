@@ -3,6 +3,11 @@ import { PaymentInitializeRequest } from '@src/infrastructure/payment/providers/
 import { WithIyzicoError } from '@src/infrastructure/payment/providers/iyzico/domain/types/with-iyzico-error.type';
 import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/providers/iyzico/domain/types/retrieve-checkout-form.result';
 import { CancelPaymentRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/cancel-payment.request';
+import {
+  CreateSubMerchantRequest,
+  SubMerchantResult,
+  UpdateSubMerchantRequest,
+} from '@src/infrastructure/payment/providers/iyzico/domain/types/create-submerchant.request';
 
 export const IYZICO_PROVIDER = Symbol('IIyzicoProvider');
 export interface IIyzicoProvider {
@@ -27,6 +32,10 @@ export interface IIyzicoProvider {
   cancelPayment(
     request: CancelPaymentRequest
   ): Promise<WithIyzicoError<Iyzipay.CancelPaymentResult>>;
+
+  createSubMerchant(request: CreateSubMerchantRequest): Promise<SubMerchantResult>;
+
+  updateSubMerchant(request: UpdateSubMerchantRequest): Promise<void>;
 
   get callbackUrl(): string;
 }

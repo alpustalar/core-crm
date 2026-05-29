@@ -7,24 +7,29 @@ import {
   ILeadQueryRepository,
 } from '@modules/lead/domain/repositories/lead.repository.interface';
 import { LeadSource, LeadStatus } from '@prisma/client';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetLeadsQuery)
-export class GetLeadsHandler
-  implements IQueryHandler<GetLeadsQuery, GetLeadsResponse>
-{
+export class GetLeadsHandler implements IQueryHandler<GetLeadsQuery, GetLeadsResponse> {
   constructor(
     @Inject(LEAD_QUERY_REPOSITORY)
     private readonly leadQueryRepo: ILeadQueryRepository,
   ) {}
 
-  execute(query: GetLeadsQuery): Promise<GetLeadsResponse> {
+  async execute(query: GetLeadsQuery): Promise<GetLeadsResponse> {
     const { clinicId, dto, pagination } = query;
-    return this.leadQueryRepo.findMany({
+
+    const result = await this.leadQueryRepo.findMany({
       clinicId,
       status: dto.status as LeadStatus | undefined,
       source: dto.source as LeadSource | undefined,
       assignedToId: dto.assignedToId,
       pagination,
     });
+
+    return {
+      data: result.items,
+      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+    };
   }
 }

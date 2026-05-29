@@ -18,6 +18,7 @@ import { InvoiceIssuedEvent } from '@modules/invoice/domain/events/invoice-issue
 import { InvoiceFailedEvent } from '@modules/invoice/domain/events/invoice-failed.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { InvoiceStatus } from '@prisma/client';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(IssueInvoiceCommand)
 export class IssueInvoiceHandler
@@ -33,7 +34,8 @@ export class IssueInvoiceHandler
     @Inject(INVOICE_PROVIDER)
     private readonly invoiceProvider: IInvoiceProvider,
     @Inject(CONTEXT_SERVICE)
-    private readonly contextService: ContextService
+    private readonly contextService: ContextService,
+    private readonly txManager: TransactionManager,
   ) {}
 
   async execute(command: IssueInvoiceCommand): Promise<IssueInvoiceResponse> {
@@ -47,17 +49,21 @@ export class IssueInvoiceHandler
 
     const invoiceId = crypto.randomUUID();
 
-    const invoice = await this.invoiceCommandRepo.create({
-      id: invoiceId,
-      clinicId: input.clinicId,
-      patientId: input.patientId,
-      appointmentId: input.appointmentId,
-      paymentId: input.paymentId,
-      amount: input.amount,
-      currency: input.currency ?? 'TRY',
-      status: InvoiceStatus.PENDING,
-    });
+    // DB kaydı oluştur (dış servis çağrısından önce, ayrı transaction)
+    const invoice = await this.txManager.run(() =>
+      this.invoiceCommandRepo.create({
+        id: invoiceId,
+        clinicId: input.clinicId,
+        patientId: input.patientId,
+        appointmentId: input.appointmentId,
+        paymentId: input.paymentId,
+        amount: input.amount,
+        currency: input.currency ?? 'TRY',
+        status: InvoiceStatus.PENDING,
+      }),
+    );
 
+    // Dış servis çağrısı transaction dışında
     try {
       const result = await this.invoiceProvider.issue({
         invoiceId,
@@ -69,47 +75,55 @@ export class IssueInvoiceHandler
         currency: invoice.currency,
       });
 
-      const issued = await this.invoiceCommandRepo.markAsIssued({
-        invoiceId,
-        invoiceNumber: result.invoiceNumber,
-        providerRef: result.providerRef,
-        issuedAt: result.issuedAt,
-        rawResponse: result.rawResponse,
-      });
-
-      this.contextService.addEvent(
-        new InvoiceIssuedEvent({
+      // Başarı: güncelleme + event atomik olarak
+      const issued = await this.txManager.outboxRun(async () => {
+        const saved = await this.invoiceCommandRepo.markAsIssued({
           invoiceId,
-          clinicId: input.clinicId,
-          patientId: input.patientId,
-          appointmentId: input.appointmentId,
-          paymentId: input.paymentId,
           invoiceNumber: result.invoiceNumber,
-          action: LogAction.INVOICE_ISSUED,
-          type: LogType.INFO,
-          source: input.source,
-          actorId: input.actorId,
-        })
-      );
+          providerRef: result.providerRef,
+          issuedAt: result.issuedAt,
+          rawResponse: result.rawResponse,
+        });
+
+        this.contextService.addEvent(
+          new InvoiceIssuedEvent({
+            invoiceId,
+            clinicId: input.clinicId,
+            patientId: input.patientId,
+            appointmentId: input.appointmentId,
+            paymentId: input.paymentId,
+            invoiceNumber: result.invoiceNumber,
+            action: LogAction.INVOICE_ISSUED,
+            type: LogType.INFO,
+            source: input.source,
+            actorId: input.actorId,
+          }),
+        );
+
+        return saved;
+      });
 
       return { invoiceId, invoiceNumber: issued.invoiceNumber, status: issued.status };
     } catch (error) {
-      await this.invoiceCommandRepo.markAsFailed(invoiceId);
+      // Hata: güncelleme + event atomik olarak
+      await this.txManager.outboxRun(async () => {
+        await this.invoiceCommandRepo.markAsFailed(invoiceId);
 
-      this.contextService.addEvent(
-        new InvoiceFailedEvent({
-          invoiceId,
-          clinicId: input.clinicId,
-          patientId: input.patientId,
-          appointmentId: input.appointmentId,
-          paymentId: input.paymentId,
-          reason: error instanceof Error ? error.message : 'Bilinmeyen hata',
-          action: LogAction.INVOICE_FAILED,
-          type: LogType.ERROR,
-          source: input.source,
-          actorId: input.actorId,
-        })
-      );
+        this.contextService.addEvent(
+          new InvoiceFailedEvent({
+            invoiceId,
+            clinicId: input.clinicId,
+            patientId: input.patientId,
+            appointmentId: input.appointmentId,
+            paymentId: input.paymentId,
+            reason: error instanceof Error ? error.message : 'Bilinmeyen hata',
+            action: LogAction.INVOICE_FAILED,
+            type: LogType.ERROR,
+            source: input.source,
+            actorId: input.actorId,
+          }),
+        );
+      });
 
       throw error;
     }

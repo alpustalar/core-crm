@@ -20,6 +20,7 @@ export interface IClinicCommandRepository {
 }
 
 export interface IClinicQueryRepository {
+  findById(id: string): Promise<ClinicEntity | null>;
   findByIdWithDetails(id: string): Promise<ClinicDetails | null>;
   findBySlug(slug: string): Promise<ClinicEntity | null>;
   findByIdAsManager(id: string, userId: string): Promise<ClinicEntity | null>;

@@ -26,6 +26,14 @@ export class MetaLeadQueryRepository
     return raw ? new MetaLead(raw) : null;
   }
 
+  async findMatchedLeadByPatientId(patientId: string): Promise<MetaLead | null> {
+    const raw = await this.db.metaLead.findFirst({
+      where: { matchedPatientId: patientId, status: MetaLeadStatus.MATCHED },
+      orderBy: { createdAt: 'desc' },
+    });
+    return raw ? new MetaLead(raw) : null;
+  }
+
   async findByPhone(
     phone: string,
     clinicId: string,

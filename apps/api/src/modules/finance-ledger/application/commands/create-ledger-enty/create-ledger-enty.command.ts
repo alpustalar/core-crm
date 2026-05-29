@@ -2,6 +2,7 @@ import { LedgerCategory, LedgerSource, LedgerType } from '@prisma/client';
 import { IGetContext } from '@common/decorators';
 
 export interface CreateLedgerEntryDto {
+  organizationId: string;
   clinicId: string;
   patientId?: string | null;
   paymentId?: string | null;

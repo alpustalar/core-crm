@@ -17,6 +17,9 @@ model Clinic {
   // Sağlık Bakanlığı tesis kodu — e-Nabız bildirimi için zorunlu
   healthFacilityCode String? @map("health_facility_code")
 
+  // İyzico Marketplace — alt üye işyeri anahtarı
+  iyzicoSubMerchantKey String? @map("iyzico_sub_merchant_key")
+
   status   GlobalStatus @default(ACTIVE)
   timezone String       @default("Europe/Istanbul")
 

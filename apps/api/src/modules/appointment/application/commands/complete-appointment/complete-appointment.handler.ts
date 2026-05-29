@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CompleteAppointmentCommand } from './complete-appointment.command';
-import { CompleteAppointmentCommandResponse } from './complete-appointment.response';
 import { Inject, NotFoundException } from '@nestjs/common';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
@@ -13,14 +12,11 @@ import {
   POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(CompleteAppointmentCommand)
 export class CompleteAppointmentHandler
-  implements
-    ICommandHandler<
-      CompleteAppointmentCommand,
-      CompleteAppointmentCommandResponse
-    >
+  implements ICommandHandler<CompleteAppointmentCommand, void>
 {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
@@ -28,35 +24,37 @@ export class CompleteAppointmentHandler
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager,
   ) {}
 
-  async execute(
-    command: CompleteAppointmentCommand
-  ): Promise<CompleteAppointmentCommandResponse> {
+  async execute(command: CompleteAppointmentCommand): Promise<void> {
     const { appointmentId, ctx } = command;
     const { actor } = ctx;
-    const appointment = await this.appointmentQueryRepo.findById(appointmentId);
 
-    if (!appointment) {
-      throw new NotFoundException('Randevu bulunamadı.');
-    }
+    await this.txManager.run(async () => {
+      const appointment = await this.appointmentQueryRepo.findById(appointmentId);
 
-    this.policyFactory
-      .appointment(actor)
-      .evaluator.check(
-        (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
-        'Bu randevuya erişim yetkiniz yok.'
-      )
-      .orThrow();
+      if (!appointment) {
+        throw new NotFoundException('Randevu bulunamadı.');
+      }
 
-    appointment.complete({
-      action: LogAction.APPOINTMENT_COMPLETE,
-      type: LogType.INFO,
-      actorId: actor.userId,
-      source: actor.source,
+      this.policyFactory
+        .appointment(actor)
+        .evaluator.check(
+          (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
+          'Bu randevuya erişim yetkiniz yok.'
+        )
+        .orThrow();
+
+      appointment.complete({
+        action: LogAction.APPOINTMENT_COMPLETE,
+        type: LogType.INFO,
+        actorId: actor.userId,
+        source: actor.source,
+      });
+
+      await this.appointmentCommandRepo.save(appointment);
     });
-
-    await this.appointmentCommandRepo.save(appointment);
   }
 }
