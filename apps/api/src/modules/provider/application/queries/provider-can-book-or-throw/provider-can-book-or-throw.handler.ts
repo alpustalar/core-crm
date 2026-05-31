@@ -9,13 +9,13 @@ import {
   PROVIDER_QUERY_REPOSITORY,
 } from '@modules/provider/domain/repositories/provider.repository.interface';
 import { ProviderScheduleEntity } from '@modules/provider/domain/entities/provider-schedule.entity';
-import { AssertProviderCanBookOrThrowQuery } from './assert-provider-can-book-or-throw.query';
+import { ProviderCanBookOrThrowQuery } from './provider-can-book-or-throw.query';
 import { OperationMode } from '@prisma/client';
 import { DateTimeManager } from '@common/utils';
 
-@QueryHandler(AssertProviderCanBookOrThrowQuery)
-export class AssertProviderCanBookOrThrowHandler
-  implements IQueryHandler<AssertProviderCanBookOrThrowQuery, void>
+@QueryHandler(ProviderCanBookOrThrowQuery)
+export class ProviderCanBookOrThrowHandler
+  implements IQueryHandler<ProviderCanBookOrThrowQuery, void>
 {
   constructor(
     @Inject(PROVIDER_AVAILABILITY_REPOSITORY)
@@ -24,7 +24,7 @@ export class AssertProviderCanBookOrThrowHandler
     private readonly providerQueryRepo: IProviderQueryRepository
   ) {}
 
-  async execute(query: AssertProviderCanBookOrThrowQuery): Promise<void> {
+  async execute(query: ProviderCanBookOrThrowQuery): Promise<void> {
     const { providerId, startTime, endTime } = query;
 
     const provider = await this.providerQueryRepo.findById(providerId);

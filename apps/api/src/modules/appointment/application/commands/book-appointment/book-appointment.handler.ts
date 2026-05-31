@@ -10,8 +10,8 @@ import { AppointmentSlotService } from '@modules/appointment/domain/services/app
 import { AppointmentPrismaMapper } from '@modules/appointment/infrastructure/persistence/prisma/mapper/appointment-prisma.mapper';
 import { BookAppointmentCommandResponse } from '@modules/appointment/application/commands/book-appointment/book-appointment.response';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { AssertProviderCanBookOrThrowQuery } from '@modules/provider/application/queries/assert-provider-can-book/assert-provider-can-book-or-throw.query';
-import { AssertClinicCanBookOrThrowQuery } from '@modules/clinic/application/queries/assert-clinic-can-book-or-throw/assert-clinic-can-book-or-throw.query';
+import { ClinicCanBookOrThrowQuery } from '@modules/clinic/application/queries/clinic-can-book-or-throw/clinic-can-book-or-throw.query';
+import { ProviderCanBookOrThrowQuery } from '@modules/provider/application/queries/provider-can-book-or-throw/provider-can-book-or-throw.query';
 
 @CommandHandler(BookAppointmentCommand)
 export class BookAppointmentHandler
@@ -46,19 +46,19 @@ export class BookAppointmentHandler
       duration
     );
 
-    this.appointmentSlotService.assertFifteenMinuteBoundaryOrThrow(startTime);
-    this.appointmentSlotService.assertFifteenMinuteBoundaryOrThrow(endTime);
+    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(startTime);
+    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(endTime);
 
     await Promise.all([
       this.queryBus.execute(
-        new AssertClinicCanBookOrThrowQuery(clinicId, startTime, endTime)
+        new ClinicCanBookOrThrowQuery(clinicId, startTime, endTime)
       ),
       this.queryBus.execute(
-        new AssertProviderCanBookOrThrowQuery(providerId, startTime, endTime)
+        new ProviderCanBookOrThrowQuery(providerId, startTime, endTime)
       ),
     ]);
 
-    await this.appointmentChecker.assertNoConflictOrThrow({
+    await this.appointmentChecker.noConflictOrThrow({
       providerId,
       startTime,
       endTime,

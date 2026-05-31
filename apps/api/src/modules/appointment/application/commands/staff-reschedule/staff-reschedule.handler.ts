@@ -48,8 +48,8 @@ export class StaffRescheduleHandler
       duration
     );
 
-    this.appointmentSlotService.assertFifteenMinuteBoundaryOrThrow(startTime);
-    this.appointmentSlotService.assertFifteenMinuteBoundaryOrThrow(endTime);
+    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(startTime);
+    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(endTime);
 
     const appointment = await this.appointmentQueryRepo.findById(appointmentId);
     if (!appointment) {
@@ -64,7 +64,7 @@ export class StaffRescheduleHandler
 
     const effectiveProviderId = dtoProviderId ?? appointment.providerId;
 
-    await this.appointmentChecker.assertNoConflictOrThrow({
+    await this.appointmentChecker.noConflictOrThrow({
       providerId: effectiveProviderId,
       startTime,
       endTime,

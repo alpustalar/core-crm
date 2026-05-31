@@ -1,4 +1,4 @@
-export interface AssertProviderCanBookProps {
+export interface ProviderCanBookOrThrowProps {
   providerId: string;
   startTime: Date;
   endTime: Date;

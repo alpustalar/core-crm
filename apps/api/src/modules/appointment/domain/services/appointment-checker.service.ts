@@ -10,19 +10,21 @@ import { FindConflictingAppointmentProps } from '@modules/appointment/domain/typ
 export class AppointmentChecker {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
+    private readonly appointmentQueryRepo: IAppointmentQueryRepository
   ) {}
 
-  async assertNoConflictOrThrow({
+  async noConflictOrThrow({
     providerId,
     startTime,
     endTime,
   }: FindConflictingAppointmentProps) {
-    const conflict = await this.appointmentQueryRepo.findConflictingAppointment({
-      providerId,
-      startTime,
-      endTime,
-    });
+    const conflict = await this.appointmentQueryRepo.findConflictingAppointment(
+      {
+        providerId,
+        startTime,
+        endTime,
+      }
+    );
 
     if (conflict) {
       throw new ConflictException(

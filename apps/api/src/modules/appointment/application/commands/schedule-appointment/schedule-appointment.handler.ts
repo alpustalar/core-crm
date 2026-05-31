@@ -88,7 +88,7 @@ export class ScheduleAppointmentHandler
       duration ?? DEFAULT_DURATION_MINUTES
     );
 
-    await this.appointmentChecker.assertNoConflictOrThrow({
+    await this.appointmentChecker.noConflictOrThrow({
       providerId,
       startTime: start,
       endTime,
