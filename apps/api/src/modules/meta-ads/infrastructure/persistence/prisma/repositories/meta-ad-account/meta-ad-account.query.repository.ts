@@ -33,6 +33,18 @@ export class MetaAdAccountQueryRepository
     return rows.map((r) => new MetaAdAccount(r));
   }
 
+  async findExpiringSoon(withinDays: number): Promise<MetaAdAccount[]> {
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() + withinDays);
+    const rows = await this.db.metaAdAccount.findMany({
+      where: {
+        isActive: true,
+        tokenExpiresAt: { lte: threshold },
+      },
+    });
+    return rows.map((r) => new MetaAdAccount(r));
+  }
+
   async findByClinicAndAdAccountId(
     clinicId: string,
     adAccountId: string,

@@ -4,6 +4,7 @@ import { SyncCampaignMetricsHandler } from './sync-campaign-metrics/sync-campaig
 import { ProcessMetaLeadHandler } from './process-meta-lead/process-meta-lead.handler';
 import { MatchLeadToPatientHandler } from './match-lead-to-patient/match-lead-to-patient.handler';
 import { HandleMetaOAuthCallbackHandler } from './handle-meta-oauth-callback/handle-meta-oauth-callback.handler';
+import { RefreshMetaTokensHandler } from './refresh-meta-tokens/refresh-meta-tokens.handler';
 import { MetaAdAccountRepositoryModule } from '@modules/meta-ads/infrastructure/persistence/prisma/repositories/meta-ad-account/meta-ad-account.repository.module';
 import { MetaLeadRepositoryModule } from '@modules/meta-ads/infrastructure/persistence/prisma/repositories/meta-lead/meta-lead.repository.module';
 import { MetaCampaignMetricRepositoryModule } from '@modules/meta-ads/infrastructure/persistence/prisma/repositories/meta-campaign-metric/meta-campaign-metric.repository.module';
@@ -19,6 +20,7 @@ export const META_ADS_COMMAND_HANDLERS = [
   ProcessMetaLeadHandler,
   MatchLeadToPatientHandler,
   HandleMetaOAuthCallbackHandler,
+  RefreshMetaTokensHandler,
 ];
 
 @Module({

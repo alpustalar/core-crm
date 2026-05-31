@@ -21,4 +21,5 @@ export const POS_JOBS = {
 
 export const META_ADS_JOBS = {
   SYNC_CAMPAIGN_METRICS: 'meta-ads-sync-campaign-metrics',
+  REFRESH_TOKENS: 'meta-ads-refresh-tokens',
 } as const;

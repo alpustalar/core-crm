@@ -13,6 +13,15 @@ export class MetaAdsSyncProducer implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await this.metaAdsQueue.add(
+      META_ADS_JOBS.REFRESH_TOKENS,
+      {},
+      {
+        repeat: { pattern: '0 1 * * *' }, // her gece 01:00 — sync'ten önce
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+    await this.metaAdsQueue.add(
       META_ADS_JOBS.SYNC_CAMPAIGN_METRICS,
       {},
       {
@@ -21,6 +30,6 @@ export class MetaAdsSyncProducer implements OnModuleInit {
         removeOnFail: false,
       },
     );
-    this.logger.log('Meta Ads günlük senkronizasyon zamanlandı (02:00)');
+    this.logger.log('Meta Ads görevleri zamanlandı (token refresh: 01:00, sync: 02:00)');
   }
 }

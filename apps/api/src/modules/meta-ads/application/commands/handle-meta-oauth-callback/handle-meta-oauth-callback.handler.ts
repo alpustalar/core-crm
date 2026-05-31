@@ -23,6 +23,7 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 interface OAuthStatePayload {
   clinicId: string;
@@ -49,7 +50,8 @@ export class HandleMetaOAuthCallbackHandler
     private readonly metaApi: MetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
     private readonly redis: RedisService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    private readonly txManager: TransactionManager,
   ) {}
 
   async execute(
@@ -73,24 +75,24 @@ export class HandleMetaOAuthCallbackHandler
       ENV.META_OAUTH_REDIRECT_URI
     );
 
-    const shortLivedToken = await this.metaApi.exchangeCodeForToken(
+    const shortLived = await this.metaApi.exchangeCodeForToken(
       code,
       appId,
       appSecret,
-      redirectUri
+      redirectUri,
     );
-    const longLivedToken = await this.metaApi.extendToLongLivedToken(
-      shortLivedToken,
+    const longLived = await this.metaApi.extendToLongLivedToken(
+      shortLived.accessToken,
       appId,
-      appSecret
+      appSecret,
     );
 
     const [adAccounts, pages] = await Promise.all([
-      this.metaApi.getAdAccounts(longLivedToken),
-      this.metaApi.getPages(longLivedToken),
+      this.metaApi.getAdAccounts(longLived.accessToken),
+      this.metaApi.getPages(longLived.accessToken),
     ]);
 
-    const encryptedToken = this.tokenCipher.encrypt(longLivedToken);
+    const encryptedToken = this.tokenCipher.encrypt(longLived.accessToken);
     const firstPage = pages[0];
 
     let connectedAccounts = 0;
@@ -98,35 +100,38 @@ export class HandleMetaOAuthCallbackHandler
     for (const adAccount of adAccounts) {
       const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
         clinicId,
-        adAccount.id
+        adAccount.id,
       );
       if (existing) continue;
 
-      const account = await this.accountCommandRepo.create({
-        id: randomUUID(),
-        clinicId,
-        adAccountId: adAccount.id,
-        accessToken: encryptedToken,
-        pageId: firstPage?.id ?? null,
-        businessName: adAccount.name ?? null,
-      });
+      await this.txManager.run(async () => {
+        const account = await this.accountCommandRepo.create({
+          id: randomUUID(),
+          clinicId,
+          adAccountId: adAccount.id,
+          accessToken: encryptedToken,
+          tokenExpiresAt: longLived.expiresAt,
+          pageId: firstPage?.id ?? null,
+          businessName: adAccount.name ?? null,
+        });
 
-      this.eventPublisher.accountConnected({
-        metaAdAccountId: account.id,
-        clinicId,
-        adAccountId: adAccount.id,
-        actorId: userId,
-        source: LogSource.WEB,
-        action: LogAction.META_ADS_ACCOUNT_CONNECTED,
-        type: LogType.INFO,
-        details: `Meta hesap OAuth ile bağlandı: ${adAccount.id}`,
+        this.eventPublisher.accountConnected({
+          metaAdAccountId: account.id,
+          clinicId,
+          adAccountId: adAccount.id,
+          actorId: userId,
+          source: LogSource.WEB,
+          action: LogAction.META_ADS_ACCOUNT_CONNECTED,
+          type: LogType.INFO,
+          details: `Meta hesap OAuth ile bağlandı: ${adAccount.id}`,
+        });
       });
 
       connectedAccounts++;
     }
 
     this.logger.log(
-      `OAuth callback: ${connectedAccounts} hesap bağlandı (clinic: ${clinicId})`
+      `OAuth callback: ${connectedAccounts} hesap bağlandı (clinic: ${clinicId})`,
     );
 
     return { connectedAccounts };

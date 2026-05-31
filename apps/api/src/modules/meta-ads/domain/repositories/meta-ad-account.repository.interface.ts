@@ -18,6 +18,7 @@ export interface IMetaAdAccountQueryRepository {
   findById(id: string): Promise<MetaAdAccount | null>;
   findByClinicId(clinicId: string): Promise<MetaAdAccount[]>;
   findAllActive(): Promise<MetaAdAccount[]>;
+  findExpiringSoon(withinDays: number): Promise<MetaAdAccount[]>;
   findByClinicAndAdAccountId(
     clinicId: string,
     adAccountId: string,

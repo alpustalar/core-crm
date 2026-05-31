@@ -3,6 +3,7 @@ export interface CreateMetaAdAccountProps {
   clinicId: string;
   adAccountId: string;
   accessToken: string;
+  tokenExpiresAt: Date | null;
   pageId?: string;
   businessName?: string;
 }

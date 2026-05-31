@@ -102,7 +102,7 @@ export class MetaMarketingApiService {
     appId: string,
     appSecret: string,
     redirectUri: string,
-  ): Promise<string> {
+  ): Promise<MetaTokenResult> {
     const params = new URLSearchParams({
       client_id: appId,
       client_secret: appSecret,
@@ -117,15 +117,18 @@ export class MetaMarketingApiService {
       const err = await res.text();
       throw new Error(`Meta token exchange hatası: ${res.status} ${err}`);
     }
-    const json = (await res.json()) as { access_token: string };
-    return json.access_token;
+    const json = (await res.json()) as { access_token: string; expires_in?: number };
+    return {
+      accessToken: json.access_token,
+      expiresAt: json.expires_in ? this.expiresInToDate(json.expires_in) : null,
+    };
   }
 
   async extendToLongLivedToken(
     shortLivedToken: string,
     appId: string,
     appSecret: string,
-  ): Promise<string> {
+  ): Promise<MetaTokenResult> {
     const params = new URLSearchParams({
       grant_type: 'fb_exchange_token',
       client_id: appId,
@@ -140,8 +143,15 @@ export class MetaMarketingApiService {
       const err = await res.text();
       throw new Error(`Meta token uzatma hatası: ${res.status} ${err}`);
     }
-    const json = (await res.json()) as { access_token: string };
-    return json.access_token;
+    const json = (await res.json()) as { access_token: string; expires_in?: number };
+    return {
+      accessToken: json.access_token,
+      expiresAt: json.expires_in ? this.expiresInToDate(json.expires_in) : null,
+    };
+  }
+
+  private expiresInToDate(expiresInSeconds: number): Date {
+    return new Date(Date.now() + expiresInSeconds * 1000);
   }
 
   async getAdAccounts(accessToken: string): Promise<MetaAdAccountInfo[]> {
@@ -203,4 +213,9 @@ export interface MetaAdAccountInfo {
 export interface MetaPageInfo {
   id: string;
   name: string;
+}
+
+export interface MetaTokenResult {
+  accessToken: string;
+  expiresAt: Date | null;
 }

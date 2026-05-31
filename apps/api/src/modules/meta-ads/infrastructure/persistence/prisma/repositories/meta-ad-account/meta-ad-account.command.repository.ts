@@ -21,6 +21,7 @@ export class MetaAdAccountCommandRepository
         clinicId: props.clinicId,
         adAccountId: props.adAccountId,
         accessToken: props.accessToken,
+        tokenExpiresAt: props.tokenExpiresAt ?? null,
         pageId: props.pageId ?? null,
         businessName: props.businessName ?? null,
       },
