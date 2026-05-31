@@ -7,12 +7,9 @@ import {
 } from '@modules/user/domain/repositories/user.repository';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUsersByClinicIdCommand } from '@modules/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-users-by-clinic-id.command';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER,
-} from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { SoftDeleteManyUserByClinicIdResponse } from '@modules/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-user-by-clinic-id.response';
+import { RedisService } from '@common/redis/redis.service';
 
 @CommandHandler(SoftDeleteManyUsersByClinicIdCommand)
 export class SoftDeleteManyUsersByClinicIdHandler
@@ -25,17 +22,17 @@ export class SoftDeleteManyUsersByClinicIdHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userRepo: IUserCommandRepository,
-    @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher
+    private readonly redis: RedisService,
   ) {}
 
   @InternalOnly()
   async execute(
     command: SoftDeleteManyUsersByClinicIdCommand
   ): Promise<SoftDeleteManyUserByClinicIdResponse> {
-    await this.userRepo.changeAllStatusByClinicId(
+    const { ids } = await this.userRepo.changeAllStatusByClinicId(
       command.clinicId,
       GlobalStatusSchema.enum.DELETED
     );
+    await Promise.all(ids.map((id) => this.redis.deleteActorContext(id)));
   }
 }

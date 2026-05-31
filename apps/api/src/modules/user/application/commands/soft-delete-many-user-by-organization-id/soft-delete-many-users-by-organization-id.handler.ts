@@ -5,12 +5,9 @@ import {
   IUserCommandRepository,
   USER_COMMAND_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER,
-} from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUserByOrganizationIdResponse } from '@modules/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-user-by-organization-id.response';
+import { RedisService } from '@common/redis/redis.service';
 
 @CommandHandler(SoftDeleteManyUserByOrganizationIdCommand)
 export class SoftDeleteManyUsersByOrganizationIdHandler
@@ -23,8 +20,7 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userRepo: IUserCommandRepository,
-    @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher
+    private readonly redis: RedisService,
   ) {}
 
   @InternalOnly()
@@ -32,6 +28,7 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
     command: SoftDeleteManyUserByOrganizationIdCommand
   ): Promise<SoftDeleteManyUserByOrganizationIdResponse> {
     const { organizationId } = command;
-    await this.userRepo.softDeleteAllByOrganizationId(organizationId);
+    const { ids } = await this.userRepo.softDeleteAllByOrganizationId(organizationId);
+    await Promise.all(ids.map((id) => this.redis.deleteActorContext(id)));
   }
 }

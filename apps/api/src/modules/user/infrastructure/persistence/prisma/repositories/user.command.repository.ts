@@ -69,26 +69,34 @@ export class UserCommandRepository
   async changeAllStatusByClinicId(
     clinicId: string,
     status: GlobalStatusType
-  ): Promise<{ deletedCount: number }> {
+  ): Promise<{ ids: string[]; deletedCount: number }> {
+    const affected = await this.db.user.findMany({
+      where: { clinicId },
+      select: { id: true },
+    });
+    const ids = affected.map((u) => u.id);
     const { count: deletedCount } = await this.db.user.updateMany({
       where: { clinicId },
       data: { status },
     });
-    return { deletedCount };
+    return { ids, deletedCount };
   }
 
   async softDeleteAllByOrganizationId(
     organizationId: string
-  ): Promise<{ deletedCount: number }> {
-    const { count: deletedCount } = await this.db.user.updateMany({
-      where: {
-        workingClinic: { is: { organizationId } },
-      } as Prisma.UserWhereInput,
-      data: {
-        status: GlobalStatus.DELETED,
-        deletedAt: new Date(),
-      },
+  ): Promise<{ ids: string[]; deletedCount: number }> {
+    const where = {
+      workingClinic: { is: { organizationId } },
+    } as Prisma.UserWhereInput;
+    const affected = await this.db.user.findMany({
+      where,
+      select: { id: true },
     });
-    return { deletedCount };
+    const ids = affected.map((u) => u.id);
+    const { count: deletedCount } = await this.db.user.updateMany({
+      where,
+      data: { status: GlobalStatus.DELETED, deletedAt: new Date() },
+    });
+    return { ids, deletedCount };
   }
 }

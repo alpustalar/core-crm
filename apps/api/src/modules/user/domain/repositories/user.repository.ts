@@ -20,10 +20,10 @@ export interface IUserCommandRepository {
   changeAllStatusByClinicId(
     clinicId: string,
     status: GlobalStatusType
-  ): Promise<{ deletedCount: number }>;
+  ): Promise<{ ids: string[]; deletedCount: number }>;
   softDeleteAllByOrganizationId(
     organizationId: string
-  ): Promise<{ deletedCount: number }>;
+  ): Promise<{ ids: string[]; deletedCount: number }>;
 }
 
 export interface IUserQueryRepository {

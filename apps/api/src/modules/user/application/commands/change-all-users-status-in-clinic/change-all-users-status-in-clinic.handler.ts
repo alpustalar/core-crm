@@ -7,6 +7,7 @@ import { ChangeAllUsersStatusInClinicCommand } from '@modules/user/application/c
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ChangeAllUsersStatusInClinicResponse } from '@modules/user/application/commands/change-all-users-status-in-clinic/change-all-users-status-in-clinic.response';
+import { RedisService } from '@common/redis/redis.service';
 
 @CommandHandler(ChangeAllUsersStatusInClinicCommand)
 export class ChangeAllUsersStatusInClinicHandler
@@ -18,7 +19,8 @@ export class ChangeAllUsersStatusInClinicHandler
 {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
-    private readonly userRepo: IUserCommandRepository
+    private readonly userRepo: IUserCommandRepository,
+    private readonly redis: RedisService,
   ) {}
 
   @InternalOnly()
@@ -26,6 +28,7 @@ export class ChangeAllUsersStatusInClinicHandler
     command: ChangeAllUsersStatusInClinicCommand
   ): Promise<ChangeAllUsersStatusInClinicResponse> {
     const { status, clinicId } = command;
-    await this.userRepo.changeAllStatusByClinicId(clinicId, status);
+    const { ids } = await this.userRepo.changeAllStatusByClinicId(clinicId, status);
+    await Promise.all(ids.map((id) => this.redis.deleteActorContext(id)));
   }
 }
