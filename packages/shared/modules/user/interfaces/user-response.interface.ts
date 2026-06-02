@@ -1,9 +1,6 @@
-import { Role, UserStatusSchema } from "@shared/generated-zod";
-import { IProviderResponse } from "../../provider";
-import { z } from "zod";
-import { UserStatusType } from "@shared/generated-zod/inputTypeSchemas/UserStatusSchema";
-
-export type UserStatus = z.infer<typeof UserStatusSchema>;
+import { Role } from '@shared/generated-zod';
+import { IProviderResponse } from '../../provider';
+import { GlobalStatusType } from '@shared/generated-zod/inputTypeSchemas/GlobalStatusSchema';
 
 export interface RelationalDto {
   id: string;
@@ -19,11 +16,12 @@ export interface UserResponse {
   role: Role;
   emailVerified: boolean;
   lastLogin: Date;
-  status: UserStatusType;
+  status: GlobalStatusType;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
   managedClinics?: RelationalDto[];
   ownedOrganizations?: RelationalDto[];
+  providerProfileId?: string | null;
   doctorProfile?: IProviderResponse;
 }

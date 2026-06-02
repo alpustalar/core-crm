@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ClinicOperationModeSchema } from '../inputTypeSchemas/ClinicOperationModeSchema'
 import { GlobalStatusSchema } from '../inputTypeSchemas/GlobalStatusSchema'
 
 /////////////////////////////////////////
@@ -6,6 +7,7 @@ import { GlobalStatusSchema } from '../inputTypeSchemas/GlobalStatusSchema'
 /////////////////////////////////////////
 
 export const ClinicSchema = z.object({
+  operationMode: ClinicOperationModeSchema,
   status: GlobalStatusSchema,
   id: z.uuid(),
   name: z.string(),
@@ -16,6 +18,7 @@ export const ClinicSchema = z.object({
   address: z.string().nullable(),
   city: z.string().nullable(),
   district: z.string().nullable(),
+  consultationSlotDuration: z.number().int(),
   timezone: z.string(),
   logo: z.string().nullable(),
   organizationId: z.string().nullable(),

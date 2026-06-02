@@ -1,0 +1,97 @@
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: core-crm
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d core-crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Applications ────────────────────────────────────────────────────────────
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # env_file loads the .env (API keys, tokens, SMTP, etc.)
+    # The environment block below overrides only the service connection strings.
+    env_file:
+      - apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:mysecretpassword@postgres:5432/core-crm?schema=public
+      MONGODB_URI: mongodb://mongodb:27017/core-crm-audit
+      REDIS_URL: redis://redis:6379
+      ALLOWED_ORIGINS: http://localhost:3000
+      ORIGIN: http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # Firebase Admin SDK — place your service account JSON here before running.
+      # File expected at process.cwd()/secrets/firebase-sdk.json inside the container.
+      - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      # Pass NEXT_PUBLIC_* args here if needed, e.g.:
+      # args:
+      #   NEXT_PUBLIC_API_URL: http://localhost:8080
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:

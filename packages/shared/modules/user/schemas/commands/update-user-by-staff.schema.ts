@@ -1,9 +1,8 @@
 import { z } from 'zod';
-
 import { CreateUserSchema } from '@shared/modules/user/schemas/commands/create-user.schema';
 import { GlobalStatusSchema } from '@shared/generated-zod';
 
-export const UpdateUserByActorSchema = z.lazy(() =>
+export const UpdateUserByStaffSchema = z.lazy(() =>
   CreateUserSchema.omit({ providerProfile: true }).partial().extend({
     status: GlobalStatusSchema.optional(),
     managedClinicIds: z

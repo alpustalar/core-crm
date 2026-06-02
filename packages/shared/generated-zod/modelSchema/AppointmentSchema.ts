@@ -15,6 +15,7 @@ export const AppointmentSchema = z.object({
   patientEmail: z.string().nullable(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
+  timezone: z.string(),
   treatmentType: z.string().nullable(),
   notes: z.string().nullable(),
   canceledAt: z.coerce.date().nullable(),

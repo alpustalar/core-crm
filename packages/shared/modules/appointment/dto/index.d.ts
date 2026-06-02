@@ -1,1 +1,1 @@
-export * from "./create-appointment.dto";
+export * from './root/create-appointment.dto';

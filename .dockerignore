@@ -1,0 +1,15 @@
+**/node_modules
+**/.pnpm-store
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.log
+**/.DS_Store
+.git
+.gitignore
+
+# Secrets — mount these via volumes or env vars
+apps/api/.env
+apps/api/firebase-sdk.json
+apps/api/secrets/

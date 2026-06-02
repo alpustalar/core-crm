@@ -1,1 +1,1 @@
-// export * from "./appointment-response.dto";
+export * from './appointment-response.interface';

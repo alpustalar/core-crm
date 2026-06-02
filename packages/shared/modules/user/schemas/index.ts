@@ -1,3 +1,2 @@
-export * from "./root";
-export * from "./registry";
-export * from "./me";
+export * from './commands';
+export * from './queries';

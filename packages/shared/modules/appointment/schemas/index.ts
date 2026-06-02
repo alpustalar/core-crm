@@ -1,1 +1,2 @@
-export * from "./create-appointment.schema";
+export * from './command/index';
+export * from './queries';

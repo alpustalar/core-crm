@@ -3,3 +3,8 @@ export * from "./provider";
 export * from "./clinic";
 export * from "./appointment";
 export * from "./organization";
+export * from "./payment";
+export * from "./registration";
+export * from "./treatment-package";
+export * from "./patients";
+export * from "./inventory";
