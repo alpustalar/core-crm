@@ -1,7 +1,7 @@
-import { UpdateUserByActor, UserUpdateBySelf } from '@shared';
+import { UpdateUserByStaff, UserUpdateBySelf } from '@shared';
 
 export type UpdateUserProps =
-  | UpdateUserByActor
+  | UpdateUserByStaff
   | UserUpdateBySelf
   | {
       lastLogin: Date;

@@ -13,8 +13,11 @@ import {
   META_CAMPAIGN_METRIC_COMMAND_REPOSITORY,
   IMetaCampaignMetricCommandRepository,
 } from '@modules/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
-import { MetaMarketingApiService } from '@modules/meta-ads/infrastructure/http/meta-marketing-api.service';
-import { TokenCipherService } from '@modules/meta-ads/infrastructure/crypto/token-cipher.service';
+import {
+  IMetaMarketingApiService,
+  META_MARKETING_API_SERVICE,
+} from '@modules/meta-ads/domain/interfaces/meta-marketing-api.interface';
+import { TokenCipherService } from '@common/crypto/token-cipher.service';
 import { DateTimeManager } from '@common/utils';
 
 @CommandHandler(SyncCampaignMetricsCommand)
@@ -31,7 +34,8 @@ export class SyncCampaignMetricsHandler
     private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_CAMPAIGN_METRIC_COMMAND_REPOSITORY)
     private readonly metricCommandRepo: IMetaCampaignMetricCommandRepository,
-    private readonly metaApi: MetaMarketingApiService,
+    @Inject(META_MARKETING_API_SERVICE)
+    private readonly metaApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
   ) {}
 

@@ -1,28 +1,33 @@
-import { Inject, ConflictException } from '@nestjs/common';
+import { ConflictException, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { ConnectMetaAccountCommand } from './connect-meta-account.command';
 import { ConnectMetaAccountResponse } from './connect-meta-account.response';
 import {
-  META_AD_ACCOUNT_COMMAND_REPOSITORY,
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
   IMetaAdAccountCommandRepository,
   IMetaAdAccountQueryRepository,
+  META_AD_ACCOUNT_COMMAND_REPOSITORY,
+  META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/meta-ads/domain/repositories/meta-ad-account.repository.interface';
 import {
-  META_ADS_EVENT_PUBLISHER,
   IMetaAdsEventPublisher,
+  META_ADS_EVENT_PUBLISHER,
 } from '@modules/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
-import { TokenCipherService } from '@modules/meta-ads/infrastructure/crypto/token-cipher.service';
-import { LogAction, LogSource, LogType } from '@src/domain/constants/log-action.constant';
+import { TokenCipherService } from '@common/crypto/token-cipher.service';
 import {
-  POLICY_FACTORY,
+  LogAction,
+  LogSource,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
+import {
   IPolicyFactory,
+  POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ConnectMetaAccountCommand)
 export class ConnectMetaAccountHandler
-  implements ICommandHandler<ConnectMetaAccountCommand, ConnectMetaAccountResponse>
+  implements
+    ICommandHandler<ConnectMetaAccountCommand, ConnectMetaAccountResponse>
 {
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
@@ -37,7 +42,7 @@ export class ConnectMetaAccountHandler
   ) {}
 
   async execute(
-    command: ConnectMetaAccountCommand,
+    command: ConnectMetaAccountCommand
   ): Promise<ConnectMetaAccountResponse> {
     const { dto, clinicId, ctx } = command;
     const { actor, source } = ctx;
@@ -46,19 +51,17 @@ export class ConnectMetaAccountHandler
       .clinic(actor)
       .evaluator.check(
         (p) => p.actorCanManageTargetClinic(clinicId),
-        'Bu klinik için Meta hesabı bağlama yetkiniz yok.',
+        'Bu klinik için Meta hesabı bağlama yetkiniz yok.'
       )
       .orThrow();
 
     const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
       clinicId,
-      dto.adAccountId,
+      dto.adAccountId
     );
 
     if (existing) {
-      throw new ConflictException(
-        'Bu klinik için bu Meta hesabı zaten bağlı.',
-      );
+      throw new ConflictException('Bu klinik için bu Meta hesabı zaten bağlı.');
     }
 
     const encryptedToken = this.tokenCipher.encrypt(dto.accessToken);

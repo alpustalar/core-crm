@@ -18,12 +18,17 @@ export class AppointmentCommandRepository
     super(prisma);
   }
 
-  async create(data: Prisma.AppointmentUncheckedCreateInput): Promise<Appointment> {
+  async create(
+    data: Prisma.AppointmentUncheckedCreateInput
+  ): Promise<Appointment> {
     const raw = await this.db.appointment.create({ data });
     return new Appointment(raw);
   }
 
-  async reschedule(appointmentId: string, data: RescheduleAppointmentProps): Promise<Appointment> {
+  async reschedule(
+    appointmentId: string,
+    data: RescheduleAppointmentProps
+  ): Promise<Appointment> {
     const raw = await this.db.appointment.update({
       where: { id: appointmentId },
       data,
@@ -31,7 +36,10 @@ export class AppointmentCommandRepository
     return new Appointment(raw);
   }
 
-  async cancelById(appointmentId: string, data: CancelAppointmentProps): Promise<Appointment> {
+  async cancelById(
+    appointmentId: string,
+    data: CancelAppointmentProps
+  ): Promise<Appointment> {
     const raw = await this.db.appointment.update({
       where: { id: appointmentId, isDeleted: false },
       data: {
@@ -44,7 +52,10 @@ export class AppointmentCommandRepository
     return new Appointment(raw);
   }
 
-  async changeStatusById(appointmentId: string, status: AppointmentStatusType): Promise<Appointment> {
+  async changeStatusById(
+    appointmentId: string,
+    status: AppointmentStatusType
+  ): Promise<Appointment> {
     const raw = await this.db.appointment.update({
       where: { id: appointmentId, isDeleted: false },
       data: { status },
@@ -52,28 +63,38 @@ export class AppointmentCommandRepository
     return new Appointment(raw);
   }
 
-  async changeStatusByProviderId(providerId: string, status: AppointmentStatusType): Promise<BatchPayload> {
+  async changeStatusByProviderId(
+    providerId: string,
+    status: AppointmentStatusType
+  ): Promise<BatchPayload> {
     return this.db.appointment.updateMany({
       where: { providerId, isDeleted: false },
       data: { status },
     });
   }
 
-  async changeStatusByClinicId(clinicId: string, status: AppointmentStatusType): Promise<BatchPayload> {
+  async changeStatusByClinicId(
+    clinicId: string,
+    status: AppointmentStatusType
+  ): Promise<BatchPayload> {
     return this.db.appointment.updateMany({
       where: { clinicId, isDeleted: false },
       data: { status },
     });
   }
 
-  async softDeleteAllAppointmentsByClinicId(clinicId: Prisma.AppointmentWhereInput['clinicId']): Promise<BatchPayload> {
+  async softDeleteAllAppointmentsByClinicId(
+    clinicId: Prisma.AppointmentWhereInput['clinicId']
+  ): Promise<BatchPayload> {
     return this.db.appointment.updateMany({
       where: { clinicId },
       data: { isDeleted: true, deletedAt: new Date() },
     });
   }
 
-  async softDeleteAllByOrganizationId(organizationId: string): Promise<BatchPayload> {
+  async softDeleteAllByOrganizationId(
+    organizationId: string
+  ): Promise<BatchPayload> {
     return this.db.appointment.updateMany({
       where: { clinic: { organizationId } },
       data: { isDeleted: true, deletedAt: new Date() },

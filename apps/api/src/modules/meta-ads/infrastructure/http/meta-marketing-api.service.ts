@@ -1,48 +1,30 @@
 import * as crypto from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
+import {
+  IMetaMarketingApiService,
+  MetaAdAccountInfo,
+  MetaCampaignInsight,
+  MetaLeadData,
+  MetaPageInfo,
+  MetaTokenResult,
+} from '@modules/meta-ads/domain/interfaces/meta-marketing-api.interface';
 
 const META_API_BASE = 'https://graph.facebook.com/v20.0';
 const META_OAUTH_BASE = 'https://www.facebook.com/v20.0/dialog/oauth';
-const META_OAUTH_SCOPES = 'ads_read,leads_retrieval,pages_show_list,pages_read_engagement';
+const META_OAUTH_SCOPES =
+  'ads_read,leads_retrieval,pages_show_list,pages_read_engagement';
 const DEFAULT_FIELDS =
   'campaign_id,campaign_name,spend,clicks,impressions,cpc,ctr';
 
-export interface MetaCampaignInsight {
-  campaign_id: string;
-  campaign_name: string;
-  spend: string;
-  clicks: string;
-  impressions: string;
-  cpc?: string;
-  ctr?: string;
-  date_start: string;
-  date_stop: string;
-}
-
-export interface MetaLeadField {
-  name: string;
-  values: string[];
-}
-
-export interface MetaLeadData {
-  id: string;
-  created_time: string;
-  field_data: MetaLeadField[];
-  ad_id?: string;
-  adset_id?: string;
-  campaign_id?: string;
-  form_id?: string;
-}
-
 @Injectable()
-export class MetaMarketingApiService {
+export class MetaMarketingApiService implements IMetaMarketingApiService {
   private readonly logger = new Logger(MetaMarketingApiService.name);
 
   async getCampaignInsights(
     adAccountId: string,
     accessToken: string,
     dateFrom: string,
-    dateTo: string,
+    dateTo: string
   ): Promise<MetaCampaignInsight[]> {
     const params = new URLSearchParams({
       access_token: accessToken,
@@ -66,7 +48,7 @@ export class MetaMarketingApiService {
 
   async getLeadData(
     leadId: string,
-    accessToken: string,
+    accessToken: string
   ): Promise<MetaLeadData | null> {
     try {
       const params = new URLSearchParams({
@@ -101,7 +83,7 @@ export class MetaMarketingApiService {
     code: string,
     appId: string,
     appSecret: string,
-    redirectUri: string,
+    redirectUri: string
   ): Promise<MetaTokenResult> {
     const params = new URLSearchParams({
       client_id: appId,
@@ -109,15 +91,17 @@ export class MetaMarketingApiService {
       redirect_uri: redirectUri,
       code,
     });
-    const res = await fetch(
-      `${META_API_BASE}/oauth/access_token?${params}`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
+    const res = await fetch(`${META_API_BASE}/oauth/access_token?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Meta token exchange hatası: ${res.status} ${err}`);
     }
-    const json = (await res.json()) as { access_token: string; expires_in?: number };
+    const json = (await res.json()) as {
+      access_token: string;
+      expires_in?: number;
+    };
     return {
       accessToken: json.access_token,
       expiresAt: json.expires_in ? this.expiresInToDate(json.expires_in) : null,
@@ -127,7 +111,7 @@ export class MetaMarketingApiService {
   async extendToLongLivedToken(
     shortLivedToken: string,
     appId: string,
-    appSecret: string,
+    appSecret: string
   ): Promise<MetaTokenResult> {
     const params = new URLSearchParams({
       grant_type: 'fb_exchange_token',
@@ -135,23 +119,21 @@ export class MetaMarketingApiService {
       client_secret: appSecret,
       fb_exchange_token: shortLivedToken,
     });
-    const res = await fetch(
-      `${META_API_BASE}/oauth/access_token?${params}`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
+    const res = await fetch(`${META_API_BASE}/oauth/access_token?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Meta token uzatma hatası: ${res.status} ${err}`);
     }
-    const json = (await res.json()) as { access_token: string; expires_in?: number };
+    const json = (await res.json()) as {
+      access_token: string;
+      expires_in?: number;
+    };
     return {
       accessToken: json.access_token,
       expiresAt: json.expires_in ? this.expiresInToDate(json.expires_in) : null,
     };
-  }
-
-  private expiresInToDate(expiresInSeconds: number): Date {
-    return new Date(Date.now() + expiresInSeconds * 1000);
   }
 
   async getAdAccounts(accessToken: string): Promise<MetaAdAccountInfo[]> {
@@ -160,10 +142,9 @@ export class MetaMarketingApiService {
       fields: 'id,name,account_id',
       limit: '50',
     });
-    const res = await fetch(
-      `${META_API_BASE}/me/adaccounts?${params}`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
+    const res = await fetch(`${META_API_BASE}/me/adaccounts?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return [];
     const json = (await res.json()) as { data: MetaAdAccountInfo[] };
     return json.data ?? [];
@@ -175,10 +156,9 @@ export class MetaMarketingApiService {
       fields: 'id,name',
       limit: '50',
     });
-    const res = await fetch(
-      `${META_API_BASE}/me/accounts?${params}`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
+    const res = await fetch(`${META_API_BASE}/me/accounts?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return [];
     const json = (await res.json()) as { data: MetaPageInfo[] };
     return json.data ?? [];
@@ -187,7 +167,7 @@ export class MetaMarketingApiService {
   verifyWebhookSignature(
     rawBody: Buffer,
     signature: string,
-    appSecret: string,
+    appSecret: string
   ): boolean {
     try {
       const expected = `sha256=${crypto
@@ -196,26 +176,14 @@ export class MetaMarketingApiService {
         .digest('hex')}`;
       return crypto.timingSafeEqual(
         Buffer.from(expected),
-        Buffer.from(signature),
+        Buffer.from(signature)
       );
     } catch {
       return false;
     }
   }
-}
 
-export interface MetaAdAccountInfo {
-  id: string;
-  name: string;
-  account_id: string;
-}
-
-export interface MetaPageInfo {
-  id: string;
-  name: string;
-}
-
-export interface MetaTokenResult {
-  accessToken: string;
-  expiresAt: Date | null;
+  private expiresInToDate(expiresInSeconds: number): Date {
+    return new Date(Date.now() + expiresInSeconds * 1000);
+  }
 }

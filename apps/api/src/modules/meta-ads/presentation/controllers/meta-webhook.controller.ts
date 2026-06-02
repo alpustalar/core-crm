@@ -15,7 +15,10 @@ import {
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from '@common/constants/env.constant';
-import { MetaMarketingApiService } from '@modules/meta-ads/infrastructure/http/meta-marketing-api.service';
+import {
+  IMetaMarketingApiService,
+  META_MARKETING_API_SERVICE,
+} from '@modules/meta-ads/domain/interfaces/meta-marketing-api.interface';
 import { ProcessMetaLeadCommand } from '@modules/meta-ads/application/commands/process-meta-lead/process-meta-lead.command';
 import {
   IMetaAdAccountQueryRepository,
@@ -46,7 +49,8 @@ export class MetaWebhookController {
   constructor(
     private readonly configService: ConfigService,
     private readonly commandBus: TSCommandBus,
-    private readonly metaApi: MetaMarketingApiService,
+    @Inject(META_MARKETING_API_SERVICE)
+    private readonly metaApi: IMetaMarketingApiService,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository
   ) {}

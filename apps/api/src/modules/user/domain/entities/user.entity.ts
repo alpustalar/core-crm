@@ -1,12 +1,14 @@
 import type { Clinic, Role, User as IUser } from '@shared';
 import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { UpdateDetailsProps } from '@modules/user/domain/types/update-details.props';
 
 export type UserWithRelations = IUser & {
   role: Role | null;
   workingClinic: Clinic | null;
   managedClinicIds: string[];
   ownedOrganizationIds: string[];
+  providerProfileId: string | null;
 };
 
 export class User extends AggregateRoot implements IUser {
@@ -24,16 +26,24 @@ export class User extends AggregateRoot implements IUser {
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt ?? null;
+    this._phoneNumber = data.phoneNumber ?? null;
     this._role = data.role ?? null;
     this._workingClinic = data.workingClinic ?? null;
     this._managedClinicIds = data.managedClinicIds ?? [];
     this._ownedOrganizationIds = data.ownedOrganizationIds ?? [];
+    this._providerProfileId = data.providerProfileId ?? null;
   }
 
   private _ownedOrganizationIds: string[] | null;
 
   get ownedOrganizationIds(): string[] | null {
     return this._ownedOrganizationIds;
+  }
+
+  private _providerProfileId: string | null;
+
+  get providerProfileId(): string | null {
+    return this._providerProfileId;
   }
 
   private _managedClinicIds: string[] | null;
@@ -82,6 +92,12 @@ export class User extends AggregateRoot implements IUser {
 
   get picture(): string | null {
     return this._picture;
+  }
+
+  private _phoneNumber: string | null;
+
+  get phoneNumber(): string | null {
+    return this._phoneNumber;
   }
 
   private _clinicId: string | null;
@@ -140,6 +156,40 @@ export class User extends AggregateRoot implements IUser {
     return this._managedClinicIds?.includes(clinicId) ?? false;
   }
 
+  updateDetails(props: UpdateDetailsProps): void {
+    if (this.isDeleted) {
+      throw new Error('Silinmiş bir kullanıcı güncellenemez.');
+    }
+
+    if (props.displayName !== undefined) this._displayName = props.displayName;
+    if (props.picture !== undefined) this._picture = props.picture;
+    if (props.phoneNumber !== undefined) this._phoneNumber = props.phoneNumber;
+    if (props.status !== undefined) this._status = props.status;
+    if (props.roleId !== undefined) this._roleId = props.roleId;
+    if (props.clinicId !== undefined) this._clinicId = props.clinicId;
+  }
+
+  changeStatus(status: GlobalStatusType): void {
+    this._status = status;
+  }
+
+  canSoftDelete(): boolean {
+    return !(this.role && this.role.priority >= 100);
+  }
+
+  softDelete(): void {
+    if (!this.canSoftDelete()) {
+      throw new Error('Sistem yöneticisi (Admin) hesabı silinemez.');
+    }
+
+    if (this.isDeleted) {
+      return;
+    }
+
+    this._deletedAt = new Date();
+    this._status = 'DELETED';
+  }
+
   toPersistence(): IUser {
     return {
       id: this._id,
@@ -149,6 +199,7 @@ export class User extends AggregateRoot implements IUser {
       status: this._status,
       roleId: this._roleId,
       picture: this._picture,
+      phoneNumber: this._phoneNumber,
       clinicId: this._clinicId,
       lastLogin: this._lastLogin,
       createdAt: this._createdAt,

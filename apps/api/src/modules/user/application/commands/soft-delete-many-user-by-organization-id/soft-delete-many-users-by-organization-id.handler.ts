@@ -20,7 +20,7 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userRepo: IUserCommandRepository,
-    private readonly redis: RedisService,
+    private readonly redis: RedisService
   ) {}
 
   @InternalOnly()
@@ -28,7 +28,8 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
     command: SoftDeleteManyUserByOrganizationIdCommand
   ): Promise<SoftDeleteManyUserByOrganizationIdResponse> {
     const { organizationId } = command;
-    const { ids } = await this.userRepo.softDeleteAllByOrganizationId(organizationId);
+    const { ids } =
+      await this.userRepo.softDeleteAllByOrganizationId(organizationId);
     await Promise.all(ids.map((id) => this.redis.deleteActorContext(id)));
   }
 }

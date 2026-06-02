@@ -1,4 +1,7 @@
-import { ActorContext, PatientActorContext } from '@common/interfaces/actor-context.type';
+import {
+  ActorContext,
+  PatientActorContext,
+} from '@common/interfaces/actor-context.type';
 import { Capability, Role, RoleCapability, User } from '@prisma/client';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
 import { Request } from 'express';

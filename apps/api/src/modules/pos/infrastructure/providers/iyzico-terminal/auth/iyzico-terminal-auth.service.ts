@@ -24,7 +24,7 @@ export class IyzicoTerminalAuthService {
 
   constructor(
     private readonly tokenStore: IyzicoTerminalTokenStore,
-    private readonly config: ConfigService,
+    private readonly config: ConfigService
   ) {
     this.baseUrl =
       this.config.get<string>(ENV.IYZICO_TERMINAL_BASE_URL) ??
@@ -36,7 +36,9 @@ export class IyzicoTerminalAuthService {
    * Önce cache kontrol edilir; yakında dolacaksa refresh denenir,
    * başarısız olursa veya cache yoksa tam login akışı çalışır.
    */
-  async getAccessToken(credentials: IyzicoTerminalCredentials): Promise<string> {
+  async getAccessToken(
+    credentials: IyzicoTerminalCredentials
+  ): Promise<string> {
     const cached = this.tokenStore.get(credentials.clientId);
 
     if (cached && !this.tokenStore.isExpiringSoon(cached)) {
@@ -49,7 +51,7 @@ export class IyzicoTerminalAuthService {
         return refreshed.accessToken;
       } catch (err) {
         this.logger.warn(
-          `iyzico terminal token refresh başarısız, yeniden login yapılıyor: ${(err as Error).message}`,
+          `iyzico terminal token refresh başarısız, yeniden login yapılıyor: ${(err as Error).message}`
         );
         this.tokenStore.delete(credentials.clientId);
       }
@@ -69,7 +71,7 @@ export class IyzicoTerminalAuthService {
   // ---------------------------------------------------------------------------
 
   private async login(
-    credentials: IyzicoTerminalCredentials,
+    credentials: IyzicoTerminalCredentials
   ): Promise<IyzicoTerminalCachedToken> {
     const code = await this.getAuthCode(credentials);
     const tokenResponse = await this.exchangeCode(credentials, code);
@@ -77,7 +79,7 @@ export class IyzicoTerminalAuthService {
   }
 
   private async getAuthCode(
-    credentials: IyzicoTerminalCredentials,
+    credentials: IyzicoTerminalCredentials
   ): Promise<string> {
     const params = new URLSearchParams({
       scope: 'iyzipayApiGateway',
@@ -101,20 +103,20 @@ export class IyzicoTerminalAuthService {
       throw new IyzicoTerminalAuthError(
         `iyzico terminal authorize başarısız: ${res.status}`,
         res.status,
-        body,
+        body
       );
     }
 
     const data = (await res.json()) as IyzicoTerminalAuthCodeResponse;
     this.logger.debug(
-      `iyzico terminal auth code alındı — clientId=${credentials.clientId}`,
+      `iyzico terminal auth code alındı — clientId=${credentials.clientId}`
     );
     return data.code;
   }
 
   private async exchangeCode(
     credentials: IyzicoTerminalCredentials,
-    code: string,
+    code: string
   ): Promise<IyzicoTerminalTokenResponse> {
     return this.callTokenEndpoint(credentials, {
       grant_type: 'authorization_code',
@@ -124,7 +126,7 @@ export class IyzicoTerminalAuthService {
 
   private async refresh(
     credentials: IyzicoTerminalCredentials,
-    refreshToken: string,
+    refreshToken: string
   ): Promise<IyzicoTerminalCachedToken> {
     const tokenResponse = await this.callTokenEndpoint(credentials, {
       grant_type: 'refresh_token',
@@ -135,10 +137,10 @@ export class IyzicoTerminalAuthService {
 
   private async callTokenEndpoint(
     credentials: IyzicoTerminalCredentials,
-    body: Record<string, string>,
+    body: Record<string, string>
   ): Promise<IyzicoTerminalTokenResponse> {
     const basicAuth = Buffer.from(
-      `${credentials.clientId}:${credentials.clientSecret}`,
+      `${credentials.clientId}:${credentials.clientSecret}`
     ).toString('base64');
 
     const url = `${this.baseUrl}${IYZICO_TERMINAL_PATHS.TOKEN}`;
@@ -154,7 +156,7 @@ export class IyzicoTerminalAuthService {
     if (!res.ok) {
       const responseBody = await res.text();
       throw new IyzicoTerminalTokenRefreshError(
-        `iyzico terminal token isteği başarısız: ${res.status} — ${responseBody}`,
+        `iyzico terminal token isteği başarısız: ${res.status} — ${responseBody}`
       );
     }
 
@@ -163,7 +165,7 @@ export class IyzicoTerminalAuthService {
 
   private cacheToken(
     clientId: string,
-    response: IyzicoTerminalTokenResponse,
+    response: IyzicoTerminalTokenResponse
   ): IyzicoTerminalCachedToken {
     const token: IyzicoTerminalCachedToken = {
       accessToken: response.access_token,
@@ -172,7 +174,7 @@ export class IyzicoTerminalAuthService {
     };
     this.tokenStore.set(clientId, token);
     this.logger.debug(
-      `iyzico terminal token önbelleğe alındı — clientId=${clientId} expiresIn=${response.expires_in}s`,
+      `iyzico terminal token önbelleğe alındı — clientId=${clientId} expiresIn=${response.expires_in}s`
     );
     return token;
   }

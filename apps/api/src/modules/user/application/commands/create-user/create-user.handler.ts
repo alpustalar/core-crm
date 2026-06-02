@@ -1,3 +1,5 @@
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { ActorContext } from '@common/interfaces';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
@@ -6,7 +8,9 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { ConvertUserToProviderCommand } from '@modules/provider/application/commands';
 import { CreateUserCommand } from '@modules/user/application/commands/create-user/create-user.command';
+import { CreateUserResponse } from '@modules/user/application/commands/create-user/create-user.response';
 import {
   IUserEventPublisher,
   USER_EVENT_PUBLISHER,
@@ -15,19 +19,22 @@ import {
   IUserCommandRepository,
   USER_COMMAND_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
-import { Inject, InternalServerErrorException } from '@nestjs/common';
+import { CreateUserInternalRelations } from '@modules/user/domain/types/create-user-internal-relations.type';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CreateProviderDto, CreateUserDto } from '@shared';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { CreateProviderDto, CreateUserDto } from '@shared';
-import { ActorContext } from '@common/interfaces';
-import { CreateUserResponse } from '@modules/user/application/commands/create-user/create-user.response';
-import { CreateUserInternalRelations } from '@modules/user/domain/types/create-user-internal-relations.type';
-import { ConvertUserToProviderCommand } from '@modules/provider/application/commands';
-import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
-import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+
+interface CreateUserInput {
+  dto: CreateUserDto;
+  clinicId?: string;
+  firebaseUid: string;
+  internalRelations?: CreateUserInternalRelations;
+}
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler
@@ -43,10 +50,10 @@ export class CreateUserHandler
     @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
     private readonly commandBus: TSCommandBus,
-    private readonly transactionManager: TransactionManager
+    private readonly transactionManager: TransactionManager,
   ) {}
 
-  async execute(command: CreateUserCommand): Promise<CreateUserResponse> {
+  async execute(command: CreateUserCommand): Promise<string> {
     const {
       dto,
       ctx: { actor, source },
@@ -54,51 +61,22 @@ export class CreateUserHandler
     } = command;
     const clinicId = actor.clinicId ?? dto.clinicId;
 
-    if (ExecutionPolicy.isSystemInitiated(source)) {
-      let firebaseUid: string | undefined;
-
-      try {
-        const firebaseResult = await this.createFirebaseUser(dto);
-        firebaseUid = firebaseResult.firebaseUid;
-        const uid = firebaseUid;
-        await this.transactionManager.run(async () => {
-          const user = await this.createUser({
-            dto,
-            clinicId,
-            internalRelations,
-            firebaseUid: uid,
-          });
-
-          if (dto.providerProfile && clinicId) {
-            await this.createProviderProfile(
-              user.id,
-              clinicId,
-              dto.providerProfile
-            );
-          }
-
-          return { id: user.id };
-        });
-      } catch (e) {
-        this.rollback(actor, e, firebaseUid);
-      }
-    }
-
-    const { evaluator } = this.policyFactory.user(actor);
-
-    if (dto.roleId && clinicId) {
-      evaluator
+    if (!ExecutionPolicy.isSystemInitiated(source) && dto.roleId && clinicId) {
+      const { evaluator } = this.policyFactory.user(actor);
+      await evaluator
         .check(
           (p) => p.isTargetInActorsManagedClinic(clinicId),
-          'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.'
+          'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.',
         )
-        .orThrow((msg) => {
-          this.userEventPublisher.create({
-            action: LogAction.USER_REGISTER,
-            actorId: actor.userId,
-            details: msg,
-            source: actor.source,
-            type: LogType.SECURITY,
+        .orAsyncThrow(async (msg) => {
+          await this.transactionManager.run(async () => {
+            this.userEventPublisher.create({
+              action: LogAction.USER_REGISTER,
+              actorId: actor.userId,
+              details: msg,
+              source: actor.source,
+              type: LogType.SECURITY,
+            });
           });
         });
     }
@@ -106,45 +84,25 @@ export class CreateUserHandler
     let firebaseUid: string | undefined;
 
     try {
-      const firebaseResult = await this.createFirebaseUser(dto);
-      firebaseUid = firebaseResult.firebaseUid;
+      const { firebaseUid: uid } = await this.createFirebaseUser(dto);
+      firebaseUid = uid;
 
-      await this.transactionManager.run(async () => {
-        const user = await this.createUser({
-          dto,
-          clinicId,
-          firebaseUid: firebaseUid!,
-        });
+      return await this.transactionManager.run(async () => {
+        const user = await this.createUser({ dto, clinicId, firebaseUid: uid, internalRelations });
 
         if (dto.providerProfile && clinicId) {
-          await this.createProviderProfile(
-            user.id,
-            clinicId,
-            dto.providerProfile
-          );
+          await this.createProviderProfile(user.id, clinicId, dto.providerProfile);
         }
+
+        return user.id;
       });
     } catch (e) {
       this.rollback(actor, e, firebaseUid);
     }
   }
 
-  private async createUser({
-    dto,
-    internalRelations,
-    firebaseUid,
-    clinicId,
-  }: {
-    dto: CreateUserDto;
-    clinicId?: string;
-    firebaseUid: string;
-    internalRelations?: CreateUserInternalRelations;
-  }) {
-    if (!firebaseUid) {
-      throw new InternalServerErrorException('Firebase Uid bulunamadı');
-    }
-
-    return await this.userRepo.create({
+  private async createUser({ dto, internalRelations, firebaseUid, clinicId }: CreateUserInput) {
+    return this.userRepo.create({
       id: firebaseUid,
       email: dto.email,
       displayName: dto.displayName,
@@ -156,11 +114,7 @@ export class CreateUserHandler
     });
   }
 
-  private rollback(
-    actor: ActorContext,
-    error: any,
-    firebaseUid?: string
-  ): never {
+  private rollback(actor: ActorContext, error: unknown, firebaseUid?: string): never {
     if (firebaseUid) {
       this.userEventPublisher.enqueueForceDelete({
         firebaseUid,
@@ -175,21 +129,13 @@ export class CreateUserHandler
   private async createProviderProfile(
     userId: string,
     clinicId: string,
-    profileDto: CreateProviderDto
+    profileDto: CreateProviderDto,
   ) {
-    const {
-      providerSpecialtyId,
-      providerTitleId,
-      publicPhone,
-      publicEmail,
-      isActive,
-    } = profileDto;
+    const { providerSpecialtyId, providerTitleId, publicPhone, publicEmail, isActive } = profileDto;
 
     await this.commandBus.execute(
       new ConvertUserToProviderCommand(
-        ExecutionContextFactory.createInternal(
-          ExecutionSources.INTERNAL_CASCADE
-        ),
+        ExecutionContextFactory.createInternal(ExecutionSources.INTERNAL_CASCADE),
         {
           userId,
           titleId: providerTitleId!,
@@ -198,22 +144,17 @@ export class CreateUserHandler
           publicPhone,
           publicEmail,
           isActive,
-        }
-      )
+        },
+      ),
     );
   }
 
-  private async createFirebaseUser(
-    dto: CreateUserDto
-  ): Promise<{ firebaseUid: string }> {
+  private async createFirebaseUser(dto: CreateUserDto): Promise<{ firebaseUid: string }> {
     const firebaseUser = await this.firebaseService.createUser({
       displayName: dto.displayName,
       email: dto.email,
       password: dto.password,
     });
-
-    return {
-      firebaseUid: firebaseUser.uid,
-    };
+    return { firebaseUid: firebaseUser.uid };
   }
 }

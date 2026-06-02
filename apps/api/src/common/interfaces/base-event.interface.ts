@@ -8,10 +8,6 @@ export interface EventMetadata {
   version: number; // Yarın bir gün event yapısı değişirse hayat kurtarır
 }
 
-/**
- * Dosya seviyesinde bir helper.
- * Sadece bu dosya ve BaseEvent tarafından bilinmesi yeterli.
- */
 const getContextCorrelationId = (): string => {
   const store = txStorage.getStore();
   return store?.correlationId ?? crypto.randomUUID();

@@ -15,7 +15,7 @@ export function InternalOnly() {
     }
 
     descriptor.value = function (this: unknown, ...args: any[]): any {
-      // Argümanlar arasında context'i ara
+      // Arglar arasında context'i ara
 
       const context = args.find((arg) => {
         // Doğrudan context mi?
@@ -33,7 +33,7 @@ export function InternalOnly() {
         return false;
       });
 
-      // Bulunan context'i belirle (direkt argüman mı yoksa command.context mi?)
+      // Bulunan context'i belirle - direkt argüman mı yoksa command.context mi
       const actualContext = context?.source ? context : context?.context;
 
       if (

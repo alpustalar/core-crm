@@ -50,6 +50,12 @@ export class RedisService {
     await this.redis.del(REDIS_KEYS.AUTH.ACTOR_CACHE(userId));
   }
 
+  async deleteManyActorContexts(userIds: string[]): Promise<void> {
+    if (userIds.length === 0) return;
+    const keys = userIds.map((id) => REDIS_KEYS.AUTH.ACTOR_CACHE(id));
+    await this.redis.unlink(...keys);
+  }
+
   // ─── Auth: Token Blocklist ────────────────────────────────────────────────
 
   async blockToken(rawToken: string, ttlSeconds: number): Promise<void> {

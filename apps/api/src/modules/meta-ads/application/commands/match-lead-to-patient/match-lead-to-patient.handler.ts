@@ -20,6 +20,8 @@ export class MatchLeadToPatientHandler
     private readonly leadQueryRepo: IMetaLeadQueryRepository,
   ) {}
 
+  // TODO lead module oluşturuldu. handler oraya geçirilecek
+  
   async execute(
     command: MatchLeadToPatientCommand,
   ): Promise<MatchLeadToPatientResponse> {

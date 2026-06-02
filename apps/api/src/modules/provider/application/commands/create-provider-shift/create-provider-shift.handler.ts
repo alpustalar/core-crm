@@ -29,7 +29,7 @@ export class CreateProviderShiftHandler
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager,
-    private readonly queryBus: TSQueryBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(command: CreateProviderShiftCommand): Promise<void> {
@@ -52,16 +52,16 @@ export class CreateProviderShiftHandler
 
       if (!provider.isShiftMode()) {
         throw new BadRequestException(
-          'Vardiya yalnızca SHIFT modundaki uzmanlar için tanımlanabilir.',
+          'Vardiya yalnızca SHIFT modundaki uzmanlar için tanımlanabilir.'
         );
       }
 
       await this.queryBus.execute(
-        new ValidateTimeWithinClinicHoursOrThrowQuery(provider.clinicId, shifts),
+        new ValidateTimeWithinClinicHoursOrThrowQuery(provider.clinicId, shifts)
       );
 
       await this.providerAvailabilityRepo.upsertManyShifts(
-        shifts.map((s) => ({ ...s, providerId })),
+        shifts.map((s) => ({ ...s, providerId }))
       );
     });
   }

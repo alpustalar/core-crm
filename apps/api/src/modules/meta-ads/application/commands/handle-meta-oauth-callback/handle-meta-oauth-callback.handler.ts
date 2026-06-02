@@ -14,15 +14,14 @@ import {
   IMetaAdsEventPublisher,
   META_ADS_EVENT_PUBLISHER,
 } from '@modules/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
-import { MetaMarketingApiService } from '@modules/meta-ads/infrastructure/http/meta-marketing-api.service';
-import { TokenCipherService } from '@modules/meta-ads/infrastructure/crypto/token-cipher.service';
+import {
+  IMetaMarketingApiService,
+  META_MARKETING_API_SERVICE,
+} from '@modules/meta-ads/domain/interfaces/meta-marketing-api.interface';
+import { TokenCipherService } from '@common/crypto/token-cipher.service';
 import { RedisService } from '@common/redis/redis.service';
 import { ENV } from '@common/constants/env.constant';
-import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
+import { LogAction, LogSource, LogType, } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 interface OAuthStatePayload {
@@ -47,11 +46,12 @@ export class HandleMetaOAuthCallbackHandler
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
-    private readonly metaApi: MetaMarketingApiService,
+    @Inject(META_MARKETING_API_SERVICE)
+    private readonly metaApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
     private readonly redis: RedisService,
     private readonly config: ConfigService,
-    private readonly txManager: TransactionManager,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -79,12 +79,12 @@ export class HandleMetaOAuthCallbackHandler
       code,
       appId,
       appSecret,
-      redirectUri,
+      redirectUri
     );
     const longLived = await this.metaApi.extendToLongLivedToken(
       shortLived.accessToken,
       appId,
-      appSecret,
+      appSecret
     );
 
     const [adAccounts, pages] = await Promise.all([
@@ -100,7 +100,7 @@ export class HandleMetaOAuthCallbackHandler
     for (const adAccount of adAccounts) {
       const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
         clinicId,
-        adAccount.id,
+        adAccount.id
       );
       if (existing) continue;
 
@@ -131,7 +131,7 @@ export class HandleMetaOAuthCallbackHandler
     }
 
     this.logger.log(
-      `OAuth callback: ${connectedAccounts} hesap bağlandı (clinic: ${clinicId})`,
+      `OAuth callback: ${connectedAccounts} hesap bağlandı (clinic: ${clinicId})`
     );
 
     return { connectedAccounts };

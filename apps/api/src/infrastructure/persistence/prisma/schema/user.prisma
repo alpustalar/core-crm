@@ -11,7 +11,8 @@ model User {
   roleId   String
   clinicId String? @map("clinic_id")
 
-  picture String?
+  picture     String?
+  phoneNumber String? @map("phone_number")
 
   role               Role           @relation(fields: [roleId], references: [id])
   workingClinic      Clinic?        @relation("clinic_staff", fields: [clinicId], references: [id])

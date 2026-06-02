@@ -21,7 +21,6 @@ import { THROTTLE_CONFIG } from '@common/constants';
 import {
   CheckEmailDto,
   PaginationDto,
-  UpdateUserByActorDto,
   UserSoftDeleteByActorDto,
 } from '@shared';
 import { Serialize } from '@modules/user/presentation/decorators/serialize.decorator';
@@ -37,6 +36,7 @@ import { FindAllUsersForManagerQuery } from '@modules/user/application/queries/f
 import { UserTransformInterceptor } from '@modules/user/presentation/user-transform.interceptor';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { UpdateUserByStaffDto } from '@shared/modules/user/dto/commands/update-user-by-staff.dto';
 
 const { USER } = CAPABILITIES;
 
@@ -74,7 +74,7 @@ export class UserController {
   @HasCapability(USER.update)
   updateUserByActor(
     @Param('id') id: string,
-    @Body() dto: UpdateUserByActorDto,
+    @Body() dto: UpdateUserByStaffDto,
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(new UpdateUserByStaffCommand(id, dto, ctx));

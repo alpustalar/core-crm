@@ -5,7 +5,7 @@ import { MetaOAuthController } from './controllers/meta-oauth.controller';
 import { MetaAdsCommandModule } from '@modules/meta-ads/application/commands/command.module';
 import { MetaAdsQueryModule } from '@modules/meta-ads/application/queries/query.module';
 import { MetaAdAccountRepositoryModule } from '@modules/meta-ads/infrastructure/persistence/prisma/repositories/meta-ad-account/meta-ad-account.repository.module';
-import { MetaMarketingApiService } from '@modules/meta-ads/infrastructure/http/meta-marketing-api.service';
+import { MetaMarketingApiModule } from '@modules/meta-ads/infrastructure/http/meta-marketing-api.module';
 import { RedisModule } from '@common/redis/redis.module';
 
 @Module({
@@ -13,9 +13,10 @@ import { RedisModule } from '@common/redis/redis.module';
     MetaAdsCommandModule,
     MetaAdsQueryModule,
     MetaAdAccountRepositoryModule,
+    MetaMarketingApiModule,
     RedisModule,
   ],
   controllers: [MetaAdsController, MetaWebhookController, MetaOAuthController],
-  providers: [MetaMarketingApiService],
+  providers: [],
 })
 export class MetaAdsPresentationModule {}

@@ -1,23 +1,24 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UpdateUserByStaffCommand } from './update-user-by-staff.command';
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { RedisService } from '@common/redis/redis.service';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { UpdateUserByStaffResponse } from '@modules/user/application/commands/update-user-by-staff/update-user-by-staff.response';
+import {
+  IUserEventPublisher,
+  USER_EVENT_PUBLISHER,
+} from '@modules/user/domain/interfaces/user-event-publisher.interface';
 import {
   IUserCommandRepository,
   IUserQueryRepository,
   USER_COMMAND_REPOSITORY,
   USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/policy/domain/interfaces/policy-factory.interface';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER,
-} from '@modules/user/domain/interfaces/user-event-publisher.interface';
-import { UpdateUserByStaffResponse } from '@modules/user/application/commands/update-user-by-staff/update-user-by-staff.response';
-import { RedisService } from '@common/redis/redis.service';
+import { Inject, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { UpdateUserByStaffCommand } from './update-user-by-staff.command';
 
 @CommandHandler(UpdateUserByStaffCommand)
 export class UpdateUserByStaffHandler
@@ -34,6 +35,7 @@ export class UpdateUserByStaffHandler
     @Inject(USER_EVENT_PUBLISHER)
     private readonly userEventPublisher: IUserEventPublisher,
     private readonly redis: RedisService,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -80,23 +82,19 @@ export class UpdateUserByStaffHandler
         });
       });
 
-    // Business Logic
-    if (dto.providerProfile && !dto.clinicId) {
-      throw new BadRequestException(
-        'Provider profil oluşturmak için Klinik ID zorunludur.'
-      );
-    }
+    await this.txManager.run(async () => {
+      targetUser.updateDetails(dto);
+      await this.userCommandRepo.save(targetUser);
+      await this.redis.deleteActorContext(targetUserId);
 
-    await this.userCommandRepo.update(targetUserId, dto);
-    await this.redis.deleteActorContext(targetUserId);
-
-    this.userEventPublisher.updateUserByStaff({
-      userId: targetUserId,
-      type: LogType.INFO,
-      actorId: actor.userId,
-      details: 'Kullanıcı bilgileri başarıyla güncellendi.',
-      source: actor.source,
-      action: LogAction.USER_UPDATE,
+      this.userEventPublisher.updateUserByStaff({
+        userId: targetUserId,
+        type: LogType.INFO,
+        actorId: actor.userId,
+        details: 'Kullanıcı bilgileri başarıyla güncellendi.',
+        source: actor.source,
+        action: LogAction.USER_UPDATE,
+      });
     });
   }
 }

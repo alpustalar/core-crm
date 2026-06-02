@@ -16,6 +16,7 @@ const NULL_USER_RELATIONS = {
   workingClinic: null,
   managedClinicIds: [],
   ownedOrganizationIds: [],
+  providerProfileId: null,
 };
 
 const USER_SELECT = {
@@ -84,6 +85,22 @@ export class UserQueryRepository
     });
     if (!raw) return null;
     return new User({ ...raw, ...NULL_USER_RELATIONS });
+  }
+
+  async findAllActiveByClinicId(clinicId: string): Promise<User[]> {
+    const raws = await this.db.user.findMany({
+      where: { clinicId, status: { not: GlobalStatus.DELETED } },
+      include: { role: true },
+    });
+    return raws.map((raw) => new User({ ...raw, ...NULL_USER_RELATIONS }));
+  }
+
+  async findAllByClinicId(clinicId: string): Promise<User[]> {
+    const raws = await this.db.user.findMany({
+      where: { clinicId, status: { not: GlobalStatus.DELETED } },
+      include: { role: true },
+    });
+    return raws.map((raw) => new User({ ...raw, ...NULL_USER_RELATIONS }));
   }
 
   checkEmailExists(email: string): Promise<number> {

@@ -20,8 +20,6 @@ export class UpdateLastLoginHandler
     command: UpdateLastLoginCommand
   ): Promise<UpdateLastLoginResponse> {
     const { userId } = command;
-    await this.userRepo.update(userId, {
-      lastLogin: new Date(),
-    });
+    await this.userRepo.updateLastLogin(userId);
   }
 }

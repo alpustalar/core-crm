@@ -11,8 +11,11 @@ import {
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/meta-ads/domain/repositories/meta-ad-account.repository.interface';
-import { MetaMarketingApiService } from '@modules/meta-ads/infrastructure/http/meta-marketing-api.service';
-import { TokenCipherService } from '@modules/meta-ads/infrastructure/crypto/token-cipher.service';
+import {
+  IMetaMarketingApiService,
+  META_MARKETING_API_SERVICE,
+} from '@modules/meta-ads/domain/interfaces/meta-marketing-api.interface';
+import { TokenCipherService } from '@common/crypto/token-cipher.service';
 import { ENV } from '@common/constants/env.constant';
 
 const REFRESH_WITHIN_DAYS = 7;
@@ -28,7 +31,8 @@ export class RefreshMetaTokensHandler
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
     private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
-    private readonly metaApi: MetaMarketingApiService,
+    @Inject(META_MARKETING_API_SERVICE)
+    private readonly metaApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
     private readonly config: ConfigService,
   ) {}

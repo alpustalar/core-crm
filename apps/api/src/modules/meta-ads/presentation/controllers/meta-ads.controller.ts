@@ -48,7 +48,7 @@ export class MetaAdsController {
 
   @Delete('clinics/:clinicId/accounts/:accountId')
   disconnectAccount() {
-    // TODO: implement DisconnectMetaAccountCommand
+    // TODO: DisconnectMetaAccountCommand handler ekle
   }
 
   @Get('clinics/:clinicId/accounts')

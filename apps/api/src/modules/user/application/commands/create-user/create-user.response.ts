@@ -1,1 +1,1 @@
-export type CreateUserResponse = void;
+export type CreateUserResponse = string;

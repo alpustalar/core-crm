@@ -1,16 +1,14 @@
-// update-user-by-self.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UpdateUserBySelfCommand } from './update-user-by-self.command';
-import { Inject } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import {
   IUserCommandRepository,
+  IUserQueryRepository,
   USER_COMMAND_REPOSITORY,
+  USER_QUERY_REPOSITORY,
 } from '@modules/user/domain/repositories/user.repository';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER,
-} from '@modules/user/domain/interfaces/user-event-publisher.interface';
-import { UpdateUserBySelfResponse } from '@modules/user/application/commands/update-user-by-self/update-user-by-self.response';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { UpdateUserBySelfCommand } from './update-user-by-self.command';
+import { UpdateUserBySelfResponse } from './update-user-by-self.response';
 
 @CommandHandler(UpdateUserBySelfCommand)
 export class UpdateUserBySelfHandler
@@ -18,16 +16,26 @@ export class UpdateUserBySelfHandler
 {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
-    private readonly userRepo: IUserCommandRepository,
-    @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher
+    private readonly userCommandRepo: IUserCommandRepository,
+    @Inject(USER_QUERY_REPOSITORY)
+    private readonly userQueryRepo: IUserQueryRepository,
+    private readonly txManager: TransactionManager,
   ) {}
 
-  async execute(
-    command: UpdateUserBySelfCommand
-  ): Promise<UpdateUserBySelfResponse> {
+  async execute(command: UpdateUserBySelfCommand): Promise<void> {
     const { dto, actor } = command;
 
-    await this.userRepo.update(actor.userId, dto);
+    const user = await this.userQueryRepo.find(actor.userId);
+    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
+
+    user.updateDetails({
+      displayName: dto.displayName,
+      picture: dto.picture,
+      phoneNumber: dto.phoneNumber,
+    });
+
+    await this.txManager.run(async () => {
+      await this.userCommandRepo.save(user);
+    });
   }
 }
