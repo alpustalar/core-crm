@@ -1,5 +1,7 @@
 import { GlobalStatus, Organization as IOrganization } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { OrganizationSoftDeleteEvent } from '@modules/organization/domain/events/organization-soft-delete.event';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 export class Organization extends AggregateRoot implements IOrganization {
   constructor(data: IOrganization) {
@@ -96,12 +98,22 @@ export class Organization extends AggregateRoot implements IOrganization {
     return this._deletedAt !== null;
   }
 
-  public softDelete(): void {
+  public softDelete(actorId: string): void {
     if (this.isDeleted()) {
       throw new Error('Organizasyon zaten silinmiş.');
     }
     this._status = GlobalStatus.DELETED;
     this._deletedAt = new Date();
+    this.addDomainEvent(
+      new OrganizationSoftDeleteEvent({
+        organizationId: this._id,
+        organizationName: this._name,
+        actorId,
+        action: LogAction.ORGANIZATION_SOFT_DELETE,
+        type: LogType.INFO,
+        details: `Organizasyon silindi: ${this._name}`,
+      })
+    );
   }
 
   public suspend(): void {

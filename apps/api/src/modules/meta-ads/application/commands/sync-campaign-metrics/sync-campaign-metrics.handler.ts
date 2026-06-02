@@ -4,14 +4,14 @@ import { randomUUID } from 'crypto';
 import { SyncCampaignMetricsCommand } from './sync-campaign-metrics.command';
 import { SyncCampaignMetricsResponse } from './sync-campaign-metrics.response';
 import {
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
-  META_AD_ACCOUNT_COMMAND_REPOSITORY,
-  IMetaAdAccountQueryRepository,
   IMetaAdAccountCommandRepository,
+  IMetaAdAccountQueryRepository,
+  META_AD_ACCOUNT_COMMAND_REPOSITORY,
+  META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/meta-ads/domain/repositories/meta-ad-account.repository.interface';
 import {
-  META_CAMPAIGN_METRIC_COMMAND_REPOSITORY,
   IMetaCampaignMetricCommandRepository,
+  META_CAMPAIGN_METRIC_COMMAND_REPOSITORY,
 } from '@modules/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
 import {
   IMetaMarketingApiService,
@@ -36,11 +36,11 @@ export class SyncCampaignMetricsHandler
     private readonly metricCommandRepo: IMetaCampaignMetricCommandRepository,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,
-    private readonly tokenCipher: TokenCipherService,
+    private readonly tokenCipher: TokenCipherService
   ) {}
 
   async execute(
-    command: SyncCampaignMetricsCommand,
+    command: SyncCampaignMetricsCommand
   ): Promise<SyncCampaignMetricsResponse> {
     const accounts = command.clinicId
       ? await this.accountQueryRepo.findByClinicId(command.clinicId)
@@ -58,7 +58,7 @@ export class SyncCampaignMetricsHandler
           account.adAccountId,
           token,
           dateStr,
-          dateStr,
+          dateStr
         );
 
         if (insights.length > 0) {
@@ -74,7 +74,7 @@ export class SyncCampaignMetricsHandler
               impressions: parseInt(insight.impressions ?? '0', 10),
               cpc: insight.cpc ? parseFloat(insight.cpc) : null,
               ctr: insight.ctr ? parseFloat(insight.ctr) : null,
-            })),
+            }))
           );
           syncedMetrics += insights.length;
         }
@@ -85,7 +85,7 @@ export class SyncCampaignMetricsHandler
       } catch (err) {
         this.logger.error(
           `Meta Ads senkronizasyonu başarısız: ${account.adAccountId}`,
-          err,
+          err
         );
       }
     }

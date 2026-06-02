@@ -19,7 +19,7 @@ export class UpdateUserBySelfHandler
     private readonly userCommandRepo: IUserCommandRepository,
     @Inject(USER_QUERY_REPOSITORY)
     private readonly userQueryRepo: IUserQueryRepository,
-    private readonly txManager: TransactionManager,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: UpdateUserBySelfCommand): Promise<void> {
@@ -28,11 +28,14 @@ export class UpdateUserBySelfHandler
     const user = await this.userQueryRepo.find(actor.userId);
     if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
 
-    user.updateDetails({
-      displayName: dto.displayName,
-      picture: dto.picture,
-      phoneNumber: dto.phoneNumber,
-    });
+    user.updateDetails(
+      {
+        displayName: dto.displayName,
+        picture: dto.picture,
+        phoneNumber: dto.phoneNumber,
+      },
+      actor.userId
+    );
 
     await this.txManager.run(async () => {
       await this.userCommandRepo.save(user);

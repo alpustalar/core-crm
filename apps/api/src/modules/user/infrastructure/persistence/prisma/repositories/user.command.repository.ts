@@ -2,6 +2,7 @@ import { GlobalStatus, Prisma, User as PrismaUser } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
 import { IUserCommandRepository } from '@modules/user/domain/repositories/user.repository';
 import { User } from '@modules/user/domain/entities/user.entity';
@@ -52,21 +53,30 @@ export class UserCommandRepository
   }
 
   async saveMany(users: User[]): Promise<void> {
-    await Promise.all(
-      users.map((u) =>
-        this.db.user.update({
-          where: { id: u.id },
-          data: u.toPersistence() as Prisma.UserUncheckedUpdateInput,
-        })
-      )
-    );
+    const prismaQueries = users.map((u) => {
+      const data = u.toPersistence();
+      return this.db.user.upsert({
+        where: { id: u.id },
+        create: data as Prisma.UserUncheckedCreateInput,
+        update: data as Prisma.UserUncheckedUpdateInput,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
     users.forEach((u) => u.flushEvents());
   }
 
   async save(entity: User): Promise<User> {
-    const raw = await this.db.user.update({
+    const data = entity.toPersistence();
+    const raw = await this.db.user.upsert({
       where: { id: entity.id },
-      data: entity.toPersistence() as Prisma.UserUncheckedUpdateInput,
+      create: data as Prisma.UserUncheckedCreateInput,
+      update: data as Prisma.UserUncheckedUpdateInput,
     });
     entity.flushEvents();
     return new User({
@@ -83,13 +93,6 @@ export class UserCommandRepository
     return this.db.user.update({
       where: { id },
       data: { lastLogin: new Date() },
-    });
-  }
-
-  softDelete(id: string): Promise<PrismaUser> {
-    return this.db.user.update({
-      where: { id },
-      data: { status: GlobalStatus.DELETED, deletedAt: new Date() },
     });
   }
 

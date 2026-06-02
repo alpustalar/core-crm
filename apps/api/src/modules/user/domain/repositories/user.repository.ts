@@ -16,7 +16,6 @@ export interface IUserCommandRepository {
   save(entity: User): Promise<User>;
   saveMany(users: User[]): Promise<void>;
   updateLastLogin(userId: string): Promise<PrismaUser>;
-  softDelete(userId: string): Promise<PrismaUser>;
   softDeleteAllByOrganizationId(
     organizationId: string
   ): Promise<{ ids: string[]; deletedCount: number }>;

@@ -3,7 +3,6 @@ import { IOrganizationCommandRepository } from '@modules/organization/domain/rep
 import { CreateOrganizationProps } from '@modules/organization/domain/types/create-organization.props';
 import { UpdateOrganizationProps } from '@modules/organization/domain/types/update-organization.props';
 import { Injectable } from '@nestjs/common';
-import { GlobalStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 
@@ -29,21 +28,23 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async softDelete(id: string): Promise<Organization> {
-    const raw = await this.db.organization.update({
-      where: { id },
-      data: {
-        status: GlobalStatus.DELETED,
-        deletedAt: new Date(),
-      },
-    });
-    return new Organization(raw);
-  }
-
   async save(entity: Organization): Promise<void> {
     await this.db.organization.update({
       where: { id: entity.id },
       data: entity.toPersistence(),
     });
+    entity.flushEvents();
+  }
+
+  async saveMany(entities: Organization[]): Promise<void> {
+    await Promise.all(
+      entities.map((entity) =>
+        this.db.organization.update({
+          where: { id: entity.id },
+          data: entity.toPersistence(),
+        })
+      )
+    );
+    entities.forEach((entity) => entity.flushEvents());
   }
 }

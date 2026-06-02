@@ -15,8 +15,8 @@ export interface IOrganizationCommandRepository {
     organizationId: string,
     data: UpdateOrganizationProps
   ): Promise<Organization>;
-  softDelete(id: string): Promise<Organization>;
   save(entity: Organization): Promise<void>;
+  saveMany(entities: Organization[]): Promise<void>;
 }
 
 export interface IOrganizationQueryRepository {

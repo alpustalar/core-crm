@@ -50,7 +50,7 @@ export class CreateUserHandler
     @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
     private readonly commandBus: TSCommandBus,
-    private readonly transactionManager: TransactionManager,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(command: CreateUserCommand): Promise<string> {
@@ -66,7 +66,7 @@ export class CreateUserHandler
       await evaluator
         .check(
           (p) => p.isTargetInActorsManagedClinic(clinicId),
-          'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.',
+          'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.'
         )
         .orAsyncThrow(async (msg) => {
           await this.transactionManager.run(async () => {
@@ -85,13 +85,21 @@ export class CreateUserHandler
 
     try {
       const { firebaseUid: uid } = await this.createFirebaseUser(dto);
-      firebaseUid = uid;
 
       return await this.transactionManager.run(async () => {
-        const user = await this.createUser({ dto, clinicId, firebaseUid: uid, internalRelations });
+        const user = await this.createUser({
+          dto,
+          clinicId,
+          firebaseUid: uid,
+          internalRelations,
+        });
 
         if (dto.providerProfile && clinicId) {
-          await this.createProviderProfile(user.id, clinicId, dto.providerProfile);
+          await this.createProviderProfile(
+            user.id,
+            clinicId,
+            dto.providerProfile
+          );
         }
 
         return user.id;
@@ -101,7 +109,12 @@ export class CreateUserHandler
     }
   }
 
-  private async createUser({ dto, internalRelations, firebaseUid, clinicId }: CreateUserInput) {
+  private async createUser({
+    dto,
+    internalRelations,
+    firebaseUid,
+    clinicId,
+  }: CreateUserInput) {
     return this.userRepo.create({
       id: firebaseUid,
       email: dto.email,
@@ -114,7 +127,11 @@ export class CreateUserHandler
     });
   }
 
-  private rollback(actor: ActorContext, error: unknown, firebaseUid?: string): never {
+  private rollback(
+    actor: ActorContext,
+    error: unknown,
+    firebaseUid?: string
+  ): never {
     if (firebaseUid) {
       this.userEventPublisher.enqueueForceDelete({
         firebaseUid,
@@ -129,13 +146,21 @@ export class CreateUserHandler
   private async createProviderProfile(
     userId: string,
     clinicId: string,
-    profileDto: CreateProviderDto,
+    profileDto: CreateProviderDto
   ) {
-    const { providerSpecialtyId, providerTitleId, publicPhone, publicEmail, isActive } = profileDto;
+    const {
+      providerSpecialtyId,
+      providerTitleId,
+      publicPhone,
+      publicEmail,
+      isActive,
+    } = profileDto;
 
     await this.commandBus.execute(
       new ConvertUserToProviderCommand(
-        ExecutionContextFactory.createInternal(ExecutionSources.INTERNAL_CASCADE),
+        ExecutionContextFactory.createInternal(
+          ExecutionSources.INTERNAL_CASCADE
+        ),
         {
           userId,
           titleId: providerTitleId!,
@@ -144,12 +169,14 @@ export class CreateUserHandler
           publicPhone,
           publicEmail,
           isActive,
-        },
-      ),
+        }
+      )
     );
   }
 
-  private async createFirebaseUser(dto: CreateUserDto): Promise<{ firebaseUid: string }> {
+  private async createFirebaseUser(
+    dto: CreateUserDto
+  ): Promise<{ firebaseUid: string }> {
     const firebaseUser = await this.firebaseService.createUser({
       displayName: dto.displayName,
       email: dto.email,

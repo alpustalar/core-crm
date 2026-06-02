@@ -83,18 +83,9 @@ export class UpdateUserByStaffHandler
       });
 
     await this.txManager.run(async () => {
-      targetUser.updateDetails(dto);
+      targetUser.updateDetails(dto, actor.userId);
       await this.userCommandRepo.save(targetUser);
       await this.redis.deleteActorContext(targetUserId);
-
-      this.userEventPublisher.updateUserByStaff({
-        userId: targetUserId,
-        type: LogType.INFO,
-        actorId: actor.userId,
-        details: 'Kullanıcı bilgileri başarıyla güncellendi.',
-        source: actor.source,
-        action: LogAction.USER_UPDATE,
-      });
     });
   }
 }

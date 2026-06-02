@@ -1,6 +1,5 @@
 import { SendUserPasswordResetLinkBySelfCommand } from '@modules/user/application/commands/send-user-password-reset-link-by-self/send-user-password-reset-link-by-self.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { Inject } from '@nestjs/common';
 import {
   FIREBASE_SERVICE,
@@ -27,7 +26,6 @@ export class SendUserPasswordResetLinkBySelfHandler
     private readonly mailService: IMailService
   ) {}
 
-  @InternalOnly()
   async execute(
     command: SendUserPasswordResetLinkBySelfCommand
   ): Promise<SendUserPasswordResetLinkBySelfResponse> {

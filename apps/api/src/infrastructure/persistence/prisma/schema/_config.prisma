@@ -9,7 +9,7 @@ datasource db {
 
 generator zod {
   provider          = "zod-prisma-types"
-  output            = "../../../../../../packages/shared/generated-zod"
+  output            = "../../../../../../../packages/shared/generated-zod"
   useMultipleFiles  = true
   createInputTypes  = false
   createModelTypes  = true

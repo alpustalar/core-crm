@@ -26,13 +26,13 @@ export class SoftDeleteManyUsersByClinicIdHandler
     @Inject(USER_QUERY_REPOSITORY)
     private readonly userQueryRepo: IUserQueryRepository,
     private readonly redis: RedisService,
-    private readonly txManager: TransactionManager,
+    private readonly txManager: TransactionManager
   ) {}
 
   @InternalOnly()
   async execute(command: SoftDeleteManyUsersByClinicIdCommand): Promise<void> {
     const users = await this.userQueryRepo.findAllActiveByClinicId(
-      command.clinicId,
+      command.clinicId
     );
 
     const toDelete = users.filter((u) => u.canSoftDelete());

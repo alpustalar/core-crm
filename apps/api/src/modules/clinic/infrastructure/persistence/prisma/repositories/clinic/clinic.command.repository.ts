@@ -6,6 +6,7 @@ import { Clinic, GlobalStatus, Prisma } from '@prisma/client';
 import { CreateClinicDto, UpdateClinicDto } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 import { UpdateAsManagerProps } from '@modules/clinic/domain/types/update-as-manager.props';
 
 @Injectable()
@@ -63,9 +64,26 @@ export class ClinicCommandRepository
 
   async save(entity: ClinicEntity): Promise<void> {
     const data = entity.toPersistence();
-    await this.db.clinic.update({
+    await this.db.clinic.upsert({
       where: { id: data.id },
-      data,
+      create: data,
+      update: data,
     });
+    entity.flushEvents();
+  }
+
+  async saveMany(entities: ClinicEntity[]): Promise<void> {
+    const prismaQueries = entities.map((entity) => {
+      const data = entity.toPersistence();
+      return this.db.clinic.upsert({ where: { id: data.id }, create: data, update: data });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    entities.forEach((entity) => entity.flushEvents());
   }
 }

@@ -1,11 +1,10 @@
-// IPolicyFactory.interface.ts
-import { PolicyEvaluator } from '@modules/policy/application/policy-evaluator';
 import { ActorContext } from '@common/interfaces';
-import { UserPolicy } from '@modules/user/application/policies';
-import { OrganizationPolicy } from '@modules/organization/application/policies/organization.policy';
-import { ClinicPolicy } from '@modules/clinic/application/policies';
 import { AppointmentPolicy } from '@modules/appointment/application/policies/appointment.policy';
-
+import { ClinicPolicy } from '@modules/clinic/application/policies';
+import { OrganizationPolicy } from '@modules/organization/application/policies/organization.policy';
+import { PolicyEvaluator } from '@modules/policy/application/policy-evaluator';
+import { UserPolicy } from '@modules/user/application/policies';
+export const POLICY_FACTORY = Symbol('IPolicyFactory');
 export interface IPolicyFactory {
   user(actor: ActorContext): {
     evaluator: PolicyEvaluator<UserPolicy>;
@@ -25,4 +24,4 @@ export interface IPolicyFactory {
   };
 }
 
-export const POLICY_FACTORY = Symbol('IPolicyFactory');
+

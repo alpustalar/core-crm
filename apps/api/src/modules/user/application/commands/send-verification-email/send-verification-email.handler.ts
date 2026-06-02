@@ -1,6 +1,5 @@
 import { SendVerificationEmailCommand } from '@modules/user/application/commands/send-verification-email/send-verification-email.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
@@ -27,7 +26,6 @@ export class SendVerificationEmailHandler
     private readonly mailService: IMailService
   ) {}
 
-  @InternalOnly()
   async execute(
     command: SendVerificationEmailCommand
   ): Promise<SendVerificationEmailResponse> {

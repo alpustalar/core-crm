@@ -2,6 +2,8 @@ import type { Clinic, Role, User as IUser } from '@shared';
 import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UpdateDetailsProps } from '@modules/user/domain/types/update-details.props';
+import { UpdateUserByStaffEvent } from '@modules/user/domain/events/update-user-by-staff.event';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 export type UserWithRelations = IUser & {
   role: Role | null;
@@ -156,7 +158,7 @@ export class User extends AggregateRoot implements IUser {
     return this._managedClinicIds?.includes(clinicId) ?? false;
   }
 
-  updateDetails(props: UpdateDetailsProps): void {
+  updateDetails(props: UpdateDetailsProps, actorId: string): void {
     if (this.isDeleted) {
       throw new Error('Silinmiş bir kullanıcı güncellenemez.');
     }
@@ -167,6 +169,16 @@ export class User extends AggregateRoot implements IUser {
     if (props.status !== undefined) this._status = props.status;
     if (props.roleId !== undefined) this._roleId = props.roleId;
     if (props.clinicId !== undefined) this._clinicId = props.clinicId;
+
+    this.addDomainEvent(
+      new UpdateUserByStaffEvent({
+        userId: this._id,
+        actorId,
+        action: LogAction.USER_UPDATE,
+        type: LogType.INFO,
+        details: 'Kullanıcı bilgileri başarıyla güncellendi.',
+      })
+    );
   }
 
   changeStatus(status: GlobalStatusType): void {

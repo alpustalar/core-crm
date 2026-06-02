@@ -1,6 +1,5 @@
 import { SendUserPasswordResetLinkByStaffCommand } from '@modules/user/application/commands/send-user-password-reset-link-by-staff/send-user-password-reset-link-by-staff.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { Inject, NotFoundException } from '@nestjs/common';
 import {
   IUserQueryRepository,
@@ -40,7 +39,6 @@ export class SendUserPasswordResetLinkByStaffHandler
     private readonly userEventPublisher: IUserEventPublisher
   ) {}
 
-  @InternalOnly()
   async execute(
     command: SendUserPasswordResetLinkByStaffCommand
   ): Promise<SendUserPasswordResetLinkByStaffResponse> {

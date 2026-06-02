@@ -17,6 +17,7 @@ export interface IClinicCommandRepository {
   ): Promise<{ deletedCount: number }>;
   updateAsManager(props: UpdateAsManagerProps): Promise<Clinic | null>;
   save(entity: ClinicEntity): Promise<void>;
+  saveMany(entities: ClinicEntity[]): Promise<void>;
 }
 
 export interface IClinicQueryRepository {
