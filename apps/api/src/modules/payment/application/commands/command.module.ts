@@ -1,4 +1,5 @@
 import { CreatePaymentPlanHandler } from '@modules/payment/application/commands/payment/create-payment-plan/create-payment-plan.handler';
+import { CreatePaymentHandler } from '@modules/payment/application/commands/payment/create-payment/create-payment.handler';
 import { RefundPaymentHandler } from '@modules/payment/application/commands/iyzico/refund-payment/refund-payment.handler';
 import { InitCheckoutFormHandler } from '@modules/payment/application/commands/iyzico/init-checkout-form/init-checkout-form.handler';
 import { HandlePaymentCallbackHandler } from '@modules/payment/application/commands/iyzico/handle-payment-callback/handle-payment-callback.handler';
@@ -11,6 +12,7 @@ import { PaymentDomainService } from '@modules/payment/domain/services/payment-d
 import { PaymentEventModule } from '@modules/payment/infrastructure/events/payment-event.module';
 
 const CommandHandlers = [
+  CreatePaymentHandler,
   CreatePaymentPlanHandler,
   RefundPaymentHandler,
   InitCheckoutFormHandler,

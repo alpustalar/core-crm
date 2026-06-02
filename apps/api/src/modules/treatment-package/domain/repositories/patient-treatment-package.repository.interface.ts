@@ -1,6 +1,5 @@
 import { PatientTreatmentPackage } from '@prisma/client';
 import { Pagination } from '@shared';
-import { AssignPackageToPatientProps } from '@modules/treatment-package/domain/types/assign-package-to-patient.props';
 
 export const PATIENT_TREATMENT_PACKAGE_COMMAND_REPO = Symbol(
   'IPatientTreatmentPackageCommandRepository'
@@ -9,16 +8,19 @@ export const PATIENT_TREATMENT_PACKAGE_QUERY_REPO = Symbol(
   'IPatientTreatmentPackageQueryRepository'
 );
 
-export interface CreatePatientPackageWithPaymentInput
-  extends AssignPackageToPatientProps {
+export interface CreatePatientPackageInput {
+  patientId: string;
+  packageId: string;
+  providerId: string;
   clinicId: string;
-  price: number;
+  startDate: Date;
+  endDate: Date;
+  notes?: string;
+  paymentId: string;
 }
 
 export interface IPatientTreatmentPackageCommandRepository {
-  createWithPayment(
-    input: CreatePatientPackageWithPaymentInput
-  ): Promise<PatientTreatmentPackage>;
+  create(input: CreatePatientPackageInput): Promise<PatientTreatmentPackage>;
   update(
     id: string,
     data: Partial<{

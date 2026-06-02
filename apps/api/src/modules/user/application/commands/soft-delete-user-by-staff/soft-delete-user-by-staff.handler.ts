@@ -18,6 +18,7 @@ import {
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { SoftDeleteUserByStaffResponse } from '@modules/user/application/commands/soft-delete-user-by-staff/soft-delete-user-by-staff.response';
 import { RedisService } from '@common/redis/redis.service';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 @CommandHandler(SoftDeleteUserByStaffCommand)
 export class SoftDeleteUserByStaffHandler
@@ -36,6 +37,7 @@ export class SoftDeleteUserByStaffHandler
     private readonly policyFactory: IPolicyFactory,
     @Inject(USER_EVENT_PUBLISHER)
     private readonly userEventPublisher: IUserEventPublisher,
+    private readonly txManager: TransactionManager,
     private readonly redis: RedisService
   ) {}
 
@@ -58,11 +60,16 @@ export class SoftDeleteUserByStaffHandler
     }
 
     const user = await this.userQueryRepo.find(dto.userId);
+
     if (!user) {
       throw new NotFoundException('Kullanıcı bulunamadı');
     }
+
     user.softDelete();
-    await this.userCommandRepo.save(user);
+
+    await this.txManager.run(async () => {
+      await this.userCommandRepo.save(user);
+    });
     await this.redis.deleteActorContext(dto.userId);
   }
 }

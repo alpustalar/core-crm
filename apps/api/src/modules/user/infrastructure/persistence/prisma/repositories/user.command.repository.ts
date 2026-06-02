@@ -1,12 +1,12 @@
-import { GlobalStatus, Prisma, User as PrismaUser } from '@prisma/client';
+import { User } from '@modules/user/domain/entities/user.entity';
+import { IUserCommandRepository } from '@modules/user/domain/repositories/user.repository';
+import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
 import { Injectable } from '@nestjs/common';
+import { GlobalStatus, Prisma, User as PrismaUser } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { connect } from '@src/infrastructure/persistence/prisma/helpers';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
-import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
-import { IUserCommandRepository } from '@modules/user/domain/repositories/user.repository';
-import { User } from '@modules/user/domain/entities/user.entity';
-import { connect } from '@src/infrastructure/persistence/prisma/helpers';
 
 @Injectable()
 export class UserCommandRepository

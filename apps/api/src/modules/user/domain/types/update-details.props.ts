@@ -5,6 +5,6 @@ export interface UpdateDetailsProps {
   picture?: string | null;
   phoneNumber?: string | null;
   status?: GlobalStatusType;
-  roleId?: string | null;
+  roleId?: string;
   clinicId?: string | null;
 }

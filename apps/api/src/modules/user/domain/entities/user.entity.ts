@@ -21,7 +21,7 @@ export class User extends AggregateRoot implements IUser {
     this._email = data.email;
     this._emailVerified = data.emailVerified;
     this._status = data.status;
-    this._roleId = data.roleId ?? null;
+    this._roleId = data.roleId;
     this._picture = data.picture ?? null;
     this._clinicId = data.clinicId ?? null;
     this._lastLogin = data.lastLogin;
@@ -84,9 +84,9 @@ export class User extends AggregateRoot implements IUser {
     return this._status;
   }
 
-  private _roleId: string | null;
+  private _roleId: string;
 
-  get roleId(): string | null {
+  get roleId(): string {
     return this._roleId;
   }
 

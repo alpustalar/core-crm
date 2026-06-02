@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
-  CreatePatientPackageWithPaymentInput,
+  CreatePatientPackageInput,
   IPatientTreatmentPackageCommandRepository,
 } from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
 
@@ -16,21 +15,8 @@ export class PatientTreatmentPackageCommandRepository
     super(prisma);
   }
 
-  async createWithPayment(input: CreatePatientPackageWithPaymentInput) {
-    const { clinicId, price, ...packageProps } = input;
-
-    const payment = await this.db.payment.create({
-      data: {
-        clinicId,
-        patientId: packageProps.patientId,
-        totalAmount: price,
-        status: PaymentStatus.PENDING,
-      },
-    });
-
-    return this.db.patientTreatmentPackage.create({
-      data: { ...packageProps, paymentId: payment.id },
-    });
+  create(input: CreatePatientPackageInput) {
+    return this.db.patientTreatmentPackage.create({ data: input });
   }
 
   update(id: string, data: Record<string, unknown>) {

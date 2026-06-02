@@ -10,14 +10,10 @@ import { FindUsersByOrganizationIdsProps } from '@modules/user/domain/types/find
 import { FindUsersByClinicIdsProps } from '@modules/user/domain/types/find-users-by-clinic-ids.props';
 import { User } from '@modules/user/domain/entities/user.entity';
 import { UserSummary } from '@modules/user/domain/types/user-summary.type';
+import { PaginatedUsers } from '@modules/user/domain/types/paginated-users.type';
+import { AuthUserResponse } from '@modules/user/domain/types/auth-user-response.type';
+import { RoleWithCapabilities } from '@common/interfaces';
 import { normalizeArray } from '@common/utils/normalize-array';
-
-const NULL_USER_RELATIONS = {
-  workingClinic: null,
-  managedClinicIds: [],
-  ownedOrganizationIds: [],
-  providerProfileId: null,
-};
 
 const USER_SELECT = {
   id: true,
@@ -52,6 +48,25 @@ const USER_SELECT = {
   },
 } as const satisfies Prisma.UserSelect;
 
+const USER_FULL_INCLUDE = {
+  role: true,
+  workingClinic: true,
+  managedClinics: { select: { id: true } },
+  ownedOrganizations: { select: { id: true } },
+  providerProfile: { select: { id: true } },
+} as const satisfies Prisma.UserInclude;
+
+function toUserEntity(
+  raw: Prisma.UserGetPayload<{ include: typeof USER_FULL_INCLUDE }>
+): User {
+  return new User({
+    ...raw,
+    managedClinicIds: raw.managedClinics.map((c) => c.id),
+    ownedOrganizationIds: raw.ownedOrganizations.map((o) => o.id),
+    providerProfileId: raw.providerProfile?.id ?? null,
+  });
+}
+
 @Injectable()
 export class UserQueryRepository
   extends BaseRepository
@@ -72,66 +87,74 @@ export class UserQueryRepository
   async find(id: string): Promise<User | null> {
     const raw = await this.db.user.findFirst({
       where: { id },
-      include: { role: true },
+      include: USER_FULL_INCLUDE,
     });
     if (!raw) return null;
-    return new User({ ...raw, ...NULL_USER_RELATIONS });
+    return toUserEntity(raw);
   }
 
   async findByEmail(email: string): Promise<User | null> {
     const raw = await this.db.user.findFirst({
       where: { email },
-      include: { role: true },
+      include: USER_FULL_INCLUDE,
     });
     if (!raw) return null;
-    return new User({ ...raw, ...NULL_USER_RELATIONS });
+    return toUserEntity(raw);
   }
 
   async findAllActiveByClinicId(clinicId: string): Promise<User[]> {
     const raws = await this.db.user.findMany({
       where: { clinicId, status: { not: GlobalStatus.DELETED } },
-      include: { role: true },
+      include: USER_FULL_INCLUDE,
     });
-    return raws.map((raw) => new User({ ...raw, ...NULL_USER_RELATIONS }));
+    return raws.map(toUserEntity);
   }
 
   async findAllByClinicId(clinicId: string): Promise<User[]> {
     const raws = await this.db.user.findMany({
-      where: { clinicId, status: { not: GlobalStatus.DELETED } },
-      include: { role: true },
+      where: { clinicId },
+      include: USER_FULL_INCLUDE,
     });
-    return raws.map((raw) => new User({ ...raw, ...NULL_USER_RELATIONS }));
+    return raws.map(toUserEntity);
   }
 
   checkEmailExists(email: string): Promise<number> {
     return this.db.user.count({ where: { email } });
   }
 
-  findForAuth(firebaseUid: string) {
-    return this.db.user.findFirst({
-      where: {
-        id: firebaseUid,
-        status: GlobalStatus.ACTIVE,
-      },
+  async findForAuth(firebaseUid: string): Promise<AuthUserResponse | null> {
+    const raw = await this.db.user.findFirst({
+      where: { id: firebaseUid, status: GlobalStatus.ACTIVE },
       include: {
-        managedClinics: {
-          select: { id: true },
-        },
-        ownedOrganizations: {
-          select: { id: true },
-        },
-        providerProfile: {
-          select: { id: true },
-        },
+        managedClinics: { select: { id: true } },
+        ownedOrganizations: { select: { id: true } },
+        providerProfile: { select: { id: true } },
         role: {
           include: {
-            capabilities: {
-              include: { capability: true },
-            },
+            capabilities: { include: { capability: true } },
           },
         },
       },
     });
+    if (!raw) return null;
+    return {
+      id: raw.id,
+      displayName: raw.displayName,
+      email: raw.email,
+      emailVerified: raw.emailVerified,
+      status: raw.status,
+      roleId: raw.roleId,
+      picture: raw.picture,
+      clinicId: raw.clinicId,
+      lastLogin: raw.lastLogin,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      deletedAt: raw.deletedAt,
+      managedClinics: raw.managedClinics,
+      ownedOrganizations: raw.ownedOrganizations,
+      providerProfile: raw.providerProfile,
+      role: raw.role as RoleWithCapabilities | null,
+    };
   }
 
   async list(pagination: Pagination, where?: Record<string, unknown>) {
@@ -142,16 +165,24 @@ export class UserQueryRepository
     });
     return this.mapPagination(
       result,
-      (raw) => new User({ ...raw, role: null, ...NULL_USER_RELATIONS })
+      (raw) =>
+        new User({
+          ...raw,
+          role: null,
+          workingClinic: null,
+          managedClinicIds: [],
+          ownedOrganizationIds: [],
+          providerProfileId: null,
+        })
     );
   }
 
-  listByOrganizationIds({
+  async listByOrganizationIds({
     pagination,
     organizationId,
-  }: FindUsersByOrganizationIdsProps) {
+  }: FindUsersByOrganizationIdsProps): Promise<PaginatedUsers> {
     const organizationIds = normalizeArray(organizationId);
-    return paginate<UserSummary, Prisma.UserWhereInput>({
+    const result = await paginate<UserSummary, Prisma.UserWhereInput>({
       delegate: this.db.user as any,
       pagination,
       where: {
@@ -160,11 +191,15 @@ export class UserQueryRepository
       },
       select: USER_SELECT,
     });
+    return this.mapPagination(result);
   }
 
-  listByClinicIds({ pagination, clinicId }: FindUsersByClinicIdsProps) {
+  async listByClinicIds({
+    pagination,
+    clinicId,
+  }: FindUsersByClinicIdsProps): Promise<PaginatedUsers> {
     const clinicIds = normalizeArray(clinicId);
-    return paginate<UserSummary, Prisma.UserWhereInput>({
+    const result = await paginate<UserSummary, Prisma.UserWhereInput>({
       delegate: this.db.user as any,
       pagination,
       where: {
@@ -173,5 +208,6 @@ export class UserQueryRepository
       },
       select: USER_SELECT,
     });
+    return this.mapPagination(result);
   }
 }
