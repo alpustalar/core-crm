@@ -1,5 +1,6 @@
 import { MetaAdAccount } from '@modules/meta-ads/domain/entities/meta-ad-account.entity';
 import { CreateMetaAdAccountProps } from '@modules/meta-ads/domain/types/create-meta-ad-account.props';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const META_AD_ACCOUNT_COMMAND_REPOSITORY = Symbol(
   'IMetaAdAccountCommandRepository',
@@ -8,9 +9,9 @@ export const META_AD_ACCOUNT_QUERY_REPOSITORY = Symbol(
   'IMetaAdAccountQueryRepository',
 );
 
-export interface IMetaAdAccountCommandRepository {
+export interface IMetaAdAccountCommandRepository
+  extends IBaseCommandRepository<MetaAdAccount> {
   create(props: CreateMetaAdAccountProps): Promise<MetaAdAccount>;
-  save(entity: MetaAdAccount): Promise<MetaAdAccount>;
   deactivate(id: string): Promise<void>;
 }
 

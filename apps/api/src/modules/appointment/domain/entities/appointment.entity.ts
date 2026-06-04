@@ -11,7 +11,6 @@ import {
   AppointmentCompletedEvent,
   AppointmentCompletedEventPayload,
 } from '@modules/appointment/domain/events/complete-appointment.event';
-import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
 export class Appointment extends AggregateRoot implements IAppointment {
   constructor(data: IAppointment) {

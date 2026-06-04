@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProviderCommandRepository } from '@modules/provider/domain/repositories/provider.repository.interface';
 import { ConvertUserToProviderDto } from '@shared/modules/provider/dto/convert-user-to-provider.dto';
 import { UpdateProviderInfoDto } from '@shared/modules/provider/dto/update-provider-info.dto';
 import { Provider } from '@modules/provider/domain/entities/provider.entity';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class ProviderCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<Provider>
   implements IProviderCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -49,12 +50,35 @@ export class ProviderCommandRepository
   }
 
   async save(entity: Provider): Promise<Provider> {
-    const raw = await this.db.provider.update({
+    const data = entity.toPersistence();
+
+    const raw = await this.db.provider.upsert({
       where: { id: entity.id },
-      data: entity.toPersistence(),
+      create: data,
+      update: data,
     });
+
     entity.flushEvents();
     return new Provider(raw);
+  }
+
+  async saveMany(providers: Provider[]): Promise<void> {
+    const prismaQueries = providers.map((provider) => {
+      const data = provider.toPersistence();
+      return this.db.provider.upsert({
+        where: { id: data.id },
+        create: data,
+        update: data,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    providers.forEach((provider) => provider.flushEvents());
   }
 
   async softDelete(providerId: string): Promise<void> {

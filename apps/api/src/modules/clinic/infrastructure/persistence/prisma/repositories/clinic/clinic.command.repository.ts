@@ -4,14 +4,14 @@ import { ClinicPersistencePrismaMapper } from '@modules/clinic/infrastructure/pe
 import { Injectable } from '@nestjs/common';
 import { Clinic, GlobalStatus, Prisma } from '@prisma/client';
 import { CreateClinicDto, UpdateClinicDto } from '@shared';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 import { UpdateAsManagerProps } from '@modules/clinic/domain/types/update-as-manager.props';
 
 @Injectable()
 export class ClinicCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<ClinicEntity>
   implements IClinicCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -62,20 +62,25 @@ export class ClinicCommandRepository
     });
   }
 
-  async save(entity: ClinicEntity): Promise<void> {
+  async save(entity: ClinicEntity): Promise<ClinicEntity> {
     const data = entity.toPersistence();
-    await this.db.clinic.upsert({
+    const raw = await this.db.clinic.upsert({
       where: { id: data.id },
-      create: data,
-      update: data,
+      create: data as Prisma.ClinicUncheckedCreateInput,
+      update: data as Prisma.ClinicUncheckedUpdateInput,
     });
     entity.flushEvents();
+    return new ClinicEntity(raw);
   }
 
   async saveMany(entities: ClinicEntity[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const data = entity.toPersistence();
-      return this.db.clinic.upsert({ where: { id: data.id }, create: data, update: data });
+      return this.db.clinic.upsert({
+        where: { id: data.id },
+        create: data,
+        update: data,
+      });
     });
 
     if (txStorage.getStore()?.tx) {

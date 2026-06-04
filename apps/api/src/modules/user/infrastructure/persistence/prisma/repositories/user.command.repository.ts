@@ -1,55 +1,18 @@
 import { User } from '@modules/user/domain/entities/user.entity';
 import { IUserCommandRepository } from '@modules/user/domain/repositories/user.repository';
-import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
 import { Injectable } from '@nestjs/common';
-import { GlobalStatus, Prisma, User as PrismaUser } from '@prisma/client';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
-import { connect } from '@src/infrastructure/persistence/prisma/helpers';
+import { GlobalStatus, Prisma } from '@prisma/client';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 
 @Injectable()
 export class UserCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<User>
   implements IUserCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
-  }
-
-  create(props: CreateUserProps): Promise<PrismaUser> {
-    return this.db.user.create({
-      data: {
-        id: props.id,
-        email: props.email,
-        displayName: props.displayName,
-        picture: props.picture,
-        role: { connect: { id: props.roleId } },
-        workingClinic: connect(props.clinicId),
-        ...(props.ownedOrganizationIds?.length && {
-          ownedOrganizations: {
-            connect: props.ownedOrganizationIds.map((id) => ({ id })),
-          },
-        }),
-        ...(props.managedClinicIds?.length && {
-          managedClinics: {
-            connect: props.managedClinicIds.map((id) => ({ id })),
-          },
-        }),
-        ...(props.providerProfile && {
-          providerProfile: {
-            create: {
-              title: connect(props.providerProfile.titleId),
-              specialty: connect(props.providerProfile.specialtyId),
-              clinic: { connect: { id: props.providerProfile.clinicId } },
-              isActive: props.providerProfile.isActive,
-              publicPhone: props.providerProfile.publicPhone,
-              publicEmail: props.providerProfile.publicEmail,
-            },
-          },
-        }),
-      },
-    });
   }
 
   async saveMany(users: User[]): Promise<void> {
@@ -57,8 +20,8 @@ export class UserCommandRepository
       const data = u.toPersistence();
       return this.db.user.upsert({
         where: { id: u.id },
-        create: data as Prisma.UserUncheckedCreateInput,
-        update: data as Prisma.UserUncheckedUpdateInput,
+        create: data,
+        update: data,
       });
     });
 
@@ -75,8 +38,20 @@ export class UserCommandRepository
     const data = entity.toPersistence();
     const raw = await this.db.user.upsert({
       where: { id: entity.id },
-      create: data as Prisma.UserUncheckedCreateInput,
-      update: data as Prisma.UserUncheckedUpdateInput,
+      create: {
+        ...(data as Prisma.UserUncheckedCreateInput),
+        ...(entity.managedClinicIds?.length && {
+          managedClinics: {
+            connect: entity.managedClinicIds.map((id) => ({ id })),
+          },
+        }),
+        ...(entity.ownedOrganizationIds?.length && {
+          ownedOrganizations: {
+            connect: entity.ownedOrganizationIds.map((id) => ({ id })),
+          },
+        }),
+      },
+      update: data,
     });
     entity.flushEvents();
     return new User({

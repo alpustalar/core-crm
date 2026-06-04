@@ -1,0 +1,27 @@
+model AdminRequest {
+  id             String             @id @default(uuid())
+  type           AdminRequestType
+  status         AdminRequestStatus @default(PENDING)
+  targetId       String             @map("target_id")
+  requestedBy    String             @map("requested_by")
+  organizationId String?            @map("organization_id")
+  metadata       Json?
+  reviewedBy     String?            @map("reviewed_by")
+  reviewedAt     DateTime?          @map("reviewed_at")
+  reviewNote     String?            @map("review_note")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  @@map("admin_requests")
+}
+
+enum AdminRequestType {
+  CLINIC_DELETION
+  ORGANIZATION_DELETION
+}
+
+enum AdminRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

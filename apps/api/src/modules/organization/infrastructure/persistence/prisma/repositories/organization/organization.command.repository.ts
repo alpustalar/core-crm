@@ -3,12 +3,13 @@ import { IOrganizationCommandRepository } from '@modules/organization/domain/rep
 import { CreateOrganizationProps } from '@modules/organization/domain/types/create-organization.props';
 import { UpdateOrganizationProps } from '@modules/organization/domain/types/update-organization.props';
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class OrganizationCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<Organization>
   implements IOrganizationCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -20,7 +21,10 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async updateByOwner(organizationId: string, data: UpdateOrganizationProps): Promise<Organization> {
+  async updateByOwner(
+    organizationId: string,
+    data: UpdateOrganizationProps
+  ): Promise<Organization> {
     const raw = await this.db.organization.update({
       where: { id: organizationId },
       data,
@@ -28,23 +32,36 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async save(entity: Organization): Promise<void> {
-    await this.db.organization.update({
+  async save(entity: Organization): Promise<Organization> {
+    const data = entity.toPersistence();
+
+    // 1. Yeni açılan kurumlar için upsert zırhı ve güncel ham veri yakalama
+    const raw = await this.db.organization.upsert({
       where: { id: entity.id },
-      data: entity.toPersistence(),
+      create: data,
+      update: data,
     });
+
     entity.flushEvents();
+    return new Organization(raw);
   }
 
   async saveMany(entities: Organization[]): Promise<void> {
-    await Promise.all(
-      entities.map((entity) =>
-        this.db.organization.update({
-          where: { id: entity.id },
-          data: entity.toPersistence(),
-        })
-      )
-    );
+    const prismaQueries = entities.map((entity) => {
+      const data = entity.toPersistence();
+      return this.db.organization.upsert({
+        where: { id: entity.id },
+        create: data,
+        update: data,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
     entities.forEach((entity) => entity.flushEvents());
   }
 }

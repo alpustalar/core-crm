@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ILeadCommandRepository } from '@modules/lead/domain/repositories/lead.repository.interface';
 import { Lead } from '@modules/lead/domain/entities/lead.entity';
 import { CreateLeadProps } from '@modules/lead/domain/types/create-lead.props';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class LeadCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<Lead>
   implements ILeadCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -32,11 +33,34 @@ export class LeadCommandRepository
   }
 
   async save(entity: Lead): Promise<Lead> {
-    const raw = await this.db.lead.update({
+    const data = entity.toPersistence();
+
+    const raw = await this.db.lead.upsert({
       where: { id: entity.id },
-      data: entity.toPersistence(),
+      create: data,
+      update: data,
     });
+
     entity.flushEvents();
     return new Lead(raw);
+  }
+
+  async saveMany(leads: Lead[]): Promise<void> {
+    const prismaQueries = leads.map((lead) => {
+      const data = lead.toPersistence();
+      return this.db.lead.upsert({
+        where: { id: lead.id },
+        create: data,
+        update: data,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    leads.forEach((lead) => lead.flushEvents());
   }
 }

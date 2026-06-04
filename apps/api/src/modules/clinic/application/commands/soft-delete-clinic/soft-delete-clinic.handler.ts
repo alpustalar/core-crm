@@ -1,46 +1,52 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   CLINIC_COMMAND_REPOSITORY,
+  CLINIC_QUERY_REPOSITORY,
   IClinicCommandRepository,
+  IClinicQueryRepository,
 } from '@modules/clinic/domain/repositories/clinic.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { SoftDeleteClinicCommand } from '@modules/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.use-case-by-id.command';
+import { SoftDeleteClinicCommand } from '@modules/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.command';
 import { Inject } from '@nestjs/common';
 import {
-  CONTEXT_SERVICE,
-  IContextService,
-} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 
-/* eslint-disable */
 @CommandHandler(SoftDeleteClinicCommand)
 export class SoftDeleteClinicHandler
   implements ICommandHandler<SoftDeleteClinicCommand>
 {
-  /* eslint-enable */
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
-    @Inject(CONTEXT_SERVICE)
-    private readonly contextService: IContextService,
+    @Inject(CLINIC_QUERY_REPOSITORY)
+    private readonly clinicQueryRepo: IClinicQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager
   ) {}
 
-  async execute(command: SoftDeleteClinicCommand) {
-    const { clinicId, actor } = command;
+  async execute(command: SoftDeleteClinicCommand): Promise<void> {
+    const { clinicId, ctx } = command;
 
-    return await this.transactionManager.run(async () => {
-      const removedClinic = await this.clinicCommandRepo.softDelete(clinicId);
+    if (!ExecutionPolicy.isSystemInitiated(ctx.source)) {
+      const { evaluator } = this.policyFactory.clinic(ctx.actor);
+      evaluator
+        .check(
+          (p) => p.actorCanManageTargetClinic(clinicId),
+          'Bu kliniği silme isteği gönderme yetkiniz yok.'
+        )
+        .orThrow();
+    }
 
-      if (!removedClinic) return null;
+    await this.transactionManager.run(async () => {
+      const clinic = await this.clinicQueryRepo.findById(clinicId);
+      if (!clinic) return;
 
-      this.contextService.addEvent({
-        clinicId: removedClinic.id,
-        clinicName: removedClinic.name,
-        organizationId: removedClinic.organizationId,
-        userId: actor?.userId,
-      });
-
-      return removedClinic;
+      clinic.softDelete(ctx.actor?.userId);
+      await this.clinicCommandRepo.save(clinic);
     });
   }
 }

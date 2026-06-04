@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSchema';
 import { Appointment } from '@modules/appointment/domain/entities/appointment.entity';
@@ -8,10 +8,11 @@ import { IAppointmentCommandRepository } from '@modules/appointment/domain/repos
 import { RescheduleAppointmentProps } from '@modules/appointment/domain/types/reschedule-appointment.props';
 import { CancelAppointmentProps } from '@modules/appointment/domain/types/cancel-appointment.props';
 import { BatchPayload } from '@common/interfaces/batcy-payload.type';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class AppointmentCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<Appointment>
   implements IAppointmentCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -108,7 +109,7 @@ export class AppointmentCommandRepository
     });
   }
 
-  async save(appointment: Appointment): Promise<void> {
+  async save(appointment: Appointment): Promise<Appointment> {
     const raw = appointment.toPersistence();
     await this.db.appointment.upsert({
       where: { id: raw.id },
@@ -116,5 +117,26 @@ export class AppointmentCommandRepository
       update: raw,
     });
     appointment.flushEvents();
+
+    return new Appointment(raw);
+  }
+
+  async saveMany(appointments: Appointment[]): Promise<void> {
+    const prismaQueries = appointments.map((appointment) => {
+      const data = appointment.toPersistence();
+      return this.db.appointment.upsert({
+        where: { id: data.id },
+        create: data,
+        update: data,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    appointments.forEach((appointment) => appointment.flushEvents());
   }
 }

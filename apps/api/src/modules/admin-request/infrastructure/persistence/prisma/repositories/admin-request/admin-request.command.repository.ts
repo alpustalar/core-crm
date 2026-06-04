@@ -1,0 +1,61 @@
+import { Injectable } from '@nestjs/common';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
+import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { IAdminRequestCommandRepository } from '@modules/admin-request/domain/repositories/admin-request.repository.interface';
+import { AdminRequest } from '@modules/admin-request/domain/entities/admin-request.entity';
+import { Prisma } from '@prisma/client';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+
+@Injectable()
+export class AdminRequestCommandRepository
+  extends BaseCommandRepository<AdminRequest>
+  implements IAdminRequestCommandRepository
+{
+  constructor(prisma: PrismaService) {
+    super(prisma);
+  }
+
+  async save(entity: AdminRequest): Promise<AdminRequest> {
+    const data = entity.toPersistence();
+
+    const raw = await this.db.adminRequest.upsert({
+      where: { id: entity.id },
+      create: {
+        ...(data as Prisma.AdminRequestUncheckedCreateInput),
+        metadata: data.metadata as Prisma.InputJsonValue,
+      },
+      update: {
+        ...(data as Prisma.AdminRequestUncheckedUpdateInput),
+        metadata: data.metadata as Prisma.InputJsonValue,
+      },
+    });
+
+    entity.flushEvents();
+    return new AdminRequest(raw);
+  }
+
+  async saveMany(entities: AdminRequest[]): Promise<void> {
+    const prismaQueries = entities.map((entity) => {
+      const data = entity.toPersistence();
+      return this.db.adminRequest.upsert({
+        where: { id: entity.id },
+        create: {
+          ...(data as Prisma.AdminRequestUncheckedCreateInput),
+          metadata: data.metadata as Prisma.InputJsonValue,
+        },
+        update: {
+          ...(data as Prisma.AdminRequestUncheckedUpdateInput),
+          metadata: data.metadata as Prisma.InputJsonValue,
+        },
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    entities.forEach((entity) => entity.flushEvents());
+  }
+}

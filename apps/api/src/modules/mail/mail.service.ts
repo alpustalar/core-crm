@@ -1,18 +1,21 @@
-import * as nodemailer from 'nodemailer';
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { APP_CONFIG, ENV } from '@common/constants';
-import { verificationEmailTemplate } from './domain/templates';
 import {
   MailConfig,
   mailConfigSchema,
 } from '@modules/mail/domain/config/mail-config.schema';
 import { IMailService } from '@modules/mail/domain/interfaces/mail.service.interface';
 import { clinicSoftDeleteRequestByOrganizationOwnerTemplate } from '@modules/mail/domain/templates/clinic-soft-delete-request-by-organization-owner-template';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
+import {
+  organizationDeletionRequestTemplate,
+  verificationEmailTemplate,
+} from './domain/templates';
 
 @Injectable()
 export class MailService implements IMailService {
@@ -69,7 +72,7 @@ export class MailService implements IMailService {
   }
 
   async sendClinicSoftDeleteRequestMail(to: string) {
-    const EMAIL_ADDRESS = this.configService.get<string>('EMAIL_ADDRESS');
+    const EMAIL_ADDRESS = this.configService.get<string>(ENV.EMAIL_ADDRESS);
     if (!EMAIL_ADDRESS) {
       throw new Error('email ayar hatası ');
     }
@@ -84,6 +87,26 @@ export class MailService implements IMailService {
       console.error(e);
       throw new InternalServerErrorException(
         'Klinik silme talebi maili gönderilemedi.'
+      );
+    }
+  }
+
+  async sendOrganizationDeletionRequestMail(to: string) {
+    const EMAIL_ADDRESS = this.configService.get<string>(ENV.EMAIL_ADDRESS);
+    if (!EMAIL_ADDRESS) {
+      throw new Error('email ayar hatası ');
+    }
+    try {
+      await this.transporter.sendMail({
+        from: `"${APP_CONFIG.NAME}" <${EMAIL_ADDRESS}>`,
+        to,
+        subject: 'Organizasyon Silme Talebi',
+        html: organizationDeletionRequestTemplate(),
+      });
+    } catch (e) {
+      console.error(e);
+      throw new InternalServerErrorException(
+        'Organizasyon silme talebi maili gönderilemedi.'
       );
     }
   }

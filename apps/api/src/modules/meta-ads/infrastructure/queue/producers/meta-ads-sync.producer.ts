@@ -18,7 +18,7 @@ export class MetaAdsSyncProducer implements OnModuleInit {
       {
         repeat: { pattern: '0 1 * * *' }, // her gece 01:00 — sync'ten önce
         removeOnComplete: true,
-        removeOnFail: false,
+        removeOnFail: true,
       },
     );
     await this.metaAdsQueue.add(
@@ -27,7 +27,7 @@ export class MetaAdsSyncProducer implements OnModuleInit {
       {
         repeat: { pattern: '0 2 * * *' }, // her gece 02:00
         removeOnComplete: true,
-        removeOnFail: false,
+        removeOnFail: true,
       },
     );
     this.logger.log('Meta Ads görevleri zamanlandı (token refresh: 01:00, sync: 02:00)');

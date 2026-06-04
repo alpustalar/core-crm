@@ -17,8 +17,8 @@ export type PaginationMeta = {
 };
 export interface PaginateArgs<T, W> {
   delegate: {
-    findMany: (args: QueryArgs) => Promise<T[]>;
-    count: (args: Pick<QueryArgs, 'where'>) => Promise<number>;
+    findMany: (args: any) => Promise<T[]>;
+    count: (args: any) => Promise<number>;
   };
   pagination: Pagination;
   where?: W;

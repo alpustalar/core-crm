@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  OrganizationDeletionRequestedEvent,
+  OrganizationDeletionRequestedEventPayload,
   OrganizationSoftDeleteEvent,
   OrganizationSoftDeleteEventPayload,
 } from '@modules/organization/domain/events';
@@ -18,5 +20,11 @@ export class OrganizationEventPublisher implements IOrganizationEventPublisher {
 
   softDeleteOrganization(payload: OrganizationSoftDeleteEventPayload) {
     this.contextService.addEvent(new OrganizationSoftDeleteEvent(payload));
+  }
+
+  deletionRequested(payload: OrganizationDeletionRequestedEventPayload) {
+    this.contextService.addEvent(
+      new OrganizationDeletionRequestedEvent(payload)
+    );
   }
 }

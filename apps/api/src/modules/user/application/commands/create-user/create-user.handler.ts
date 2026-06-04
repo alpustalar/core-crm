@@ -1,13 +1,7 @@
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { ActorContext } from '@common/interfaces';
-import {
-  FIREBASE_SERVICE,
-  IFirebaseService,
-} from '@modules/firebase/domain/interfaces/firebase.service.interface';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/policy/domain/interfaces/policy-factory.interface';
+import { FIREBASE_SERVICE, IFirebaseService, } from '@modules/firebase/domain/interfaces/firebase.service.interface';
+import { IPolicyFactory, POLICY_FACTORY, } from '@modules/policy/domain/interfaces/policy-factory.interface';
 import { ConvertUserToProviderCommand } from '@modules/provider/application/commands';
 import { CreateUserCommand } from '@modules/user/application/commands/create-user/create-user.command';
 import { CreateUserResponse } from '@modules/user/application/commands/create-user/create-user.response';
@@ -15,11 +9,8 @@ import {
   IUserEventPublisher,
   USER_EVENT_PUBLISHER,
 } from '@modules/user/domain/interfaces/user-event-publisher.interface';
-import {
-  IUserCommandRepository,
-  USER_COMMAND_REPOSITORY,
-} from '@modules/user/domain/repositories/user.repository';
-import { CreateUserInternalRelations } from '@modules/user/domain/types/create-user-internal-relations.type';
+import { IUserCommandRepository, USER_COMMAND_REPOSITORY, } from '@modules/user/domain/repositories/user.repository';
+import { User } from '@modules/user/domain/entities/user.entity';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateProviderDto, CreateUserDto } from '@shared';
@@ -28,13 +19,6 @@ import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-
-interface CreateUserInput {
-  dto: CreateUserDto;
-  clinicId?: string;
-  firebaseUid: string;
-  internalRelations?: CreateUserInternalRelations;
-}
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler
@@ -69,6 +53,7 @@ export class CreateUserHandler
           'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.'
         )
         .orAsyncThrow(async (msg) => {
+          // eslint-disable-next-line
           await this.transactionManager.run(async () => {
             this.userEventPublisher.create({
               action: LogAction.USER_REGISTER,
@@ -84,47 +69,32 @@ export class CreateUserHandler
     let firebaseUid: string | undefined;
 
     try {
-      const { firebaseUid: uid } = await this.createFirebaseUser(dto);
+      ({ firebaseUid } = await this.createFirebaseUser(dto));
 
-      return await this.transactionManager.run(async () => {
-        const user = await this.createUser({
-          dto,
+      const userId = await this.transactionManager.run(async () => {
+        const user = User.create({
+          id: firebaseUid!,
+          email: dto.email,
+          displayName: dto.displayName,
+          picture: dto.picture,
+          roleId: dto.roleId,
           clinicId,
-          firebaseUid: uid,
-          internalRelations,
+          ownedOrganizationIds: internalRelations?.ownedOrganizationIds,
+          managedClinicIds: internalRelations?.managedClinicIds,
         });
 
-        if (dto.providerProfile && clinicId) {
-          await this.createProviderProfile(
-            user.id,
-            clinicId,
-            dto.providerProfile
-          );
-        }
-
-        return user.id;
+        const saved = await this.userRepo.save(user);
+        return saved.id;
       });
+
+      if (dto.providerProfile && clinicId) {
+        await this.createProviderProfile(userId, clinicId, dto.providerProfile);
+      }
+
+      return userId;
     } catch (e) {
       this.rollback(actor, e, firebaseUid);
     }
-  }
-
-  private async createUser({
-    dto,
-    internalRelations,
-    firebaseUid,
-    clinicId,
-  }: CreateUserInput) {
-    return this.userRepo.create({
-      id: firebaseUid,
-      email: dto.email,
-      displayName: dto.displayName,
-      picture: dto.picture,
-      roleId: dto.roleId,
-      clinicId,
-      ownedOrganizationIds: internalRelations?.ownedOrganizationIds,
-      managedClinicIds: internalRelations?.managedClinicIds,
-    });
   }
 
   private rollback(

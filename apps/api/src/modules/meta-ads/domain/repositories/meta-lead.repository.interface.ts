@@ -1,14 +1,16 @@
 import { MetaLead } from '@modules/meta-ads/domain/entities/meta-lead.entity';
 import { CreateMetaLeadProps } from '@modules/meta-ads/domain/types/create-meta-lead.props';
 import { FindMetaLeadsProps } from '@modules/meta-ads/domain/types/find-meta-leads.type';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+
 export const META_LEAD_COMMAND_REPOSITORY = Symbol(
   'IMetaLeadCommandRepository',
 );
 export const META_LEAD_QUERY_REPOSITORY = Symbol('IMetaLeadQueryRepository');
 
-export interface IMetaLeadCommandRepository {
+export interface IMetaLeadCommandRepository
+  extends IBaseCommandRepository<MetaLead> {
   create(props: CreateMetaLeadProps): Promise<MetaLead>;
-  save(entity: MetaLead): Promise<MetaLead>;
 }
 
 export interface IMetaLeadQueryRepository {

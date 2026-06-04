@@ -13,6 +13,7 @@ import { PosEvent } from '@src/domain/constants/events/pos.constants';
 import { MetaAdsEvent } from '@src/domain/constants/events/meta-ads.constants';
 import { LeadEvent } from '@src/domain/constants/events/lead.constant';
 import { InventoryEvent } from '@src/domain/constants/events/inventory.constant';
+import { AdminRequestEvent } from '@src/domain/constants/events/admin-request.constants';
 
 export type AppEventName =
   | AppointmentEvent
@@ -29,7 +30,8 @@ export type AppEventName =
   | PosEvent
   | MetaAdsEvent
   | LeadEvent
-  | InventoryEvent;
+  | InventoryEvent
+  | AdminRequestEvent;
 
 export * from './appointment.constant';
 export * from './clinic.constants';
@@ -46,3 +48,4 @@ export * from './pos.constants';
 export * from './meta-ads.constants';
 export * from './lead.constant';
 export * from './inventory.constant';
+export * from './admin-request.constants';

@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ISupplierCommandRepository } from '@modules/inventory/domain/repositories/supplier.repository.interface';
 import { Supplier } from '@modules/inventory/domain/entities/supplier.entity';
 import { CreateSupplierProps } from '@modules/inventory/domain/types/create-supplier.props';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
-export class SupplierCommandRepository extends BaseRepository implements ISupplierCommandRepository {
+export class SupplierCommandRepository
+  extends BaseCommandRepository<Supplier>
+  implements ISupplierCommandRepository
+{
   constructor(prisma: PrismaService) {
     super(prisma);
   }
@@ -29,10 +33,34 @@ export class SupplierCommandRepository extends BaseRepository implements ISuppli
   }
 
   async save(supplier: Supplier): Promise<Supplier> {
-    const raw = await this.db.supplier.update({
+    const data = supplier.toPersistence();
+
+    const raw = await this.db.supplier.upsert({
       where: { id: supplier.id },
-      data: { ...supplier.toPersistence(), updatedAt: new Date() },
+      create: data,
+      update: data,
     });
+
+    supplier.flushEvents();
     return new Supplier(raw);
+  }
+
+  async saveMany(suppliers: Supplier[]): Promise<void> {
+    const prismaQueries = suppliers.map((supplier) => {
+      const data = supplier.toPersistence();
+      return this.db.supplier.upsert({
+        where: { id: supplier.id },
+        create: data,
+        update: data,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    suppliers.forEach((supplier) => supplier.flushEvents());
   }
 }

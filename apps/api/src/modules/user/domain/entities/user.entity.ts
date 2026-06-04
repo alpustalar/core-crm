@@ -4,6 +4,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UpdateDetailsProps } from '@modules/user/domain/types/update-details.props';
 import { UpdateUserByStaffEvent } from '@modules/user/domain/events/update-user-by-staff.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
 
 export type UserWithRelations = IUser & {
   role: Role | null;
@@ -142,6 +143,30 @@ export class User extends AggregateRoot implements IUser {
 
   get workingClinic(): Clinic | null {
     return this._workingClinic;
+  }
+
+  static create(props: CreateUserProps): User {
+    const now = new Date();
+    return new User({
+      id: props.id,
+      email: props.email,
+      displayName: props.displayName,
+      emailVerified: false,
+      status: 'ACTIVE',
+      roleId: props.roleId,
+      picture: props.picture ?? null,
+      phoneNumber: null,
+      clinicId: props.clinicId ?? null,
+      lastLogin: now,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      role: null,
+      workingClinic: null,
+      managedClinicIds: props.managedClinicIds ?? [],
+      ownedOrganizationIds: props.ownedOrganizationIds ?? [],
+      providerProfileId: null,
+    });
   }
 
   // Domain query methods

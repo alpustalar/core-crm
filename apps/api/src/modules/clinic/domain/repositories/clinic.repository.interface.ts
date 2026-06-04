@@ -4,11 +4,13 @@ import { Clinic as ClinicEntity } from '@modules/clinic/domain/entities/clinic.e
 import { CreateClinicProps } from '@modules/clinic/domain/types/create-clinic.props';
 import { ClinicDetails } from '@modules/clinic/domain/types/clinic-details.type';
 import { UpdateAsManagerProps } from '@modules/clinic/domain/types/update-as-manager.props';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const CLINIC_COMMAND_REPOSITORY = Symbol('IClinicCommandRepository');
 export const CLINIC_QUERY_REPOSITORY = Symbol('IClinicQueryRepository');
 
-export interface IClinicCommandRepository {
+export interface IClinicCommandRepository
+  extends IBaseCommandRepository<ClinicEntity> {
   create(props: CreateClinicProps): Promise<Clinic>;
   update(id: string, props: UpdateClinic): Promise<Clinic>;
   softDelete(id: string): Promise<Clinic>;
@@ -16,8 +18,6 @@ export interface IClinicCommandRepository {
     organizationId: string
   ): Promise<{ deletedCount: number }>;
   updateAsManager(props: UpdateAsManagerProps): Promise<Clinic | null>;
-  save(entity: ClinicEntity): Promise<void>;
-  saveMany(entities: ClinicEntity[]): Promise<void>;
 }
 
 export interface IClinicQueryRepository {

@@ -13,6 +13,7 @@ import { PosModule } from '@modules/pos/pos.module';
 import { PatientAuthModule } from '@modules/patient-auth/patient-auth.module';
 import { MetaAdsModule } from '@modules/meta-ads/meta-ads.module';
 import { LeadModule } from '@modules/lead/lead.module';
+import { AdminRequestModule } from '@modules/admin-request/admin-request.module';
 
 export const APP_ROUTES: Routes = [
   {
@@ -70,5 +71,9 @@ export const APP_ROUTES: Routes = [
   {
     path: 'leads',
     module: LeadModule,
+  },
+  {
+    path: 'admin-requests',
+    module: AdminRequestModule,
   },
 ];

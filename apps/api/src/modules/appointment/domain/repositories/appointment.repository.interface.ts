@@ -14,6 +14,7 @@ import { RescheduleAppointmentProps } from '@modules/appointment/domain/types/re
 import { CancelAppointmentProps } from '@modules/appointment/domain/types/cancel-appointment.props';
 import { OccupiedSlot } from '@modules/appointment/domain/types/occupied-slot.type';
 import { AppointmentWithDetails } from '@modules/appointment/domain/types/appointment-with-details.type';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const APPOINTMENT_COMMAND_REPOSITORY = Symbol(
   'IAppointmentCommandRepository'
@@ -22,7 +23,8 @@ export const APPOINTMENT_QUERY_REPOSITORY = Symbol(
   'IAppointmentQueryRepository'
 );
 
-export interface IAppointmentCommandRepository {
+export interface IAppointmentCommandRepository
+  extends IBaseCommandRepository<AppointmentEntity> {
   create(
     data: Prisma.AppointmentUncheckedCreateInput
   ): Promise<AppointmentEntity>;
@@ -49,7 +51,8 @@ export interface IAppointmentCommandRepository {
   softDeleteAllAppointmentsByClinicId(clinicId: string): Promise<BatchPayload>;
   softDeleteAllByOrganizationId(organizationId: string): Promise<BatchPayload>;
   softDeleteAllByProviderId(providerId: string): Promise<BatchPayload>;
-  save(appointment: AppointmentEntity): Promise<void>;
+  save(appointment: AppointmentEntity): Promise<AppointmentEntity>;
+  saveMany(appointments: AppointmentEntity[]): Promise<void>;
 }
 
 export interface IAppointmentQueryRepository {

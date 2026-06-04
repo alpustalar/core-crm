@@ -42,6 +42,7 @@ import { InvoiceModule } from '@modules/invoice/invoice.module';
 import { PosModule } from '@modules/pos/pos.module';
 import { MetaAdsModule } from '@modules/meta-ads/meta-ads.module';
 import { LeadModule } from '@modules/lead/lead.module';
+import { AdminRequestModule } from '@modules/admin-request/admin-request.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { LeadModule } from '@modules/lead/lead.module';
     PosModule,
     MetaAdsModule,
     LeadModule,
+    AdminRequestModule,
   ],
   controllers: [],
   providers: [

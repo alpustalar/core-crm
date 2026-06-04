@@ -1,13 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProductCommandRepository } from '@modules/inventory/domain/repositories/product.repository.interface';
 import { Product } from '@modules/inventory/domain/entities/product.entity';
 import { CreateProductProps } from '@modules/inventory/domain/types/create-product.props';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
-export class ProductCommandRepository extends BaseRepository implements IProductCommandRepository {
+export class ProductCommandRepository
+  extends BaseCommandRepository<Product>
+  implements IProductCommandRepository
+{
   constructor(prisma: PrismaService) {
     super(prisma);
   }
@@ -38,11 +42,34 @@ export class ProductCommandRepository extends BaseRepository implements IProduct
   }
 
   async save(product: Product): Promise<Product> {
-    const raw = await this.db.product.update({
+    const data = product.toPersistence();
+
+    const raw = await this.db.product.upsert({
       where: { id: product.id },
-      data: { ...product.toPersistence(), updatedAt: new Date() },
+      create: data,
+      update: data,
     });
+
     product.flushEvents();
     return new Product(raw);
+  }
+
+  async saveMany(products: Product[]): Promise<void> {
+    const prismaQueries = products.map((product) => {
+      const data = product.toPersistence();
+      return this.db.product.upsert({
+        where: { id: product.id },
+        create: data,
+        update: data,
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    products.forEach((product) => product.flushEvents());
   }
 }

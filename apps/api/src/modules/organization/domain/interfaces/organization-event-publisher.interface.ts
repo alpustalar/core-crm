@@ -1,4 +1,7 @@
-import { OrganizationSoftDeleteEventPayload } from '@modules/organization/domain/events';
+import {
+  OrganizationDeletionRequestedEventPayload,
+  OrganizationSoftDeleteEventPayload,
+} from '@modules/organization/domain/events';
 
 export const ORGANIZATION_EVENT_PUBLISHER = Symbol(
   'IOrganizationEventPublisher'
@@ -6,4 +9,5 @@ export const ORGANIZATION_EVENT_PUBLISHER = Symbol(
 
 export interface IOrganizationEventPublisher {
   softDeleteOrganization(payload: OrganizationSoftDeleteEventPayload): void;
+  deletionRequested(payload: OrganizationDeletionRequestedEventPayload): void;
 }

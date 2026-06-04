@@ -2,13 +2,14 @@ import { Pagination } from '@shared';
 import { Supplier } from '../entities/supplier.entity';
 import { CreateSupplierProps } from '../types/create-supplier.props';
 import { UpdateSupplierProps } from '../types/update-supplier.props';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const SUPPLIER_COMMAND_REPOSITORY = Symbol('ISupplierCommandRepository');
 export const SUPPLIER_QUERY_REPOSITORY = Symbol('ISupplierQueryRepository');
 
-export interface ISupplierCommandRepository {
+export interface ISupplierCommandRepository
+  extends IBaseCommandRepository<Supplier> {
   create(props: CreateSupplierProps): Promise<Supplier>;
-  save(supplier: Supplier): Promise<Supplier>;
 }
 
 export interface ISupplierQueryRepository {

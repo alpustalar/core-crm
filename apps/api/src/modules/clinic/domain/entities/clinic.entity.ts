@@ -5,6 +5,7 @@ import {
   Sector,
 } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { ClinicSoftDeletedEvent } from '@modules/clinic/domain/events/clinic-soft-deleted.event';
 
 export class Clinic extends AggregateRoot implements PrismaClinic {
   constructor(data: PrismaClinic) {
@@ -145,6 +146,18 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
 
   public canAcceptAppointments(): boolean {
     return this.isActive;
+  }
+
+  public softDelete(actorId?: string): void {
+    this._status = GlobalStatus.DELETED;
+    this._deletedAt = new Date();
+    this.addDomainEvent(
+      new ClinicSoftDeletedEvent({
+        clinicId: this._id,
+        organizationId: this._organizationId,
+        actorId,
+      })
+    );
   }
 
   public registerSubMerchant(subMerchantKey: string): void {

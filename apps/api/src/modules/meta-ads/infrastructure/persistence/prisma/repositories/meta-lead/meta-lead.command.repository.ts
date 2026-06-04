@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaLeadCommandRepository } from '@modules/meta-ads/domain/repositories/meta-lead.repository.interface';
 import { MetaLead } from '@modules/meta-ads/domain/entities/meta-lead.entity';
 import { CreateMetaLeadProps } from '@modules/meta-ads/domain/types/create-meta-lead.props';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class MetaLeadCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<MetaLead>
   implements IMetaLeadCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -40,17 +41,37 @@ export class MetaLeadCommandRepository
 
   async save(entity: MetaLead): Promise<MetaLead> {
     const persistence = entity.toPersistence();
-    const raw = await this.db.metaLead.update({
+
+    const rawDataValue = persistence.rawData ?? Prisma.JsonNull;
+
+    const raw = await this.db.metaLead.upsert({
       where: { id: entity.id },
-      data: {
-        ...persistence,
-        rawData:
-          persistence.rawData !== null && persistence.rawData !== undefined
-            ? (persistence.rawData as Prisma.InputJsonValue)
-            : Prisma.JsonNull,
-      },
+      create: { ...persistence, rawData: rawDataValue },
+      update: { ...persistence, rawData: rawDataValue },
     });
+
     entity.flushEvents();
     return new MetaLead(raw);
+  }
+
+  async saveMany(metaLeads: MetaLead[]): Promise<void> {
+    const prismaQueries = metaLeads.map((metaLead) => {
+      const persistence = metaLead.toPersistence();
+      const rawDataValue = persistence.rawData ?? Prisma.JsonNull;
+
+      return this.db.metaLead.upsert({
+        where: { id: metaLead.id },
+        create: { ...persistence, rawData: rawDataValue },
+        update: { ...persistence, rawData: rawDataValue },
+      });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(prismaQueries);
+    } else {
+      await this.prisma.$transaction(prismaQueries);
+    }
+
+    metaLeads.forEach((metaLead) => metaLead.flushEvents());
   }
 }

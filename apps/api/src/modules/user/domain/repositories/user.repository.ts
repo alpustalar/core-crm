@@ -6,15 +6,12 @@ import { FindUsersByOrganizationIdsProps } from '@modules/user/domain/types/find
 import { PaginatedUsers } from '@modules/user/domain/types/paginated-users.type';
 import { MapPaginationResult } from '@src/infrastructure/persistence/prisma/base.repository';
 import { User } from '@modules/user/domain/entities/user.entity';
-import { CreateUserProps } from '@modules/user/domain/types/create-user.props';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const USER_COMMAND_REPOSITORY = Symbol('IUserCommandRepository');
 export const USER_QUERY_REPOSITORY = Symbol('IUserQueryRepository');
 
-export interface IUserCommandRepository {
-  create(user: CreateUserProps): Promise<PrismaUser>;
-  save(entity: User): Promise<User>;
-  saveMany(users: User[]): Promise<void>;
+export interface IUserCommandRepository extends IBaseCommandRepository<User> {
   updateLastLogin(userId: string): Promise<PrismaUser>;
   softDeleteAllByOrganizationId(
     organizationId: string

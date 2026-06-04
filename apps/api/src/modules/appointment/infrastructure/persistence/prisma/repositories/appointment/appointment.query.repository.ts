@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Pagination } from '@shared';
-import { AppointmentStatusSchema } from '@shared';
+import { AppointmentStatusSchema, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
@@ -27,11 +26,15 @@ export class AppointmentQueryRepository
   }
 
   async findById(appointmentId: string): Promise<Appointment | null> {
-    const raw = await this.db.appointment.findUnique({ where: { id: appointmentId } });
+    const raw = await this.db.appointment.findUnique({
+      where: { id: appointmentId },
+    });
     return raw ? new Appointment(raw) : null;
   }
 
-  findByIdWithDetails(appointmentId: string): Promise<AppointmentWithDetails | null> {
+  findByIdWithDetails(
+    appointmentId: string
+  ): Promise<AppointmentWithDetails | null> {
     return this.db.appointment.findUnique({
       where: { id: appointmentId },
       include: {
@@ -83,7 +86,10 @@ export class AppointmentQueryRepository
         endTime: { lte: endDate },
       },
     });
-    return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+    return {
+      items: result.items.map((r) => new Appointment(r)),
+      total: result.total,
+    };
   }
 
   async findClinicCalendar({
@@ -102,7 +108,10 @@ export class AppointmentQueryRepository
         endTime: { lte: endDate },
       },
     });
-    return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+    return {
+      items: result.items.map((r) => new Appointment(r)),
+      total: result.total,
+    };
   }
 
   async findByOrganizationId({
@@ -121,22 +130,35 @@ export class AppointmentQueryRepository
         clinic: { organizationId },
         clinicId,
         status,
-        startTime: (startDate ?? endDate) ? { gte: startDate, lte: endDate } : undefined,
+        startTime:
+          (startDate ?? endDate) ? { gte: startDate, lte: endDate } : undefined,
       },
     });
-    return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+    return {
+      items: result.items.map((r) => new Appointment(r)),
+      total: result.total,
+    };
   }
 
-  async findByPatientId(pagination: Pagination, patientId: string): PaginatedAppointments {
+  async findByPatientId(
+    pagination: Pagination,
+    patientId: string
+  ): PaginatedAppointments {
     const result = await paginate({
       delegate: this.db.appointment,
       pagination,
       where: { patientId, isDeleted: false },
     });
-    return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+    return {
+      items: result.items.map((r) => new Appointment(r)),
+      total: result.total,
+    };
   }
 
-  async findActionRequired(clinicId: string, pagination: Pagination): PaginatedAppointments {
+  async findActionRequired(
+    clinicId: string,
+    pagination: Pagination
+  ): PaginatedAppointments {
     const result = await paginate({
       delegate: this.db.appointment,
       pagination,
@@ -147,10 +169,16 @@ export class AppointmentQueryRepository
         startTime: { gte: new Date() },
       },
     });
-    return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+    return {
+      items: result.items.map((r) => new Appointment(r)),
+      total: result.total,
+    };
   }
 
-  async findUpcomingReminders(pagination: Pagination, hoursAhead: number = 24): PaginatedAppointments {
+  async findUpcomingReminders(
+    pagination: Pagination,
+    hoursAhead: number = 24
+  ): PaginatedAppointments {
     const now = new Date();
     const result = await paginate({
       delegate: this.db.appointment,
@@ -161,10 +189,16 @@ export class AppointmentQueryRepository
         startTime: { gte: now, lte: DateTimeManager.addHours(now, hoursAhead) },
       },
     });
-    return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+    return {
+      items: result.items.map((r) => new Appointment(r)),
+      total: result.total,
+    };
   }
 
-  async getProviderDailyLoad(providerId: string, date: Date): Promise<ProviderDailyLoad> {
+  async getProviderDailyLoad(
+    providerId: string,
+    date: Date
+  ): Promise<ProviderDailyLoad> {
     const count = await this.db.appointment.count({
       where: {
         providerId,
@@ -182,7 +216,7 @@ export class AppointmentQueryRepository
   findProviderOccupiedSlots(
     providerId: string,
     startDate: Date,
-    endDate: Date,
+    endDate: Date
   ): Promise<OccupiedSlot[]> {
     return this.db.appointment.findMany({
       where: {

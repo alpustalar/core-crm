@@ -4,6 +4,7 @@ import { SubscriptionItem } from '@modules/subscription/domain/entities/subscrip
 import { CreateSubscriptionProps } from '@modules/subscription/domain/types/create-subscription.props';
 import { AddItemProps } from '@modules/subscription/domain/types/add-item.props';
 import { SubscriptionWithItems } from '@modules/subscription/domain/types/subscription-with-items.type';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const SUBSCRIPTION_COMMAND_REPOSITORY = Symbol(
   'ISubscriptionCommandRepository'
@@ -12,12 +13,12 @@ export const SUBSCRIPTION_QUERY_REPOSITORY = Symbol(
   'ISubscriptionQueryRepository'
 );
 
-export interface ISubscriptionCommandRepository {
+export interface ISubscriptionCommandRepository
+  extends IBaseCommandRepository<Subscription> {
   create(data: CreateSubscriptionProps): Promise<Subscription>;
   addItem(data: AddItemProps): Promise<SubscriptionItem>;
   updateStatus(id: string, status: SubStatus): Promise<void>;
   updateExternalId(id: string, externalId: string): Promise<void>;
-  save(entity: Subscription): Promise<void>;
 }
 
 export interface ISubscriptionQueryRepository {
