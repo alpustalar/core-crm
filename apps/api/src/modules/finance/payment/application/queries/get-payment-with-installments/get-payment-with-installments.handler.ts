@@ -1,0 +1,28 @@
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
+import { GetPaymentWithInstallmentsQuery } from './get-payment-with-installments.query';
+import { GetPaymentWithInstallmentsResponse } from './get-payment-with-installments.response';
+import {
+  IPaymentRepository,
+  PAYMENT_REPOSITORY,
+} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+
+@QueryHandler(GetPaymentWithInstallmentsQuery)
+export class GetPaymentWithInstallmentsHandler
+  implements
+    IQueryHandler<
+      GetPaymentWithInstallmentsQuery,
+      GetPaymentWithInstallmentsResponse
+    >
+{
+  constructor(
+    @Inject(PAYMENT_REPOSITORY)
+    private readonly paymentRepo: IPaymentRepository
+  ) {}
+
+  execute(
+    query: GetPaymentWithInstallmentsQuery
+  ): Promise<GetPaymentWithInstallmentsResponse> {
+    return this.paymentRepo.findPaymentWithInstallments(query.paymentId);
+  }
+}

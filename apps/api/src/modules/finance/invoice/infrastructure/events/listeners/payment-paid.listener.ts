@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PAYMENT_EVENTS } from '@src/domain/constants/events';
-import { PaymentPaidEvent } from '@modules/finance/pos/virtual/domain/events/payment-paid.event';
+import { PaymentPaidEvent } from '@modules/finance/payment/domain/events/payment-paid.event';
 import { IssueInvoiceCommand } from '@modules/finance/invoice/application/commands/issue-invoice/issue-invoice.command';
 import {
   LogAction,

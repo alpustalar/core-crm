@@ -16,6 +16,8 @@ import {
   PaxConnectionError,
   PaxTimeoutError,
 } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 
 @CommandHandler(PaxSaleCommand)
 export class PaxSaleHandler
@@ -28,7 +30,8 @@ export class PaxSaleHandler
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
-    private readonly paxService: PaxService
+    private readonly paxService: PaxService,
+    private readonly commandBus: TSCommandBus
   ) {}
 
   async execute(command: PaxSaleCommand): Promise<PaxSaleResponse> {
@@ -39,6 +42,20 @@ export class PaxSaleHandler
       throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
     }
 
+    let paymentId = input.paymentId;
+    if (!paymentId && input.patientId) {
+      const result = await this.commandBus.execute(
+        new CreatePaymentCommand({
+          clinicId: input.clinicId,
+          patientId: input.patientId,
+          appointmentId: input.appointmentId,
+          amount: input.amount,
+          currency: input.currency,
+        })
+      );
+      paymentId = result.paymentId;
+    }
+
     const posTransactionId = crypto.randomUUID();
 
     await this.posTransactionCommandRepo.create({
@@ -47,7 +64,7 @@ export class PaxSaleHandler
       clinicId: input.clinicId,
       patientId: input.patientId,
       appointmentId: input.appointmentId,
-      paymentId: input.paymentId,
+      paymentId,
       amount: input.amount,
       currency: input.currency,
     });
@@ -92,7 +109,6 @@ export class PaxSaleHandler
       };
     } catch (err) {
       if (err instanceof PaxTimeoutError) {
-        // Terminal yanıt vermedi; işlem terminalde olabilir — reconcile devralır
         this.logger.warn(
           `PAX satış timeout: id=${posTransactionId} — PENDING kalıyor`
         );
@@ -100,7 +116,6 @@ export class PaxSaleHandler
       }
 
       if (err instanceof PaxConnectionError) {
-        // Terminal hiç ulaşılamadı — istek gönderilmedi, FAILED
         await this.posTransactionCommandRepo.updateStatus({
           id: posTransactionId,
           status: PosTransactionStatus.FAILED,

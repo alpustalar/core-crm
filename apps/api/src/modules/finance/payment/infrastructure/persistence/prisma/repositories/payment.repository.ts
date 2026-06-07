@@ -11,7 +11,7 @@ import {
   CreateInstallmentPlanInput,
   CreateSinglePaymentInput,
   IPaymentRepository,
-} from '@modules/finance/pos/virtual/domain/repositories/payment.repository.interface';
+} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 
 @Injectable()
 export class PaymentRepository

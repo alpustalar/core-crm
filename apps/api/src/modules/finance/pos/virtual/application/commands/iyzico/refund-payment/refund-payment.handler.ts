@@ -10,19 +10,19 @@ import {
   IIyzicoTransactionRepository,
   IYZICO_TRANSACTION_REPOSITORY,
 } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
-import { PaymentDomainService } from '@modules/finance/pos/virtual/domain/services/payment-domain.service';
+import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import { InstallmentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
-  IPaymentRepository,
-  PAYMENT_REPOSITORY,
-} from '@modules/finance/pos/virtual/domain/repositories/payment.repository.interface';
-import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
-} from '@modules/finance/pos/virtual/domain/interfaces/payment-event-publisher.interface';
+} from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
+import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
 
 @CommandHandler(RefundPaymentCommand)
 export class RefundPaymentHandler
@@ -30,8 +30,6 @@ export class RefundPaymentHandler
     ICommandHandler<RefundPaymentCommand, RefundPaymentCommandResponse>
 {
   constructor(
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly paymentRepo: IPaymentRepository,
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
     @Inject(IYZICO_TRANSACTION_REPOSITORY)
@@ -39,7 +37,9 @@ export class RefundPaymentHandler
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly paymentDomainService: PaymentDomainService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
@@ -47,8 +47,9 @@ export class RefundPaymentHandler
   ): Promise<RefundPaymentCommandResponse> {
     const { paymentId, ip } = command;
 
-    const payment =
-      await this.paymentRepo.findPaymentWithInstallments(paymentId);
+    const payment = await this.queryBus.execute(
+      new GetPaymentWithInstallmentsQuery(paymentId)
+    );
     if (!payment) {
       throw new NotFoundException(`Ödeme bulunamadı: paymentId=${paymentId}`);
     }
@@ -95,7 +96,9 @@ export class RefundPaymentHandler
         rawResponse: sdkResult,
       });
 
-      await this.paymentRepo.markInstallmentAsRefunded(completedInstallment.id);
+      await this.commandBus.execute(
+        new MarkInstallmentAsRefundedCommand(completedInstallment.id)
+      );
 
       this.paymentEventPublisher.paymentRefund({
         installmentId: completedInstallment.id,

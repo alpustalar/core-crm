@@ -12,13 +12,11 @@ import {
   IYZICO_TRANSACTION_REPOSITORY,
   IyzicoTransactionWithInstallment,
 } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
-import {
-  IPaymentRepository,
-  PAYMENT_REPOSITORY,
-} from '@modules/finance/pos/virtual/domain/repositories/payment.repository.interface';
-import { PAYMENT_EVENT_PUBLISHER } from '@modules/finance/pos/virtual/domain/interfaces/payment-event-publisher.interface';
+import { PAYMENT_EVENT_PUBLISHER } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { PaymentDomainService } from '@modules/finance/pos/virtual/domain/services/payment-domain.service';
+import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 const makeTransaction = (
   status: IyzicoTransactionStatus = IyzicoTransactionStatus.INITIALIZE
@@ -44,7 +42,7 @@ describe('HandlePaymentCallbackHandler', () => {
   let handler: HandlePaymentCallbackHandler;
   let iyzicoProvider: jest.Mocked<IIyzicoProvider>;
   let iyzicoRepo: jest.Mocked<IIyzicoTransactionRepository>;
-  let paymentRepo: jest.Mocked<IPaymentRepository>;
+  let commandBus: { execute: jest.Mock };
   let paymentEventPublisher: {
     paymentPaid: jest.Mock;
     paymentFailed: jest.Mock;
@@ -71,10 +69,7 @@ describe('HandlePaymentCallbackHandler', () => {
       markAsRefunded: jest.fn(),
     };
 
-    const mockPaymentRepo: Partial<jest.Mocked<IPaymentRepository>> = {
-      markInstallmentAsPaid: jest.fn(),
-      markInstallmentAsFailed: jest.fn(),
-    };
+    const mockCommandBus = { execute: jest.fn().mockResolvedValue(undefined) };
 
     const mockPaymentEventPublisher = {
       paymentPaid: jest.fn(),
@@ -93,19 +88,17 @@ describe('HandlePaymentCallbackHandler', () => {
         PaymentDomainService,
         { provide: IYZICO_PROVIDER, useValue: mockIyzicoProvider },
         { provide: IYZICO_TRANSACTION_REPOSITORY, useValue: mockIyzicoRepo },
-        { provide: PAYMENT_REPOSITORY, useValue: mockPaymentRepo },
-        {
-          provide: PAYMENT_EVENT_PUBLISHER,
-          useValue: mockPaymentEventPublisher,
-        },
+        { provide: PAYMENT_EVENT_PUBLISHER, useValue: mockPaymentEventPublisher },
         { provide: TransactionManager, useValue: mockTxManager },
+        { provide: TSCommandBus, useValue: mockCommandBus },
+        { provide: TSQueryBus, useValue: {} },
       ],
     }).compile();
 
     handler = module.get(HandlePaymentCallbackHandler);
     iyzicoProvider = module.get(IYZICO_PROVIDER);
     iyzicoRepo = module.get(IYZICO_TRANSACTION_REPOSITORY);
-    paymentRepo = module.get(PAYMENT_REPOSITORY);
+    commandBus = module.get(TSCommandBus);
     paymentEventPublisher = module.get(PAYMENT_EVENT_PUBLISHER);
   });
 
@@ -142,7 +135,7 @@ describe('HandlePaymentCallbackHandler', () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoRepo.markAsSuccess).not.toHaveBeenCalled();
-      expect(paymentRepo.markInstallmentAsPaid).not.toHaveBeenCalled();
+      expect(commandBus.execute).not.toHaveBeenCalled();
       expect(paymentEventPublisher.paymentPaid).not.toHaveBeenCalled();
     });
   });
@@ -163,7 +156,6 @@ describe('HandlePaymentCallbackHandler', () => {
         makeTransaction()
       );
       iyzicoRepo.markAsSuccess.mockResolvedValue({} as any);
-      paymentRepo.markInstallmentAsPaid.mockResolvedValue({} as any);
     });
 
     it('marks iyzico transaction as success with SDK data', async () => {
@@ -177,10 +169,12 @@ describe('HandlePaymentCallbackHandler', () => {
       });
     });
 
-    it('marks installment as paid', async () => {
+    it('dispatches MarkInstallmentAsPaidCommand', async () => {
       await handler.execute(makeCommand());
 
-      expect(paymentRepo.markInstallmentAsPaid).toHaveBeenCalledWith('inst-1');
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ installmentId: 'inst-1' })
+      );
     });
 
     it('publishes paymentPaid event with correct payload', async () => {
@@ -200,7 +194,6 @@ describe('HandlePaymentCallbackHandler', () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoRepo.markAsFailed).not.toHaveBeenCalled();
-      expect(paymentRepo.markInstallmentAsFailed).not.toHaveBeenCalled();
       expect(paymentEventPublisher.paymentFailed).not.toHaveBeenCalled();
     });
   });
@@ -221,7 +214,6 @@ describe('HandlePaymentCallbackHandler', () => {
         makeTransaction()
       );
       iyzicoRepo.markAsFailed.mockResolvedValue({} as any);
-      paymentRepo.markInstallmentAsFailed.mockResolvedValue({} as any);
     });
 
     it('marks iyzico transaction as failed with error details', async () => {
@@ -235,11 +227,11 @@ describe('HandlePaymentCallbackHandler', () => {
       });
     });
 
-    it('marks installment as failed', async () => {
+    it('dispatches MarkInstallmentAsFailedCommand', async () => {
       await handler.execute(makeCommand());
 
-      expect(paymentRepo.markInstallmentAsFailed).toHaveBeenCalledWith(
-        'inst-1'
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ installmentId: 'inst-1' })
       );
     });
 
@@ -248,7 +240,6 @@ describe('HandlePaymentCallbackHandler', () => {
 
       expect(paymentEventPublisher.paymentFailed).toHaveBeenCalledWith(
         expect.objectContaining({
-          installmentId: 'inst-1',
           paymentId: 'pay-1',
           appointmentId: 'appt-1',
           clinicId: 'clinic-1',
@@ -260,7 +251,6 @@ describe('HandlePaymentCallbackHandler', () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoRepo.markAsSuccess).not.toHaveBeenCalled();
-      expect(paymentRepo.markInstallmentAsPaid).not.toHaveBeenCalled();
       expect(paymentEventPublisher.paymentPaid).not.toHaveBeenCalled();
     });
   });

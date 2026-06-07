@@ -14,6 +14,8 @@ import {
   IPhysicalPosProvider,
   PHYSICAL_POS_PROVIDER,
 } from '@modules/finance/pos/physical/domain/interfaces/physical-pos-provider.interface';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 
 @CommandHandler(InitiatePosTransactionCommand)
 export class InitiatePosTransactionHandler
@@ -29,7 +31,8 @@ export class InitiatePosTransactionHandler
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
-    private readonly posProvider: IPhysicalPosProvider
+    private readonly posProvider: IPhysicalPosProvider,
+    private readonly commandBus: TSCommandBus
   ) {}
 
   async execute(
@@ -42,6 +45,20 @@ export class InitiatePosTransactionHandler
       throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
     }
 
+    let paymentId = input.paymentId;
+    if (!paymentId && input.patientId) {
+      const result = await this.commandBus.execute(
+        new CreatePaymentCommand({
+          clinicId: input.clinicId,
+          patientId: input.patientId,
+          appointmentId: input.appointmentId,
+          amount: input.amount,
+          currency: input.currency ?? 'TRY',
+        })
+      );
+      paymentId = result.paymentId;
+    }
+
     const posTransactionId = crypto.randomUUID();
 
     await this.posTransactionCommandRepo.create({
@@ -50,7 +67,7 @@ export class InitiatePosTransactionHandler
       clinicId: input.clinicId,
       patientId: input.patientId,
       appointmentId: input.appointmentId,
-      paymentId: input.paymentId,
+      paymentId,
       amount: input.amount,
       currency: input.currency ?? 'TRY',
     });

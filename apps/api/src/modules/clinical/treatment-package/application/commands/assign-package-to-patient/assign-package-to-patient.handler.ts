@@ -13,7 +13,7 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/utils/date-time.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { CreatePaymentCommand } from '@modules/finance/pos/virtual/application/commands/payment/create-payment/create-payment.command';
+import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 
 @CommandHandler(AssignPackageToPatientCommand)
 export class AssignPackageToPatientHandler
@@ -48,7 +48,7 @@ export class AssignPackageToPatientHandler
     const endDate = DateTimeManager.addDays(dto.startDate, pkg.validityDays);
 
     return this.txManager.run(async () => {
-      const paymentId = await this.commandBus.execute(
+      const { paymentId } = await this.commandBus.execute(
         new CreatePaymentCommand({
           clinicId: actor.clinicId!,
           patientId: dto.patientId,

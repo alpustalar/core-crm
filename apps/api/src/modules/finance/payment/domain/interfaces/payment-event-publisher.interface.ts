@@ -1,8 +1,8 @@
-import { PaymentPaidEventPayload } from '@modules/finance/pos/virtual/domain/events/payment-paid.event';
-import { PaymentRefundedEventPayload } from '@modules/finance/pos/virtual/domain/events/payment-refunded.event';
-import { PaymentFailedPayload } from '@modules/finance/pos/virtual/domain/events/payment-failed.event';
-import { PaymentInitiatedEventPayload } from '@modules/finance/pos/virtual/domain/events/payment-initiated.event';
-import { PaymentCancelledEventPayload } from '@modules/finance/pos/virtual/domain/events/payment-cancelled.event';
+import { PaymentPaidEventPayload } from '@modules/finance/payment/domain/events/payment-paid.event';
+import { PaymentRefundedEventPayload } from '@modules/finance/payment/domain/events/payment-refunded.event';
+import { PaymentFailedPayload } from '@modules/finance/payment/domain/events/payment-failed.event';
+import { PaymentInitiatedEventPayload } from '@modules/finance/payment/domain/events/payment-initiated.event';
+import { PaymentCancelledEventPayload } from '@modules/finance/payment/domain/events/payment-cancelled.event';
 
 export const PAYMENT_EVENT_PUBLISHER = Symbol('IPaymentEventPublisher');
 export interface IPaymentEventPublisher {

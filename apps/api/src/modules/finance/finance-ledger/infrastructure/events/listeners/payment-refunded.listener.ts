@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PAYMENT_EVENTS } from '@src/domain/constants/events';
-import { PaymentRefundedEvent } from '@modules/finance/pos/virtual/domain/events/payment-refunded.event';
+import { PaymentRefundedEvent } from '@modules/finance/payment/domain/events/payment-refunded.event';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { RefundLedgerEntriesCommand } from '@modules/finance/finance-ledger/application/commands/refund-ledger-entries/refund-ledger-entries.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';

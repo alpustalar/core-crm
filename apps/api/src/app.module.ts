@@ -39,6 +39,7 @@ import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
 import { CryptoModule } from '@common/crypto/crypto.module';
 import { InvoiceModule } from '@modules/finance/invoice/invoice.module';
 import { PosModule } from '@modules/finance/pos/pos.module';
+import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { MetaAdsModule } from '@modules/crm/meta-ads/meta-ads.module';
 import { LeadModule } from '@modules/crm/lead/lead.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
@@ -74,6 +75,7 @@ import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.
     RegistrationModule,
     InvoiceModule,
     PosModule,
+    PaymentModule,
     MetaAdsModule,
     LeadModule,
     AdminRequestModule,

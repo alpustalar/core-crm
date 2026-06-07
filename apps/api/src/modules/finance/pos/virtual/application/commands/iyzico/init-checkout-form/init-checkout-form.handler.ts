@@ -12,14 +12,14 @@ import {
   IYZICO_TRANSACTION_REPOSITORY,
 } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { PaymentInitializeRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/payment-initialize.request';
-import { PaymentEventPublisher } from '@modules/finance/pos/virtual/infrastructure/events/payment-event-publisher.service';
+import {
+  IPaymentEventPublisher,
+  PAYMENT_EVENT_PUBLISHER,
+} from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import { BadRequestException, Inject } from '@nestjs/common';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
-import {
-  IPaymentRepository,
-  PAYMENT_REPOSITORY,
-} from '@modules/finance/pos/virtual/domain/repositories/payment.repository.interface';
-import { PAYMENT_EVENT_PUBLISHER } from '@modules/finance/pos/virtual/domain/interfaces/payment-event-publisher.interface';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 
 @CommandHandler(InitCheckoutFormCommand)
 export class InitCheckoutFormHandler
@@ -27,14 +27,13 @@ export class InitCheckoutFormHandler
     ICommandHandler<InitCheckoutFormCommand, InitCheckoutFormCommandResponse>
 {
   constructor(
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly paymentRepo: IPaymentRepository,
+    private readonly commandBus: TSCommandBus,
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
     @Inject(IYZICO_TRANSACTION_REPOSITORY)
     private readonly iyzicoTransactionRepo: IIyzicoTransactionRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
-    private readonly paymentEventPublisher: PaymentEventPublisher,
+    private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -46,15 +45,15 @@ export class InitCheckoutFormHandler
     const conversationId = randomUUID();
 
     return await this.txManager.run(async () => {
-      const payment = await this.paymentRepo.createSinglePayment({
-        clinicId: dto.clinicId,
-        patientId: dto.patientId,
-        appointmentId: dto.appointmentId,
-        amount: dto.amount,
-        currency: 'TRY',
-      });
-
-      const installment = payment.installments[0];
+      const { paymentId, installmentId } = await this.commandBus.execute(
+        new CreatePaymentCommand({
+          clinicId: dto.clinicId,
+          patientId: dto.patientId,
+          appointmentId: dto.appointmentId,
+          amount: dto.amount,
+          currency: 'TRY',
+        })
+      );
 
       const [firstName, ...rest] = dto.patientName.trim().split(' ');
       const lastName = rest.join(' ') || firstName;
@@ -108,7 +107,7 @@ export class InitCheckoutFormHandler
         await this.iyzicoProvider.paymentInitialize(iyzicoRequest);
 
       const iyzico = await this.iyzicoTransactionRepo.createTransaction({
-        installmentId: installment.id,
+        installmentId,
         conversationId,
         token: sdkResult.token,
       });
@@ -118,8 +117,8 @@ export class InitCheckoutFormHandler
       }
 
       this.paymentEventPublisher.paymentInitiated({
-        paymentId: payment.id,
-        installmentId: installment.id,
+        paymentId,
+        installmentId,
         token: sdkResult.token,
         appointmentId: dto.appointmentId,
         action: LogAction.PAYMENT_INITIATED,

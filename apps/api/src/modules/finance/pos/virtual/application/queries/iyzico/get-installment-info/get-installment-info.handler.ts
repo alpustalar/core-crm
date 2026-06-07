@@ -4,7 +4,7 @@ import { GetInstallmentInfoQueryResponse } from './get-installment-info.response
 import { randomUUID } from 'crypto';
 import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
 import { BadRequestException, Inject } from '@nestjs/common';
-import { InstallmentOption } from '@modules/finance/pos/virtual/domain/types/installment-option.type';
+import { InstallmentOption } from '@modules/finance/payment/domain/types/installment-option.type';
 import Iyzipay from 'iyzipay';
 import {
   IIyzicoProvider,

@@ -2,24 +2,24 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   PaymentPaidEvent,
   PaymentPaidEventPayload,
-} from '@modules/finance/pos/virtual/domain/events/payment-paid.event';
+} from '@modules/finance/payment/domain/events/payment-paid.event';
 import {
   PaymentRefundedEvent,
   PaymentRefundedEventPayload,
-} from '@modules/finance/pos/virtual/domain/events/payment-refunded.event';
+} from '@modules/finance/payment/domain/events/payment-refunded.event';
 import {
   PaymentFailedEvent,
   PaymentFailedPayload,
-} from '@modules/finance/pos/virtual/domain/events/payment-failed.event';
+} from '@modules/finance/payment/domain/events/payment-failed.event';
 import {
   PaymentInitiatedEvent,
   PaymentInitiatedEventPayload,
-} from '@modules/finance/pos/virtual/domain/events/payment-initiated.event';
+} from '@modules/finance/payment/domain/events/payment-initiated.event';
 import {
   PaymentCancelledEvent,
   PaymentCancelledEventPayload,
-} from '@modules/finance/pos/virtual/domain/events/payment-cancelled.event';
-import { IPaymentEventPublisher } from '@modules/finance/pos/virtual/domain/interfaces/payment-event-publisher.interface';
+} from '@modules/finance/payment/domain/events/payment-cancelled.event';
+import { IPaymentEventPublisher } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import {
   CONTEXT_SERVICE,
   IContextService,

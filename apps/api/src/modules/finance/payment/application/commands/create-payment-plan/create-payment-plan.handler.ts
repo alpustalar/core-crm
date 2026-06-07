@@ -4,7 +4,7 @@ import { CreatePaymentPlanCommandResponse } from './create-payment-plan.response
 import {
   IPaymentRepository,
   PAYMENT_REPOSITORY,
-} from '@modules/finance/pos/virtual/domain/repositories/payment.repository.interface';
+} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { Inject } from '@nestjs/common';
 
 @CommandHandler(CreatePaymentPlanCommand)

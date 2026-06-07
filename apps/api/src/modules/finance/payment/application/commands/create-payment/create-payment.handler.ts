@@ -1,21 +1,26 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { CreatePaymentCommand } from './create-payment.command';
+import {
+  CreatePaymentCommand,
+  CreatePaymentCommandResponse,
+} from './create-payment.command';
 import {
   IPaymentRepository,
   PAYMENT_REPOSITORY,
-} from '@modules/finance/pos/virtual/domain/repositories/payment.repository.interface';
+} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 
 @CommandHandler(CreatePaymentCommand)
 export class CreatePaymentHandler
-  implements ICommandHandler<CreatePaymentCommand, string>
+  implements ICommandHandler<CreatePaymentCommand, CreatePaymentCommandResponse>
 {
   constructor(
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepo: IPaymentRepository
   ) {}
 
-  async execute(command: CreatePaymentCommand): Promise<string> {
+  async execute(
+    command: CreatePaymentCommand
+  ): Promise<CreatePaymentCommandResponse> {
     const { dto } = command;
     const payment = await this.paymentRepo.createSinglePayment({
       clinicId: dto.clinicId,
@@ -23,7 +28,8 @@ export class CreatePaymentHandler
       amount: dto.amount,
       currency: dto.currency ?? 'TRY',
       providerId: dto.providerId,
+      appointmentId: dto.appointmentId,
     });
-    return payment.id;
+    return { paymentId: payment.id, installmentId: payment.installments[0].id };
   }
 }
