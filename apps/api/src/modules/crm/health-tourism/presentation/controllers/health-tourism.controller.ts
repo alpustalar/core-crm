@@ -25,16 +25,16 @@ import {
   SearchTransferAvailabilityDto,
   GetTransferBookingsDto,
 } from '@shared/modules/health-tourism/dto/queries';
-import { BookHotelCommand } from '@modules/crm/health-tourism/application/commands/book-hotel/book-hotel.command';
-import { CancelHotelBookingCommand } from '@modules/crm/health-tourism/application/commands/cancel-hotel-booking/cancel-hotel-booking.command';
-import { BookTransferCommand } from '@modules/crm/health-tourism/application/commands/book-transfer/book-transfer.command';
-import { CancelTransferBookingCommand } from '@modules/crm/health-tourism/application/commands/cancel-transfer-booking/cancel-transfer-booking.command';
-import { SearchHotelsQuery } from '@modules/crm/health-tourism/application/queries/search-hotels/search-hotels.query';
-import { GetHotelBookingsQuery } from '@modules/crm/health-tourism/application/queries/get-hotel-bookings/get-hotel-bookings.query';
-import { GetHotelBookingByIdQuery } from '@modules/crm/health-tourism/application/queries/get-hotel-booking-by-id/get-hotel-booking-by-id.query';
-import { SearchTransferAvailabilityQuery } from '@modules/crm/health-tourism/application/queries/search-transfer-availability/search-transfer-availability.query';
-import { GetTransferBookingsQuery } from '@modules/crm/health-tourism/application/queries/get-transfer-bookings/get-transfer-bookings.query';
-import { GetTransferBookingByIdQuery } from '@modules/crm/health-tourism/application/queries/get-transfer-booking-by-id/get-transfer-booking-by-id.query';
+import { BookHotelCommand } from '@modules/crm/health-tourism/hotel/application/commands/book-hotel/book-hotel.command';
+import { CancelHotelBookingCommand } from '@modules/crm/health-tourism/hotel/application/commands/cancel-hotel-booking/cancel-hotel-booking.command';
+import { BookTransferCommand } from '@modules/crm/health-tourism/transfer/application/commands/book-transfer/book-transfer.command';
+import { CancelTransferBookingCommand } from '@modules/crm/health-tourism/transfer/application/commands/cancel-transfer-booking/cancel-transfer-booking.command';
+import { SearchHotelsQuery } from '@modules/crm/health-tourism/hotel/application/queries/search-hotels/search-hotels.query';
+import { GetHotelBookingsQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-bookings/get-hotel-bookings.query';
+import { GetHotelBookingByIdQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-booking-by-id/get-hotel-booking-by-id.query';
+import { SearchTransferAvailabilityQuery } from '@modules/crm/health-tourism/transfer/application/queries/search-transfer-availability/search-transfer-availability.query';
+import { GetTransferBookingsQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-bookings/get-transfer-bookings.query';
+import { GetTransferBookingByIdQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-booking-by-id/get-transfer-booking-by-id.query';
 
 @UseGuards(AuthGuard)
 @Controller()

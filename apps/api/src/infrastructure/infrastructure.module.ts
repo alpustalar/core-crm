@@ -12,6 +12,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: `envs/.env.${process.env.NODE_ENV ?? 'development'}`,
       validationSchema: Joi.object({
         [ENV.PORT]: Joi.number().default(8080),
         [ENV.DATABASE_URL]: Joi.string().required(),
