@@ -73,4 +73,25 @@ export class RedisService {
     const result = await this.redis.get(REDIS_KEYS.AUTH.TOKEN_BLOCKLIST(hash));
     return result !== null;
   }
+
+  // ─── Transfer Availability Cache ──────────────────────────────────────────
+
+  async setTransferAvailability(
+    paramsHash: string,
+    data: unknown,
+  ): Promise<void> {
+    await this.redis.set(
+      REDIS_KEYS.TRANSFER.AVAILABILITY(paramsHash),
+      JSON.stringify(data),
+      'EX',
+      300,
+    );
+  }
+
+  async getTransferAvailability(paramsHash: string): Promise<unknown | null> {
+    const raw = await this.redis.get(
+      REDIS_KEYS.TRANSFER.AVAILABILITY(paramsHash),
+    );
+    return raw ? JSON.parse(raw) : null;
+  }
 }
