@@ -13,7 +13,7 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/utils/date-time.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/payment/create-payment/create-payment.command';
+import { CreatePaymentCommand } from '@modules/finance/pos/virtual/application/commands/payment/create-payment/create-payment.command';
 
 @CommandHandler(AssignPackageToPatientCommand)
 export class AssignPackageToPatientHandler

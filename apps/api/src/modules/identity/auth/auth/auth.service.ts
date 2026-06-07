@@ -1,10 +1,5 @@
 import { ActorContext } from '@common/interfaces';
-import {
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, UnauthorizedException, } from '@nestjs/common';
 import { LogSource } from '@src/domain/constants/log-action.constant';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
@@ -20,11 +15,17 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { RedisService } from '@common/redis/redis.service';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
-import { UpdateLastLoginCommand } from '@modules/identity/user/application/commands/update-last-login/update-last-login.command';
-import { FindUserForAuthQuery } from '@modules/identity/user/application/queries/find-user-for-auth/find-user-for-auth.query';
+import {
+  UpdateLastLoginCommand
+} from '@modules/identity/user/application/commands/update-last-login/update-last-login.command';
+import {
+  FindUserForAuthQuery
+} from '@modules/identity/user/application/queries/find-user-for-auth/find-user-for-auth.query';
 
+// TODO: PROD'TA KALDIR
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const isDevelopment = process.env.NODE_MODE === 'development';
+const isDevelopment = process.env.MODE === 'DEVELOPMENT';
+//
 
 @Injectable()
 export class AuthService {
@@ -46,6 +47,7 @@ export class AuthService {
     const decodedToken = await this.firebaseService.verifyToken(idToken);
     if (!decodedToken) throw new UnauthorizedException('Token geçersiz');
 
+    // TODO: prod'ta bu satırı kaldır
     if (isDevelopment) await this.createAdmin(decodedToken);
 
     const cached = await this.redis.getActorContext(decodedToken.uid);
@@ -123,7 +125,7 @@ export class AuthService {
     });
   }
 
-  // TODO: prod'ta kaldır
+  // TODO: prod'ta create admin kaldır
   private async createAdmin(decodedToken: DecodedIdToken) {
     const { uid: id, email } = decodedToken;
     if (!email || !ADMIN_EMAIL?.includes(email)) return;

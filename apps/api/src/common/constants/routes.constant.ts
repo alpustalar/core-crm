@@ -2,6 +2,7 @@ const BASE_PATHS = {
   ORGANIZATIONS: 'organizations',
   CLINICS: 'clinics',
   USERS: 'users',
+  POS: 'pos',
   PAYMENTS: 'payments',
   IYZICO: 'iyzico',
   CALLBACK: 'callback',
@@ -17,7 +18,7 @@ export const ROUTE_PATHS = {
     IYZICO: {
       ROOT: BASE_PATHS.IYZICO,
       CALLBACK: BASE_PATHS.CALLBACK,
-      FULL_CALLBACK_PATH: `${BASE_PATHS.PAYMENTS}/${BASE_PATHS.IYZICO}/${BASE_PATHS.CALLBACK}`,
+      FULL_CALLBACK_PATH: `${BASE_PATHS.POS}/${BASE_PATHS.IYZICO}/${BASE_PATHS.CALLBACK}`,
     },
   },
   SUBSCRIPTIONS: {

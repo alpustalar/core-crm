@@ -26,7 +26,6 @@ import { AuthModule } from '@modules/identity/auth/auth/auth.module';
 import { RegistrationModule } from '@modules/identity/auth/registration/registration.module';
 import { RoleModule } from '@modules/identity/role/role.module';
 import { InfrastructureModule } from '@src/infrastructure/infrastructure.module';
-import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
 import { TransactionInterceptor } from '@common/interceptors/transaction/transaction.interceptor';
 import { APP_ROUTES } from '@src/app.routes';
@@ -55,7 +54,6 @@ import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.
     PrismaModule,
     AuthModule,
     TSCqrsModule,
-    PaymentModule,
     UserModule,
     MailModule,
     AuditLogModule,

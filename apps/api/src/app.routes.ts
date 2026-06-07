@@ -2,7 +2,6 @@ import { Routes } from '@nestjs/core';
 import { RegistrationModule } from '@modules/identity/auth/registration/registration.module';
 import { OrganizationModule } from '@modules/organization/organization/organization.module';
 import { ClinicModule } from '@modules/organization/clinic/clinic.module';
-import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { AppointmentModule } from '@modules/clinical/appointment/appointment.module';
 import { UserModule } from '@modules/identity/user/user.module';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
@@ -44,10 +43,6 @@ export const APP_ROUTES: Routes = [
   {
     path: 'finance',
     module: FinanceLedgerModule,
-  },
-  {
-    path: 'payments',
-    module: PaymentModule,
   },
   {
     path: 'register',
