@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OperationModeSchema } from './create-provider.schema';
+import { OperationModeSchema } from '../../../generated-zod/inputTypeSchemas/OperationModeSchema';
 
 export const SetProviderOperationModeSchema = z.object({
   operationMode: OperationModeSchema,

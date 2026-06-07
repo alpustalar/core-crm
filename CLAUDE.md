@@ -75,7 +75,19 @@ pnpm test:e2e          # E2E tests
 
 The API follows a modular CQRS + Clean Architecture pattern with strict separation of concerns:
 
-**Module Structure** (e.g., `src/modules/clinic/`):
+**Module Groups** (`src/modules/`):
+
+```
+clinical/    → appointment, medical-files, provider, treatment, treatment-package
+crm/         → lead, meta-ads, patient
+finance/     → finance-ledger, invoice, payment, pos, subscription
+identity/    → auth, role, user
+inventory/   → (tekil modül)
+organization/ → clinic, organization
+platform/    → admin-request, audit-log, lookup, mail, policy
+```
+
+**Module Structure** (e.g., `src/modules/organization/clinic/`):
 
 ```
 domain/                    # Business entities and domain events
@@ -146,7 +158,7 @@ Each command/query is self-contained in its own folder with:
 **Query response** (`*.response.ts`):
 ```typescript
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { Lead } from '@modules/lead/domain/entities/lead.entity';
+import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 
 export type GetLeadByIdResponse = QueryResponse<Lead | null>;
 ```
@@ -386,7 +398,7 @@ Her modülün `domain/types/` klasörü, o modüle ait tüm domain-seviye tip ta
 **Klasör yapısı**:
 
 ```
-user/domain/types/
+identity/user/domain/types/
   create-user.props.ts                  # Repo'nun create() metoduna geçilen props
   update-user.props.ts                  # Repo'nun update() metoduna geçilen props
   create-user-internal-relations.type.ts # Sadece internal cascade'lerde kullanılan ek veri
@@ -403,10 +415,10 @@ user/domain/types/
 
 ```typescript
 // ❌ Yanlış — command dosyasından import ediyor
-import { CreateUserInternalRelations } from '@modules/user/application/commands/create-user/create-user.command';
+import { CreateUserInternalRelations } from '@modules/identity/user/application/commands/create-user/create-user.command';
 
 // ✓ Doğru — domain/types'tan import ediyor
-import { CreateUserInternalRelations } from '@modules/user/domain/types/create-user-internal-relations.type';
+import { CreateUserInternalRelations } from '@modules/identity/user/domain/types/create-user-internal-relations.type';
 ```
 
 ---
@@ -606,6 +618,69 @@ await this.providerCommandRepo.save(provider);
 
 // ✓ Toplu — doğrudan DB (N+1 önlenir, domain bypass kabul edilir)
 await this.providerCommandRepo.softDeleteAllByClinicId(clinicId);
+```
+
+---
+
+**Command Repository API — KURAL: `save` / `saveMany` önceliği**:
+
+`*CommandRepository` interface'i mümkün olduğunca yalnızca `save` ve `saveMany` metodlarını açar. Her ikisi de `upsert` tabanlıdır; böylece ayrı `create` / `update` dalları gerekmez.
+
+```typescript
+// ✓ İdeal command repository interface
+export interface IFooCommandRepository {
+  save(entity: Foo): Promise<Foo>;
+  saveMany(entities: Foo[]): Promise<void>;
+}
+```
+
+**`save` implementasyonu** — upsert + flushEvents:
+```typescript
+async save(entity: FooEntity): Promise<FooEntity> {
+  const data = entity.toPersistence();
+  const raw = await this.db.foo.upsert({
+    where: { id: data.id },
+    create: data,
+    update: data,
+  });
+  entity.flushEvents();
+  return new FooEntity(raw);
+}
+```
+
+**`saveMany` implementasyonu** — ALS tx farkındalığı:
+```typescript
+async saveMany(entities: FooEntity[]): Promise<void> {
+  const queries = entities.map((e) => {
+    const data = e.toPersistence();
+    return this.db.foo.upsert({ where: { id: data.id }, create: data, update: data });
+  });
+  // ALS transaction varsa Promise.all (iç içe tx açılmaz), yoksa $transaction ile atomik
+  if (txStorage.getStore()?.tx) {
+    await Promise.all(queries);
+  } else {
+    await this.prisma.$transaction(queries);
+  }
+  entities.forEach((e) => e.flushEvents());
+}
+```
+
+**İzin verilen istisnalar** — yalnızca şu üç durumda ekstra metod eklenebilir:
+
+| İstisna | Örnek | Neden |
+|---|---|---|
+| İlk kayıt oluştururken M2M / nested create gerekiyor | `create(props)` — `role.connect`, `managedClinics.connect`, `providerProfile.create` | `toPersistence()` scalar dönüştürür; ilişki bağlantıları `upsert` ile kurulamaz |
+| Bulk işlem | `softDeleteAllByOrganizationId(orgId)` | Entity pattern N+1 yaratır; domain bypass kabul edilir |
+| Hot-path scalar güncelleme | `updateLastLogin(userId)` | Entity yükleme (ekstra sorgu) kabul edilemez overhead oluşturuyor |
+
+```typescript
+// ❌ Yanlış — save varken ayrı update metodu eklemek
+update(id: string, data: Partial<Foo>): Promise<Foo>; // state değişikliği için fazlalık
+
+// ✓ Doğru — state değişikliği entity üzerinden, ardından save
+const foo = await this.fooQueryRepo.findById(id);
+foo.activate(); // domain method
+await this.fooCommandRepo.save(foo);
 ```
 
 **AggregateRoot — KURAL**:
@@ -931,7 +1006,7 @@ export class BookAppointmentHandler implements ICommandHandler<BookAppointmentCo
 }
 
 // ✓ Doğru — PatientModule'de query handler oluştur
-// patient/application/queries/find-patient-by-id/find-patient-by-id.handler.ts
+// crm/patient/application/queries/find-patient-by-id/find-patient-by-id.handler.ts
 @QueryHandler(FindPatientByIdQuery)
 export class FindPatientByIdHandler implements IQueryHandler<FindPatientByIdQuery> {
   constructor(
@@ -941,7 +1016,7 @@ export class FindPatientByIdHandler implements IQueryHandler<FindPatientByIdQuer
   execute(query: FindPatientByIdQuery) { ... }
 }
 
-// patient/application/queries/query.module.ts
+// crm/patient/application/queries/query.module.ts
 @Module({
   imports: [CqrsModule, PatientRepositoryModule],
   providers: [FindPatientByIdHandler, ...],
@@ -949,7 +1024,7 @@ export class FindPatientByIdHandler implements IQueryHandler<FindPatientByIdQuer
 })
 export class PatientQueryModule {}
 
-// appointment/application/commands/book-appointment/book-appointment.handler.ts
+// clinical/appointment/application/commands/book-appointment/book-appointment.handler.ts
 // FindPatientByIdQuery sınıfını doğrudan import et; sadece QueryBus inject et
 @CommandHandler(BookAppointmentCommand)
 export class BookAppointmentHandler implements ICommandHandler<BookAppointmentCommand> {
@@ -997,7 +1072,7 @@ The `@core-crm/shared` package contains:
 **Example: `create-clinic.command.ts`**
 
 ```typescript
-// src/modules/clinic/application/commands/create-clinic/create-clinic.command.ts
+// src/modules/organization/clinic/application/commands/create-clinic/create-clinic.command.ts
 import { CreateClinicDto } from '@shared/modules/clinic/dto/commands';
 import { ExecutionContext } from '@src/domain/common/execution/execution-context';
 
@@ -1012,7 +1087,7 @@ export class CreateClinicCommand {
 **Example: `create-clinic.handler.ts`**
 
 ```typescript
-// src/modules/clinic/application/commands/create-clinic/create-clinic.handler.ts
+// src/modules/organization/clinic/application/commands/create-clinic/create-clinic.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateClinicCommand } from './create-clinic.command';
 import type { CreateClinicResponse } from './create-clinic.response';
@@ -1039,7 +1114,7 @@ export class CreateClinicHandler implements ICommandHandler<
 **Example: `create-clinic.response.ts`**
 
 ```typescript
-// src/modules/clinic/application/commands/create-clinic/create-clinic.response.ts
+// src/modules/organization/clinic/application/commands/create-clinic/create-clinic.response.ts
 export interface CreateClinicResponse {
   id: string;
   name: string;
@@ -1050,7 +1125,7 @@ export interface CreateClinicResponse {
 **Example: `command.module.ts`**
 
 ```typescript
-// src/modules/clinic/application/commands/command.module.ts
+// src/modules/organization/clinic/application/commands/command.module.ts
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateClinicHandler } from './create-clinic/create-clinic.handler';
@@ -1522,7 +1597,7 @@ const clinicDetails = await this.queryBus.execute(
 *   **Gerekçe:** Her HTTP isteğinde tetiklenen Auth Guard'ın performansını korumak ve veritabanı gidiş-dönüş (I/O) maliyetini düşürmek adına, aktörün yetki sınırlarını çizen ilişkisel kimlikler tek bir sorguda `include` edilmelidir.
 
 ```typescript
-// src/modules/auth/infrastructure/persistence/auth.repository.ts
+// src/modules/identity/auth/infrastructure/persistence/auth.repository.ts
 // Bu sorgu, performans darboğazını engellemek için kasıtlı olarak birleşik yazılmıştır.
 async findForAuth(firebaseUid: string) {
   return this.db.user.findFirst({

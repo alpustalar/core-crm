@@ -7,9 +7,9 @@ import { z } from 'zod';
 export const MasterTreatmentSchema = z.object({
   id: z.uuid(),
   slug: z.string(),
-  sectorId: z.string(),
   treatmentCategoryId: z.string(),
   defaultDuration: z.number().int(),
+  sutCode: z.string().nullable(),
 })
 
 export type MasterTreatment = z.infer<typeof MasterTreatmentSchema>

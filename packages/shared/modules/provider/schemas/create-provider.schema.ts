@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const OperationModeSchema = z.enum(["STATIC", "SHIFT"]);
+const OperationModeSchema = z.enum(["STATIC", "SHIFT"]);
 
 export const CreateProviderSchema = z.object({
   userId: z.uuid(),

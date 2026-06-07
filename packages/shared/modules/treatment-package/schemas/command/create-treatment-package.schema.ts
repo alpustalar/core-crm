@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TreatmentPackageItemSchema = z.object({
+export const TreatmentPackageItemInputSchema = z.object({
   treatmentId: z.uuid(),
   count: z.number().int().min(1),
 });
@@ -12,5 +12,5 @@ export const CreateTreatmentPackageSchema = z.object({
   validityDays: z.number().int().min(1),
   price: z.number().nonnegative(),
   providerIds: z.array(z.uuid()).optional(),
-  items: z.array(TreatmentPackageItemSchema).optional(),
+  items: z.array(TreatmentPackageItemInputSchema).optional(),
 });

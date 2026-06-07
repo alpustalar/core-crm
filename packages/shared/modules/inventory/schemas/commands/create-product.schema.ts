@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-export const ProductUnitSchema = z.enum([
+const ProductUnitSchema = z.enum([
   'PIECE', 'ML', 'GR', 'KG', 'LITER', 'BOX', 'AMPULE', 'VIAL', 'BOTTLE', 'TUBE',
 ]);
 
-export const ProductConditionSchema = z.enum(['NEW', 'USED']);
+const ProductConditionSchema = z.enum(['NEW', 'USED']);
 
 export const CreateProductSchema = z.object({
   name: z.string().min(1).max(200),
