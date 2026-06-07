@@ -17,4 +17,8 @@ export const REDIS_KEYS = {
     ACTOR_CACHE: (userId: string) => `auth:actor-cache:${userId}`,
     TOKEN_BLOCKLIST: (tokenHash: string) => `auth:token-blocklist:${tokenHash}`,
   },
+  TRANSFER: {
+    AVAILABILITY: (paramsHash: string) =>
+      `transfer:availability:${paramsHash}`,
+  },
 } as const;
