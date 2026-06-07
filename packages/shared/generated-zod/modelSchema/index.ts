@@ -12,6 +12,7 @@ export * from './PaymentInstallmentSchema';
 export * from './IyzicoTransactionSchema';
 export * from './HotelbedsHotelSchema';
 export * from './HotelbedsBookingSchema';
+export * from './HotelbedsTransferBookingSchema';
 export * from './ProductCategorySchema';
 export * from './SupplierSchema';
 export * from './ProductSchema';

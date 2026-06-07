@@ -4,6 +4,12 @@ enum HotelbedsBookingStatus {
   PENDING
 }
 
+enum HotelbedsTransferBookingStatus {
+  CONFIRMED
+  CANCELLED
+  MODIFIED
+}
+
 model HotelbedsHotel {
   id              String   @id // Hotelbeds hotel code
   name            String
@@ -53,4 +59,31 @@ model HotelbedsBooking {
   @@index([patientId])
   @@index([leadId])
   @@map("hotelbeds_bookings")
+}
+
+model HotelbedsTransferBooking {
+  id              String                         @id @default(uuid())
+  reference       String                         @unique
+  clientReference String?                        @map("client_reference")
+  status          HotelbedsTransferBookingStatus @default(CONFIRMED)
+  holderName      String                         @map("holder_name")
+  holderSurname   String                         @map("holder_surname")
+  holderEmail     String                         @map("holder_email")
+  holderPhone     String                         @map("holder_phone")
+  transfers       Json
+  totalAmount     Decimal                        @map("total_amount") @db.Decimal(10, 2)
+  currency        String                         @default("EUR")
+  remarks         String?                        @db.Text
+  organizationId  String                         @map("organization_id")
+  clinicId        String?                        @map("clinic_id")
+  patientId       String?                        @map("patient_id")
+  leadId          String?                        @map("lead_id")
+  createdAt       DateTime                       @default(now()) @map("created_at")
+  updatedAt       DateTime                       @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([leadId])
+  @@map("hotelbeds_transfer_bookings")
 }

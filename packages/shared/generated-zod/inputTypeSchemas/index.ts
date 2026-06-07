@@ -13,6 +13,7 @@ export { PaymentInstallmentScalarFieldEnumSchema } from './PaymentInstallmentSca
 export { IyzicoTransactionScalarFieldEnumSchema } from './IyzicoTransactionScalarFieldEnumSchema';
 export { HotelbedsHotelScalarFieldEnumSchema } from './HotelbedsHotelScalarFieldEnumSchema';
 export { HotelbedsBookingScalarFieldEnumSchema } from './HotelbedsBookingScalarFieldEnumSchema';
+export { HotelbedsTransferBookingScalarFieldEnumSchema } from './HotelbedsTransferBookingScalarFieldEnumSchema';
 export { ProductCategoryScalarFieldEnumSchema } from './ProductCategoryScalarFieldEnumSchema';
 export { SupplierScalarFieldEnumSchema } from './SupplierScalarFieldEnumSchema';
 export { ProductScalarFieldEnumSchema } from './ProductScalarFieldEnumSchema';
@@ -62,7 +63,10 @@ export { TreatmentPackageProviderScalarFieldEnumSchema } from './TreatmentPackag
 export { PatientTreatmentPackageScalarFieldEnumSchema } from './PatientTreatmentPackageScalarFieldEnumSchema';
 export { UserScalarFieldEnumSchema } from './UserScalarFieldEnumSchema';
 export { SortOrderSchema } from './SortOrderSchema';
+export { NullableJsonNullValueInputSchema } from './NullableJsonNullValueInputSchema';
+export { JsonNullValueInputSchema } from './JsonNullValueInputSchema';
 export { QueryModeSchema } from './QueryModeSchema';
+export { JsonNullValueFilterSchema } from './JsonNullValueFilterSchema';
 export { NullsOrderSchema } from './NullsOrderSchema';
 export { AdminRequestTypeSchema } from './AdminRequestTypeSchema';
 export { AdminRequestStatusSchema } from './AdminRequestStatusSchema';
@@ -80,6 +84,7 @@ export { PaymentMethodSchema } from './PaymentMethodSchema';
 export { InstallmentStatusSchema } from './InstallmentStatusSchema';
 export { IyzicoTransactionStatusSchema } from './IyzicoTransactionStatusSchema';
 export { HotelbedsBookingStatusSchema } from './HotelbedsBookingStatusSchema';
+export { HotelbedsTransferBookingStatusSchema } from './HotelbedsTransferBookingStatusSchema';
 export { ProductUnitSchema } from './ProductUnitSchema';
 export { ProductConditionSchema } from './ProductConditionSchema';
 export { PriceTypeSchema } from './PriceTypeSchema';
