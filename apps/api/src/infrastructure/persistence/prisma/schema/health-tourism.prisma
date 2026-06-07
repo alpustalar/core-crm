@@ -1,0 +1,56 @@
+enum HotelbedsBookingStatus {
+  CONFIRMED
+  CANCELLED
+  PENDING
+}
+
+model HotelbedsHotel {
+  id              String   @id // Hotelbeds hotel code
+  name            String
+  categoryCode    String   @map("category_code")
+  categoryName    String?  @map("category_name")
+  destinationCode String   @map("destination_code")
+  destinationName String?  @map("destination_name")
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  images          Json?
+  phones          Json?
+  lastSyncedAt    DateTime @map("last_synced_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  bookings HotelbedsBooking[]
+
+  @@index([destinationCode])
+  @@map("hotelbeds_hotels")
+}
+
+model HotelbedsBooking {
+  id            String                 @id @default(uuid())
+  reference     String                 @unique
+  hotelCode     String                 @map("hotel_code")
+  patientId     String?                @map("patient_id")
+  leadId        String?                @map("lead_id")
+  checkIn       DateTime               @map("check_in") @db.Date
+  checkOut      DateTime               @map("check_out") @db.Date
+  status        HotelbedsBookingStatus @default(CONFIRMED)
+  totalNet      Decimal                @map("total_net") @db.Decimal(10, 2)
+  currency      String                 @default("USD")
+  holderName    String                 @map("holder_name")
+  holderSurname String                 @map("holder_surname")
+  rooms         Json
+  remarks       String?                @db.Text
+  serviceFee    Decimal?               @map("service_fee") @db.Decimal(10, 2)
+  organizationId String               @map("organization_id")
+  clinicId      String?                @map("clinic_id")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  hotel HotelbedsHotel @relation(fields: [hotelCode], references: [id])
+
+  @@index([organizationId])
+  @@index([patientId])
+  @@index([leadId])
+  @@map("hotelbeds_bookings")
+}

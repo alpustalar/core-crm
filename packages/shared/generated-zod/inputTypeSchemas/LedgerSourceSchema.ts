@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const LedgerSourceSchema = z.enum(['IYZICO','STRIPE','CASH','BANK_TRANSFER']);
+export const LedgerSourceSchema = z.enum(['PAYMENT_MODULE','INVENTORY_MODULE','MANUAL_ENTRY']);
 
 export type LedgerSourceType = `${z.infer<typeof LedgerSourceSchema>}`
 

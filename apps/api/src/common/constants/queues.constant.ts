@@ -6,4 +6,5 @@ export const QUEUES = {
   OUTBOX: 'outbox-queue',
   POS: 'pos-queue',
   META_ADS: 'meta-ads-queue',
+  HEALTH_TOURISM: 'health-tourism-queue',
 } as const;

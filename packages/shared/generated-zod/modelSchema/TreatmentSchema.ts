@@ -11,6 +11,7 @@ export const TreatmentSchema = z.object({
   duration: z.number().int().nullable(),
   minDuration: z.number().int().nullable(),
   maxDuration: z.number().int().nullable(),
+  sutCode: z.string().nullable(),
   description: z.string().nullable(),
   isActive: z.boolean(),
   requiresApproval: z.boolean(),

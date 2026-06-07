@@ -1,0 +1,78 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { BookAppointmentCommand } from './book-appointment.command';
+import { Inject } from '@nestjs/common';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
+import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
+import { AppointmentPrismaMapper } from '@modules/clinical/appointment/infrastructure/persistence/prisma/mapper/appointment-prisma.mapper';
+import { BookAppointmentCommandResponse } from '@modules/clinical/appointment/application/commands/book-appointment/book-appointment.response';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { ClinicCanBookOrThrowQuery } from '@modules/organization/clinic/application/queries/clinic-can-book-or-throw/clinic-can-book-or-throw.query';
+import { ProviderCanBookOrThrowQuery } from '@modules/clinical/provider/application/queries/provider-can-book-or-throw/provider-can-book-or-throw.query';
+
+@CommandHandler(BookAppointmentCommand)
+export class BookAppointmentHandler
+  implements
+    ICommandHandler<BookAppointmentCommand, BookAppointmentCommandResponse>
+{
+  constructor(
+    @Inject(APPOINTMENT_COMMAND_REPOSITORY)
+    private readonly appointmentRepo: IAppointmentCommandRepository,
+    private readonly appointmentChecker: AppointmentChecker,
+    private readonly appointmentSlotService: AppointmentSlotService,
+    private readonly queryBus: TSQueryBus
+  ) {}
+
+  async execute(
+    command: BookAppointmentCommand
+  ): Promise<BookAppointmentCommandResponse> {
+    const { dto } = command;
+    const {
+      providerId,
+      clinicId,
+      startTime: startTimeDto,
+      duration,
+      endTime: dtoEndTime,
+      ...rest
+    } = dto;
+
+    const startTime = new Date(startTimeDto);
+    const endTime = this.appointmentSlotService.calculateEndTimeOrThrow(
+      startTime,
+      dtoEndTime,
+      duration
+    );
+
+    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(startTime);
+    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(endTime);
+
+    await Promise.all([
+      this.queryBus.execute(
+        new ClinicCanBookOrThrowQuery(clinicId, startTime, endTime)
+      ),
+      this.queryBus.execute(
+        new ProviderCanBookOrThrowQuery(providerId, startTime, endTime)
+      ),
+    ]);
+
+    await this.appointmentChecker.noConflictOrThrow({
+      providerId,
+      startTime,
+      endTime,
+    });
+
+    const data = AppointmentPrismaMapper.toCreateInputFromBook({
+      providerId,
+      clinicId,
+      startTime,
+      endTime,
+      ...rest,
+    });
+
+    const appointment = await this.appointmentRepo.create(data);
+    return appointment.id;
+  }
+}

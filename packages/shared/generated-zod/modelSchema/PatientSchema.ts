@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Prisma } from '@prisma/client'
 import { GenderSchema } from '../inputTypeSchemas/GenderSchema'
 import { BloodTypeSchema } from '../inputTypeSchemas/BloodTypeSchema'
 import { PatientStatusSchema } from '../inputTypeSchemas/PatientStatusSchema'
@@ -9,17 +10,18 @@ import { PatientTypeSchema } from '../inputTypeSchemas/PatientTypeSchema'
 /////////////////////////////////////////
 
 export const PatientSchema = z.object({
+  gender: GenderSchema.nullable(),
+  bloodType: BloodTypeSchema.nullable(),
   status: PatientStatusSchema,
+  patientType: PatientTypeSchema.nullable(),
   id: z.uuid(),
   organizationId: z.string(),
   clinicId: z.string().nullable(),
   sectorId: z.string().nullable(),
-  firebaseUid: z.string().nullable(),
   firstName: z.string(),
   lastName: z.string().nullable(),
   tcNo: z.string().nullable(),
   birthDate: z.coerce.date().nullable(),
-  gender: GenderSchema.nullable(),
   phone: z.string(),
   alternativePhone: z.string().nullable(),
   email: z.string().nullable(),
@@ -31,11 +33,9 @@ export const PatientSchema = z.object({
   protocolNo: z.string().nullable(),
   allergies: z.string().nullable(),
   chronicDiseases: z.string().nullable(),
-  bloodType: BloodTypeSchema.nullable(),
-  patientType: PatientTypeSchema.nullable(),
   responsibleProviderId: z.string().nullable(),
   checkupDate: z.coerce.date().nullable(),
-  discountRate: z.number().nullable(),
+  discountRate: z.instanceof(Prisma.Decimal, { message: "Field 'discountRate' must be a Decimal. Location: ['Models', 'Patient']"}).nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),

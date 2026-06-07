@@ -1,13 +1,17 @@
 import { z } from 'zod';
+import { OperationModeSchema } from '../inputTypeSchemas/OperationModeSchema'
 
 /////////////////////////////////////////
 // PROVIDER SCHEMA
 /////////////////////////////////////////
 
 export const ProviderSchema = z.object({
+  operationMode: OperationModeSchema,
   id: z.uuid(),
   publicPhone: z.string().nullable(),
   publicEmail: z.string().nullable(),
+  diplomaNo: z.string().nullable(),
+  hlrNo: z.string().nullable(),
   isActive: z.boolean(),
   canAcceptExamination: z.boolean(),
   createdAt: z.coerce.date(),

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TreatmentPackageItemSchema } from './create-treatment-package.schema';
+import { TreatmentPackageItemInputSchema } from './create-treatment-package.schema';
 
 export const UpdateTreatmentPackageSchema = z.object({
   name: z.string().min(2).max(150).optional(),
@@ -9,5 +9,5 @@ export const UpdateTreatmentPackageSchema = z.object({
   price: z.number().nonnegative().optional(),
   isActive: z.boolean().optional(),
   providerIds: z.array(z.uuid()).optional(),
-  items: z.array(TreatmentPackageItemSchema).optional(),
+  items: z.array(TreatmentPackageItemInputSchema).optional(),
 });

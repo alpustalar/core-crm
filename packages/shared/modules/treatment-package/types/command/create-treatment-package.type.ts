@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import {
   CreateTreatmentPackageSchema,
-  TreatmentPackageItemSchema,
+  TreatmentPackageItemInputSchema,
 } from '../../schemas/command';
 
-export type TreatmentPackageItem = z.infer<typeof TreatmentPackageItemSchema>;
+export type TreatmentPackageItemInput = z.infer<typeof TreatmentPackageItemInputSchema>;
 export type CreateTreatmentPackage = z.infer<typeof CreateTreatmentPackageSchema>;

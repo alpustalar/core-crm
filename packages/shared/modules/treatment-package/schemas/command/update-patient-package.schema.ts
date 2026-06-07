@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const PatientPackageStatusSchema = z.enum([
+const PatientPackageStatusSchema = z.enum([
   'ACTIVE',
   'COMPLETED',
   'CANCELLED',

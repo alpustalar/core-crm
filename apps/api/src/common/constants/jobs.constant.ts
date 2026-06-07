@@ -23,3 +23,7 @@ export const META_ADS_JOBS = {
   SYNC_CAMPAIGN_METRICS: 'meta-ads-sync-campaign-metrics',
   REFRESH_TOKENS: 'meta-ads-refresh-tokens',
 } as const;
+
+export const HEALTH_TOURISM_JOBS = {
+  SYNC_HOTEL_CONTENT: 'health-tourism-sync-hotel-content',
+} as const;
