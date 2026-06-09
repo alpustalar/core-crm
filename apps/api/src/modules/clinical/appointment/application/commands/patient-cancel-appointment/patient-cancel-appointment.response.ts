@@ -1,1 +1,3 @@
-export type PatientCancelAppointmentResponse = void;
+export interface PatientCancelAppointmentResponse {
+  status: 'CANCELLED' | 'CANCELLATION_REQUESTED';
+}

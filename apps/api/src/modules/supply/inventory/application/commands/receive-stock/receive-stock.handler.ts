@@ -1,11 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import {
   Prisma,
   StockMovementDirection,
   StockMovementType,
 } from '@prisma/client';
 import { ReceiveStockCommand } from './receive-stock.command';
+import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
   IProductQueryRepository,
   PRODUCT_QUERY_REPOSITORY,
@@ -50,15 +51,7 @@ export class ReceiveStockHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.clinic(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.actorCanManageTargetClinic(clinicId)
-    ) {
-      throw new ForbiddenException(
-        'Bu kliniğe stok girişi yapma yetkiniz yok.'
-      );
-    }
+    // TODO: capability guard
 
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new NotFoundException('Ürün bulunamadı.');
@@ -73,48 +66,46 @@ export class ReceiveStockHandler
       : null;
 
     const batchId = crypto.randomUUID();
-    const movementId = crypto.randomUUID();
+
+    const batch = ProductBatch.createFromPurchase({
+      id: batchId,
+      productId: product.id,
+      clinicId,
+      organizationId: actor.organizationId!,
+      supplierId: dto.supplierId ?? null,
+      lotNumber: dto.lotNumber ?? null,
+      expiresAt: dto.expiresAt ?? null,
+      quantity,
+      purchasePrice,
+      currency: dto.currency ?? 'TRY',
+      notes: dto.notes ?? null,
+      eventPayload: {
+        action: LogAction.INVENTORY_STOCK_RECEIVE,
+        source: LogSource.WEB,
+        type: LogType.INFO,
+        actorId: actor.userId,
+      },
+    });
+
+    const stockMovement = StockMovement.create({
+      productId: product.id,
+      clinicId,
+      batchId,
+      type: StockMovementType.PURCHASE,
+      direction: StockMovementDirection.IN,
+      quantity,
+      unitPrice: purchasePrice,
+      currency: dto.currency ?? 'TRY',
+      vatRate,
+      vatAmount,
+      totalAmount: vatAmount ? totalAmount.plus(vatAmount) : totalAmount,
+      performedById: actor.userId,
+      notes: dto.notes ?? null,
+    });
 
     return this.txManager.run(async () => {
-      const batch = ProductBatch.createFromPurchase({
-        id: batchId,
-        productId: product.id,
-        clinicId,
-        organizationId: actor.organizationId!,
-        supplierId: dto.supplierId ?? null,
-        lotNumber: dto.lotNumber ?? null,
-        expiresAt: dto.expiresAt ?? null,
-        quantity,
-        purchasePrice,
-        currency: dto.currency ?? 'TRY',
-        notes: dto.notes ?? null,
-        eventPayload: {
-          action: LogAction.INVENTORY_STOCK_RECEIVE,
-          source: LogSource.WEB,
-          type: LogType.INFO,
-          actorId: actor.userId,
-        },
-      });
-
       await this.productBatchCommandRepo.save(batch);
-
-      await this.stockMovementCommandRepo.create({
-        id: movementId,
-        productId: product.id,
-        clinicId,
-        batchId,
-        type: StockMovementType.PURCHASE,
-        direction: StockMovementDirection.IN,
-        quantity,
-        unitPrice: purchasePrice,
-        currency: dto.currency ?? 'TRY',
-        vatRate,
-        vatAmount,
-        totalAmount: vatAmount ? totalAmount.plus(vatAmount) : totalAmount,
-        performedById: actor.userId,
-        notes: dto.notes ?? null,
-      });
-
+      await this.stockMovementCommandRepo.save(stockMovement);
       return batchId;
     });
   }

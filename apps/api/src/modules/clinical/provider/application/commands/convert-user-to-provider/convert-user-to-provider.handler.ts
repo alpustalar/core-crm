@@ -1,3 +1,4 @@
+import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -37,7 +38,7 @@ export class ConvertUserToProviderHandler
       const { evaluator } = this.policyFactory.user(actor);
       evaluator
         .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
-        .orThrow();
+        .orThrow(PROVIDER_EVENTS.CREATED);
     }
 
     await this.providerCommandRepo.create(dto);

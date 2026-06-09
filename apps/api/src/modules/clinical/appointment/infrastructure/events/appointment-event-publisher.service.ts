@@ -4,6 +4,10 @@ import {
   CancelAppointmentEvent,
   CancelAppointmentPayload,
 } from '@modules/clinical/appointment/domain/events/cancel-appointment.event';
+import {
+  AppointmentCancellationRequestedEvent,
+  AppointmentCancellationRequestedPayload,
+} from '@modules/clinical/appointment/domain/events/appointment-cancellation-requested.event';
 import { IAppointmentEventPublisher } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
 import { CONTEXT_SERVICE } from '@src/infrastructure/context/domain/interfaces/context.service.interface';
 
@@ -16,5 +20,9 @@ export class AppointmentEventPublisher implements IAppointmentEventPublisher {
 
   cancelAppointment(payload: CancelAppointmentPayload) {
     this.contextService.addEvent(new CancelAppointmentEvent(payload));
+  }
+
+  cancellationRequested(payload: AppointmentCancellationRequestedPayload) {
+    this.contextService.addEvent(new AppointmentCancellationRequestedEvent(payload));
   }
 }

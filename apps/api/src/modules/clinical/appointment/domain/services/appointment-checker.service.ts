@@ -4,7 +4,11 @@ import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { FindConflictingAppointmentProps } from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
+import {
+  CheckConflictProps,
+  FindConflictingAppointmentProps,
+} from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
+import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 
 @Injectable()
 export class AppointmentChecker {
@@ -17,12 +21,16 @@ export class AppointmentChecker {
     providerId,
     startTime,
     endTime,
-  }: FindConflictingAppointmentProps) {
+    duration,
+    ignoreAppointmentId,
+  }: CheckConflictProps) {
+    const resolvedEndTime = Appointment.calculateEndTime(startTime, endTime, duration);
     const conflict = await this.appointmentQueryRepo.findConflictingAppointment(
       {
         providerId,
         startTime,
-        endTime,
+        endTime: resolvedEndTime,
+        ignoreAppointmentId,
       }
     );
 

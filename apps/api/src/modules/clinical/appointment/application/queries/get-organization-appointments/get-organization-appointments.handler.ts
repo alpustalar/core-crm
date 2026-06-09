@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetOrganizationAppointmentsQuery } from './get-organization-appointments.query';
 import { GetOrganizationAppointmentsQueryResponse } from './get-organization-appointments.response';
@@ -39,7 +40,7 @@ export class GetOrganizationAppointmentsHandler
         (p) => p.isOwnOrganization(organizationId),
         'Bu işlem için yetkiniz yok'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.LIST_ORGANIZATION);
 
     const { organizationId, ...rest } = dto;
 

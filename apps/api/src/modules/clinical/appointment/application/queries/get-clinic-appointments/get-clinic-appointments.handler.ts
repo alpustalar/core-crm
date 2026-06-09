@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetClinicAppointmentsQuery } from './get-clinic-appointments.query';
 import { GetClinicAppointmentsQueryResponse } from './get-clinic-appointments.response';
@@ -43,7 +44,7 @@ export class GetClinicAppointmentsHandler
         (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
         'Bu kliniğe ait randevulara erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.LIST_CLINIC);
 
     const paginatedAppointments = await this.appointmentRepo.findClinicCalendar(
       {

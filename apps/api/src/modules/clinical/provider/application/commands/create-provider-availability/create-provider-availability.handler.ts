@@ -1,3 +1,4 @@
+import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import { BadRequestException, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -43,7 +44,7 @@ export class CreateProviderAvailabilityHandler
 
     evaluator
       .check((p) => p.isTargetInActorsSameClinic(actor.clinicId))
-      .orThrow();
+      .orThrow(PROVIDER_EVENTS.AVAILABILITY_CREATED);
 
     await this.transactionManager.run(async () => {
       const provider = await this.providerQueryRepo.findById(providerId);

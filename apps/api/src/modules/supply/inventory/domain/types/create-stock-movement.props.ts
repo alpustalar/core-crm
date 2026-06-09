@@ -1,13 +1,16 @@
-import { StockMovementDirection, StockMovementType } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import {
+  Prisma,
+  StockMovementDirection,
+  StockMovementType,
+} from '@prisma/client';
 
 export interface CreateStockMovementProps {
-  id: string;
   productId: string;
   clinicId: string;
   batchId?: string | null;
   type: StockMovementType;
   direction: StockMovementDirection;
+  financeLedgerId?: string | null;
   quantity: Prisma.Decimal;
   unitPrice?: Prisma.Decimal | null;
   currency?: string;

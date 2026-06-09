@@ -1,12 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SoftDeleteManyClinicsByOrganizationIdCommand } from './soft-delete-many-clinics-by-organization-id.command';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   CLINIC_COMMAND_REPOSITORY,
-  CLINIC_QUERY_REPOSITORY,
   IClinicCommandRepository,
-  IClinicQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import {
   IPolicyFactory,
@@ -17,6 +15,8 @@ import {
   IClinicEventPublisher,
 } from '@modules/organization/clinic/domain/interfaces/clinic.event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { CLINIC_EVENTS } from '@src/domain/constants/events';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(SoftDeleteManyClinicsByOrganizationIdCommand)
 export class SoftDeleteManyClinicsByOrganizationIdHandler
@@ -26,8 +26,6 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
-    @Inject(CLINIC_QUERY_REPOSITORY)
-    private readonly clinicQueryRepo: IClinicQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(CLINIC_EVENT_PUBLISHER)
@@ -39,28 +37,28 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
     command: SoftDeleteManyClinicsByOrganizationIdCommand
   ): Promise<void> {
     const { organizationId, ctx } = command;
-
     const { source, actor } = ctx;
 
     if (ExecutionPolicy.isUserInitiated(source)) {
-      const isOwn = this.policyFactory
-        .organization(actor)
-        .policy.isOwnOrganization(organizationId);
-
-      if (!isOwn) {
-        throw new ForbiddenException('Bu işlem için yetkiniz bulunmamaktadır.');
-      } else {
-        // TODO: security logu için event fırlat
-      }
+      const { evaluator } = this.policyFactory.organization(actor);
+      evaluator
+        .check(
+          (p) => p.isOwnOrganization(organizationId),
+          'Bu işlem için yetkiniz bulunmamaktadır.'
+        )
+        .orThrow(CLINIC_EVENTS.SOFT_DELETED);
     }
-    await this.transactionManager.run(async () => {
-      const clinics =
-        await this.clinicQueryRepo.findManyByOrganizationId(organizationId);
-      if (clinics.length === 0) return;
 
+    await this.transactionManager.run(async () => {
       await this.clinicCommandRepo.softDeleteManyClinicWithAnOrganizationId(
         organizationId
       );
+      this.clinicEventPublisher.softDeleteClinicByOrganizationId({
+        organizationId,
+        actorId: actor.userId,
+        action: LogAction.CLINIC_SOFT_DELETE,
+        type: LogType.WARNING,
+      });
     });
   }
 }

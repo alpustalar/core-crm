@@ -1,10 +1,10 @@
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
-import { BaseEvent } from '@common/interfaces';
-import { IAuditLog } from '@common/interfaces/audit-log.interface';
+import { BaseEvent } from '@common/interfaces/base-event.interface';
 
-export interface ClinicCreatedEventPayload extends IAuditLog {
+export interface ClinicCreatedEventPayload {
   readonly clinicId: string;
   readonly organizationId?: string;
+  readonly actorId?: string;
 }
 
 export class ClinicCreatedEvent extends BaseEvent {
@@ -12,16 +12,12 @@ export class ClinicCreatedEvent extends BaseEvent {
 
   public readonly clinicId: string;
   public readonly organizationId?: string;
+  public readonly actorId?: string;
 
   constructor(payload: ClinicCreatedEventPayload) {
-    super({
-      source: payload.source,
-      action: payload.action,
-      details: payload.details,
-      actorId: payload.actorId,
-      type: payload.type,
-    });
+    super();
     this.clinicId = payload.clinicId;
     this.organizationId = payload.organizationId;
+    this.actorId = payload.actorId;
   }
 }

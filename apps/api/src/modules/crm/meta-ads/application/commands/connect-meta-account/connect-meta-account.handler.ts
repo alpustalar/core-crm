@@ -19,6 +19,7 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import { META_ADS_EVENTS } from '@src/domain/constants/events';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -53,7 +54,7 @@ export class ConnectMetaAccountHandler
         (p) => p.actorCanManageTargetClinic(clinicId),
         'Bu klinik için Meta hesabı bağlama yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(META_ADS_EVENTS.ACCOUNT_CONNECTED);
 
     const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
       clinicId,
@@ -66,6 +67,7 @@ export class ConnectMetaAccountHandler
 
     const encryptedToken = this.tokenCipher.encrypt(dto.accessToken);
 
+    // TODO: accountCommandRepo'da save ve saveMany methodları oluşacak. entity'e create methodu gelecek. event entity'de ayarlanacak. repo'da flush ile fırlatılacak
     const account = await this.accountCommandRepo.create({
       id: randomUUID(),
       clinicId,

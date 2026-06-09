@@ -5,12 +5,16 @@ import {
   ExternalSystem,
   VisitType,
 } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { DateTimeManager } from '@common/utils';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   AppointmentCompletedEvent,
   AppointmentCompletedEventPayload,
 } from '@modules/clinical/appointment/domain/events/complete-appointment.event';
+import { AppointmentScheduledEvent } from '@modules/clinical/appointment/domain/events/schedule-appointment.event';
+import { AppointmentBookedEvent } from '@modules/clinical/appointment/domain/events/book-appointment.event';
+import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/types/create-appointment.props';
 
 export class Appointment extends AggregateRoot implements IAppointment {
   constructor(data: IAppointment) {
@@ -202,6 +206,36 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   // DOMAIN BUSINESS METHODS
 
+  public static schedule(props: CreateAppointmentProps): Appointment {
+    const appointment = Appointment.create(props);
+    appointment.addDomainEvent(
+      new AppointmentScheduledEvent({
+        appointmentId: appointment.id,
+        clinicId: appointment.clinicId,
+        providerId: appointment.providerId,
+        patientId: appointment.patientId,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+      })
+    );
+    return appointment;
+  }
+
+  public static book(props: CreateAppointmentProps): Appointment {
+    const appointment = Appointment.create(props);
+    appointment.addDomainEvent(
+      new AppointmentBookedEvent({
+        appointmentId: appointment.id,
+        clinicId: appointment.clinicId,
+        providerId: appointment.providerId,
+        patientId: appointment.patientId,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+      })
+    );
+    return appointment;
+  }
+
   public static calculateEndTime(
     start: Date,
     EndTime?: Date,
@@ -213,6 +247,43 @@ export class Appointment extends AggregateRoot implements IAppointment {
     throw new Error('Randevu süresi veya bitiş zamanı belirlenemedi.');
   }
 
+  private static create(props: CreateAppointmentProps): Appointment {
+    const now = new Date();
+    const endTime = Appointment.calculateEndTime(
+      props.startTime,
+      props.endTime,
+      props.duration
+    );
+    return new Appointment({
+      id: props.id ?? randomUUID(),
+      patientName: props.patientName,
+      patientPhone: props.patientPhone,
+      patientEmail: props.patientEmail ?? null,
+      patientId: props.patientId ?? null,
+      providerId: props.providerId,
+      clinicId: props.clinicId,
+      treatmentId: props.treatmentId ?? null,
+      startTime: props.startTime,
+      endTime,
+      timezone: props.timezone ?? 'Europe/Istanbul',
+      notes: props.notes ?? null,
+      treatmentType: props.treatmentType ?? null,
+      externalSystem: props.externalSystem ?? null,
+      externalId: props.externalId ?? null,
+      examinationType: props.examinationType ?? null,
+      visitType: props.visitType ?? null,
+      resourceId: props.resourceId ?? null,
+      status: props.status ?? AppointmentStatus.PENDING,
+      canceledAt: null,
+      canceledBy: null,
+      cancelReason: null,
+      createdAt: now,
+      updatedAt: now,
+      isDeleted: false,
+      deletedAt: null,
+    });
+  }
+
   public confirm(): void {
     if (this._status !== AppointmentStatus.PENDING) {
       throw new Error('Yalnızca bekleyen randevular onaylanabilir.');
@@ -220,19 +291,26 @@ export class Appointment extends AggregateRoot implements IAppointment {
     this._status = AppointmentStatus.CONFIRMED;
   }
 
-  public cancel(canceledBy: string, reason?: string): void {
+  public cancelSchedule(canceledBy: string, reason?: string): void {
     if (!this.canBeCancelled()) {
       throw new Error(
         'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
       );
     }
+    this._applyCancellation(canceledBy, reason);
+  }
 
-    this._status = AppointmentStatus.CANCELLED;
-    this._canceledAt = new Date();
-    this._canceledBy = canceledBy;
-    if (reason) {
-      this._cancelReason = reason;
+  public cancelBooking(patientId?: string, reason?: string): void {
+    if (!patientId) {
+      throw new Error('Kullanıcı bulunamadı');
     }
+
+    if (!this.canBeCancelled()) {
+      throw new Error(
+        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
+      );
+    }
+    this._applyCancellation(patientId, reason);
   }
 
   public complete(
@@ -267,8 +345,6 @@ export class Appointment extends AggregateRoot implements IAppointment {
     this._status = AppointmentStatus.NOSHOW;
   }
 
-  // 4. BUSINESS QUERY METHODS (Durum Sorguları)
-
   public reschedule(
     startTime: Date,
     endTime: Date,
@@ -291,6 +367,8 @@ export class Appointment extends AggregateRoot implements IAppointment {
     // Opsiyonel: Yeniden zamanlandığında statüyü tekrar pending'e veya confirmed'a çekmek istersek:
     // this._status = AppointmentStatus.PENDING;
   }
+
+  // 4. BUSINESS QUERY METHODS (Durum Sorguları)
 
   public isPending(): boolean {
     return this._status === AppointmentStatus.PENDING;
@@ -359,6 +437,15 @@ export class Appointment extends AggregateRoot implements IAppointment {
       isDeleted: this._isDeleted,
       deletedAt: this._deletedAt,
     };
+  }
+
+  private _applyCancellation(canceledBy: string, reason?: string): void {
+    this._status = AppointmentStatus.CANCELLED;
+    this._canceledAt = new Date();
+    this._canceledBy = canceledBy;
+    if (reason) {
+      this._cancelReason = reason;
+    }
   }
 
   private canBeCancelled(): boolean {

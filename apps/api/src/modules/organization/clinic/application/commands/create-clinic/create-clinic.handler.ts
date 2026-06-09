@@ -1,8 +1,4 @@
 import {
-  CLINIC_EVENT_PUBLISHER,
-  IClinicEventPublisher,
-} from '@modules/organization/clinic/domain/interfaces/clinic.event-publisher.interface';
-import {
   CLINIC_COMMAND_REPOSITORY,
   IClinicCommandRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
@@ -15,6 +11,8 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CreateClinicCommand } from './create-clinic.command';
+import { CLINIC_EVENTS } from '@src/domain/constants/events';
+import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
 
 @CommandHandler(CreateClinicCommand)
 export class CreateClinicHandler
@@ -24,9 +22,7 @@ export class CreateClinicHandler
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
-    @Inject(CLINIC_EVENT_PUBLISHER)
-    private readonly clinicEventPublisher: IClinicEventPublisher
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: CreateClinicCommand) {
@@ -46,8 +42,7 @@ export class CreateClinicHandler
         id: clinicId,
       };
 
-      const clinicRaw = await this.clinicCommandRepo.create(clinicDto);
-      return clinicRaw.id;
+      return this.persistClinic(clinicDto);
     }
 
     const { organizationId } = dto;
@@ -57,13 +52,15 @@ export class CreateClinicHandler
     if (organizationId) {
       evaluator
         .check((p) => p.isOwnOrganization(organizationId), 'Yetki ihlali')
-        .orThrow();
-      // TODO: event fırlat
+        .orThrow(CLINIC_EVENTS.CREATED);
     }
 
-    // TODO: create clinic başarılı eventi Fırlat
+    return this.persistClinic(dto, actor.userId);
+  }
 
-    const clinic = await this.clinicCommandRepo.create(dto);
-    return clinic.id;
+  private async persistClinic(props: CreateClinicProps, actorId?: string) {
+    const clinic = Clinic.create(props, actorId);
+    const saved = await this.clinicCommandRepo.save(clinic);
+    return saved.id;
   }
 }

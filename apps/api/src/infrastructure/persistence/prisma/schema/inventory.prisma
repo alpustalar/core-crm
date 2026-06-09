@@ -81,22 +81,22 @@ model Supplier {
 }
 
 model Product {
-  id               String           @id @default(uuid())
+  id               String            @id @default(uuid())
   name             String
-  stockCode        String           @unique @map("stock_code")
-  barcode          String?          @unique
+  stockCode        String            @unique @map("stock_code")
+  barcode          String?           @unique
   brand            String?
-  description      String?          @db.Text
-  imageUrl         String?          @map("image_url")
+  description      String?           @db.Text
+  imageUrl         String?           @map("image_url")
   unit             ProductUnit
-  condition        ProductCondition @default(NEW)
-  vatRate          Decimal          @default(0) @map("vat_rate") @db.Decimal(5, 2)
-  criticalStockQty Decimal          @default(0) @map("critical_stock_qty") @db.Decimal(10, 3)
-  reorderQty       Decimal          @default(0) @map("reorder_qty") @db.Decimal(10, 3)
-  organizationId   String           @map("organization_id")
-  categoryId       String?          @map("category_id")
-  supplierId       String?          @map("supplier_id")
-  isActive         Boolean          @default(true) @map("is_active")
+  condition        ProductCondition? @default(NEW)
+  vatRate          Decimal           @default(0) @map("vat_rate") @db.Decimal(5, 2)
+  criticalStockQty Decimal           @default(0) @map("critical_stock_qty") @db.Decimal(10, 3)
+  reorderQty       Decimal           @default(0) @map("reorder_qty") @db.Decimal(10, 3)
+  organizationId   String            @map("organization_id")
+  categoryId       String?           @map("category_id")
+  supplierId       String?           @map("supplier_id")
+  isActive         Boolean           @default(true) @map("is_active")
 
   category  ProductCategory? @relation(fields: [categoryId], references: [id])
   supplier  Supplier?        @relation(fields: [supplierId], references: [id])

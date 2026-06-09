@@ -1,17 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import {
-  InstallmentStatus,
-  PaymentMethod,
-  PaymentStatus,
-  Prisma,
-} from '@prisma/client';
+import { PaymentMethod, Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 import {
   CreateInstallmentPlanInput,
   CreateSinglePaymentInput,
   IPaymentRepository,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+
+const INSTALLMENTS_INCLUDE = {
+  installments: { orderBy: { installmentNo: 'asc' } },
+} as const;
 
 @Injectable()
 export class PaymentRepository
@@ -22,9 +23,9 @@ export class PaymentRepository
     super(prisma);
   }
 
-  async createSinglePayment(input: CreateSinglePaymentInput) {
+  async createSinglePayment(input: CreateSinglePaymentInput): Promise<Payment> {
     const amount = new Prisma.Decimal(input.amount);
-    return this.db.payment.create({
+    const raw = await this.db.payment.create({
       data: {
         clinicId: input.clinicId,
         patientId: input.patientId,
@@ -42,17 +43,20 @@ export class PaymentRepository
           },
         },
       },
-      include: { installments: true },
+      include: INSTALLMENTS_INCLUDE,
     });
+    return new Payment(raw);
   }
 
-  async createInstallmentPlan(input: CreateInstallmentPlanInput) {
+  async createInstallmentPlan(
+    input: CreateInstallmentPlanInput
+  ): Promise<Payment> {
     const totalAmount = input.installments.reduce(
       (sum, i) => sum.add(new Prisma.Decimal(i.amount)),
       new Prisma.Decimal(0)
     );
 
-    return this.db.payment.create({
+    const raw = await this.db.payment.create({
       data: {
         clinicId: input.clinicId,
         patientId: input.patientId,
@@ -71,92 +75,90 @@ export class PaymentRepository
           })),
         },
       },
-      include: { installments: true },
+      include: INSTALLMENTS_INCLUDE,
     });
+    return new Payment(raw);
   }
 
-  findByAppointmentId(appointmentId: string) {
-    return this.db.payment.findUnique({ where: { appointmentId } });
+  async findByAppointmentId(appointmentId: string): Promise<Payment | null> {
+    const raw = await this.db.payment.findUnique({
+      where: { appointmentId },
+      include: INSTALLMENTS_INCLUDE,
+    });
+    return raw ? new Payment(raw) : null;
   }
 
-  findPaymentWithInstallments(paymentId: string) {
-    return this.db.payment.findUnique({
+  async findPaymentWithInstallments(
+    paymentId: string
+  ): Promise<Payment | null> {
+    const raw = await this.db.payment.findUnique({
       where: { id: paymentId },
-      include: {
-        installments: {
-          orderBy: { installmentNo: 'asc' },
-        },
-      },
+      include: INSTALLMENTS_INCLUDE,
     });
+    return raw ? new Payment(raw) : null;
   }
 
-  async markInstallmentAsPaid(installmentId: string) {
-    const installment = await this.db.paymentInstallment.update({
-      where: { id: installmentId },
-      data: { status: InstallmentStatus.COMPLETED, paidAt: new Date() },
+  async findByInstallmentId(installmentId: string): Promise<Payment | null> {
+    const raw = await this.db.payment.findFirst({
+      where: { installments: { some: { id: installmentId } } },
+      include: INSTALLMENTS_INCLUDE,
     });
-
-    const pendingCount = await this.db.paymentInstallment.count({
-      where: {
-        paymentId: installment.paymentId,
-        status: {
-          notIn: [InstallmentStatus.COMPLETED, InstallmentStatus.CANCELLED],
-        },
-      },
-    });
-
-    await this.db.payment.update({
-      where: { id: installment.paymentId },
-      data: {
-        status:
-          pendingCount === 0 ? PaymentStatus.COMPLETED : PaymentStatus.PARTIAL,
-      },
-    });
-
-    return installment;
+    return raw ? new Payment(raw) : null;
   }
 
-  async markInstallmentAsFailed(installmentId: string) {
-    return this.db.paymentInstallment.update({
-      where: { id: installmentId },
-      data: { status: InstallmentStatus.PENDING },
+  async save(entity: Payment): Promise<Payment> {
+    const data = entity.toPersistence();
+    const dirtyIds = [...entity.dirtyInstallmentIds];
+
+    const paymentOp = this.db.payment.upsert({
+      where: { id: data.id },
+      create: data as Prisma.PaymentUncheckedCreateInput,
+      update: data,
     });
-  }
-
-  async markInstallmentAsRefunded(installmentId: string) {
-    const installment = await this.db.paymentInstallment.update({
-      where: { id: installmentId },
-      data: { status: InstallmentStatus.REFUNDED },
-    });
-
-    await this.db.payment.update({
-      where: { id: installment.paymentId },
-      data: { status: PaymentStatus.REFUNDED },
-    });
-
-    return installment;
-  }
-
-  async markInstallmentAsCancelled(installmentId: string) {
-    const installment = await this.db.paymentInstallment.update({
-      where: { id: installmentId },
-      data: { status: InstallmentStatus.CANCELLED },
-    });
-
-    const pendingCount = await this.db.paymentInstallment.count({
-      where: {
-        paymentId: installment.paymentId,
-        status: { notIn: [InstallmentStatus.CANCELLED] },
-      },
-    });
-
-    if (pendingCount === 0) {
-      await this.db.payment.update({
-        where: { id: installment.paymentId },
-        data: { status: PaymentStatus.CANCELLED },
+    const installmentOps = dirtyIds.map((installmentId) => {
+      const inst = entity.installments.find((i) => i.id === installmentId)!;
+      return this.db.paymentInstallment.update({
+        where: { id: installmentId },
+        data: { status: inst.status, paidAt: inst.paidAt },
       });
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all([paymentOp, ...installmentOps]);
+    } else {
+      await this.prisma.$transaction([paymentOp, ...installmentOps]);
     }
 
-    return installment;
+    entity.flushEvents();
+    return entity;
+  }
+
+  async saveMany(entities: Payment[]): Promise<void> {
+    const allOps = entities.flatMap((entity) => {
+      const data = entity.toPersistence();
+      const paymentOp = this.db.payment.upsert({
+        where: { id: data.id },
+        create: data as Prisma.PaymentUncheckedCreateInput,
+        update: data,
+      });
+      const installmentOps = [...entity.dirtyInstallmentIds].map(
+        (installmentId) => {
+          const inst = entity.installments.find((i) => i.id === installmentId)!;
+          return this.db.paymentInstallment.update({
+            where: { id: installmentId },
+            data: { status: inst.status, paidAt: inst.paidAt },
+          });
+        }
+      );
+      return [paymentOp, ...installmentOps];
+    });
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all(allOps);
+    } else {
+      await this.prisma.$transaction(allOps);
+    }
+
+    entities.forEach((e) => e.flushEvents());
   }
 }

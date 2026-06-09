@@ -16,7 +16,7 @@ import {
 } from '@modules/identity/user/domain/repositories/user.repository';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { USER_EVENTS } from '@src/domain/constants/events';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { UpdateUserByStaffCommand } from './update-user-by-staff.command';
 
@@ -50,7 +50,7 @@ export class UpdateUserByStaffHandler
         (p) => p.isSelf(targetUserId),
         'Kendi yetkilerinizi buradan değiştiremezsiniz.'
       )
-      .orThrow();
+      .orThrow(USER_EVENTS.UPDATE_BY_STAFF);
 
     const targetUser = await this.userQueryRepo.findByIdOrEmail(targetUserId);
     if (!targetUser) throw new NotFoundException('Kullanıcı bulunamadı');
@@ -70,17 +70,7 @@ export class UpdateUserByStaffHandler
         (p) => p.isTargetInActorsManagedClinic(targetUser.clinicId),
         'Hedef kullanıcı ile aynı klinikte (yönetici olarak) olmalısınız'
       )
-      .orThrow((msg) => {
-        // security log
-        this.userEventPublisher.updateUserByStaff({
-          userId: targetUserId,
-          type: LogType.SECURITY,
-          actorId: actor.userId,
-          details: msg,
-          source: actor.source,
-          action: LogAction.USER_UPDATE,
-        });
-      });
+      .orThrow(USER_EVENTS.UPDATE_BY_STAFF);
 
     await this.txManager.run(async () => {
       targetUser.updateDetails(dto, actor.userId);

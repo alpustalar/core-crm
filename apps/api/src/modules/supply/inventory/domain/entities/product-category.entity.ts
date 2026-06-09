@@ -1,8 +1,18 @@
 import { ProductCategory as PrismaProductCategory } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { randomUUID } from 'crypto';
 
-export class ProductCategory extends AggregateRoot implements PrismaProductCategory {
-  constructor(data: PrismaProductCategory) {
+export interface CreateProductCategoryProps {
+  name: string;
+  organizationId: string;
+  parentId?: string | null;
+}
+
+export class ProductCategory
+  extends AggregateRoot
+  implements PrismaProductCategory
+{
+  private constructor(data: PrismaProductCategory) {
     super();
     this._id = data.id;
     this._name = data.name;
@@ -13,25 +23,71 @@ export class ProductCategory extends AggregateRoot implements PrismaProductCateg
   }
 
   private _id: string;
-  get id(): string { return this._id; }
+  get id(): string {
+    return this._id;
+  }
 
   private _name: string;
-  get name(): string { return this._name; }
+  get name(): string {
+    return this._name;
+  }
 
   private _organizationId: string;
-  get organizationId(): string { return this._organizationId; }
+  get organizationId(): string {
+    return this._organizationId;
+  }
 
   private _parentId: string | null;
-  get parentId(): string | null { return this._parentId; }
+  get parentId(): string | null {
+    return this._parentId;
+  }
 
   private _createdAt: Date;
-  get createdAt(): Date { return this._createdAt; }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
 
   private _updatedAt: Date;
-  get updatedAt(): Date { return this._updatedAt; }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+
+  /**
+   * Domain kurallarına uygun olarak yeni bir Ürün Kategorisi (Aggregate) oluşturur.
+   */
+  public static create(props: CreateProductCategoryProps): ProductCategory {
+    if (!props.name || props.name.trim().length === 0) {
+      throw new Error('Kategori ismi boş olamaz.');
+    }
+
+    // (self-referencing loop)
+    const id = randomUUID();
+    if (props.parentId && props.parentId === id) {
+      throw new Error('Kategori kendisinin üst kategorisi olamaz.');
+    }
+
+    const now = new Date();
+
+    return new ProductCategory({
+      id,
+      name: props.name.trim(),
+      organizationId: props.organizationId,
+      parentId: props.parentId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  /**
+   * Veritabanından (Prisma) dönen ham veriyi domain nesnesine güvenle eşler.
+   */
 
   public rename(name: string): void {
-    this._name = name;
+    if (!name || name.trim().length === 0) {
+      throw new Error('Kategori ismi boş olamaz.');
+    }
+    this._name = name.trim();
+    this._updatedAt = new Date();
   }
 
   toPersistence(): PrismaProductCategory {

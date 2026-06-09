@@ -10,7 +10,7 @@ export interface ClinicSoftDeleteByOrganizationIdEventPayload
 }
 
 export class ClinicSoftDeleteByOrganizationIdEvent extends BaseEvent {
-  static readonly NAME = CLINIC_EVENTS.SOFT_DELETED;
+  static readonly NAME = CLINIC_EVENTS.MANY_SOFT_DELETED;
 
   organizationId?: string;
   actorId?: string;

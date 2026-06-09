@@ -7,8 +7,13 @@ import { FindOrCreatePatientForAuthQuery } from '@modules/crm/patient/applicatio
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { PatientVerifyDto } from '@shared/modules/patients/dto/commands';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+
+interface PatientVerifyInput {
+  idToken: string;
+  organizationId: string;
+  firstName: string;
+}
 
 @Injectable()
 export class PatientAuthService {
@@ -20,7 +25,7 @@ export class PatientAuthService {
     private readonly queryBus: TSQueryBus
   ) {}
 
-  async verifyAndRegister(dto: PatientVerifyDto): Promise<Patient> {
+  async verifyAndRegister(dto: PatientVerifyInput): Promise<Patient> {
     const { idToken, organizationId, firstName } = dto;
 
     const decodedToken = await this.firebaseService.verifyToken(idToken);

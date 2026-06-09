@@ -1,15 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CreateSupplierCommand } from './create-supplier.command';
 import {
   ISupplierCommandRepository,
   SUPPLIER_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
 
 @CommandHandler(CreateSupplierCommand)
 export class CreateSupplierHandler
@@ -18,8 +15,6 @@ export class CreateSupplierHandler
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
     private readonly supplierCommandRepo: ISupplierCommandRepository,
-    @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -27,17 +22,10 @@ export class CreateSupplierHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.organization(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.isOwnOrganization(actor.organizationId)
-    ) {
-      throw new ForbiddenException('Tedarikçi oluşturma yetkiniz yok.');
-    }
+    // TODO: capability guard ile kullan
 
     return this.txManager.run(async () => {
-      const supplier = await this.supplierCommandRepo.create({
-        id: crypto.randomUUID(),
+      const supplier = Supplier.create({
         name: dto.name,
         contactName: dto.contactName ?? null,
         phone: dto.phone ?? null,
@@ -47,7 +35,8 @@ export class CreateSupplierHandler
         taxOffice: dto.taxOffice ?? null,
         organizationId: actor.organizationId!,
       });
-      return supplier.id;
+      const saved = await this.supplierCommandRepo.save(supplier);
+      return saved.id;
     });
   }
 }

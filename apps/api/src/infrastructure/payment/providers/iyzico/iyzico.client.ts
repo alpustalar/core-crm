@@ -50,27 +50,21 @@ export class IyzicoClient {
     this.createCheckoutForm = promisify(
       iyzipay.checkoutFormInitialize.create as any
     ).bind(iyzipay.checkoutFormInitialize);
-
     this.retrieveCheckoutForm = promisify(iyzipay.checkoutForm.retrieve).bind(
       iyzipay.checkoutForm
     );
-
     this.createCancelPayment = promisify(iyzipay.cancel.create).bind(
       iyzipay.cancel
     );
-
     this.refundPayment = promisify(iyzipay.refund.create).bind(iyzipay.refund);
-
     this.retrieveInstallmentInfo = promisify(
       iyzipay.installmentInfo.retrieve
     ).bind(iyzipay.installmentInfo);
-
-    this.createSubMerchant = promisify(
-      (iyzipay as any).subMerchant.create
-    ).bind((iyzipay as any).subMerchant);
-
-    this.updateSubMerchant = promisify(
-      (iyzipay as any).subMerchant.update
-    ).bind((iyzipay as any).subMerchant);
+    this.createSubMerchant = promisify(iyzipay.subMerchant.create).bind(
+      iyzipay.subMerchant
+    );
+    this.updateSubMerchant = promisify(iyzipay.subMerchant.update).bind(
+      iyzipay.subMerchant
+    );
   }
 }

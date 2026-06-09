@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ScheduleAppointmentCommand } from './schedule-appointment.command';
 import { ScheduleAppointmentCommandResponse } from './schedule-appointment.response';
@@ -6,13 +7,13 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { POLICY_FACTORY } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { PolicyFactory } from '@modules/platform/policy/application/policy-factory';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import { DateTimeManager } from '@common/utils';
+import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -36,17 +37,16 @@ export class ScheduleAppointmentHandler
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
-    private readonly appointmentChecker: AppointmentChecker,
     private readonly queryBus: TSQueryBus,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: PolicyFactory
+    private readonly policyFactory: PolicyFactory,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   async execute(
     command: ScheduleAppointmentCommand
   ): Promise<ScheduleAppointmentCommandResponse> {
     const { ctx, dto } = command;
-
     const { actor } = ctx;
 
     if (!actor.clinicId) {
@@ -59,8 +59,7 @@ export class ScheduleAppointmentHandler
         (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
         'Sadece kendi kliniğinizde randevu oluşturabilirsiniz.'
       )
-      // TODO: event fırlat
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.SCHEDULE);
 
     const {
       patientId,
@@ -70,6 +69,7 @@ export class ScheduleAppointmentHandler
       providerId,
       treatmentId,
       startTime,
+      endTime: dtoEndTime,
       duration,
       notes,
     } = dto;
@@ -82,19 +82,7 @@ export class ScheduleAppointmentHandler
         dtoPatientEmail,
       });
 
-    const start = new Date(startTime);
-    const endTime = DateTimeManager.addMinutes(
-      start,
-      duration ?? DEFAULT_DURATION_MINUTES
-    );
-
-    await this.appointmentChecker.noConflictOrThrow({
-      providerId,
-      startTime: start,
-      endTime,
-    });
-
-    const appointmentEntity = await this.appointmentRepo.create({
+    const appointment = Appointment.schedule({
       patientName,
       patientPhone,
       patientEmail,
@@ -102,12 +90,16 @@ export class ScheduleAppointmentHandler
       providerId,
       clinicId: actor.clinicId,
       treatmentId,
-      startTime: start,
-      endTime,
+      startTime,
+      endTime: dtoEndTime,
+      duration: duration ?? DEFAULT_DURATION_MINUTES,
       notes,
     });
 
-    return appointmentEntity.id;
+    return this.transactionManager.run(async () => {
+      const saved = await this.appointmentRepo.save(appointment);
+      return saved.id;
+    });
   }
 
   private async resolvePatient({

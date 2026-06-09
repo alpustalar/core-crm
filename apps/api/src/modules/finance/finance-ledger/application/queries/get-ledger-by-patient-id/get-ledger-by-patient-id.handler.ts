@@ -1,3 +1,4 @@
+import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetLedgerByPatientIdQuery } from './get-ledger-by-patient-id.query';
 import { GetLedgerByPatientIdQueryResponse } from './get-ledger-by-patient-id.response';
@@ -50,7 +51,7 @@ export class GetLedgerByPatientIdHandler
         (p) => p.isTargetInActorsSameClinic(patient?.clinicId),
         'İşlem yapabilmek için hastayla aynı klinikte olmalısınız'
       )
-      .orThrow();
+      .orThrow(FINANCE_LEDGER_EVENTS.LEDGER);
 
     return await this.find(patientId, pagination);
   }

@@ -1,4 +1,5 @@
-import { Payment, PaymentInstallment, PaymentMethod } from '@prisma/client';
+import { PaymentMethod } from '@prisma/client';
+import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
 
 export const PAYMENT_REPOSITORY = Symbol('IPaymentRepository');
 
@@ -29,15 +30,12 @@ export interface CreateInstallmentPlanInput {
   installments: InstallmentPlanItem[];
 }
 
-export type PaymentWithInstallments = Payment & { installments: PaymentInstallment[] };
-
 export interface IPaymentRepository {
-  createSinglePayment(input: CreateSinglePaymentInput): Promise<PaymentWithInstallments>;
-  createInstallmentPlan(input: CreateInstallmentPlanInput): Promise<PaymentWithInstallments>;
+  createSinglePayment(input: CreateSinglePaymentInput): Promise<Payment>;
+  createInstallmentPlan(input: CreateInstallmentPlanInput): Promise<Payment>;
   findByAppointmentId(appointmentId: string): Promise<Payment | null>;
-  findPaymentWithInstallments(paymentId: string): Promise<PaymentWithInstallments | null>;
-  markInstallmentAsPaid(installmentId: string): Promise<PaymentInstallment>;
-  markInstallmentAsFailed(installmentId: string): Promise<PaymentInstallment>;
-  markInstallmentAsRefunded(installmentId: string): Promise<PaymentInstallment>;
-  markInstallmentAsCancelled(installmentId: string): Promise<PaymentInstallment>;
+  findPaymentWithInstallments(paymentId: string): Promise<Payment | null>;
+  findByInstallmentId(installmentId: string): Promise<Payment | null>;
+  save(entity: Payment): Promise<Payment>;
+  saveMany(entities: Payment[]): Promise<void>;
 }

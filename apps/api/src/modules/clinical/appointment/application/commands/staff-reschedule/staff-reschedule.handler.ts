@@ -8,7 +8,6 @@ import {
   IAppointmentCommandRepository,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
 
 @CommandHandler(StaffRescheduleCommand)
@@ -21,7 +20,6 @@ export class StaffRescheduleHandler
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentQueryRepo: IAppointmentQueryRepository,
-    private readonly appointmentChecker: AppointmentChecker,
     private readonly appointmentSlotService: AppointmentSlotService
   ) {}
 
@@ -48,9 +46,6 @@ export class StaffRescheduleHandler
       duration
     );
 
-    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(startTime);
-    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(endTime);
-
     const appointment = await this.appointmentQueryRepo.findById(appointmentId);
     if (!appointment) {
       throw new NotFoundException('Randevu bulunamadı.');
@@ -63,13 +58,6 @@ export class StaffRescheduleHandler
     }
 
     const effectiveProviderId = dtoProviderId ?? appointment.providerId;
-
-    await this.appointmentChecker.noConflictOrThrow({
-      providerId: effectiveProviderId,
-      startTime,
-      endTime,
-      ignoreAppointmentId: appointmentId,
-    });
 
     appointment.reschedule(
       startTime,

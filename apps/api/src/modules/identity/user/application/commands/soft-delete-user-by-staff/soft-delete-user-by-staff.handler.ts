@@ -19,6 +19,7 @@ import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { SoftDeleteUserByStaffResponse } from '@modules/identity/user/application/commands/soft-delete-user-by-staff/soft-delete-user-by-staff.response';
 import { RedisService } from '@common/redis/redis.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { USER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(SoftDeleteUserByStaffCommand)
 export class SoftDeleteUserByStaffHandler
@@ -54,9 +55,7 @@ export class SoftDeleteUserByStaffHandler
           (p) => p.isTargetInActorsManagedClinic(dto.clinicId),
           'Bu yetkiye sahip değilsiniz'
         )
-        .orThrow((msg) => {
-          // TODO: LOG FIRLAT
-        });
+        .orThrow(USER_EVENTS.SOFT_DELETED);
     }
 
     const user = await this.userQueryRepo.find(dto.userId);

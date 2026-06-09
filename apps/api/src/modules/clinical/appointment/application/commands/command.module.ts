@@ -9,6 +9,7 @@ import { CancelAppointmentHandler } from './cancel-appointment/cancel-appointmen
 import { PatientCancelAppointmentHandler } from './patient-cancel-appointment/patient-cancel-appointment.handler';
 import { Module } from '@nestjs/common';
 import { BookAppointmentHandler } from './book-appointment/book-appointment.handler';
+import { PatientBookAppointmentHandler } from './patient-book-appointment/patient-book-appointment.handler';
 import { AppointmentEventModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
@@ -26,6 +27,7 @@ const CommandHandlers = [
   CancelAppointmentHandler,
   PatientCancelAppointmentHandler,
   BookAppointmentHandler,
+  PatientBookAppointmentHandler,
 ];
 
 @Module({

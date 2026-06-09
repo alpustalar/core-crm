@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import { UpdateSupplierCommand } from './update-supplier.command';
 import {
   ISupplierCommandRepository,
@@ -31,16 +31,11 @@ export class UpdateSupplierHandler
     const { supplierId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.organization(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.isOwnOrganization(actor.organizationId)
-    ) {
-      throw new ForbiddenException('Tedarikçi güncelleme yetkiniz yok.');
-    }
-
     const supplier = await this.supplierQueryRepo.findById(supplierId);
+
     if (!supplier) throw new NotFoundException('Tedarikçi bulunamadı.');
+
+    // TODO: supplier'ın organizationId'sine göre policy işlemi yapılacak. orgaizationPolicy'e actorCanAccessOrganzation gibi bi method yazılacak
 
     supplier.update(dto);
 

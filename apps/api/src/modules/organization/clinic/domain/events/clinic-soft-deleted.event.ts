@@ -5,6 +5,7 @@ export interface ClinicSoftDeletedEventPayload {
   clinicId: string;
   organizationId?: string;
   actorId?: string;
+  actorEmail?: string;
 }
 
 export class ClinicSoftDeletedEvent extends BaseEvent {
@@ -13,11 +14,13 @@ export class ClinicSoftDeletedEvent extends BaseEvent {
   readonly clinicId: string;
   readonly organizationId?: string;
   readonly actorId?: string;
+  readonly actorEmail?: string;
 
   constructor(payload: ClinicSoftDeletedEventPayload) {
     super();
     this.clinicId = payload.clinicId;
     this.organizationId = payload.organizationId;
     this.actorId = payload.actorId;
+    this.actorEmail = payload.actorEmail;
   }
 }

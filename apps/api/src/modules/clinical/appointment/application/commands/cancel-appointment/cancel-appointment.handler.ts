@@ -13,6 +13,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(CancelAppointmentCommand)
 export class CancelAppointmentHandler
@@ -40,7 +41,7 @@ export class CancelAppointmentHandler
       throw new NotFoundException('Randevu bulunamadı.');
     }
 
-    appointment.cancel(actor.userId, cancelReason);
+    appointment.cancelSchedule(actor.userId, cancelReason);
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
       await this.appointmentCommandRepo.save(appointment);
@@ -52,8 +53,7 @@ export class CancelAppointmentHandler
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
         'Bu randevuya erişim yetkiniz yok.'
       )
-      // TODO: event fırlat
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.CANCELLED);
 
     await this.appointmentCommandRepo.save(appointment);
   }

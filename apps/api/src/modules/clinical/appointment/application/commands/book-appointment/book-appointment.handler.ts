@@ -7,11 +7,12 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
-import { AppointmentPrismaMapper } from '@modules/clinical/appointment/infrastructure/persistence/prisma/mapper/appointment-prisma.mapper';
 import { BookAppointmentCommandResponse } from '@modules/clinical/appointment/application/commands/book-appointment/book-appointment.response';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ClinicCanBookOrThrowQuery } from '@modules/organization/clinic/application/queries/clinic-can-book-or-throw/clinic-can-book-or-throw.query';
 import { ProviderCanBookOrThrowQuery } from '@modules/clinical/provider/application/queries/provider-can-book-or-throw/provider-can-book-or-throw.query';
+import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(BookAppointmentCommand)
 export class BookAppointmentHandler
@@ -23,7 +24,8 @@ export class BookAppointmentHandler
     private readonly appointmentRepo: IAppointmentCommandRepository,
     private readonly appointmentChecker: AppointmentChecker,
     private readonly appointmentSlotService: AppointmentSlotService,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   async execute(
@@ -33,21 +35,23 @@ export class BookAppointmentHandler
     const {
       providerId,
       clinicId,
-      startTime: startTimeDto,
+      startTime,
       duration,
       endTime: dtoEndTime,
-      ...rest
+      patientName,
+      patientPhone,
+      patientEmail,
+      treatmentId,
+      notes,
+      externalId,
+      externalSystem,
     } = dto;
 
-    const startTime = new Date(startTimeDto);
     const endTime = this.appointmentSlotService.calculateEndTimeOrThrow(
       startTime,
       dtoEndTime,
       duration
     );
-
-    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(startTime);
-    this.appointmentSlotService.fifteenMinuteBoundaryOrThrow(endTime);
 
     await Promise.all([
       this.queryBus.execute(
@@ -64,15 +68,23 @@ export class BookAppointmentHandler
       endTime,
     });
 
-    const data = AppointmentPrismaMapper.toCreateInputFromBook({
+    const appointment = Appointment.book({
+      patientName,
+      patientPhone,
+      patientEmail,
       providerId,
       clinicId,
+      treatmentId,
       startTime,
       endTime,
-      ...rest,
+      notes,
+      externalId,
+      externalSystem,
     });
 
-    const appointment = await this.appointmentRepo.create(data);
-    return appointment.id;
+    return this.transactionManager.run(async () => {
+      const saved = await this.appointmentRepo.save(appointment);
+      return saved.id;
+    });
   }
 }

@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ConfirmAppointmentCommand } from './confirm-appointment.command';
 import { ConfirmAppointmentCommandResponse } from './confirm-appointment.response';
@@ -47,7 +48,7 @@ export class ConfirmAppointmentHandler
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
         'Bu randevuya erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.CONFIRMED);
 
     appointment.confirm();
 

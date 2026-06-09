@@ -1,20 +1,8 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  Prisma,
-  StockMovementDirection,
-  StockMovementType,
-} from '@prisma/client';
-import { RecordProductUsageCommand } from './record-product-usage.command';
-import {
-  IProductQueryRepository,
-  PRODUCT_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product.repository.interface';
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
   IProductBatchCommandRepository,
   IProductBatchQueryRepository,
@@ -22,14 +10,22 @@ import {
   PRODUCT_BATCH_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
 import {
+  IProductQueryRepository,
+  PRODUCT_QUERY_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product.repository.interface';
+import {
   IStockMovementCommandRepository,
   STOCK_MOVEMENT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
 import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+  BadRequestException,
+  Inject,
+  NotFoundException
+} from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Prisma } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { RecordProductUsageCommand } from './record-product-usage.command';
 
 @CommandHandler(RecordProductUsageCommand)
 export class RecordProductUsageHandler
@@ -53,15 +49,7 @@ export class RecordProductUsageHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.clinic(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.actorCanManageTargetClinic(clinicId)
-    ) {
-      throw new ForbiddenException(
-        'Bu klinikte ürün kullanımı kaydedemezsiniz.'
-      );
-    }
+    // TODO: capability guard
 
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new NotFoundException('Ürün bulunamadı.');
@@ -84,21 +72,17 @@ export class RecordProductUsageHandler
       throw new BadRequestException('Kullanılabilir stok bulunamadı.');
     }
 
-    await this.txManager.run(async () => {
-      batch.deductQuantity(quantity);
-      await this.productBatchCommandRepo.save(batch);
-
-      await this.stockMovementCommandRepo.create({
-        id: crypto.randomUUID(),
-        productId: product.id,
-        clinicId,
-        batchId: batch.id,
-        type: StockMovementType.USAGE,
-        direction: StockMovementDirection.OUT,
+    const stockMovementProps = batch.deductQuantity(
         quantity,
-        performedById: actor.userId,
-        notes: dto.notes ?? null,
-      });
+        actor.userId,
+        dto.notes
+    );
+    
+    const stockMovement = StockMovement.create(stockMovementProps);
+
+    await this.txManager.run(async () => {
+      await this.productBatchCommandRepo.save(batch);
+      await this.stockMovementCommandRepo.save(stockMovement);
     });
   }
 }

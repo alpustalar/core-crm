@@ -26,8 +26,9 @@ import { CreateProviderDto, CreateUserDto } from '@shared';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { USER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler
@@ -56,23 +57,12 @@ export class CreateUserHandler
 
     if (!ExecutionPolicy.isSystemInitiated(source) && dto.roleId && clinicId) {
       const { evaluator } = this.policyFactory.user(actor);
-      await evaluator
+      evaluator
         .check(
           (p) => p.isTargetInActorsManagedClinic(clinicId),
           'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.'
         )
-        .orAsyncThrow(async (msg) => {
-          // eslint-disable-next-line
-          await this.transactionManager.run(async () => {
-            this.userEventPublisher.create({
-              action: LogAction.USER_REGISTER,
-              actorId: actor.userId,
-              details: msg,
-              source: actor.source,
-              type: LogType.SECURITY,
-            });
-          });
-        });
+        .orThrow(USER_EVENTS.CREATE);
     }
 
     let firebaseUid: string | undefined;

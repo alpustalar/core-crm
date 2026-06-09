@@ -5,7 +5,12 @@ import {
   Sector,
 } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { ClinicCreatedEvent } from '@modules/organization/clinic/domain/events/clinic-created.event';
 import { ClinicSoftDeletedEvent } from '@modules/organization/clinic/domain/events/clinic-soft-deleted.event';
+import { CreateClinicProps } from '@modules/organization/clinic/domain/types/create-clinic.props';
+import { slugIt } from '@common/utils';
+import { randomUUID } from 'crypto';
+import { UpdateClinic } from '@shared';
 
 export class Clinic extends AggregateRoot implements PrismaClinic {
   constructor(data: PrismaClinic) {
@@ -148,6 +153,58 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     return this.isActive;
   }
 
+  public static create(props: CreateClinicProps, actorId?: string): Clinic {
+    const now = new Date();
+    const clinic = new Clinic({
+      id: props.id ?? randomUUID(),
+      name: props.name,
+      slug: slugIt(props.name),
+      sectorId: props.sectorId,
+      phone: props.phone ?? null,
+      email: props.email ?? null,
+      address: props.address ?? null,
+      city: props.city ?? null,
+      district: props.district ?? null,
+      consultationSlotDuration: props.consultationSlotDuration,
+      healthFacilityCode: null,
+      iyzicoSubMerchantKey: null,
+      status: props.status ?? GlobalStatus.ACTIVE,
+      timezone: props.timezone ?? 'Europe/Istanbul',
+      logo: null,
+      organizationId: props.organizationId!,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    });
+    clinic.addDomainEvent(
+      new ClinicCreatedEvent({
+        clinicId: clinic._id,
+        organizationId: clinic._organizationId,
+        actorId,
+      })
+    );
+    return clinic;
+  }
+
+  public update(data: UpdateClinic): void {
+    if (data.name !== undefined) {
+      this._name = data.name;
+      this._slug = slugIt(data.name);
+    }
+    if (data.phone !== undefined) this._phone = data.phone;
+    if (data.email !== undefined) this._email = data.email;
+    if (data.address !== undefined) this._address = data.address;
+    if (data.city !== undefined) this._city = data.city;
+    if (data.district !== undefined) this._district = data.district;
+    if (data.status !== undefined) this._status = data.status;
+    if (data.timezone !== undefined) this._timezone = data.timezone;
+    if (data.organizationId !== undefined) this._organizationId = data.organizationId;
+    if (data.sectorId !== undefined) this._sectorId = data.sectorId;
+    if (data.consultationSlotDuration !== undefined)
+      this._consultationSlotDuration = data.consultationSlotDuration;
+    this._updatedAt = new Date();
+  }
+
   public softDelete(actorId?: string): void {
     this._status = GlobalStatus.DELETED;
     this._deletedAt = new Date();
@@ -156,7 +213,7 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
         clinicId: this._id,
         organizationId: this._organizationId,
         actorId,
-      })
+      }),
     );
   }
 

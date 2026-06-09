@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetActionRequiredQuery } from './get-action-required.query';
 import { GetActionRequiredQueryResponse } from './get-action-required.response';
@@ -40,7 +41,7 @@ export class GetActionRequiredHandler
         (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
         'Bu kliniğe ait randevulara erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.ACTION_REQUIRED);
 
     const { items, total } = await this.appointmentRepo.findActionRequired(
       actor.clinicId,

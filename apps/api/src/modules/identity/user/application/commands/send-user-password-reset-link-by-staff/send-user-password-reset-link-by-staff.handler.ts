@@ -17,8 +17,8 @@ import {
   IUserEventPublisher,
   USER_EVENT_PUBLISHER,
 } from '@modules/identity/user/domain/interfaces/user-event-publisher.interface';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { SendUserPasswordResetLinkByStaffResponse } from '@modules/identity/user/application/commands/send-user-password-reset-link-by-staff/send-user-password-reset-link-by-staff.response';
+import { USER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(SendUserPasswordResetLinkByStaffCommand)
 export class SendUserPasswordResetLinkByStaffHandler
@@ -50,14 +50,7 @@ export class SendUserPasswordResetLinkByStaffHandler
 
     evaluator
       .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
-      .orThrow(() => {
-        this.userEventPublisher.sendUserPasswordResetLinkByActor({
-          actorId: actor.userId,
-          type: LogType.SECURITY,
-          source: actor.source,
-          action: LogAction.USER_SEND_PASSWORD_RESET_LINK,
-        });
-      });
+      .orThrow(USER_EVENTS.SEND_PASSWORD_RESET_LINK_BY_STAFF);
 
     const user = await this.userRepo.findByIdOrEmail(dto.userId);
 

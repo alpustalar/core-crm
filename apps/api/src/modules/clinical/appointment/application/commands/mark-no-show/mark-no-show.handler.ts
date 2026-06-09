@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { MarkNoShowCommand } from './mark-no-show.command';
 import { MarkNoShowCommandResponse } from './mark-no-show.response';
@@ -45,7 +46,7 @@ export class MarkNoShowHandler
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
         'Bu randevuya erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.NO_SHOW);
 
     await this.appointmentCommandRepo.save(appointment);
   }

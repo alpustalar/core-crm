@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetAppointmentDetailQuery } from './get-appointment-detail.query';
 import { GetAppointmentDetailQueryResponse } from './get-appointment-detail.response';
@@ -41,7 +42,7 @@ export class GetAppointmentDetailHandler
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
         'Bu randevuya erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.DETAIL);
 
     return {
       data: appointment,

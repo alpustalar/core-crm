@@ -1,12 +1,17 @@
 import {
+  Prisma,
   StockMovement as PrismaStockMovement,
   StockMovementDirection,
   StockMovementType,
 } from '@prisma/client';
-import { Prisma } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { randomUUID } from 'crypto';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
 
-export class StockMovement extends AggregateRoot implements PrismaStockMovement {
+export class StockMovement
+  extends AggregateRoot
+  implements PrismaStockMovement
+{
   constructor(data: PrismaStockMovement) {
     super();
     this._id = data.id;
@@ -28,52 +33,146 @@ export class StockMovement extends AggregateRoot implements PrismaStockMovement 
   }
 
   private _id: string;
-  get id(): string { return this._id; }
+
+  get id(): string {
+    return this._id;
+  }
 
   private _productId: string;
-  get productId(): string { return this._productId; }
+
+  get productId(): string {
+    return this._productId;
+  }
 
   private _clinicId: string;
-  get clinicId(): string { return this._clinicId; }
+
+  get clinicId(): string {
+    return this._clinicId;
+  }
 
   private _batchId: string | null;
-  get batchId(): string | null { return this._batchId; }
+
+  get batchId(): string | null {
+    return this._batchId;
+  }
 
   private _type: StockMovementType;
-  get type(): StockMovementType { return this._type; }
+
+  get type(): StockMovementType {
+    return this._type;
+  }
 
   private _direction: StockMovementDirection;
-  get direction(): StockMovementDirection { return this._direction; }
+
+  get direction(): StockMovementDirection {
+    return this._direction;
+  }
 
   private _quantity: Prisma.Decimal;
-  get quantity(): Prisma.Decimal { return this._quantity; }
+
+  get quantity(): Prisma.Decimal {
+    return this._quantity;
+  }
 
   private _unitPrice: Prisma.Decimal | null;
-  get unitPrice(): Prisma.Decimal | null { return this._unitPrice; }
+
+  get unitPrice(): Prisma.Decimal | null {
+    return this._unitPrice;
+  }
 
   private _currency: string;
-  get currency(): string { return this._currency; }
+
+  get currency(): string {
+    return this._currency;
+  }
 
   private _vatRate: Prisma.Decimal | null;
-  get vatRate(): Prisma.Decimal | null { return this._vatRate; }
+
+  get vatRate(): Prisma.Decimal | null {
+    return this._vatRate;
+  }
 
   private _vatAmount: Prisma.Decimal | null;
-  get vatAmount(): Prisma.Decimal | null { return this._vatAmount; }
+
+  get vatAmount(): Prisma.Decimal | null {
+    return this._vatAmount;
+  }
 
   private _totalAmount: Prisma.Decimal | null;
-  get totalAmount(): Prisma.Decimal | null { return this._totalAmount; }
+
+  get totalAmount(): Prisma.Decimal | null {
+    return this._totalAmount;
+  }
 
   private _financeLedgerId: string | null;
-  get financeLedgerId(): string | null { return this._financeLedgerId; }
+
+  get financeLedgerId(): string | null {
+    return this._financeLedgerId;
+  }
 
   private _performedById: string | null;
-  get performedById(): string | null { return this._performedById; }
+
+  get performedById(): string | null {
+    return this._performedById;
+  }
 
   private _notes: string | null;
-  get notes(): string | null { return this._notes; }
+
+  get notes(): string | null {
+    return this._notes;
+  }
 
   private _createdAt: Date;
-  get createdAt(): Date { return this._createdAt; }
+
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+
+  public static create(props: CreateStockMovementProps): StockMovement {
+    const quantityDecimal = new Prisma.Decimal(props.quantity);
+    if (quantityDecimal.lessThanOrEqualTo(0)) {
+      throw new Error('Stok hareket miktarı sıfırdan büyük olmalıdır.');
+    }
+
+    const unitPrice = props.unitPrice
+      ? new Prisma.Decimal(props.unitPrice)
+      : null;
+    const vatRate = props.vatRate
+      ? new Prisma.Decimal(props.vatRate)
+      : new Prisma.Decimal(0);
+
+    let vatAmount: Prisma.Decimal | null = null;
+    let totalAmount: Prisma.Decimal | null = null;
+
+    if (unitPrice) {
+      const subTotal = unitPrice.mul(quantityDecimal);
+      vatAmount = subTotal.mul(vatRate.div(100));
+      totalAmount = subTotal.add(vatAmount);
+    }
+
+    const stockMovement = new StockMovement({
+      id: randomUUID(),
+      productId: props.productId,
+      clinicId: props.clinicId,
+      batchId: props.batchId ?? null,
+      type: props.type,
+      direction: props.direction,
+      quantity: quantityDecimal,
+      unitPrice,
+      currency: props.currency ?? 'TRY', // 2026 Türkiye pazarı varsayılan
+      vatRate,
+      vatAmount,
+      totalAmount,
+      financeLedgerId: props.financeLedgerId ?? null,
+      performedById: props.performedById ?? null,
+      notes: props.notes ?? null,
+      createdAt: new Date(),
+    });
+
+    // TODO: stock takibi için eklenebilir stockMovement.addDomainEvent(new StockMovementCreatedEvent(stockMovement));
+
+    return stockMovement;
+  }
 
   toPersistence(): PrismaStockMovement {
     return {

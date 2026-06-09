@@ -13,6 +13,7 @@ import {
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(CompleteAppointmentCommand)
 export class CompleteAppointmentHandler
@@ -46,7 +47,7 @@ export class CompleteAppointmentHandler
           (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
           'Bu randevuya erişim yetkiniz yok.'
         )
-        .orThrow();
+        .orThrow(APPOINTMENT_EVENTS.COMPLETED);
 
       appointment.complete({
         action: LogAction.APPOINTMENT_COMPLETE,

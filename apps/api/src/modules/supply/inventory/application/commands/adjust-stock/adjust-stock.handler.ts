@@ -1,15 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  Prisma,
-  StockMovementDirection,
-  StockMovementType,
-} from '@prisma/client';
+import { Inject, NotFoundException } from '@nestjs/common';
 import { AdjustStockCommand } from './adjust-stock.command';
 import {
   IProductQueryRepository,
@@ -30,6 +20,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 
 @CommandHandler(AdjustStockCommand)
 export class AdjustStockHandler
@@ -53,60 +44,36 @@ export class AdjustStockHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.clinic(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.actorCanManageTargetClinic(clinicId)
-    ) {
-      throw new ForbiddenException('Bu klinikte stok düzeltme yetkiniz yok.');
-    }
+    const { evaluator } = this.policyFactory.clinic(actor);
+    evaluator.check(
+      (p) => p.actorCanManageTargetClinic(clinicId),
+      'Bu klinikte işlem yapma yetkiniz yok.'
+    );
 
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new NotFoundException('Ürün bulunamadı.');
 
-    const delta = new Prisma.Decimal(dto.quantityDelta);
-    const isIncrease = delta.greaterThan(0);
-    const absQty = delta.abs();
-
-    let batch = dto.batchId
-      ? await this.productBatchQueryRepo.findById(dto.batchId)
-      : null;
-
-    if (!batch) {
-      const available = await this.productBatchQueryRepo.findAvailableByProduct(
+    const availableBatches =
+      await this.productBatchQueryRepo.findAvailableByProduct(
         product.id,
         clinicId
       );
-      batch = available[0] ?? null;
-    }
 
-    if (!batch && !isIncrease) {
-      throw new BadRequestException('Düşüm yapılacak batch bulunamadı.');
-    }
+    const { updatedBatch, stockMovementProps } = product.handleStockChange({
+      quantityDelta: dto.quantityDelta,
+      clinicId,
+      availableBatches,
+      explicitBatchId: dto.batchId,
+      performedById: actor.userId,
+      notes: dto.notes,
+    });
 
+    const stockMovement = StockMovement.create(stockMovementProps);
     await this.txManager.run(async () => {
-      if (batch) {
-        if (isIncrease) {
-          batch.addQuantity(absQty);
-        } else {
-          batch.deductQuantity(absQty);
-        }
-        await this.productBatchCommandRepo.save(batch);
+      if (updatedBatch) {
+        await this.productBatchCommandRepo.save(updatedBatch);
       }
-
-      await this.stockMovementCommandRepo.create({
-        id: crypto.randomUUID(),
-        productId: product.id,
-        clinicId,
-        batchId: batch?.id ?? null,
-        type: StockMovementType.ADJUSTMENT,
-        direction: isIncrease
-          ? StockMovementDirection.IN
-          : StockMovementDirection.OUT,
-        quantity: absQty,
-        performedById: actor.userId,
-        notes: dto.notes ?? null,
-      });
+      await this.stockMovementCommandRepo.save(stockMovement);
     });
   }
 }

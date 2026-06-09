@@ -1,3 +1,4 @@
+import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
@@ -34,7 +35,7 @@ export class SetProviderActiveHandler
     const { evaluator } = this.policyFactory.user(ctx.actor);
     evaluator
       .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
-      .orThrow();
+      .orThrow(PROVIDER_EVENTS.ACTIVATED);
 
     if (dto.isActive) {
       provider.activate();

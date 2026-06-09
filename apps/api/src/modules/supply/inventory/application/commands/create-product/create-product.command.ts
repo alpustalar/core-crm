@@ -6,6 +6,6 @@ export class CreateProductCommand implements ICommand {
   readonly __responseType!: string;
   constructor(
     public readonly dto: CreateProductDto,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

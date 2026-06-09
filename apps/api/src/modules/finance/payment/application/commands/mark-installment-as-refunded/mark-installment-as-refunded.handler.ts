@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import { MarkInstallmentAsRefundedCommand } from './mark-installment-as-refunded.command';
 import {
   IPaymentRepository,
@@ -16,6 +16,10 @@ export class MarkInstallmentAsRefundedHandler
   ) {}
 
   async execute(command: MarkInstallmentAsRefundedCommand): Promise<void> {
-    await this.paymentRepo.markInstallmentAsRefunded(command.installmentId);
+    const { installmentId } = command;
+    const payment = await this.paymentRepo.findByInstallmentId(installmentId);
+    if (!payment) throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
+    payment.refundInstallment(installmentId);
+    await this.paymentRepo.save(payment);
   }
 }

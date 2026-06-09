@@ -1,3 +1,4 @@
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetProviderAvailabilityQuery } from './get-provider-availability.query';
 import { GetProviderAvailabilityQueryResponse } from './get-provider-availability.response';
@@ -47,7 +48,7 @@ export class GetProviderAvailabilityHandler
         (p) => p.canScheduleAppointmentInClinic(clinicId),
         'Bu kliniğe ait takvime erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(APPOINTMENT_EVENTS.PROVIDER_AVAILABILITY);
 
     if (startDate >= endDate) {
       throw new BadRequestException(

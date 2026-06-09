@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ActorContext } from '@common/interfaces';
 import { OrganizationPolicy } from '@modules/organization/organization/application/policies/organization.policy';
 import { UserPolicy } from '@modules/identity/user/application/policies';
@@ -10,33 +11,32 @@ import { IPolicyFactory } from '@modules/platform/policy/domain/interfaces/polic
 
 @Injectable()
 export class PolicyFactory implements IPolicyFactory {
+  constructor(private readonly eventEmitter: EventEmitter2) {}
+
   user(actor: ActorContext) {
-    const evaluator = this.create(UserPolicy, actor);
     const policy = new UserPolicy(actor);
-    return { evaluator, policy };
+    return { evaluator: this.create(UserPolicy, actor), policy };
   }
+
   organization(actor: ActorContext) {
-    const evaluator = this.create(OrganizationPolicy, actor);
     const policy = new OrganizationPolicy(actor);
-    return { evaluator, policy };
+    return { evaluator: this.create(OrganizationPolicy, actor), policy };
   }
 
   clinic(actor: ActorContext) {
-    const evaluator = this.create(ClinicPolicy, actor);
     const policy = new ClinicPolicy(actor);
-    return { evaluator, policy };
+    return { evaluator: this.create(ClinicPolicy, actor), policy };
   }
 
   appointment(actor: ActorContext) {
-    const evaluator = this.create(AppointmentPolicy, actor);
     const policy = new AppointmentPolicy(actor);
-    return { evaluator, policy };
+    return { evaluator: this.create(AppointmentPolicy, actor), policy };
   }
 
   private create<T extends BasePolicy>(
     PolicyClass: new (actor: ActorContext) => T,
     actor: ActorContext
   ): PolicyEvaluator<T> {
-    return new PolicyEvaluator(new PolicyClass(actor));
+    return new PolicyEvaluator(new PolicyClass(actor), this.eventEmitter);
   }
 }

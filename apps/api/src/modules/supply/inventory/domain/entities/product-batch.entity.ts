@@ -1,7 +1,15 @@
-import { ProductBatch as PrismaProductBatch } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import {
+  Prisma,
+  ProductBatch as PrismaProductBatch,
+  StockMovementDirection,
+  StockMovementType,
+} from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { StockPurchasedEvent, StockPurchasedEventPayload } from '../events/stock-purchased.event';
+import {
+  StockPurchasedEvent,
+  StockPurchasedEventPayload,
+} from '../events/stock-purchased.event';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
 
 export interface CreateBatchFromPurchaseProps {
   id: string;
@@ -15,7 +23,17 @@ export interface CreateBatchFromPurchaseProps {
   purchasePrice: Prisma.Decimal;
   currency: string;
   notes: string | null;
-  eventPayload: Omit<StockPurchasedEventPayload, 'batchId' | 'quantity' | 'unitPrice' | 'totalAmount' | 'productId' | 'clinicId' | 'organizationId' | 'supplierId'>;
+  eventPayload: Omit<
+    StockPurchasedEventPayload,
+    | 'batchId'
+    | 'quantity'
+    | 'unitPrice'
+    | 'totalAmount'
+    | 'productId'
+    | 'clinicId'
+    | 'organizationId'
+    | 'supplierId'
+  >;
 }
 
 export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
@@ -37,56 +55,73 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
   }
 
   private _id: string;
-  get id(): string { return this._id; }
+  get id(): string {
+    return this._id;
+  }
 
   private _productId: string;
-  get productId(): string { return this._productId; }
+  get productId(): string {
+    return this._productId;
+  }
 
   private _clinicId: string;
-  get clinicId(): string { return this._clinicId; }
+  get clinicId(): string {
+    return this._clinicId;
+  }
 
   private _supplierId: string | null;
-  get supplierId(): string | null { return this._supplierId; }
+  get supplierId(): string | null {
+    return this._supplierId;
+  }
 
   private _lotNumber: string | null;
-  get lotNumber(): string | null { return this._lotNumber; }
+  get lotNumber(): string | null {
+    return this._lotNumber;
+  }
 
   private _expiresAt: Date | null;
-  get expiresAt(): Date | null { return this._expiresAt; }
+  get expiresAt(): Date | null {
+    return this._expiresAt;
+  }
 
   private _quantity: Prisma.Decimal;
-  get quantity(): Prisma.Decimal { return this._quantity; }
+  get quantity(): Prisma.Decimal {
+    return this._quantity;
+  }
 
   private _purchasePrice: Prisma.Decimal;
-  get purchasePrice(): Prisma.Decimal { return this._purchasePrice; }
+  get purchasePrice(): Prisma.Decimal {
+    return this._purchasePrice;
+  }
 
   private _currency: string;
-  get currency(): string { return this._currency; }
+  get currency(): string {
+    return this._currency;
+  }
 
   private _receivedAt: Date;
-  get receivedAt(): Date { return this._receivedAt; }
+  get receivedAt(): Date {
+    return this._receivedAt;
+  }
 
   private _notes: string | null;
-  get notes(): string | null { return this._notes; }
+  get notes(): string | null {
+    return this._notes;
+  }
 
   private _createdAt: Date;
-  get createdAt(): Date { return this._createdAt; }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
 
   private _updatedAt: Date;
-  get updatedAt(): Date { return this._updatedAt; }
-
-  public deductQuantity(qty: Prisma.Decimal): void {
-    if (this._quantity.lessThan(qty)) {
-      throw new Error(`Yetersiz stok. Mevcut: ${this._quantity}, İstenen: ${qty}`);
-    }
-    this._quantity = this._quantity.minus(qty);
+  get updatedAt(): Date {
+    return this._updatedAt;
   }
 
-  public addQuantity(qty: Prisma.Decimal): void {
-    this._quantity = this._quantity.plus(qty);
-  }
-
-  public static createFromPurchase(props: CreateBatchFromPurchaseProps): ProductBatch {
+  public static createFromPurchase(
+    props: CreateBatchFromPurchaseProps
+  ): ProductBatch {
     const totalAmount = props.purchasePrice.times(props.quantity);
 
     const batch = new ProductBatch({
@@ -116,10 +151,58 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
         quantity: props.quantity.toString(),
         unitPrice: props.purchasePrice.toString(),
         totalAmount: totalAmount.toString(),
-      }),
+      })
     );
 
     return batch;
+  }
+
+  public deductQuantity(
+    qty: Prisma.Decimal,
+    performedById: string,
+    notes?: string | null
+  ): CreateStockMovementProps {
+    if (this._quantity.lessThan(qty)) {
+      throw new Error(
+        `Yetersiz stok. Mevcut: ${Number(this._quantity)}, İstenen: ${Number(qty)}`
+      );
+    }
+
+    this._quantity = this._quantity.minus(qty);
+
+    return {
+      productId: this._productId,
+      clinicId: this._clinicId,
+      batchId: this._id,
+      type: StockMovementType.ADJUSTMENT,
+      direction: StockMovementDirection.OUT,
+      quantity: qty,
+      performedById,
+      notes: notes ?? 'Batch üzerinden stok düşümü yapıldı.',
+    };
+  }
+
+  public addQuantity(
+    qty: Prisma.Decimal,
+    performedById: string,
+    notes?: string | null
+  ): CreateStockMovementProps {
+    if (qty.lessThanOrEqualTo(0)) {
+      throw new Error('Eklenecek stok miktarı sıfırdan büyük olmalıdır.');
+    }
+
+    this._quantity = this._quantity.plus(qty);
+
+    return {
+      productId: this._productId,
+      clinicId: this._clinicId,
+      batchId: this._id,
+      type: StockMovementType.ADJUSTMENT,
+      direction: StockMovementDirection.IN,
+      quantity: qty,
+      performedById,
+      notes: notes ?? 'Batch üzerinden stok artırımı yapıldı.',
+    };
   }
 
   toPersistence(): PrismaProductBatch {

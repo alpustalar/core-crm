@@ -1,3 +1,4 @@
+import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetPatientFinanceSummaryQuery } from './get-patient-finance-summary.query';
 import { GetPatientFinanceSummaryQueryResponse } from './get-patient-finance-summary.response';
@@ -50,7 +51,7 @@ export class GetPatientFinanceSummaryHandler
         (p) => p.isTargetInActorsSameClinic(patient?.clinicId),
         'Görüntülemek için misafirinizle aynı klinikte olmalısınız'
       )
-      .orThrow();
+      .orThrow(FINANCE_LEDGER_EVENTS.PATIENT_SUMMARY);
 
     return this.getSummary(patientId);
   }

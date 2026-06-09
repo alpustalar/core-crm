@@ -1,45 +1,51 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateClinicCommand } from './update-clinic.command';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import {
   CLINIC_COMMAND_REPOSITORY,
+  CLINIC_QUERY_REPOSITORY,
   IClinicCommandRepository,
+  IClinicQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { CLINIC_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateClinicCommand)
 export class UpdateClinicHandler
-  implements ICommandHandler<UpdateClinicCommand>
+  implements ICommandHandler<UpdateClinicCommand, void>
 {
   constructor(
+    @Inject(CLINIC_QUERY_REPOSITORY)
+    private readonly clinicQueryRepo: IClinicQueryRepository,
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager
   ) {}
 
-  async execute(command: UpdateClinicCommand): Promise<any> {
+  async execute(command: UpdateClinicCommand): Promise<void> {
     const { ctx, clinicId, dto } = command;
     const { actor } = ctx;
-    const { policy } = this.policyFactory.clinic(actor);
 
-    const clinic = policy.isSystemAdmin()
-      ? await this.clinicCommandRepo.update(clinicId, dto)
-      : await this.clinicCommandRepo.updateAsManager({
-          id: clinicId,
-          userId: actor.userId,
-          data: dto,
-        });
+    const { evaluator } = this.policyFactory.clinic(actor);
+    evaluator
+      .check(
+        (p) => p.actorCanManageTargetClinic(clinicId),
+        'Klinik bulunamadı veya güncelleme yetkiniz yok.'
+      )
+      .orThrow(CLINIC_EVENTS.UPDATED);
 
-    if (!clinic) {
-      throw new ForbiddenException(
-        'Klinik bulunamadı veya güncelleme yetkiniz yok'
-      );
-    }
+    const clinic = await this.clinicQueryRepo.findById(clinicId);
+    if (!clinic) throw new NotFoundException('Klinik bulunamadı.');
 
-    return clinic.id;
+    await this.txManager.run(async () => {
+      clinic.update(dto);
+      await this.clinicCommandRepo.save(clinic);
+    });
   }
 }

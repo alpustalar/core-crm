@@ -14,6 +14,8 @@ import { MetaAdsEvent } from '@src/domain/constants/events/meta-ads.constants';
 import { LeadEvent } from '@src/domain/constants/events/lead.constant';
 import { InventoryEvent } from '@src/domain/constants/events/inventory.constant';
 import { AdminRequestEvent } from '@src/domain/constants/events/admin-request.constants';
+import { SecurityEvent } from '@src/domain/constants/events/security.constants';
+import { FinanceLedgerEvent } from '@src/domain/constants/events/finance-ledger.constants';
 
 export type AppEventName =
   | AppointmentEvent
@@ -31,7 +33,9 @@ export type AppEventName =
   | MetaAdsEvent
   | LeadEvent
   | InventoryEvent
-  | AdminRequestEvent;
+  | AdminRequestEvent
+  | SecurityEvent
+  | FinanceLedgerEvent;
 
 export * from './appointment.constant';
 export * from './clinic.constants';
@@ -49,3 +53,5 @@ export * from './meta-ads.constants';
 export * from './lead.constant';
 export * from './inventory.constant';
 export * from './admin-request.constants';
+export * from './security.constants';
+export * from './finance-ledger.constants';

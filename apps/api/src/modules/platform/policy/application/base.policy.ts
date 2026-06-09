@@ -10,4 +10,8 @@ export abstract class BasePolicy {
   isSystemAdmin(): boolean {
     return this.actorPriority >= 100;
   }
+
+  getActorContext(): ActorContext {
+    return this.actor;
+  }
 }

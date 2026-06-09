@@ -1,3 +1,3 @@
-import { PaymentWithInstallments } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
 
-export type GetPaymentWithInstallmentsResponse = PaymentWithInstallments | null;
+export type GetPaymentWithInstallmentsResponse = Payment | null;
