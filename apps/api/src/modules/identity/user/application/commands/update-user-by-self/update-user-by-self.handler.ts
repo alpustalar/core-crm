@@ -26,6 +26,7 @@ export class UpdateUserBySelfHandler
     const { dto, actor } = command;
 
     const user = await this.userQueryRepo.find(actor.userId);
+
     if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
 
     user.updateDetails(

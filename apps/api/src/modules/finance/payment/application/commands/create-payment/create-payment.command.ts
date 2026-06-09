@@ -1,13 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-
-export type CreatePaymentCommandDto = {
-  clinicId: string;
-  patientId: string;
-  amount: number;
-  currency?: string;
-  providerId?: string;
-  appointmentId?: string;
-};
+import { CreatePaymentDto } from '@shared/modules/payment/dto';
 
 export interface CreatePaymentCommandResponse {
   paymentId: string;
@@ -17,5 +9,5 @@ export interface CreatePaymentCommandResponse {
 export class CreatePaymentCommand implements ICommand {
   readonly __responseType!: CreatePaymentCommandResponse;
 
-  constructor(public readonly dto: CreatePaymentCommandDto) {}
+  constructor(public readonly dto: CreatePaymentDto) {}
 }

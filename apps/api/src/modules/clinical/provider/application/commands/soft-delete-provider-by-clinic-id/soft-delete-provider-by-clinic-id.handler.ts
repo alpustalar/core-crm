@@ -1,4 +1,3 @@
-import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
@@ -11,12 +10,14 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
-import { UpdateProviderInfoCommand } from './update-provider-info.command';
+import { SoftDeleteProviderByClinicIdCommand } from '@modules/clinical/provider/application/commands';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 
-@CommandHandler(UpdateProviderInfoCommand)
-export class UpdateProviderInfoHandler
-  implements ICommandHandler<UpdateProviderInfoCommand, void>
+@CommandHandler(SoftDeleteProviderByClinicIdCommand)
+export class SoftDeleteProviderByClinicIdHandler
+  implements ICommandHandler<SoftDeleteProviderByClinicIdCommand, void>
 {
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
@@ -25,22 +26,26 @@ export class UpdateProviderInfoHandler
     private readonly providerCommandRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly txManager: TransactionManager
+    private readonly transactionManager: TransactionManager
   ) {}
 
-  async execute(command: UpdateProviderInfoCommand): Promise<void> {
-    const { providerId, dto, ctx } = command;
+  async execute(command: SoftDeleteProviderByClinicIdCommand): Promise<void> {
+    const { providerId, ctx } = command;
+    const { actor, source } = ctx;
 
     const provider = await this.providerQueryRepo.findById(providerId);
-    if (!provider) throw new NotFoundException('Provider bulunamadı.');
+    if (!provider) throw new NotFoundException('Uzman bulunamadı.');
 
-    const { evaluator } = this.policyFactory.user(ctx.actor);
+    const { evaluator } = this.policyFactory.user(actor);
     evaluator
+      .bypassIf(ExecutionPolicy.isSystemInitiated(source))
       .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
-      .orThrow(PROVIDER_EVENTS.UPDATED);
+      .orThrow(PROVIDER_EVENTS.SOFT_DELETED);
 
-    provider.updateInfo(dto);
+    provider.softDelete();
 
-    await this.txManager.run(() => this.providerCommandRepo.save(provider));
+    await this.transactionManager.run(() =>
+      this.providerCommandRepo.save(provider)
+    );
   }
 }

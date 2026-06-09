@@ -42,24 +42,16 @@ export class SoftDeleteOrganizationHandler
   ): Promise<SoftDeleteOrganizationCommandResponse> {
     const { organizationId, ctx } = command;
 
-    if (ExecutionPolicy.isSystemInitiated(ctx.source)) {
-      return this.transactionManager.run(async () => {
-        const organization =
-          await this.organizationQueryRepo.findById(organizationId);
-        if (!organization) {
-          throw new NotFoundException('Organizasyon bulunamadı.');
-        }
-        organization.softDelete(ctx.actor.userId);
-        await this.organizationCommandRepo.save(organization);
-        return organization.id;
-      });
-    }
-
     return this.transactionManager.run(async () => {
       const organization =
         await this.organizationQueryRepo.findById(organizationId);
-      if (!organization) {
+      if (!organization)
         throw new NotFoundException('Organizasyon bulunamadı.');
+
+      if (ExecutionPolicy.isSystemInitiated(ctx.source)) {
+        organization.softDelete(ctx.actor.userId);
+        await this.organizationCommandRepo.save(organization);
+        return organization.id;
       }
 
       const adminRequestId = await this.commandBus.execute(

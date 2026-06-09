@@ -8,14 +8,12 @@ import {
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
-import { Pagination } from '@shared';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { IPolicyFactory, POLICY_FACTORY, } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
+import {
+  FindPatientByIdQuery
+} from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 
 @QueryHandler(GetLedgerByPatientIdQuery)
 export class GetLedgerByPatientIdHandler
@@ -36,27 +34,22 @@ export class GetLedgerByPatientIdHandler
     const { patientId, pagination, ctx } = query;
     const { source, actor } = ctx;
 
-    if (ExecutionPolicy.isSystemInitiated(source)) {
-      return await this.find(patientId, pagination);
-    }
+    const isSystem = ExecutionPolicy.isSystemInitiated(source);
 
-    const { data: patient } = await this.queryBus.execute(
-      new FindPatientByIdQuery(patientId, ctx)
-    );
+    const patient = !isSystem
+      ? (await this.queryBus.execute(new FindPatientByIdQuery(patientId, ctx)))
+          .data
+      : null;
 
     const { evaluator } = this.policyFactory.user(actor);
-
     evaluator
+      .bypassIf(isSystem)
       .check(
         (p) => p.isTargetInActorsSameClinic(patient?.clinicId),
         'İşlem yapabilmek için hastayla aynı klinikte olmalısınız'
       )
       .orThrow(FINANCE_LEDGER_EVENTS.LEDGER);
 
-    return await this.find(patientId, pagination);
-  }
-
-  private async find(patientId: string, pagination: Pagination) {
     const { items, total } =
       await this.financeLedgerRepository.findManyByPatientIdWithDetails(
         patientId,

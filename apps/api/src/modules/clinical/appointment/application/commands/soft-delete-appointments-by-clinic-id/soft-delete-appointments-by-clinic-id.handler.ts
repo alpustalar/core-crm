@@ -6,7 +6,7 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { InternalOnly } from '@common/decorators';
 
 @CommandHandler(SoftDeleteAppointmentsByClinicIdCommand)
 export class SoftDeleteAppointmentsByClinicIdHandler
@@ -21,13 +21,11 @@ export class SoftDeleteAppointmentsByClinicIdHandler
     private readonly appointmentRepo: IAppointmentCommandRepository
   ) {}
 
+  @InternalOnly()
   async execute(
     command: SoftDeleteAppointmentsByClinicIdCommand
   ): Promise<SoftDeleteAppointmentsByClinicIdCommandResponse> {
-    const { clinicId, ctx } = command;
-
-    if (ExecutionPolicy.isSystemInitiated(ctx.source)) {
-      await this.appointmentRepo.softDeleteAllAppointmentsByClinicId(clinicId);
-    }
+    const { clinicId } = command;
+    await this.appointmentRepo.softDeleteAllAppointmentsByClinicId(clinicId);
   }
 }

@@ -1,8 +1,4 @@
-import {
-  Prisma,
-  StockMovementDirection,
-  StockMovementType,
-} from '@prisma/client';
+import { StockMovementDirection, StockMovementType } from '@prisma/client';
 
 export interface CreateStockMovementProps {
   productId: string;
@@ -11,12 +7,10 @@ export interface CreateStockMovementProps {
   type: StockMovementType;
   direction: StockMovementDirection;
   financeLedgerId?: string | null;
-  quantity: Prisma.Decimal;
-  unitPrice?: Prisma.Decimal | null;
+  quantity: number | string;
+  unitPrice?: number | string | null;
   currency?: string;
-  vatRate?: Prisma.Decimal | null;
-  vatAmount?: Prisma.Decimal | null;
-  totalAmount?: Prisma.Decimal | null;
+  vatRate?: number | string | null;
   performedById?: string | null;
   notes?: string | null;
 }

@@ -309,7 +309,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
         batchId: null,
         type: StockMovementType.ADJUSTMENT,
         direction: StockMovementDirection.IN,
-        quantity: absQty,
+        quantity: absQty.toNumber(),
         performedById: props.performedById,
         notes: props.notes ?? 'Batch bağımsız stok girişi yapıldı.',
       };

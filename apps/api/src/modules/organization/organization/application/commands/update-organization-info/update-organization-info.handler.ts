@@ -31,14 +31,11 @@ export class UpdateOrganizationInfoHandler
       new FindQuery(ctx, organizationId)
     );
 
-    if (!org) {
-      throw new NotFoundException('organizasyon bulunamadı');
-    }
+    if (!org) throw new NotFoundException('organizasyon bulunamadı');
 
-    await this.orgRepo.updateByOwner(org.id, dto);
+    org.updateInfo(dto);
+    await this.orgRepo.save(org);
 
-    return {
-      id: org.id,
-    };
+    return { id: org.id };
   }
 }

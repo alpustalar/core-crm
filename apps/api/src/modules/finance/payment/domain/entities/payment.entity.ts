@@ -6,6 +6,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { CreatePaymentProps } from '@modules/finance/payment/domain/types/create-payment.props';
 
 export type PaymentWithInstallmentsData = IPayment & { installments: PaymentInstallment[] };
 
@@ -50,6 +51,36 @@ export class Payment extends AggregateRoot implements IPayment {
   get updatedAt(): Date { return this._updatedAt; }
   get installments(): readonly PaymentInstallment[] { return this._installments; }
   get dirtyInstallmentIds(): ReadonlySet<string> { return this._dirtyInstallmentIds; }
+
+  static create(props: CreatePaymentProps): Payment {
+    const now = new Date();
+    return new Payment({
+      id: props.id,
+      clinicId: props.clinicId,
+      patientId: props.patientId,
+      appointmentId: props.appointmentId ?? null,
+      providerId: props.providerId ?? null,
+      totalAmount: props.totalAmount,
+      currency: props.currency,
+      status: PaymentStatus.PENDING,
+      createdAt: now,
+      updatedAt: now,
+      installments: props.installments.map((inst) => ({
+        id: inst.id,
+        paymentId: props.id,
+        installmentNo: inst.installmentNo,
+        amount: inst.amount,
+        currency: inst.currency,
+        method: inst.method ?? 'CREDIT_CARD',
+        status: InstallmentStatus.PENDING,
+        dueDate: inst.dueDate ?? null,
+        paidAt: null,
+        note: inst.note ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    });
+  }
 
   isCompleted(): boolean { return this._status === PaymentStatus.COMPLETED; }
   isCancelled(): boolean { return this._status === PaymentStatus.CANCELLED; }

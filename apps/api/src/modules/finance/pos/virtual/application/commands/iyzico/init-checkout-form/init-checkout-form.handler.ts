@@ -52,6 +52,7 @@ export class InitCheckoutFormHandler
           appointmentId: dto.appointmentId,
           amount: dto.amount,
           currency: 'TRY',
+          method: 'CREDIT_CARD',
         })
       );
 

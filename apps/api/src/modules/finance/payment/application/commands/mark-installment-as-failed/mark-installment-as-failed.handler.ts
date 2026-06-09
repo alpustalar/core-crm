@@ -18,7 +18,8 @@ export class MarkInstallmentAsFailedHandler
   async execute(command: MarkInstallmentAsFailedCommand): Promise<void> {
     const { installmentId } = command;
     const payment = await this.paymentRepo.findByInstallmentId(installmentId);
-    if (!payment) throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
+    if (!payment)
+      throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
     payment.failInstallment(installmentId);
     await this.paymentRepo.save(payment);
   }

@@ -1,7 +1,10 @@
 import { GlobalStatus, Organization as IOrganization } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { slugIt } from '@common/utils';
 import { OrganizationSoftDeleteEvent } from '@modules/organization/organization/domain/events/organization-soft-delete.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { CreateOrganizationProps } from '@modules/organization/organization/domain/types/create-organization.props';
+import { UpdateOrganizationInfoProps } from '@modules/organization/organization/domain/types/update-organization.props';
 
 export class Organization extends AggregateRoot implements IOrganization {
   constructor(data: IOrganization) {
@@ -84,6 +87,37 @@ export class Organization extends AggregateRoot implements IOrganization {
   private _deletedAt: Date | null;
   get deletedAt(): Date | null {
     return this._deletedAt;
+  }
+
+  public static create(props: CreateOrganizationProps): Organization {
+    const now = new Date();
+    return new Organization({
+      id: props.id,
+      name: props.name,
+      slug: slugIt(props.name),
+      phone: props.phone ?? null,
+      email: props.email ?? null,
+      address: props.address ?? null,
+      city: props.city ?? null,
+      district: props.district ?? null,
+      status: GlobalStatus.ACTIVE,
+      timezone: props.timezone ?? 'Europe/Istanbul',
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    });
+  }
+
+  public updateInfo(props: UpdateOrganizationInfoProps): void {
+    if (props.name !== undefined) {
+      this._name = props.name;
+      this._slug = slugIt(props.name);
+    }
+    if (props.phone !== undefined) this._phone = props.phone ?? null;
+    if (props.email !== undefined) this._email = props.email ?? null;
+    if (props.address !== undefined) this._address = props.address ?? null;
+    if (props.city !== undefined) this._city = props.city ?? null;
+    if (props.district !== undefined) this._district = props.district ?? null;
   }
 
   public isActive(): boolean {

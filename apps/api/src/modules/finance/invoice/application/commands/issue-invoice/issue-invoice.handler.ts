@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import { IssueInvoiceCommand } from './issue-invoice.command';
 import { IssueInvoiceResponse } from './issue-invoice.response';
 import {
@@ -12,11 +12,6 @@ import {
   IInvoiceProvider,
   INVOICE_PROVIDER,
 } from '@modules/finance/invoice/domain/interfaces/invoice-provider.interface';
-import { ContextService } from '@src/infrastructure/context/context.service';
-import { CONTEXT_SERVICE } from '@src/infrastructure/context/domain/interfaces/context.service.interface';
-import { InvoiceIssuedEvent } from '@modules/finance/invoice/domain/events/invoice-issued.event';
-import { InvoiceFailedEvent } from '@modules/finance/invoice/domain/events/invoice-failed.event';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { InvoiceStatus } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
@@ -33,8 +28,6 @@ export class IssueInvoiceHandler
     private readonly invoiceQueryRepo: IInvoiceQueryRepository,
     @Inject(INVOICE_PROVIDER)
     private readonly invoiceProvider: IInvoiceProvider,
-    @Inject(CONTEXT_SERVICE)
-    private readonly contextService: ContextService,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -56,7 +49,7 @@ export class IssueInvoiceHandler
     const invoiceId = crypto.randomUUID();
 
     // DB kaydı oluştur (dış servis çağrısından önce, ayrı transaction)
-    const invoice = await this.txManager.run(() =>
+    await this.txManager.run(() =>
       this.invoiceCommandRepo.create({
         id: invoiceId,
         clinicId: input.clinicId,
@@ -77,36 +70,23 @@ export class IssueInvoiceHandler
         patientId: input.patientId,
         appointmentId: input.appointmentId,
         paymentId: input.paymentId,
-        amount: Number(invoice.amount),
-        currency: invoice.currency,
+        amount: input.amount,
+        currency: input.currency ?? 'TRY',
       });
 
       // Başarı: güncelleme + event atomik olarak
       const issued = await this.txManager.outboxRun(async () => {
-        const saved = await this.invoiceCommandRepo.markAsIssued({
-          invoiceId,
+        const invoice = await this.invoiceQueryRepo.findById(invoiceId);
+        if (!invoice) throw new NotFoundException('Fatura bulunamadı.');
+        invoice.issue({
           invoiceNumber: result.invoiceNumber,
           providerRef: result.providerRef,
           issuedAt: result.issuedAt,
           rawResponse: result.rawResponse,
+          source: input.source,
+          actorId: input.actorId,
         });
-
-        this.contextService.addEvent(
-          new InvoiceIssuedEvent({
-            invoiceId,
-            clinicId: input.clinicId,
-            patientId: input.patientId,
-            appointmentId: input.appointmentId,
-            paymentId: input.paymentId,
-            invoiceNumber: result.invoiceNumber,
-            action: LogAction.INVOICE_ISSUED,
-            type: LogType.INFO,
-            source: input.source,
-            actorId: input.actorId,
-          })
-        );
-
-        return saved;
+        return this.invoiceCommandRepo.save(invoice);
       });
 
       return {
@@ -117,22 +97,14 @@ export class IssueInvoiceHandler
     } catch (error) {
       // Hata: güncelleme + event atomik olarak
       await this.txManager.outboxRun(async () => {
-        await this.invoiceCommandRepo.markAsFailed(invoiceId);
-
-        this.contextService.addEvent(
-          new InvoiceFailedEvent({
-            invoiceId,
-            clinicId: input.clinicId,
-            patientId: input.patientId,
-            appointmentId: input.appointmentId,
-            paymentId: input.paymentId,
-            reason: error instanceof Error ? error.message : 'Bilinmeyen hata',
-            action: LogAction.INVOICE_FAILED,
-            type: LogType.ERROR,
-            source: input.source,
-            actorId: input.actorId,
-          })
-        );
+        const invoice = await this.invoiceQueryRepo.findById(invoiceId);
+        if (!invoice) throw new NotFoundException('Fatura bulunamadı.');
+        invoice.fail({
+          reason: error instanceof Error ? error.message : 'Bilinmeyen hata',
+          source: input.source,
+          actorId: input.actorId,
+        });
+        await this.invoiceCommandRepo.save(invoice);
       });
 
       throw error;

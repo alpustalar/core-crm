@@ -29,33 +29,26 @@ export class CreateClinicHandler
     const { dto, ctx, internalRelations } = command;
     const { actor, source } = ctx;
 
-    if (ExecutionPolicy.isSystemInitiated(source)) {
-      const { organizationId: dtoOrganizationId, ...restClinicDto } = dto;
-
-      const organizationId =
-        internalRelations?.organizationId ?? dtoOrganizationId;
-      const clinicId = internalRelations?.clinicId;
-
-      const clinicDto: CreateClinicProps = {
-        ...restClinicDto,
-        organizationId,
-        id: clinicId,
-      };
-
-      return this.persistClinic(clinicDto);
-    }
-
-    const { organizationId } = dto;
+    const organizationId =
+      internalRelations?.organizationId ?? dto.organizationId;
+    const props: CreateClinicProps = {
+      ...dto,
+      organizationId,
+      id: internalRelations?.clinicId,
+    };
 
     const { evaluator } = this.policyFactory.organization(actor);
-
     if (organizationId) {
       evaluator
+        .bypassIf(ExecutionPolicy.isSystemInitiated(source))
         .check((p) => p.isOwnOrganization(organizationId), 'Yetki ihlali')
         .orThrow(CLINIC_EVENTS.CREATED);
     }
 
-    return this.persistClinic(dto, actor.userId);
+    const actorId = ExecutionPolicy.isUserInitiated(source)
+      ? actor.userId
+      : undefined;
+    return this.persistClinic(props, actorId);
   }
 
   private async persistClinic(props: CreateClinicProps, actorId?: string) {

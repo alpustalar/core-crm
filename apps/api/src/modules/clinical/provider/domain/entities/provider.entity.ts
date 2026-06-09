@@ -1,5 +1,9 @@
 import { OperationMode, Provider as IProvider } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { CreateProviderProps } from '@modules/clinical/provider/domain/types/create-provider.props';
+import { ProviderCreatedEvent } from '@modules/clinical/provider/domain/events/provider-created.event';
+import { ProviderSoftDeletedEvent } from '@modules/clinical/provider/domain/events/provider-soft-deleted.event';
+import { UpdateProviderInfo } from '@shared/modules/provider/types/update-provider-info.type';
 
 export class Provider extends AggregateRoot implements IProvider {
   constructor(data: IProvider) {
@@ -106,6 +110,46 @@ export class Provider extends AggregateRoot implements IProvider {
     return !!this._deletedAt;
   }
 
+  public static create(props: CreateProviderProps): Provider {
+    const now = new Date();
+    const provider = new Provider({
+      id: props.id,
+      userId: props.userId,
+      clinicId: props.clinicId,
+      providerTitleId: props.providerTitleId ?? null,
+      providerSpecialtyId: props.providerSpecialtyId ?? null,
+      publicPhone: props.publicPhone ?? null,
+      publicEmail: props.publicEmail ?? null,
+      diplomaNo: null,
+      hlrNo: null,
+      isActive: props.isActive ?? true,
+      canAcceptExamination: false,
+      operationMode: props.operationMode ?? OperationMode.STATIC,
+      sectorId: props.sectorId ?? null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    });
+    provider.addDomainEvent(
+      new ProviderCreatedEvent({
+        providerId: provider.id,
+        clinicId: provider.clinicId,
+        userId: provider.userId,
+      })
+    );
+    return provider;
+  }
+
+  public updateInfo(dto: UpdateProviderInfo): void {
+    if (dto.providerTitleId !== undefined)
+      this._providerTitleId = dto.providerTitleId;
+    if (dto.providerSpecialtyId !== undefined)
+      this._providerSpecialtyId = dto.providerSpecialtyId;
+    if (dto.sectorId !== undefined) this._sectorId = dto.sectorId;
+    if (dto.publicPhone !== undefined) this._publicPhone = dto.publicPhone;
+    if (dto.publicEmail !== undefined) this._publicEmail = dto.publicEmail;
+  }
+
   public activate(): void {
     this._isActive = true;
   }
@@ -124,10 +168,17 @@ export class Provider extends AggregateRoot implements IProvider {
 
   public softDelete(): void {
     if (this.isDeleted) {
-      throw new Error('Provider zaten silinmiş.');
+      throw new Error('Uzman zaten silinmiş.');
     }
     this._deletedAt = new Date();
     this._isActive = false;
+    this.addDomainEvent(
+      new ProviderSoftDeletedEvent({
+        providerId: this._id,
+        clinicId: this._clinicId,
+        userId: this._userId,
+      })
+    );
   }
 
   public canWorkAt(): boolean {

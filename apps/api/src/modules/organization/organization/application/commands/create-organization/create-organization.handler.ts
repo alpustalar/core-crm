@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateOrganizationCommand } from './create-organization.command';
 import {
@@ -5,13 +6,13 @@ import {
   ORGANIZATION_COMMAND_REPOSITORY,
 } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { ForbiddenException, Inject } from '@nestjs/common';
-import { slugIt } from '@common/utils';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CreateOrganizationResponse } from '@modules/organization/organization/application/commands/create-organization/create-organization.response';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
 
 @CommandHandler(CreateOrganizationCommand)
 export class CreateOrganizationHandler
@@ -29,29 +30,20 @@ export class CreateOrganizationHandler
     command: CreateOrganizationCommand
   ): Promise<CreateOrganizationResponse> {
     const { dto, ctx, internalRelations } = command;
-    const slug = slugIt(dto.name);
-    const { source } = ctx;
+    const { source, actor } = ctx;
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
-      const id = internalRelations?.id;
-      if (!id) {
+      if (!internalRelations?.id) {
         throw new Error('internal işlemlerde id gerekli');
       }
-      await this.orgRepository.create({
-        ...dto,
-        slug,
-        id,
-      });
-      return id;
+    } else {
+      const { policy } = this.policyFactory.user(actor);
+      if (!policy.isSystemAdmin()) throw new ForbiddenException();
     }
 
-    const { policy } = this.policyFactory.user(ctx.actor);
-
-    if (policy.isSystemAdmin()) {
-      const organizationRaw = await this.orgRepository.create({ ...dto, slug });
-      return organizationRaw.id;
-    }
-
-    throw new ForbiddenException();
+    const id = internalRelations?.id ?? randomUUID();
+    const org = Organization.create({ ...dto, id });
+    const saved = await this.orgRepository.save(org);
+    return saved.id;
   }
 }

@@ -65,17 +65,15 @@ export class CreateProviderAvailabilityHandler
         new ValidateTimeWithinClinicHoursOrThrowQuery(clinicId, availabilities)
       );
 
-      return Promise.all(
-        availabilities.map((item) =>
-          this.providerAvailabilityRepo.create({
-            providerId: providerId,
-            dayOfWeek: item.date.getDay(),
-            startMinute: item.startMinute,
-            endMinute: item.endMinute,
-            breakStartMinute: item.breakStartMinute,
-            breakEndMinute: item.breakEndMinute,
-          })
-        )
+      await this.providerAvailabilityRepo.createMany(
+        availabilities.map((item) => ({
+          providerId,
+          dayOfWeek: item.date.getDay(),
+          startMinute: item.startMinute,
+          endMinute: item.endMinute,
+          breakStartMinute: item.breakStartMinute,
+          breakEndMinute: item.breakEndMinute,
+        }))
       );
     });
   }

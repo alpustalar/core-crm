@@ -6,7 +6,7 @@ import { PolicyAccessDeniedEvent } from '@modules/platform/policy/domain/events/
 export class PolicyEvaluator<T extends BasePolicy> {
   private isValid: boolean = true;
   private lastError?: string;
-  private readonly isBypassed: boolean;
+  private isBypassed: boolean = false;
 
   constructor(
     private readonly policy: T,
@@ -15,6 +15,11 @@ export class PolicyEvaluator<T extends BasePolicy> {
     if (this.policy.isSystemAdmin()) {
       this.isBypassed = true;
     }
+  }
+
+  bypassIf(condition: boolean): this {
+    if (condition) this.isBypassed = true;
+    return this;
   }
 
   check(predicate: (policy: T) => boolean, errorMessage?: string): this {

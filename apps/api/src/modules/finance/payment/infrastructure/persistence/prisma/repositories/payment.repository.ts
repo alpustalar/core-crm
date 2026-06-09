@@ -108,20 +108,30 @@ export class PaymentRepository
 
   async save(entity: Payment): Promise<Payment> {
     const data = entity.toPersistence();
-    const dirtyIds = [...entity.dirtyInstallmentIds];
 
     const paymentOp = this.db.payment.upsert({
       where: { id: data.id },
       create: data as Prisma.PaymentUncheckedCreateInput,
       update: data,
     });
-    const installmentOps = dirtyIds.map((installmentId) => {
-      const inst = entity.installments.find((i) => i.id === installmentId)!;
-      return this.db.paymentInstallment.update({
-        where: { id: installmentId },
-        data: { status: inst.status, paidAt: inst.paidAt },
-      });
-    });
+    const installmentOps = entity.installments.map((inst) =>
+      this.db.paymentInstallment.upsert({
+        where: { id: inst.id },
+        create: {
+          id: inst.id,
+          paymentId: inst.paymentId,
+          installmentNo: inst.installmentNo,
+          amount: inst.amount,
+          currency: inst.currency,
+          method: inst.method,
+          status: inst.status,
+          dueDate: inst.dueDate,
+          paidAt: inst.paidAt,
+          note: inst.note,
+        },
+        update: { status: inst.status, paidAt: inst.paidAt },
+      })
+    );
 
     if (txStorage.getStore()?.tx) {
       await Promise.all([paymentOp, ...installmentOps]);

@@ -18,6 +18,10 @@ export class ProviderAvailabilityRepository
     return this.db.providerAvailability.create({ data });
   }
 
+  async createMany(data: CreateProviderAvailabilityProps[]): Promise<void> {
+    await this.db.providerAvailability.createMany({ data });
+  }
+
   findByProviderId(providerId: string) {
     return this.db.providerAvailability.findMany({
       where: { providerId },

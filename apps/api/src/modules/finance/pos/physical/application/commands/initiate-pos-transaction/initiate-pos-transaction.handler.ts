@@ -54,6 +54,7 @@ export class InitiatePosTransactionHandler
           appointmentId: input.appointmentId,
           amount: input.amount,
           currency: input.currency ?? 'TRY',
+          method: 'CREDIT_CARD',
         })
       );
       paymentId = result.paymentId;

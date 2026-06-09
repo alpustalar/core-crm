@@ -13,6 +13,7 @@ export const PROVIDER_AVAILABILITY_REPOSITORY = Symbol(
 
 export interface IProviderAvailabilityRepository {
   create(data: CreateProviderAvailabilityProps): Promise<ProviderAvailability>;
+  createMany(data: CreateProviderAvailabilityProps[]): Promise<void>;
   findByProviderId(
     providerId: string
   ): Promise<ProviderAvailabilityWithCanAcceptExamination[]>;

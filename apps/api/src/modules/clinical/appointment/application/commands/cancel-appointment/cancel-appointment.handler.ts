@@ -37,24 +37,18 @@ export class CancelAppointmentHandler
     const { actor, source } = ctx;
 
     const appointment = await this.appointmentQueryRepo.findById(appointmentId);
-    if (!appointment) {
-      throw new NotFoundException('Randevu bulunamadı.');
-    }
+    if (!appointment) throw new NotFoundException('Randevu bulunamadı.');
 
-    appointment.cancelSchedule(actor.userId, cancelReason);
-
-    if (ExecutionPolicy.isSystemInitiated(source)) {
-      await this.appointmentCommandRepo.save(appointment);
-    }
-
-    this.policyFactory
-      .appointment(actor)
-      .evaluator.check(
+    const { evaluator } = this.policyFactory.appointment(actor);
+    evaluator
+      .bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .check(
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
         'Bu randevuya erişim yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.CANCELLED);
 
+    appointment.cancelSchedule(actor.userId, cancelReason);
     await this.appointmentCommandRepo.save(appointment);
   }
 }

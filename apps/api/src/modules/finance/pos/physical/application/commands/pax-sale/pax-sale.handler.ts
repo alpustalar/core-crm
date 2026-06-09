@@ -51,6 +51,7 @@ export class PaxSaleHandler
           appointmentId: input.appointmentId,
           amount: input.amount,
           currency: input.currency,
+          method: 'CREDIT_CARD',
         })
       );
       paymentId = result.paymentId;

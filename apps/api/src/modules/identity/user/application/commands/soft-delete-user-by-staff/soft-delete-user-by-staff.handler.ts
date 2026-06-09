@@ -11,10 +11,6 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER,
-} from '@modules/identity/user/domain/interfaces/user-event-publisher.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { SoftDeleteUserByStaffResponse } from '@modules/identity/user/application/commands/soft-delete-user-by-staff/soft-delete-user-by-staff.response';
 import { RedisService } from '@common/redis/redis.service';
@@ -36,8 +32,6 @@ export class SoftDeleteUserByStaffHandler
     private readonly userQueryRepo: IUserQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher,
     private readonly txManager: TransactionManager,
     private readonly redis: RedisService
   ) {}
@@ -48,15 +42,14 @@ export class SoftDeleteUserByStaffHandler
     const { dto, ctx } = command;
     const { actor, source } = ctx;
 
-    if (ExecutionPolicy.isUserInitiated(source)) {
-      this.policyFactory
-        .user(actor)
-        .evaluator.check(
-          (p) => p.isTargetInActorsManagedClinic(dto.clinicId),
-          'Bu yetkiye sahip değilsiniz'
-        )
-        .orThrow(USER_EVENTS.SOFT_DELETED);
-    }
+    const { evaluator } = this.policyFactory.user(actor);
+    evaluator
+      .bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .check(
+        (p) => p.isTargetInActorsManagedClinic(dto.clinicId),
+        'Bu yetkiye sahip değilsiniz'
+      )
+      .orThrow(USER_EVENTS.SOFT_DELETED);
 
     const user = await this.userQueryRepo.find(dto.userId);
 

@@ -19,4 +19,6 @@ export class FindOrCreatePatientForAuthHandler
   execute(query: FindOrCreatePatientForAuthQuery): Promise<Patient> {
     return this.patientRepo.findOrCreateByPhone(query.dto);
   }
+
+  // TODO: DTO düzeltilecek firebaseUid ile db id aynı olacak. İş mantığı belirlenecek
 }

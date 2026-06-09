@@ -46,16 +46,20 @@ export class UpdateUserByStaffHandler
 
     this.policyFactory
       .user(actor)
-      .evaluator.check(
-        (p) => p.isSelf(targetUserId),
-        'Kendi yetkilerinizi buradan değiştiremezsiniz.'
+      .evaluator.bypassIf(
+        !dto.roleId &&
+          !dto.ownedOrganizationIds &&
+          !dto.organizationId &&
+          !dto.managedClinicIds
       )
-      .orThrow(USER_EVENTS.UPDATE_BY_STAFF);
+      .check(
+        (p) => p.isSelf(targetUserId),
+        'Kendi yetkilerinizi değiştiremezsiniz.'
+      );
 
     const targetUser = await this.userQueryRepo.findByIdOrEmail(targetUserId);
     if (!targetUser) throw new NotFoundException('Kullanıcı bulunamadı');
 
-    // Privilege Policy Checks & Security Event
     this.policyFactory
       .user(actor)
       .evaluator.check(
@@ -72,8 +76,9 @@ export class UpdateUserByStaffHandler
       )
       .orThrow(USER_EVENTS.UPDATE_BY_STAFF);
 
+    targetUser.updateDetails(dto, actor.userId);
+
     await this.txManager.run(async () => {
-      targetUser.updateDetails(dto, actor.userId);
       await this.userCommandRepo.save(targetUser);
       await this.redis.deleteActorContext(targetUserId);
     });

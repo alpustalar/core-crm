@@ -19,8 +19,8 @@ export interface CreateBatchFromPurchaseProps {
   supplierId: string | null;
   lotNumber: string | null;
   expiresAt: Date | null;
-  quantity: Prisma.Decimal;
-  purchasePrice: Prisma.Decimal;
+  quantity: number | string;
+  purchasePrice: number | string;
   currency: string;
   notes: string | null;
   eventPayload: Omit<
@@ -122,7 +122,9 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
   public static createFromPurchase(
     props: CreateBatchFromPurchaseProps
   ): ProductBatch {
-    const totalAmount = props.purchasePrice.times(props.quantity);
+    const quantityDecimal = new Prisma.Decimal(props.quantity);
+    const purchasePriceDecimal = new Prisma.Decimal(props.purchasePrice);
+    const totalAmount = purchasePriceDecimal.times(quantityDecimal);
 
     const batch = new ProductBatch({
       id: props.id,
@@ -131,8 +133,8 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
       supplierId: props.supplierId,
       lotNumber: props.lotNumber,
       expiresAt: props.expiresAt,
-      quantity: props.quantity,
-      purchasePrice: props.purchasePrice,
+      quantity: quantityDecimal,
+      purchasePrice: purchasePriceDecimal,
       currency: props.currency,
       receivedAt: new Date(),
       notes: props.notes,
@@ -148,8 +150,8 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
         clinicId: props.clinicId,
         organizationId: props.organizationId,
         supplierId: props.supplierId,
-        quantity: props.quantity.toString(),
-        unitPrice: props.purchasePrice.toString(),
+        quantity: quantityDecimal.toString(),
+        unitPrice: purchasePriceDecimal.toString(),
         totalAmount: totalAmount.toString(),
       })
     );
@@ -176,7 +178,7 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
       batchId: this._id,
       type: StockMovementType.ADJUSTMENT,
       direction: StockMovementDirection.OUT,
-      quantity: qty,
+      quantity: qty.toString(),
       performedById,
       notes: notes ?? 'Batch üzerinden stok düşümü yapıldı.',
     };
@@ -199,7 +201,7 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
       batchId: this._id,
       type: StockMovementType.ADJUSTMENT,
       direction: StockMovementDirection.IN,
-      quantity: qty,
+      quantity: qty.toString(),
       performedById,
       notes: notes ?? 'Batch üzerinden stok artırımı yapıldı.',
     };

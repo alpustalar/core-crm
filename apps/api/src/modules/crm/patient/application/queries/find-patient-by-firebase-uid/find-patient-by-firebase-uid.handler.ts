@@ -28,4 +28,6 @@ export class FindPatientByFirebaseUidHandler
       data: patient,
     };
   }
+
+  // TODO: firebaseUid ile DBdeki id aynı olacak bu handler kaldırılacak
 }

@@ -1,10 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
-import {
-  Prisma,
-  StockMovementDirection,
-  StockMovementType,
-} from '@prisma/client';
+import { StockMovementDirection, StockMovementType } from '@prisma/client';
 import { ReceiveStockCommand } from './receive-stock.command';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
@@ -56,15 +52,6 @@ export class ReceiveStockHandler
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new NotFoundException('Ürün bulunamadı.');
 
-    const quantity = new Prisma.Decimal(dto.quantity);
-    const purchasePrice = new Prisma.Decimal(dto.purchasePrice);
-    const vatRate =
-      dto.vatRate != null ? new Prisma.Decimal(dto.vatRate) : null;
-    const totalAmount = purchasePrice.times(quantity);
-    const vatAmount = vatRate
-      ? totalAmount.times(vatRate).dividedBy(100)
-      : null;
-
     const batchId = crypto.randomUUID();
 
     const batch = ProductBatch.createFromPurchase({
@@ -75,8 +62,8 @@ export class ReceiveStockHandler
       supplierId: dto.supplierId ?? null,
       lotNumber: dto.lotNumber ?? null,
       expiresAt: dto.expiresAt ?? null,
-      quantity,
-      purchasePrice,
+      quantity: dto.quantity,
+      purchasePrice: dto.purchasePrice,
       currency: dto.currency ?? 'TRY',
       notes: dto.notes ?? null,
       eventPayload: {
@@ -93,12 +80,10 @@ export class ReceiveStockHandler
       batchId,
       type: StockMovementType.PURCHASE,
       direction: StockMovementDirection.IN,
-      quantity,
-      unitPrice: purchasePrice,
+      quantity: dto.quantity,
+      unitPrice: dto.purchasePrice,
       currency: dto.currency ?? 'TRY',
-      vatRate,
-      vatAmount,
-      totalAmount: vatAmount ? totalAmount.plus(vatAmount) : totalAmount,
+      vatRate: dto.vatRate ?? null,
       performedById: actor.userId,
       notes: dto.notes ?? null,
     });

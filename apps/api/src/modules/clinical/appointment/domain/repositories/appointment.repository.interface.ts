@@ -1,6 +1,4 @@
-import { Prisma } from '@prisma/client';
 import { Pagination } from '@shared';
-import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSchema';
 import { Appointment as AppointmentEntity } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { FindConflictingAppointmentProps } from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
 import { ConflictingAppointment } from '@modules/clinical/appointment/domain/types/conflicting-appointment.type';
@@ -10,8 +8,6 @@ import { FindByOrganizationIdProps } from '@modules/clinical/appointment/domain/
 import { FindProviderCalendarProps } from '@modules/clinical/appointment/domain/types/find-provider-calendar.props';
 import { PaginatedAppointments } from '@modules/clinical/appointment/domain/types/paginated-appointments.types';
 import { ProviderDailyLoad } from '@modules/clinical/appointment/domain/types/provider-dailyload.type';
-import { RescheduleAppointmentProps } from '@modules/clinical/appointment/domain/types/reschedule-appointment.props';
-import { CancelAppointmentProps } from '@modules/clinical/appointment/domain/types/cancel-appointment.props';
 import { OccupiedSlot } from '@modules/clinical/appointment/domain/types/occupied-slot.type';
 import { AppointmentWithDetails } from '@modules/clinical/appointment/domain/types/appointment-with-details.type';
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
@@ -25,34 +21,8 @@ export const APPOINTMENT_QUERY_REPOSITORY = Symbol(
 
 export interface IAppointmentCommandRepository
   extends IBaseCommandRepository<AppointmentEntity> {
-  create(
-    data: Prisma.AppointmentUncheckedCreateInput
-  ): Promise<AppointmentEntity>;
-  reschedule(
-    appointmentId: string,
-    data: RescheduleAppointmentProps
-  ): Promise<AppointmentEntity>;
-  cancelById(
-    appointmentId: string,
-    data: CancelAppointmentProps
-  ): Promise<AppointmentEntity>;
-  changeStatusById(
-    appointmentId: string,
-    status: AppointmentStatusType
-  ): Promise<AppointmentEntity>;
-  changeStatusByProviderId(
-    providerId: string,
-    status: AppointmentStatusType
-  ): Promise<BatchPayload>;
-  changeStatusByClinicId(
-    clinicId: string,
-    status: AppointmentStatusType
-  ): Promise<BatchPayload>;
   softDeleteAllAppointmentsByClinicId(clinicId: string): Promise<BatchPayload>;
   softDeleteAllByOrganizationId(organizationId: string): Promise<BatchPayload>;
-  softDeleteAllByProviderId(providerId: string): Promise<BatchPayload>;
-  save(appointment: AppointmentEntity): Promise<AppointmentEntity>;
-  saveMany(appointments: AppointmentEntity[]): Promise<void>;
 }
 
 export interface IAppointmentQueryRepository {

@@ -5,8 +5,8 @@ import { IyzicoTerminalAuthService } from './auth/iyzico-terminal-auth.service';
 import type { IyzicoTerminalCredentials } from './auth/iyzico-terminal-auth.types';
 import {
   IyzicoTerminalAuthError,
-  IyzicoTerminalOperationError,
   type IyzicoTerminalErrorGroup,
+  IyzicoTerminalOperationError,
 } from './iyzico-terminal.errors';
 import {
   IYZICO_TERMINAL_PATHS,
@@ -66,7 +66,7 @@ export class IyzicoTerminalService {
 
   constructor(
     private readonly authService: IyzicoTerminalAuthService,
-    config: ConfigService,
+    config: ConfigService
   ) {
     this.baseUrl =
       config.get<string>(ENV.IYZICO_TERMINAL_BASE_URL) ??
@@ -76,7 +76,7 @@ export class IyzicoTerminalService {
   // işlem başlatır
 
   async completePayment(
-    input: IyzicoTerminalCompletePaymentInput,
+    input: IyzicoTerminalCompletePaymentInput
   ): Promise<IyzicoTerminalPaymentResult> {
     const { credentials, deviceUniqueId, locale = 'tr', ...rest } = input;
 
@@ -93,17 +93,17 @@ export class IyzicoTerminalService {
     };
 
     this.logger.log(
-      `iyzico terminal ödeme başlatıldı — conversationId=${body.conversationId} device=${deviceUniqueId} amount=${body.price} ${body.currency}`,
+      `iyzico terminal ödeme başlatıldı — conversationId=${body.conversationId} device=${deviceUniqueId} amount=${body.price} ${body.currency}`
     );
 
     const data = await this.callApi<IyzicoTerminalPaymentResult>(
       IYZICO_TERMINAL_PATHS.PAYMENT,
       body,
-      credentials,
+      credentials
     );
 
     this.logger.log(
-      `iyzico terminal ödeme sonucu — conversationId=${body.conversationId} status=${data.status} authCode=${data.authCode ?? '-'}`,
+      `iyzico terminal ödeme sonucu — conversationId=${body.conversationId} status=${data.status} authCode=${data.authCode ?? '-'}`
     );
 
     return {
@@ -136,7 +136,7 @@ export class IyzicoTerminalService {
   // iptal
 
   async voidPayment(
-    input: IyzicoTerminalVoidPaymentInput,
+    input: IyzicoTerminalVoidPaymentInput
   ): Promise<IyzicoTerminalVoidPaymentResult> {
     const { credentials, deviceUniqueId, locale = 'tr', ...rest } = input;
 
@@ -152,17 +152,17 @@ export class IyzicoTerminalService {
     };
 
     this.logger.log(
-      `iyzico terminal iptal başlatıldı — conversationId=${body.conversationId} paymentId=${body.paymentId} paymentDate=${body.paymentDate}`,
+      `iyzico terminal iptal başlatıldı — conversationId=${body.conversationId} paymentId=${body.paymentId} paymentDate=${body.paymentDate}`
     );
 
     const data = await this.callApi<IyzicoTerminalVoidPaymentResult>(
       IYZICO_TERMINAL_PATHS.VOID,
       body,
-      credentials,
+      credentials
     );
 
     this.logger.log(
-      `iyzico terminal iptal sonucu — conversationId=${body.conversationId} status=${data.status} cancelHostReference=${data.cancelHostReference ?? '-'}`,
+      `iyzico terminal iptal sonucu — conversationId=${body.conversationId} status=${data.status} cancelHostReference=${data.cancelHostReference ?? '-'}`
     );
 
     return {
@@ -186,7 +186,7 @@ export class IyzicoTerminalService {
   // iade
 
   async refundPayment(
-    input: IyzicoTerminalRefundPaymentInput,
+    input: IyzicoTerminalRefundPaymentInput
   ): Promise<IyzicoTerminalRefundPaymentResult> {
     const { credentials, deviceUniqueId, locale = 'tr', ...rest } = input;
 
@@ -203,17 +203,17 @@ export class IyzicoTerminalService {
     };
 
     this.logger.log(
-      `iyzico terminal iade başlatıldı — conversationId=${body.conversationId} paymentId=${body.paymentId} price=${body.price}`,
+      `iyzico terminal iade başlatıldı — conversationId=${body.conversationId} paymentId=${body.paymentId} price=${body.price}`
     );
 
     const data = await this.callApi<IyzicoTerminalRefundPaymentResult>(
       IYZICO_TERMINAL_PATHS.REFUND,
       body,
-      credentials,
+      credentials
     );
 
     this.logger.log(
-      `iyzico terminal iade sonucu — conversationId=${body.conversationId} status=${data.status} refundHostReference=${data.refundHostReference ?? '-'}`,
+      `iyzico terminal iade sonucu — conversationId=${body.conversationId} status=${data.status} refundHostReference=${data.refundHostReference ?? '-'}`
     );
 
     return {
@@ -237,7 +237,7 @@ export class IyzicoTerminalService {
   // gün sonu
 
   async endOfDay(
-    input: IyzicoTerminalEodInput,
+    input: IyzicoTerminalEodInput
   ): Promise<IyzicoTerminalEodResult> {
     const { credentials, deviceUniqueId, locale = 'tr', ...rest } = input;
 
@@ -249,17 +249,17 @@ export class IyzicoTerminalService {
     };
 
     this.logger.log(
-      `iyzico terminal gün sonu başlatıldı — conversationId=${body.conversationId} device=${deviceUniqueId}`,
+      `iyzico terminal gün sonu başlatıldı — conversationId=${body.conversationId} device=${deviceUniqueId}`
     );
 
     const data = await this.callApi<IyzicoTerminalEodResult>(
       IYZICO_TERMINAL_PATHS.EOD,
       body,
-      credentials,
+      credentials
     );
 
     this.logger.log(
-      `iyzico terminal gün sonu sonucu — conversationId=${body.conversationId} status=${data.status} batchNo=${data.batchNo ?? '-'}`,
+      `iyzico terminal gün sonu sonucu — conversationId=${body.conversationId} status=${data.status} batchNo=${data.batchNo ?? '-'}`
     );
 
     return {
@@ -292,7 +292,7 @@ export class IyzicoTerminalService {
   private async callApi<T>(
     path: string,
     body: unknown,
-    credentials: IyzicoTerminalCredentials,
+    credentials: IyzicoTerminalCredentials
   ): Promise<T> {
     const makeRequest = async (token: string): Promise<Response> =>
       fetch(`${this.baseUrl}${path}`, {
@@ -309,7 +309,7 @@ export class IyzicoTerminalService {
 
     if (res.status === 401) {
       this.logger.warn(
-        `iyzico terminal 401 alındı, token yenileniyor — path=${path}`,
+        `iyzico terminal 401 alındı, token yenileniyor — path=${path}`
       );
       this.authService.invalidateToken(credentials.clientId);
       token = await this.authService.getAccessToken(credentials);
@@ -327,7 +327,7 @@ export class IyzicoTerminalService {
       throw new IyzicoTerminalAuthError(
         `iyzico terminal isteği başarısız: ${res.status} — path=${path}`,
         res.status,
-        data,
+        data
       );
     }
 
@@ -336,7 +336,7 @@ export class IyzicoTerminalService {
         data.errorCode ?? 'UNKNOWN',
         data.errorGroup,
         data.errorMessage ?? 'iyzico terminal işlemi başarısız',
-        data,
+        data
       );
     }
 

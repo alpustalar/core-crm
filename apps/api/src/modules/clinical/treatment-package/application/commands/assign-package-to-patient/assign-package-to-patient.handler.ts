@@ -54,6 +54,8 @@ export class AssignPackageToPatientHandler
           patientId: dto.patientId,
           amount: Number(pkg.price),
           providerId: dto.providerId,
+          currency: 'TRY',
+          method: dto.method,
         })
       );
 

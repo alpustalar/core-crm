@@ -12,6 +12,8 @@ import {
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(ConvertUserToProviderCommand)
 export class ConvertUserToProviderHandler
@@ -25,7 +27,8 @@ export class ConvertUserToProviderHandler
     @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository
+    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   async execute(
@@ -41,6 +44,19 @@ export class ConvertUserToProviderHandler
         .orThrow(PROVIDER_EVENTS.CREATED);
     }
 
-    await this.providerCommandRepo.create(dto);
+    const provider = Provider.create({
+      id: crypto.randomUUID(),
+      userId: dto.userId,
+      clinicId: dto.clinicId,
+      providerTitleId: dto.titleId,
+      providerSpecialtyId: dto.specialtyId,
+      publicPhone: dto.publicPhone,
+      publicEmail: dto.publicEmail,
+      isActive: dto.isActive,
+    });
+
+    await this.transactionManager.run(() =>
+      this.providerCommandRepo.save(provider),
+    );
   }
 }

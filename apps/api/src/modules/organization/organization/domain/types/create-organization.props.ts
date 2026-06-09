@@ -1,3 +1,10 @@
-import { Prisma } from '@prisma/client';
-
-export type CreateOrganizationProps = Prisma.OrganizationCreateInput;
+export interface CreateOrganizationProps {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  city?: string | null;
+  district?: string | null;
+  timezone?: string;
+}

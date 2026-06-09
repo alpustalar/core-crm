@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Invoice, InvoiceStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IInvoiceCommandRepository } from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { CreateInvoiceProps } from '@modules/finance/invoice/domain/types/create-invoice.props';
+import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
 
 @Injectable()
 export class InvoiceCommandRepository
@@ -14,8 +14,8 @@ export class InvoiceCommandRepository
     super(prisma);
   }
 
-  create(props: CreateInvoiceProps): Promise<Invoice> {
-    return this.db.invoice.create({
+  async create(props: CreateInvoiceProps): Promise<Invoice> {
+    const raw = await this.db.invoice.create({
       data: {
         id: props.id,
         clinicId: props.clinicId,
@@ -31,31 +31,23 @@ export class InvoiceCommandRepository
         rawResponse: props.rawResponse ?? undefined,
       },
     });
+    return new Invoice(raw);
   }
 
-  markAsIssued(props: {
-    invoiceId: string;
-    invoiceNumber: string;
-    providerRef: string;
-    issuedAt: Date;
-    rawResponse?: unknown;
-  }): Promise<Invoice> {
-    return this.db.invoice.update({
-      where: { id: props.invoiceId },
+  async save(entity: Invoice): Promise<Invoice> {
+    const data = entity.toPersistence();
+    const raw = await this.db.invoice.update({
+      where: { id: data.id },
       data: {
-        status: InvoiceStatus.ISSUED,
-        invoiceNumber: props.invoiceNumber,
-        providerRef: props.providerRef,
-        issuedAt: props.issuedAt,
-        rawResponse: props.rawResponse ?? undefined,
+        status: data.status,
+        invoiceNumber: data.invoiceNumber,
+        issuedAt: data.issuedAt,
+        providerRef: data.providerRef,
+        rawResponse: data.rawResponse ?? undefined,
+        updatedAt: data.updatedAt,
       },
     });
-  }
-
-  markAsFailed(invoiceId: string): Promise<Invoice> {
-    return this.db.invoice.update({
-      where: { id: invoiceId },
-      data: { status: InvoiceStatus.FAILED },
-    });
+    entity.flushEvents();
+    return new Invoice(raw);
   }
 }
