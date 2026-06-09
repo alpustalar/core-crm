@@ -22,6 +22,12 @@ export const ScheduleAppointmentSchema = z
     startTime: z.coerce.date().refine((val) => !isNaN(val.getTime()), {
       message: "Geçerli bir randevu tarihi giriniz.",
     }),
+    endTime: z.coerce
+      .date()
+      .refine((val) => !isNaN(val.getTime()), {
+        message: "Geçerli bir bitiş tarihi giriniz.",
+      })
+      .optional(),
     duration: z
       .number({ error: "Süre sayısal bir değer olmalıdır." })
       .min(1, { message: "Randevu süresi en az 1 dakika olmalıdır." })

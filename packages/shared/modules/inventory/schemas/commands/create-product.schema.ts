@@ -1,10 +1,9 @@
 import { z } from 'zod';
+import ProductConditionSchema from '@shared/generated-zod/inputTypeSchemas/ProductConditionSchema';
+import ProductUnitSchema from '@shared/generated-zod/inputTypeSchemas/ProductUnitSchema';
 
-const ProductUnitSchema = z.enum([
-  'PIECE', 'ML', 'GR', 'KG', 'LITER', 'BOX', 'AMPULE', 'VIAL', 'BOTTLE', 'TUBE',
-]);
 
-const ProductConditionSchema = z.enum(['NEW', 'USED']);
+
 
 export const CreateProductSchema = z.object({
   name: z.string().min(1).max(200),
@@ -17,6 +16,6 @@ export const CreateProductSchema = z.object({
   vatRate: z.number().min(0).max(100).optional(),
   criticalStockQty: z.number().min(0).optional(),
   reorderQty: z.number().min(0).optional(),
-  categoryId: z.string().uuid().optional().nullable(),
-  supplierId: z.string().uuid().optional().nullable(),
+  categoryId: z.uuid().optional().nullable(),
+  supplierId: z.uuid().optional().nullable(),
 });

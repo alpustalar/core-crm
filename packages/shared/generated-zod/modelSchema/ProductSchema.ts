@@ -9,7 +9,7 @@ import { ProductConditionSchema } from '../inputTypeSchemas/ProductConditionSche
 
 export const ProductSchema = z.object({
   unit: ProductUnitSchema,
-  condition: ProductConditionSchema,
+  condition: ProductConditionSchema.nullable(),
   id: z.uuid(),
   name: z.string(),
   stockCode: z.string(),
