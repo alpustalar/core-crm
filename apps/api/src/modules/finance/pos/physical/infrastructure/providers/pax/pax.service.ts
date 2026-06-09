@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as net from 'net';
 import {
+  PAX_ACK,
   PAX_APPROVED_RESULT_CODE,
   PAX_COMMANDS,
   PAX_DEFAULT_TIMEOUT_MS,
   PAX_ETX,
+  PAX_NAK,
   PAX_PROTOCOL_VERSION,
   PAX_STX,
   PAX_TRANS_TYPE,
@@ -49,10 +51,10 @@ export class PaxService {
     const packet = buildPacket(PAX_COMMANDS.DO_CREDIT, [
       PAX_PROTOCOL_VERSION,
       PAX_TRANS_TYPE.SALE,
-      formatAmount(amountInMinorUnits),
-      '', // cashback
-      '', // tip
-      ecReferenceNumber,
+      // AmountGroup (US ile ayrılır): [TransactionAmount, TipAmount, CashBackAmount]
+      [formatAmount(amountInMinorUnits), '', ''],
+      // TraceGroup (US ile ayrılır): [ReferenceNumber, InvoiceNumber]
+      [ecReferenceNumber],
       '', // extData
     ]);
 
@@ -79,10 +81,10 @@ export class PaxService {
     const packet = buildPacket(PAX_COMMANDS.DO_CREDIT, [
       PAX_PROTOCOL_VERSION,
       PAX_TRANS_TYPE.REFUND,
-      formatAmount(amountInMinorUnits),
-      '', // cashback
-      '', // tip
-      ecReferenceNumber,
+      // AmountGroup: [TransactionAmount, TipAmount, CashBackAmount]
+      [formatAmount(amountInMinorUnits), '', ''],
+      // TraceGroup: [ReferenceNumber, InvoiceNumber]
+      [ecReferenceNumber],
       originalReferenceNumber ? `OrigRefNum=${originalReferenceNumber}` : '',
     ]);
 
@@ -104,10 +106,10 @@ export class PaxService {
     const packet = buildPacket(PAX_COMMANDS.DO_CREDIT, [
       PAX_PROTOCOL_VERSION,
       PAX_TRANS_TYPE.VOID,
-      '', // amount — void'de gerekmez
-      '', // cashback
-      '', // tip
-      ecReferenceNumber,
+      // AmountGroup — void'de tutar yok ama grup yapısı korunur
+      ['', '', ''],
+      // TraceGroup: [ReferenceNumber, InvoiceNumber]
+      [ecReferenceNumber],
       `OrigRefNum=${originalReferenceNumber}`,
     ]);
 
@@ -224,6 +226,18 @@ export class PaxService {
     };
   }
 
+  /**
+   * Bir paketi terminale yollar ve yanıt paketini ham olarak döndürür.
+   *
+   * POSLink el sıkışması:
+   *  1. ECR paketi yollar → terminal `ACK` (sağlam aldım) veya `NAK` (bozuk) döner.
+   *  2. Terminal işi yapıp yanıt paketini (STX..ETX LRC) yollar.
+   *  3. ECR yanıtı aldığını terminale `ACK` ile bildirir.
+   *
+   * Akış parça parça (chunk) geldiğinden, baştaki ACK byte'ı ile yanıt paketi
+   * aynı veya ayrı chunk'larda gelebilir; bu yüzden tüm veriyi biriktirip
+   * STX'e kadar olan handshake byte'larını ayıklarız.
+   */
   private sendPacket(
     device: PaxDeviceConfig,
     packet: Buffer,
@@ -233,6 +247,7 @@ export class PaxService {
       const socket = new net.Socket();
       const chunks: Buffer[] = [];
       let settled = false;
+      let handshakeResolved = false; // baştaki ACK/NAK çözüldü mü
 
       const settle = (err?: Error, result?: Buffer) => {
         if (settled) return;
@@ -262,15 +277,40 @@ export class PaxService {
 
       socket.on('data', (chunk: Buffer) => {
         chunks.push(chunk);
-        const combined = Buffer.concat(chunks);
+        let combined = Buffer.concat(chunks);
 
-        // Paket: [STX] ... [ETX] [LRC]
-        // Tam paketi aldığımızı ETX + LRC alındığında anlarız
+        // 1) Handshake: yanıt paketinden (STX) önceki ACK/NAK byte'larını çöz
+        if (!handshakeResolved) {
+          const stxPos = combined.indexOf(PAX_STX);
+          const nakPos = combined.indexOf(PAX_NAK);
+
+          // STX'ten önce NAK geldiyse paket terminalce reddedilmiştir
+          if (nakPos !== -1 && (stxPos === -1 || nakPos < stxPos)) {
+            return settle(
+              new PaxProtocolError('PAX: NAK — paket terminalce reddedildi')
+            );
+          }
+
+          // Henüz STX gelmedi; baştaki ACK'leri tutup daha fazla veri bekle
+          if (stxPos === -1) return;
+
+          // STX bulundu — öncesindeki handshake byte'larını (ACK vb.) at
+          handshakeResolved = true;
+          combined = combined.subarray(stxPos);
+          chunks.length = 0;
+          chunks.push(combined);
+        }
+
+        // 2) Tam yanıt paketi: [STX] ... [ETX] [LRC]
         if (combined.length < 4 || combined[0] !== PAX_STX) return;
 
         const etxPos = combined.indexOf(PAX_ETX, 1);
         if (etxPos !== -1 && combined.length >= etxPos + 2) {
-          settle(undefined, combined.slice(0, etxPos + 2));
+          const responsePacket = combined.subarray(0, etxPos + 2);
+          // 3) Yanıtı sağlam aldığımızı terminale bildir (ACK), sonra kapat
+          socket.write(Buffer.from([PAX_ACK]), () =>
+            settle(undefined, responsePacket)
+          );
         }
       });
 

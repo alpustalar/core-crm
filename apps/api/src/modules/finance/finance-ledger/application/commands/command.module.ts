@@ -1,16 +1,13 @@
 import { CreateLedgerEntyHandler } from './create-ledger-enty/create-ledger-enty.handler';
 import { Module } from '@nestjs/common';
 import { RefundLedgerEntriesHandler } from './refund-ledger-entries/refund-ledger-entries.handler';
-import { FINANCE_LEDGER_REPOSITORY } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
-import { FinanceLedgerRepository } from '@modules/finance/finance-ledger/infrastructure/persistence/prisma/repositories/finance-ledger.repository';
+import { FinanceLedgerRepositoryModule } from '@modules/finance/finance-ledger/infrastructure/persistence/prisma/repositories/finance-ledger/finance-ledger.repository.module';
 
 const CommandHandlers = [CreateLedgerEntyHandler, RefundLedgerEntriesHandler];
 
 @Module({
-  providers: [
-    ...CommandHandlers,
-    { provide: FINANCE_LEDGER_REPOSITORY, useClass: FinanceLedgerRepository },
-  ],
+  imports: [FinanceLedgerRepositoryModule],
+  providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })
 export class FinanceLedgerCommandModule {}

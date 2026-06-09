@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { FinanceLedger } from '@prisma/client';
+import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
 
-export type GetLedgerByClinicIdQueryResponse = QueryResponse<FinanceLedger[]>;
+export type GetLedgerByClinicIdQueryResponse = QueryResponse<FinanceLedgerEntity[]>;

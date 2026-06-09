@@ -57,7 +57,7 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
         organizationId,
         actorId: actor.userId,
         action: LogAction.CLINIC_SOFT_DELETE,
-        type: LogType.WARNING,
+        type: LogType.INFO,
       });
     });
   }

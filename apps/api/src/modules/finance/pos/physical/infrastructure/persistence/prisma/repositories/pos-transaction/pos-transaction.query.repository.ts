@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PosTransaction, PosTransactionStatus } from '@prisma/client';
+import { PosTransactionStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionQueryRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/types/pending-transaction-for-reconcile.type';
+import { PosTransactionEntity } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @Injectable()
 export class PosTransactionQueryRepository
@@ -14,19 +15,26 @@ export class PosTransactionQueryRepository
     super(prisma);
   }
 
-  findById(id: string): Promise<PosTransaction | null> {
-    return this.db.posTransaction.findUnique({ where: { id } });
+  async findById(id: string): Promise<PosTransactionEntity | null> {
+    const raw = await this.db.posTransaction.findUnique({ where: { id } });
+    return raw ? new PosTransactionEntity(raw) : null;
   }
 
-  findByExternalRef(externalRef: string): Promise<PosTransaction | null> {
-    return this.db.posTransaction.findFirst({ where: { externalRef } });
+  async findByExternalRef(
+    externalRef: string
+  ): Promise<PosTransactionEntity | null> {
+    const raw = await this.db.posTransaction.findFirst({
+      where: { externalRef },
+    });
+    return raw ? new PosTransactionEntity(raw) : null;
   }
 
-  findByClinicId(clinicId: string): Promise<PosTransaction[]> {
-    return this.db.posTransaction.findMany({
+  async findByClinicId(clinicId: string): Promise<PosTransactionEntity[]> {
+    const rows = await this.db.posTransaction.findMany({
       where: { clinicId },
       orderBy: { initiatedAt: 'desc' },
     });
+    return rows.map((r) => new PosTransactionEntity(r));
   }
 
   async findPendingForReconcile(

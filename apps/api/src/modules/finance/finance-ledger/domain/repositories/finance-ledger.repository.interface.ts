@@ -1,30 +1,11 @@
 import {
-  FinanceLedger,
   LedgerCategory,
-  LedgerSource,
   LedgerStatus,
-  LedgerType,
   PaymentMethod,
 } from '@prisma/client';
 import { Pagination } from '@shared';
+import { FinanceLedgerEntity } from '../entities/finance-ledger.entity';
 
-export interface CreateLedgerEntryData {
-  organizationId: string;
-  clinicId: string;
-  patientId?: string | null;
-  paymentId?: string | null;
-  installmentId?: string | null;
-  performedById?: string | null;
-  type: LedgerType;
-  source: LedgerSource;
-  category: LedgerCategory;
-  amount: string;
-  currency?: string;
-  taxRate?: number;
-  description?: string;
-  documentNo?: string;
-  entryDate?: Date;
-}
 
 export interface LedgerSummary {
   totalIncome: string;
@@ -55,30 +36,39 @@ export interface PatientLedgerItem {
   providerName: string | null;
 }
 
-export const FINANCE_LEDGER_REPOSITORY = Symbol('IFinanceLedgerRepository');
+export const FINANCE_LEDGER_COMMAND_REPOSITORY = Symbol(
+  'IFinanceLedgerCommandRepository'
+);
+export const FINANCE_LEDGER_QUERY_REPOSITORY = Symbol(
+  'IFinanceLedgerQueryRepository'
+);
 
-export interface IFinanceLedgerRepository {
-  create(data: CreateLedgerEntryData): Promise<FinanceLedger>;
-  findById(id: string): Promise<FinanceLedger | null>;
+export interface IFinanceLedgerCommandRepository {
+  save(entry: FinanceLedgerEntity): Promise<FinanceLedgerEntity>;
+  saveMany(entries: FinanceLedgerEntity[]): Promise<void>;
+  updateStatus(id: string, status: LedgerStatus): Promise<void>;
+  updateManyStatusByPaymentId(
+    paymentId: string,
+    status: LedgerStatus
+  ): Promise<void>;
+}
+
+export interface IFinanceLedgerQueryRepository {
+  findById(id: string): Promise<FinanceLedgerEntity | null>;
   findManyByClinicId(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: FinanceLedger[]; total: number }>;
+  ): Promise<{ items: FinanceLedgerEntity[]; total: number }>;
   findManyByPatientId(
     patientId: string,
     pagination: Pagination
-  ): Promise<{ items: FinanceLedger[]; total: number }>;
+  ): Promise<{ items: FinanceLedgerEntity[]; total: number }>;
   findManyByPatientIdWithDetails(
     patientId: string,
     pagination: Pagination
   ): Promise<{ items: PatientLedgerItem[]; total: number }>;
   getPatientSummary(patientId: string): Promise<PatientFinanceSummary>;
-  findManyByPaymentId(paymentId: string): Promise<FinanceLedger[]>;
-  updateStatus(id: string, status: LedgerStatus): Promise<FinanceLedger>;
-  updateManyStatusByPaymentId(
-    paymentId: string,
-    status: LedgerStatus
-  ): Promise<void>;
+  findManyByPaymentId(paymentId: string): Promise<FinanceLedgerEntity[]>;
   getClinicSummary(
     clinicId: string,
     filter: GetSummaryFilter

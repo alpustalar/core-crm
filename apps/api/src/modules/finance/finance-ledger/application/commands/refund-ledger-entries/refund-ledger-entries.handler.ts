@@ -1,12 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RefundLedgerEntriesCommand } from './refund-ledger-entries.command';
 import { RefundLedgerEntriesCommandResponse } from './refund-ledger-entries.response';
-import { LedgerStatus } from '@prisma/client';
 import {
-  FINANCE_LEDGER_REPOSITORY,
-  IFinanceLedgerRepository,
+  FINANCE_LEDGER_COMMAND_REPOSITORY,
+  IFinanceLedgerCommandRepository,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
+import LedgerStatusSchema from '@input-type-schemas/LedgerStatusSchema';
 
 @CommandHandler(RefundLedgerEntriesCommand)
 export class RefundLedgerEntriesHandler
@@ -17,8 +17,8 @@ export class RefundLedgerEntriesHandler
     >
 {
   constructor(
-    @Inject(FINANCE_LEDGER_REPOSITORY)
-    private readonly financeLedgerRepository: IFinanceLedgerRepository
+    @Inject(FINANCE_LEDGER_COMMAND_REPOSITORY)
+    private readonly financeLedgerRepository: IFinanceLedgerCommandRepository
   ) {}
 
   async execute(
@@ -28,7 +28,7 @@ export class RefundLedgerEntriesHandler
 
     await this.financeLedgerRepository.updateManyStatusByPaymentId(
       paymentId,
-      LedgerStatus.REFUNDED
+      LedgerStatusSchema.enum.REFUNDED
     );
   }
 }

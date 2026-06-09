@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
-import { PosTransactionStatus } from '@prisma/client';
 import { PaxSaleCommand } from './pax-sale.command';
 import type { PaxSaleResponse } from './pax-sale.response';
 import {
@@ -18,6 +17,8 @@ import {
 } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
+import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
+import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 
 @CommandHandler(PaxSaleCommand)
 export class PaxSaleHandler
@@ -51,7 +52,7 @@ export class PaxSaleHandler
           appointmentId: input.appointmentId,
           amount: input.amount,
           currency: input.currency,
-          method: 'CREDIT_CARD',
+          method: PaymentMethodSchema.enum.CREDIT_CARD,
         })
       );
       paymentId = result.paymentId;
@@ -59,7 +60,7 @@ export class PaxSaleHandler
 
     const posTransactionId = crypto.randomUUID();
 
-    await this.posTransactionCommandRepo.create({
+    const transaction = await this.posTransactionCommandRepo.create({
       id: posTransactionId,
       posDeviceId: device.id,
       clinicId: input.clinicId,
@@ -82,17 +83,16 @@ export class PaxSaleHandler
         ecReferenceNumber: posTransactionId,
       });
 
-      const status = result.approved
-        ? PosTransactionStatus.SUCCESS
-        : PosTransactionStatus.FAILED;
+      if (result.approved) {
+        transaction.markSuccess(result.externalRef, result.rawResponse);
+      } else {
+        transaction.markFailed(result.rawResponse);
+      }
+      await this.posTransactionCommandRepo.save(transaction);
 
-      await this.posTransactionCommandRepo.updateStatus({
-        id: posTransactionId,
-        status,
-        externalRef: result.externalRef,
-        rawResponse: result.rawResponse,
-        completedAt: new Date(),
-      });
+      const status = result.approved
+        ? PosTransactionStatusSchema.enum.SUCCESS
+        : PosTransactionStatusSchema.enum.FAILED;
 
       this.logger.log(
         `PAX satış tamamlandı: id=${posTransactionId} status=${status}`
@@ -113,17 +113,20 @@ export class PaxSaleHandler
         this.logger.warn(
           `PAX satış timeout: id=${posTransactionId} — PENDING kalıyor`
         );
-        return { posTransactionId, status: 'PENDING' };
+        return {
+          posTransactionId,
+          status: PosTransactionStatusSchema.enum.PENDING,
+        };
       }
 
       if (err instanceof PaxConnectionError) {
-        await this.posTransactionCommandRepo.updateStatus({
-          id: posTransactionId,
-          status: PosTransactionStatus.FAILED,
-          completedAt: new Date(),
-        });
+        transaction.markFailed();
+        await this.posTransactionCommandRepo.save(transaction);
         this.logger.error(`PAX satış bağlantı hatası: id=${posTransactionId}`);
-        return { posTransactionId, status: 'FAILED' };
+        return {
+          posTransactionId,
+          status: PosTransactionStatusSchema.enum.FAILED,
+        };
       }
 
       throw err;

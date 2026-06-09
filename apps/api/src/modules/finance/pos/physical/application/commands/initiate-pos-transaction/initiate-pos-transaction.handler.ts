@@ -16,6 +16,7 @@ import {
 } from '@modules/finance/pos/physical/domain/interfaces/physical-pos-provider.interface';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
+import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 
 @CommandHandler(InitiatePosTransactionCommand)
 export class InitiatePosTransactionHandler
@@ -54,7 +55,7 @@ export class InitiatePosTransactionHandler
           appointmentId: input.appointmentId,
           amount: input.amount,
           currency: input.currency ?? 'TRY',
-          method: 'CREDIT_CARD',
+          method: PaymentMethodSchema.enum.CREDIT_CARD,
         })
       );
       paymentId = result.paymentId;
@@ -62,7 +63,7 @@ export class InitiatePosTransactionHandler
 
     const posTransactionId = crypto.randomUUID();
 
-    await this.posTransactionCommandRepo.create({
+    const transaction = await this.posTransactionCommandRepo.create({
       id: posTransactionId,
       posDeviceId: device.id,
       clinicId: input.clinicId,
@@ -81,11 +82,8 @@ export class InitiatePosTransactionHandler
       currency: input.currency ?? 'TRY',
     });
 
-    await this.posTransactionCommandRepo.setExternalRef({
-      id: posTransactionId,
-      externalRef: result.externalRef,
-      rawRequest: result.rawRequest,
-    });
+    transaction.setExternalRef(result.externalRef, result.rawRequest);
+    await this.posTransactionCommandRepo.save(transaction);
 
     return {
       posTransactionId,

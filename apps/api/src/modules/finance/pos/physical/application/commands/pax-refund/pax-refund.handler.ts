@@ -77,7 +77,7 @@ export class PaxRefundHandler
 
     const refundTransactionId = crypto.randomUUID();
 
-    await this.posTransactionCommandRepo.create({
+    const refundTx = await this.posTransactionCommandRepo.create({
       id: refundTransactionId,
       posDeviceId: device.id,
       clinicId: input.clinicId,
@@ -99,17 +99,16 @@ export class PaxRefundHandler
         originalReferenceNumber: originalTx.externalRef,
       });
 
+      if (result.approved) {
+        refundTx.markSuccess(result.externalRef, result.rawResponse);
+      } else {
+        refundTx.markFailed(result.rawResponse);
+      }
+      await this.posTransactionCommandRepo.save(refundTx);
+
       const status = result.approved
         ? PosTransactionStatus.SUCCESS
         : PosTransactionStatus.FAILED;
-
-      await this.posTransactionCommandRepo.updateStatus({
-        id: refundTransactionId,
-        status,
-        externalRef: result.externalRef,
-        rawResponse: result.rawResponse,
-        completedAt: new Date(),
-      });
 
       this.logger.log(
         `PAX iade tamamlandı: id=${refundTransactionId} status=${status}`
@@ -132,11 +131,8 @@ export class PaxRefundHandler
       }
 
       if (err instanceof PaxConnectionError) {
-        await this.posTransactionCommandRepo.updateStatus({
-          id: refundTransactionId,
-          status: PosTransactionStatus.FAILED,
-          completedAt: new Date(),
-        });
+        refundTx.markFailed();
+        await this.posTransactionCommandRepo.save(refundTx);
         this.logger.error(
           `PAX iade bağlantı hatası: id=${refundTransactionId}`
         );

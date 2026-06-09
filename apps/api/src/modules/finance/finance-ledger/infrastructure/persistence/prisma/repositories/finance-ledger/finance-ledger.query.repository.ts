@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
   FinanceLedger,
-  LedgerStatus,
   LedgerType,
   PaymentMethod,
   PaymentStatus,
@@ -12,74 +11,55 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
-  CreateLedgerEntryData,
   GetSummaryFilter,
-  IFinanceLedgerRepository,
+  IFinanceLedgerQueryRepository,
   LedgerSummary,
   PatientFinanceSummary,
   PatientLedgerItem,
-} from '../../../../domain/repositories/finance-ledger.repository.interface';
+} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
+import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
 
 @Injectable()
-export class FinanceLedgerRepository
+export class FinanceLedgerQueryRepository
   extends BaseRepository
-  implements IFinanceLedgerRepository
+  implements IFinanceLedgerQueryRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
   }
 
-  create(data: CreateLedgerEntryData): Promise<FinanceLedger> {
-    return this.db.financeLedger.create({
-      data: {
-        ...data,
-        amount: new Prisma.Decimal(data.amount),
-      },
-    });
+  async findById(id: string): Promise<FinanceLedgerEntity | null> {
+    const raw = await this.db.financeLedger.findUnique({ where: { id } });
+    return raw ? new FinanceLedgerEntity(raw) : null;
   }
 
-  findById(id: string): Promise<FinanceLedger | null> {
-    return this.db.financeLedger.findUnique({ where: { id } });
-  }
-
-  findManyByClinicId(
+  async findManyByClinicId(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: FinanceLedger[]; total: number }> {
-    return paginate({
+  ): Promise<{ items: FinanceLedgerEntity[]; total: number }> {
+    const result = await paginate({
       delegate: this.db.financeLedger,
       pagination,
       where: { clinicId },
     });
+    return { items: result.items.map((r) => new FinanceLedgerEntity(r)), total: result.total };
   }
 
-  findManyByPatientId(
+  async findManyByPatientId(
     patientId: string,
     pagination: Pagination
-  ): Promise<{ items: FinanceLedger[]; total: number }> {
-    return paginate({
+  ): Promise<{ items: FinanceLedgerEntity[]; total: number }> {
+    const result = await paginate({
       delegate: this.db.financeLedger,
       pagination,
       where: { patientId },
     });
+    return { items: result.items.map((r) => new FinanceLedgerEntity(r)), total: result.total };
   }
 
-  findManyByPaymentId(paymentId: string): Promise<FinanceLedger[]> {
-    return this.db.financeLedger.findMany({ where: { paymentId } });
-  }
-
-  updateStatus(id: string, status: LedgerStatus): Promise<FinanceLedger> {
-    return this.db.financeLedger.update({ where: { id }, data: { status } });
-  }
-
-  async updateManyStatusByPaymentId(
-    paymentId: string,
-    status: LedgerStatus
-  ): Promise<void> {
-    await this.db.financeLedger.updateMany({
-      where: { paymentId },
-      data: { status },
-    });
+  async findManyByPaymentId(paymentId: string): Promise<FinanceLedgerEntity[]> {
+    const rows = await this.db.financeLedger.findMany({ where: { paymentId } });
+    return rows.map((r) => new FinanceLedgerEntity(r));
   }
 
   async findManyByPatientIdWithDetails(

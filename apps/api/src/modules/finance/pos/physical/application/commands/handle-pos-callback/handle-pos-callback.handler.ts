@@ -12,14 +12,6 @@ import {
   IPhysicalPosProvider,
   PHYSICAL_POS_PROVIDER,
 } from '@modules/finance/pos/physical/domain/interfaces/physical-pos-provider.interface';
-import { PosTransactionStatus } from '@prisma/client';
-
-const STATUS_MAP: Record<string, PosTransactionStatus> = {
-  SUCCESS: PosTransactionStatus.SUCCESS,
-  FAILED: PosTransactionStatus.FAILED,
-  CANCELLED: PosTransactionStatus.CANCELLED,
-  TIMEOUT: PosTransactionStatus.TIMEOUT,
-};
 
 @CommandHandler(HandlePosCallbackCommand)
 export class HandlePosCallbackHandler
@@ -56,23 +48,26 @@ export class HandlePosCallbackHandler
       );
     }
 
-    const status = STATUS_MAP[result.status] ?? PosTransactionStatus.FAILED;
+    switch (result.status) {
+      case 'SUCCESS':
+        transaction.markSuccess(undefined, result.rawResponse);
+        break;
+      case 'CANCELLED':
+        transaction.markCancelled(result.rawResponse);
+        break;
+      case 'TIMEOUT':
+        transaction.markTimeout();
+        break;
+      default:
+        transaction.markFailed(result.rawResponse);
+    }
 
-    await this.posTransactionCommandRepo.updateStatus({
-      id: transaction.id,
-      status,
-      rawResponse: result.rawResponse,
-      completedAt: ['SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(
-        result.status
-      )
-        ? new Date()
-        : undefined,
-    });
+    await this.posTransactionCommandRepo.save(transaction);
 
     this.logger.log(
-      `POS işlemi güncellendi: id=${transaction.id} status=${status}`
+      `POS işlemi güncellendi: id=${transaction.id} status=${transaction.status}`
     );
 
-    return { posTransactionId: transaction.id, status };
+    return { posTransactionId: transaction.id, status: transaction.status };
   }
 }

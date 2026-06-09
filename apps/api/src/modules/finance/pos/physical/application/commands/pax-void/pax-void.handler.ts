@@ -69,7 +69,7 @@ export class PaxVoidHandler
 
     const voidTransactionId = crypto.randomUUID();
 
-    await this.posTransactionCommandRepo.create({
+    const voidTx = await this.posTransactionCommandRepo.create({
       id: voidTransactionId,
       posDeviceId: device.id,
       clinicId: input.clinicId,
@@ -90,17 +90,16 @@ export class PaxVoidHandler
         originalReferenceNumber: originalTx.externalRef,
       });
 
+      if (result.approved) {
+        voidTx.markSuccess(result.externalRef, result.rawResponse);
+      } else {
+        voidTx.markFailed(result.rawResponse);
+      }
+      await this.posTransactionCommandRepo.save(voidTx);
+
       const status = result.approved
         ? PosTransactionStatus.SUCCESS
         : PosTransactionStatus.FAILED;
-
-      await this.posTransactionCommandRepo.updateStatus({
-        id: voidTransactionId,
-        status,
-        externalRef: result.externalRef,
-        rawResponse: result.rawResponse,
-        completedAt: new Date(),
-      });
 
       this.logger.log(
         `PAX void tamamlandı: id=${voidTransactionId} status=${status}`
@@ -122,11 +121,8 @@ export class PaxVoidHandler
       }
 
       if (err instanceof PaxConnectionError) {
-        await this.posTransactionCommandRepo.updateStatus({
-          id: voidTransactionId,
-          status: PosTransactionStatus.FAILED,
-          completedAt: new Date(),
-        });
+        voidTx.markFailed();
+        await this.posTransactionCommandRepo.save(voidTx);
         this.logger.error(`PAX void bağlantı hatası: id=${voidTransactionId}`);
         return { posTransactionId: voidTransactionId, status: 'FAILED' };
       }

@@ -1,14 +1,26 @@
-import { PAX_ETX, PAX_FS, PAX_STX } from '../pax.constants';
+import { PAX_ETX, PAX_FS, PAX_STX, PAX_US } from '../pax.constants';
+
+/**
+ * Tek bir alan; alt-parçaları olan alanlar (ör. tutar grubu) string[] olarak
+ * geçilir ve US (0x1f) ile birleştirilir.
+ */
+export type PaxField = string | string[] | undefined;
+
+/** Bir alanı string'e indirger; dizi ise alt-parçaları US ile birleştirir. */
+function normalizeField(field: PaxField): string {
+  if (field === undefined) return '';
+  if (Array.isArray(field)) return field.join(String.fromCharCode(PAX_US));
+  return field;
+}
 
 /**
  * Paket yapısı: [STX][cmd][FS][field1][FS][field2]...[ETX][LRC]
+ * Bir alan kendi içinde alt-değer taşıyorsa (tutar grubu vb.) bu alt-değerler
+ * US (0x1f) ile ayrılır — alanın kendisi string[] olarak verilir.
  * LRC = STX'ten sonraki her bayt (ETX dahil) XOR'u
  */
-export function buildPacket(
-  command: string,
-  fields: (string | undefined)[]
-): Buffer {
-  const parts = [command, ...fields.map((f) => f ?? '')];
+export function buildPacket(command: string, fields: PaxField[]): Buffer {
+  const parts = [command, ...fields.map(normalizeField)];
   const body = parts.join(String.fromCharCode(PAX_FS));
   const bodyBuf = Buffer.from(body, 'ascii');
 

@@ -1,6 +1,12 @@
 export const PAX_STX = 0x02;
 export const PAX_ETX = 0x03;
-export const PAX_FS = 0x1c;
+export const PAX_FS = 0x1c; // alan ayırıcı (Field Separator)
+export const PAX_US = 0x1f; // alt-alan ayırıcı (Unit Separator)
+
+// El sıkışma byte'ları (ACK/NAK/EOT)
+export const PAX_ACK = 0x06; // "paketi sağlam aldım"
+export const PAX_NAK = 0x15; // "bozuk geldi, tekrar gönder"
+export const PAX_EOT = 0x04; // oturum/iletim sonu
 
 export const PAX_PROTOCOL_VERSION = '1.28';
 

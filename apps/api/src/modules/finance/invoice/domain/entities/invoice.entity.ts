@@ -2,7 +2,11 @@ import { Invoice as IInvoice, InvoiceStatus, Prisma } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { InvoiceIssuedEvent } from '../events/invoice-issued.event';
 import { InvoiceFailedEvent } from '../events/invoice-failed.event';
-import { LogAction, LogSource, LogType } from '@src/domain/constants/log-action.constant';
+import {
+  LogAction,
+  LogSource,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
 
 export interface IssueInvoiceEntityProps {
   invoiceNumber: string;

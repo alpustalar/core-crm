@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import { PosTransactionStatus } from '@prisma/client';
 import { ReconcilePosTransactionsCommand } from './reconcile-pos-transactions.command';
 import {
   IPosTransactionCommandRepository,
@@ -47,11 +46,11 @@ export class ReconcilePosTransactionsHandler
       const ageMs = now - tx.initiatedAt.getTime();
 
       if (ageMs > STALE_THRESHOLD_MS) {
-        await this.posTransactionCommandRepo.updateStatus({
-          id: tx.id,
-          status: PosTransactionStatus.TIMEOUT,
-          completedAt: new Date(),
-        });
+        const entity = await this.posTransactionQueryRepo.findById(tx.id);
+        if (entity) {
+          entity.markTimeout();
+          await this.posTransactionCommandRepo.save(entity);
+        }
         this.logger.warn(
           `POS işlem TIMEOUT: id=${tx.id} yaş=${Math.round(ageMs / 60_000)}dk — manuel inceleme gerekebilir`
         );
@@ -66,20 +65,19 @@ export class ReconcilePosTransactionsHandler
         });
 
         if (result) {
-          const status = result.approved
-            ? PosTransactionStatus.SUCCESS
-            : PosTransactionStatus.FAILED;
+          const entity = await this.posTransactionQueryRepo.findById(tx.id);
+          if (entity) {
+            if (result.approved) {
+              entity.markSuccess(result.externalRef, result.rawResponse);
+            } else {
+              entity.markFailed(result.rawResponse);
+            }
+            await this.posTransactionCommandRepo.save(entity);
 
-          await this.posTransactionCommandRepo.updateStatus({
-            id: tx.id,
-            status,
-            rawResponse: result.rawResponse,
-            completedAt: new Date(),
-          });
-
-          this.logger.log(
-            `POS işlem reconcile edildi: id=${tx.id} → ${status}`
-          );
+            this.logger.log(
+              `POS işlem reconcile edildi: id=${tx.id} → ${entity.status}`
+            );
+          }
         } else {
           this.logger.warn(
             `POS işlem reconcile edilemedi (cihaz yanıtsız/sorgu desteklenmiyor): id=${tx.id}`

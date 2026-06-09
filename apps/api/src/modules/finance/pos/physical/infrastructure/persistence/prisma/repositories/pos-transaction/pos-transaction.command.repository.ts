@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PosTransaction, PosTransactionStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/types/create-pos-transaction.props';
+import { PosTransactionEntity } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @Injectable()
 export class PosTransactionCommandRepository
@@ -14,8 +14,10 @@ export class PosTransactionCommandRepository
     super(prisma);
   }
 
-  create(props: CreatePosTransactionProps): Promise<PosTransaction> {
-    return this.db.posTransaction.create({
+  async create(
+    props: CreatePosTransactionProps
+  ): Promise<PosTransactionEntity> {
+    const raw = await this.db.posTransaction.create({
       data: {
         id: props.id,
         posDeviceId: props.posDeviceId,
@@ -25,40 +27,27 @@ export class PosTransactionCommandRepository
         paymentId: props.paymentId,
         amount: props.amount,
         currency: props.currency ?? 'TRY',
-        rawRequest: props.rawRequest ?? undefined,
-      },
-    });
-  }
-
-  updateStatus(props: {
-    id: string;
-    status: PosTransactionStatus;
-    externalRef?: string;
-    rawResponse?: unknown;
-    completedAt?: Date;
-  }): Promise<PosTransaction> {
-    return this.db.posTransaction.update({
-      where: { id: props.id },
-      data: {
-        status: props.status,
-        externalRef: props.externalRef,
-        rawResponse: props.rawResponse ?? undefined,
-        completedAt: props.completedAt,
-      },
-    });
-  }
-
-  setExternalRef(props: {
-    id: string;
-    externalRef: string;
-    rawRequest?: unknown;
-  }): Promise<PosTransaction> {
-    return this.db.posTransaction.update({
-      where: { id: props.id },
-      data: {
         externalRef: props.externalRef,
         rawRequest: props.rawRequest ?? undefined,
       },
     });
+    return new PosTransactionEntity(raw);
+  }
+
+  async save(entity: PosTransactionEntity): Promise<PosTransactionEntity> {
+    const data = entity.toPersistence();
+    const raw = await this.db.posTransaction.update({
+      where: { id: data.id },
+      data: {
+        status: data.status,
+        externalRef: data.externalRef,
+        rawRequest: data.rawRequest ?? undefined,
+        rawResponse: data.rawResponse ?? undefined,
+        completedAt: data.completedAt,
+        updatedAt: data.updatedAt,
+      },
+    });
+    entity.flushEvents();
+    return new PosTransactionEntity(raw);
   }
 }

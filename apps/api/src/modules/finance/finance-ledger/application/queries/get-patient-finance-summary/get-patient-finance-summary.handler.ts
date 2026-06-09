@@ -3,8 +3,8 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetPatientFinanceSummaryQuery } from './get-patient-finance-summary.query';
 import { GetPatientFinanceSummaryQueryResponse } from './get-patient-finance-summary.response';
 import {
-  FINANCE_LEDGER_REPOSITORY,
-  IFinanceLedgerRepository,
+  FINANCE_LEDGER_QUERY_REPOSITORY,
+  IFinanceLedgerQueryRepository,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
@@ -24,8 +24,8 @@ export class GetPatientFinanceSummaryHandler
     >
 {
   constructor(
-    @Inject(FINANCE_LEDGER_REPOSITORY)
-    private readonly financeLedgerRepository: IFinanceLedgerRepository,
+    @Inject(FINANCE_LEDGER_QUERY_REPOSITORY)
+    private readonly financeLedgerRepository: IFinanceLedgerQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus

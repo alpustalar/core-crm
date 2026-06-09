@@ -127,9 +127,7 @@ export class CreateUserHandler
 
     await this.commandBus.execute(
       new ConvertUserToProviderCommand(
-        ExecutionContextFactory.createInternal(
-          ExecutionSources.INTERNAL_CASCADE
-        ),
+        ExecutionContextFactory.createInternal(),
         {
           userId,
           titleId: providerTitleId!,
