@@ -57,14 +57,14 @@ model Appointment {
   patient   Patient?   @relation(fields: [patientId], references: [id])
   resource  Resource?  @relation(fields: [resourceId], references: [id])
 
-  medicalFile          MedicalFile[]
-  payment              Payment?
-  productUsages        ProductUsage[]
-  diagnoses            AppointmentDiagnosis[]
-  procedures           AppointmentProcedure[]
-  eNabizSync           ENabizSync?
-  invoice              Invoice?
-  posTransactions      PosTransaction[]
+  medicalFile     MedicalFile[]
+  payment         Payment?
+  productUsages   ProductUsage[]
+  diagnoses       AppointmentDiagnosis[]
+  procedures      AppointmentProcedure[]
+  eNabizSync      ENabizSync?
+  invoice         Invoice?
+  posTransactions PosTransaction[]
 
   @@index([patientPhone])
   @@index([startTime])

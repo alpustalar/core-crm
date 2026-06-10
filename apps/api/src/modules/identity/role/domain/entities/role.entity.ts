@@ -2,19 +2,10 @@ import { Capability, Role as IRole, RoleCapability } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 
 export type RoleWithCapabilities = IRole & {
-  capabilities: (RoleCapability & { capability: Capability })[];
+  capabilities?: (RoleCapability & { capability: Capability })[];
 };
 
 export class Role extends AggregateRoot implements IRole {
-  private _id: string;
-  private _name: string;
-  private _slug: string;
-  private _priority: number;
-  private _isSystemRole: boolean;
-  private _createdAt: Date;
-  private _updatedAt: Date;
-  private _capabilities: Capability[];
-
   constructor(data: RoleWithCapabilities) {
     super();
     this._id = data.id;
@@ -24,22 +15,66 @@ export class Role extends AggregateRoot implements IRole {
     this._isSystemRole = data.isSystemRole;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
-    this._capabilities = data.capabilities.map((rc) => rc.capability);
+    this._capabilities = data.capabilities
+      ? data?.capabilities?.map((rc) => rc.capability)
+      : null;
   }
 
-  get id(): string { return this._id; }
-  get name(): string { return this._name; }
-  get slug(): string { return this._slug; }
-  get priority(): number { return this._priority; }
-  get isSystemRole(): boolean { return this._isSystemRole; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
-  get capabilities(): readonly Capability[] { return this._capabilities; }
+  private _id: string;
+
+  get id(): string {
+    return this._id;
+  }
+
+  private _name: string;
+
+  get name(): string {
+    return this._name;
+  }
+
+  private _slug: string;
+
+  get slug(): string {
+    return this._slug;
+  }
+
+  private _priority: number;
+
+  get priority(): number {
+    return this._priority;
+  }
+
+  private _isSystemRole: boolean;
+
+  get isSystemRole(): boolean {
+    return this._isSystemRole;
+  }
+
+  private _createdAt: Date;
+
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+
+  private _updatedAt: Date;
+
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+
+  private _capabilities: Capability[] | null;
+
+  get capabilities(): readonly Capability[] | null {
+    return this._capabilities;
+  }
 
   hasCapability(module: string, action: string): boolean {
-    return this._capabilities.some(
-      (c) => c.module === module && c.action === action
-    );
+    if (this._capabilities) {
+      return this._capabilities.some(
+        (c) => c.module === module && c.action === action
+      );
+    }
+    return false;
   }
 
   toPersistence(): IRole {

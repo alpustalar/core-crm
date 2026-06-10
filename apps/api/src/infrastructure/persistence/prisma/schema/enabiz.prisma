@@ -2,21 +2,21 @@
 
 enum ExaminationType {
   FIRST_VISIT // İlk muayene
-  FOLLOW_UP   // Kontrol muayenesi
-  EMERGENCY   // Acil
+  FOLLOW_UP // Kontrol muayenesi
+  EMERGENCY // Acil
 }
 
 enum VisitType {
   SCHEDULED // Randevulu
-  WALK_IN   // Randevusuz
-  REFERRAL  // Sevkli
+  WALK_IN // Randevusuz
+  REFERRAL // Sevkli
 }
 
 enum ENabizSyncStatus {
-  PENDING  // Senkronizasyon kuyruğunda
-  SYNCED   // Başarıyla iletildi
-  FAILED   // İletim başarısız
-  SKIPPED  // Atlandı (TC No eksik vb.)
+  PENDING // Senkronizasyon kuyruğunda
+  SYNCED // Başarıyla iletildi
+  FAILED // İletim başarısız
+  SKIPPED // Atlandı (TC No eksik vb.)
 }
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -58,19 +58,19 @@ model AppointmentProcedure {
 
 // e-Nabız senkronizasyon kaydı — her randevu için en fazla bir tane
 model ENabizSync {
-  id            String          @id @default(uuid())
-  appointmentId String          @unique @map("appointment_id")
+  id            String           @id @default(uuid())
+  appointmentId String           @unique @map("appointment_id")
   status        ENabizSyncStatus @default(PENDING)
   // e-Nabız'dan dönen başvuru/takip numarası
-  referenceNo   String?         @map("reference_no")
-  submittedAt   DateTime?       @map("submitted_at")
-  lastAttemptAt DateTime?       @map("last_attempt_at")
-  attemptCount  Int             @default(0) @map("attempt_count")
-  errorCode     String?         @map("error_code")
-  errorMessage  String?         @map("error_message") @db.Text
+  referenceNo   String?          @map("reference_no")
+  submittedAt   DateTime?        @map("submitted_at")
+  lastAttemptAt DateTime?        @map("last_attempt_at")
+  attemptCount  Int              @default(0) @map("attempt_count")
+  errorCode     String?          @map("error_code")
+  errorMessage  String?          @map("error_message") @db.Text
   // Ham istek/cevap — hata ayıklama ve denetim için saklanır
-  rawRequest    Json?           @map("raw_request")
-  rawResponse   Json?           @map("raw_response")
+  rawRequest    Json?            @map("raw_request")
+  rawResponse   Json?            @map("raw_response")
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 

@@ -18,7 +18,15 @@ export interface PosCallbackPayload {
   rawResponse: unknown;
 }
 
-export type PosCallbackStatus = 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'TIMEOUT';
+export const PosCallbackStatuses = {
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  TIMEOUT: 'TIMEOUT',
+} as const;
+
+export type PosCallbackStatus =
+  (typeof PosCallbackStatuses)[keyof typeof PosCallbackStatuses];
 
 export interface PosCallbackResult {
   status: PosCallbackStatus;

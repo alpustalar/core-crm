@@ -3,8 +3,8 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { RoleSlug } from '@src/domain/constants/db/role/role-slugs';
 import { IRoleRepository } from '@modules/identity/role/domain/repositories/role.repository.interface';
-import { FindBySlugResponse } from '@modules/identity/role/domain/types/find-by-slug-response.type';
 import { Role } from '@modules/identity/role/domain/entities/role.entity';
+import { FindBySlugResponse } from '@modules/identity/role/domain/types/find-by-slug-response.type';
 
 @Injectable()
 export class RoleRepository extends BaseRepository implements IRoleRepository {
@@ -23,7 +23,7 @@ export class RoleRepository extends BaseRepository implements IRoleRepository {
   }
 
   findBySlug(slug: RoleSlug): Promise<FindBySlugResponse> {
-    return this.db.role.findFirstOrThrow({
+    return this.db.role.findFirst({
       where: { slug },
       select: { id: true, slug: true },
     });

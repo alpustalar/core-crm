@@ -1,0 +1,132 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetFinancialEventByIdQuery } from '@modules/finance/accounting/financial-events/application/queries/get-financial-event-by-id/get-financial-event-by-id.query';
+import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
+import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
+import {
+  IJournalCommandRepository,
+  IJournalQueryRepository,
+  JOURNAL_COMMAND_REPOSITORY,
+  JOURNAL_QUERY_REPOSITORY,
+} from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
+import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
+import { AccountResolver } from '@modules/finance/accounting/posting/domain/posting/account-resolver';
+import { CreateJournalEntryLineInput } from '@modules/finance/accounting/posting/domain/types/create-journal-entry.props';
+import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
+import { PostFinancialEventCommand } from './post-financial-event.command';
+
+@CommandHandler(PostFinancialEventCommand)
+export class PostFinancialEventHandler
+  implements ICommandHandler<PostFinancialEventCommand, string | null>
+{
+  private readonly logger = new Logger(PostFinancialEventHandler.name);
+
+  constructor(
+    @Inject(JOURNAL_COMMAND_REPOSITORY)
+    private readonly journalCommandRepo: IJournalCommandRepository,
+    @Inject(JOURNAL_QUERY_REPOSITORY)
+    private readonly journalQueryRepo: IJournalQueryRepository,
+    private readonly registry: PostingRuleRegistry,
+    private readonly queryBus: TSQueryBus,
+    private readonly txManager: TransactionManager
+  ) {}
+
+  async execute(command: PostFinancialEventCommand): Promise<string | null> {
+    const { financialEventId, ctx } = command;
+
+    const { data: event } = await this.queryBus.execute(
+      new GetFinancialEventByIdQuery(financialEventId, ctx)
+    );
+    if (!event) {
+      this.logger.warn(`FinancialEvent bulunamadı, atlandı: ${financialEventId}`);
+      return null;
+    }
+
+    // İdempotentlik: olay zaten fişlenmişse mevcut fişi döndür.
+    const existing = await this.journalQueryRepo.findByEventId(event.id);
+    if (existing) return existing.id;
+
+    const rule = this.registry.get(event.type);
+    if (!rule) {
+      this.logger.log(`Posting kuralı yok, atlandı: ${event.type}`);
+      return null;
+    }
+
+    const { data: period } = await this.queryBus.execute(
+      new FindPeriodByDateQuery(event.organizationId, event.occurredAt, ctx)
+    );
+    if (!period) {
+      throw new Error(
+        `${event.occurredAt.toISOString()} tarihi için muhasebe dönemi yok.`
+      );
+    }
+    if (!period.canPost()) {
+      throw new Error(`Dönem ${period.year} kapalı/kilitli; fiş atılamaz.`);
+    }
+
+    const { data: accounts } = await this.queryBus.execute(
+      new GetChartOfAccountsQuery(event.organizationId, ctx)
+    );
+    const resolver = new AccountResolver(accounts);
+
+    const draft = rule.build(event, {
+      organizationId: event.organizationId,
+      clinicId: event.clinicId,
+    });
+
+    const lines: CreateJournalEntryLineInput[] = draft.lines.map((line) => {
+      const account = resolver.resolve(line.accountCode);
+      if (!account.isPostable) {
+        throw new Error(`Yaprak olmayan hesaba fiş atılamaz: ${account.code}`);
+      }
+      if (account.requiresParty && !line.partyId) {
+        throw new Error(
+          `${account.code} hesabında alt defter (party) zorunludur.`
+        );
+      }
+      return {
+        accountId: account.id,
+        partyId: line.partyId,
+        debit: line.debit,
+        credit: line.credit,
+        lineDesc: line.desc,
+      };
+    });
+
+    const entry = JournalEntry.createDraft({
+      organizationId: event.organizationId,
+      clinicId: event.clinicId,
+      periodId: period.id,
+      entryDate: draft.date,
+      description: draft.description,
+      eventId: event.id,
+      performedById: event.performedById,
+      lines,
+    });
+
+    try {
+      return await this.txManager.outboxRun(async () => {
+        const entryNo = await this.journalCommandRepo.nextEntryNo(
+          event.organizationId,
+          period.id
+        );
+        entry.post(entryNo);
+        const saved = await this.journalCommandRepo.save(entry);
+        return saved.id;
+      });
+    } catch (error) {
+      // Eşzamanlı posting aynı olay için fiş üretmiş olabilir (event_id unique).
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const raced = await this.journalQueryRepo.findByEventId(event.id);
+        if (raced) return raced.id;
+      }
+      throw error;
+    }
+  }
+}

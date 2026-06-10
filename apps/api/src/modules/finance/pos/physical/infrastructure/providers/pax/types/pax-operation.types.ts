@@ -17,6 +17,7 @@ export interface PaxRefundInput {
 
 export interface PaxVoidInput {
   device: PaxDeviceConfig;
+  amountInMinorUnits: number;
   ecReferenceNumber: string;
   originalReferenceNumber: string;
   timeout?: number;
@@ -35,6 +36,8 @@ export interface PaxResult {
   cardType?: string;
   maskedCardNumber?: string;
   externalRef?: string;
+  /** Terminalin yankıladığı ECR referans numarası (fields[6]); sorgu eşleştirmesi için. */
+  ecReferenceNumber?: string;
   rawResponse: Record<string, string>;
 }
 

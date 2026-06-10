@@ -164,10 +164,10 @@ model TreatmentPackageProvider {
 }
 
 model PatientTreatmentPackage {
-  id         String @id @default(uuid())
-  patientId  String @map("patient_id")
-  packageId  String @map("package_id")
-  providerId String @map("provider_id")
+  id         String  @id @default(uuid())
+  patientId  String  @map("patient_id")
+  packageId  String  @map("package_id")
+  providerId String  @map("provider_id")
   paymentId  String? @unique @map("payment_id")
 
   startDate DateTime             @map("start_date")

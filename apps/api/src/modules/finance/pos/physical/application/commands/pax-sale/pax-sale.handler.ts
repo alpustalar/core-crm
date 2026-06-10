@@ -19,11 +19,14 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 @CommandHandler(PaxSaleCommand)
-export class PaxSaleHandler
-  implements ICommandHandler<PaxSaleCommand, PaxSaleResponse>
-{
+export class PaxSaleHandler implements ICommandHandler<
+  PaxSaleCommand,
+  PaxSaleResponse
+> {
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
@@ -32,7 +35,9 @@ export class PaxSaleHandler
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
-    private readonly commandBus: TSCommandBus
+    private readonly commandBus: TSCommandBus,
+    private readonly txManager: TransactionManager,
+    private readonly posPaymentSync: PosPaymentSyncService
   ) {}
 
   async execute(command: PaxSaleCommand): Promise<PaxSaleResponse> {
@@ -43,34 +48,43 @@ export class PaxSaleHandler
       throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
     }
 
-    let paymentId = input.paymentId;
-    if (!paymentId && input.patientId) {
-      const result = await this.commandBus.execute(
-        new CreatePaymentCommand({
+    // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
+    const { posTransactionId, transaction, paymentId } =
+      await this.txManager.outboxRun(async () => {
+        let resolvedPaymentId = input.paymentId;
+        if (!resolvedPaymentId && input.patientId) {
+          const result = await this.commandBus.execute(
+            new CreatePaymentCommand({
+              clinicId: input.clinicId,
+              patientId: input.patientId,
+              appointmentId: input.appointmentId,
+              amount: input.amount,
+              currency: input.currency,
+              method: PaymentMethodSchema.enum.CREDIT_CARD,
+            })
+          );
+          resolvedPaymentId = result.paymentId;
+        }
+
+        const id = crypto.randomUUID();
+        const tx = await this.posTransactionCommandRepo.create({
+          id,
+          posDeviceId: device.id,
           clinicId: input.clinicId,
           patientId: input.patientId,
           appointmentId: input.appointmentId,
+          paymentId: resolvedPaymentId,
           amount: input.amount,
           currency: input.currency,
-          method: PaymentMethodSchema.enum.CREDIT_CARD,
-        })
-      );
-      paymentId = result.paymentId;
-    }
+        });
+        return {
+          posTransactionId: id,
+          transaction: tx,
+          paymentId: resolvedPaymentId,
+        };
+      });
 
-    const posTransactionId = crypto.randomUUID();
-
-    const transaction = await this.posTransactionCommandRepo.create({
-      id: posTransactionId,
-      posDeviceId: device.id,
-      clinicId: input.clinicId,
-      patientId: input.patientId,
-      appointmentId: input.appointmentId,
-      paymentId,
-      amount: input.amount,
-      currency: input.currency,
-    });
-
+    // Faz 2 — PAX TCP çağrısı (transaction dışında; bloke edici, ~90s)
     try {
       const result = await this.paxService.sale({
         device: {
@@ -83,12 +97,29 @@ export class PaxSaleHandler
         ecReferenceNumber: posTransactionId,
       });
 
-      if (result.approved) {
-        transaction.markSuccess(result.externalRef, result.rawResponse);
-      } else {
-        transaction.markFailed(result.rawResponse);
-      }
-      await this.posTransactionCommandRepo.save(transaction);
+      // Faz 3 — sonuç + payment senkron + ledger atomik (outboxRun)
+      await this.txManager.outboxRun(async () => {
+        if (result.approved) {
+          transaction.markSuccess(result.externalRef, result.rawResponse);
+          await this.posTransactionCommandRepo.save(transaction);
+          if (paymentId) {
+            await this.posPaymentSync.markPaid({
+              paymentId,
+              clinicId: input.clinicId,
+            });
+          }
+        } else {
+          transaction.markFailed(result.rawResponse);
+          await this.posTransactionCommandRepo.save(transaction);
+          if (paymentId) {
+            await this.posPaymentSync.markFailed({
+              paymentId,
+              clinicId: input.clinicId,
+              reason: result.responseText,
+            });
+          }
+        }
+      });
 
       const status = result.approved
         ? PosTransactionStatusSchema.enum.SUCCESS
@@ -120,8 +151,17 @@ export class PaxSaleHandler
       }
 
       if (err instanceof PaxConnectionError) {
-        transaction.markFailed();
-        await this.posTransactionCommandRepo.save(transaction);
+        await this.txManager.outboxRun(async () => {
+          transaction.markFailed();
+          await this.posTransactionCommandRepo.save(transaction);
+          if (paymentId) {
+            await this.posPaymentSync.markFailed({
+              paymentId,
+              clinicId: input.clinicId,
+              reason: 'POS cihazına bağlanılamadı',
+            });
+          }
+        });
         this.logger.error(`PAX satış bağlantı hatası: id=${posTransactionId}`);
         return {
           posTransactionId,

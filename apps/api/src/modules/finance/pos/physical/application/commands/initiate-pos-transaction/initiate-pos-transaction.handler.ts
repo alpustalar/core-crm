@@ -17,6 +17,8 @@ import {
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
+import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(InitiatePosTransactionCommand)
 export class InitiatePosTransactionHandler
@@ -33,7 +35,8 @@ export class InitiatePosTransactionHandler
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
     private readonly posProvider: IPhysicalPosProvider,
-    private readonly commandBus: TSCommandBus
+    private readonly commandBus: TSCommandBus,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -46,34 +49,39 @@ export class InitiatePosTransactionHandler
       throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
     }
 
-    let paymentId = input.paymentId;
-    if (!paymentId && input.patientId) {
-      const result = await this.commandBus.execute(
-        new CreatePaymentCommand({
+    // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
+    const { posTransactionId, transaction } =
+      await this.txManager.outboxRun(async () => {
+        let paymentId = input.paymentId;
+        if (!paymentId && input.patientId) {
+          const result = await this.commandBus.execute(
+            new CreatePaymentCommand({
+              clinicId: input.clinicId,
+              patientId: input.patientId,
+              appointmentId: input.appointmentId,
+              amount: input.amount,
+              currency: input.currency ?? 'TRY',
+              method: PaymentMethodSchema.enum.CREDIT_CARD,
+            })
+          );
+          paymentId = result.paymentId;
+        }
+
+        const id = crypto.randomUUID();
+        const tx = await this.posTransactionCommandRepo.create({
+          id,
+          posDeviceId: device.id,
           clinicId: input.clinicId,
           patientId: input.patientId,
           appointmentId: input.appointmentId,
+          paymentId,
           amount: input.amount,
           currency: input.currency ?? 'TRY',
-          method: PaymentMethodSchema.enum.CREDIT_CARD,
-        })
-      );
-      paymentId = result.paymentId;
-    }
+        });
+        return { posTransactionId: id, transaction: tx };
+      });
 
-    const posTransactionId = crypto.randomUUID();
-
-    const transaction = await this.posTransactionCommandRepo.create({
-      id: posTransactionId,
-      posDeviceId: device.id,
-      clinicId: input.clinicId,
-      patientId: input.patientId,
-      appointmentId: input.appointmentId,
-      paymentId,
-      amount: input.amount,
-      currency: input.currency ?? 'TRY',
-    });
-
+    // Faz 2 — sağlayıcı TCP/HTTP çağrısı (transaction dışında)
     const result = await this.posProvider.initiate({
       posTransactionId,
       terminalId: device.terminalId,
@@ -82,13 +90,16 @@ export class InitiatePosTransactionHandler
       currency: input.currency ?? 'TRY',
     });
 
-    transaction.setExternalRef(result.externalRef, result.rawRequest);
-    await this.posTransactionCommandRepo.save(transaction);
+    // Faz 3 — externalRef kaydedilir
+    await this.txManager.run(async () => {
+      transaction.setExternalRef(result.externalRef, result.rawRequest);
+      await this.posTransactionCommandRepo.save(transaction);
+    });
 
     return {
       posTransactionId,
       externalRef: result.externalRef,
-      status: 'PENDING',
+      status: PosTransactionStatusSchema.enum.PENDING,
     };
   }
 }

@@ -1,0 +1,64 @@
+// Cari (Party) — çift taraflı defterin alt-defter kimliği.
+// Finans'a aittir; yalnızca muhasebe-ilgili veri tutar (kimlik snapshot'ı, vergi,
+// 120/320 hesap bağı). Kaynak kayda (Patient/Supplier/User) (originType, originId)
+// ile bağlanır; finans bu tablolara DB-join yapmaz.
+
+enum PartyType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum PartyRole {
+  CUSTOMER
+  PATIENT
+  SUPPLIER
+  EMPLOYEE
+}
+
+enum PartyOriginType {
+  PATIENT
+  SUPPLIER
+  USER
+  EXTERNAL
+}
+
+model Party {
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+
+  type  PartyType
+  roles PartyRole[]
+
+  name       String
+  taxNumber  String? @map("tax_number") // VKN (kurum)
+  nationalId String? @map("national_id") // TCKN (gerçek kişi)
+  taxOffice  String? @map("tax_office")
+
+  email   String?
+  phone   String?
+  address String? @db.Text
+
+  // e-belge
+  isEInvoiceUser  Boolean @default(false) @map("is_einvoice_user")
+  eInvoiceMailbox String? @map("einvoice_mailbox")
+
+  // muhasebe bağı — Account.id (genelde 120 / 320). Posting rol bazında default'lar.
+  receivableAccountId String? @map("receivable_account_id")
+  payableAccountId    String? @map("payable_account_id")
+
+  // kaynak kayıt eşlemesi (join yok)
+  originType PartyOriginType @map("origin_type")
+  originId   String?         @map("origin_id")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  journalLines JournalLine[]
+
+  @@unique([organizationId, originType, originId])
+  @@index([organizationId])
+  @@map("parties")
+}

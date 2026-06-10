@@ -1,0 +1,62 @@
+// Yevmiye fişi (JournalEntry) + satırları (JournalLine).
+// Bir FinancialEvent'ten posting motoru tarafından üretilir. event_id unique →
+// olay başına en fazla bir fiş (idempotentlik). POSTED fiş değişmez; düzeltme storno ile.
+
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+model JournalEntry {
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  clinicId       String? @map("clinic_id") // şube boyutu
+  periodId       String  @map("period_id")
+
+  entryNo     BigInt? @map("entry_no") // POSTED olunca atanır, boşluksuz sıralı
+  entryDate   DateTime           @map("entry_date")
+  description String?
+  status      JournalEntryStatus @default(DRAFT)
+
+  eventId      String? @unique @map("event_id") // idempotentlik
+  reversedById String? @map("reversed_by_id")
+
+  performedById String? @map("performed_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  period       AccountingPeriod @relation(fields: [periodId], references: [id])
+  event        FinancialEvent?  @relation(fields: [eventId], references: [id])
+  reversedBy   JournalEntry?    @relation("JournalReversal", fields: [reversedById], references: [id])
+  reversals    JournalEntry[]   @relation("JournalReversal")
+  lines        JournalLine[]
+
+  @@index([organizationId, entryDate])
+  @@index([periodId])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id        String  @id @default(uuid())
+  entryId   String  @map("entry_id")
+  accountId String  @map("account_id")
+  partyId   String? @map("party_id") // 120/320 satırlarında zorunlu (alt defter)
+
+  debit    Decimal @default(0) @db.Decimal(14, 2)
+  credit   Decimal @default(0) @db.Decimal(14, 2)
+  currency String  @default("TRY")
+
+  lineDesc String? @map("line_desc")
+
+  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account Account      @relation(fields: [accountId], references: [id])
+  party   Party?       @relation(fields: [partyId], references: [id])
+
+  @@index([entryId])
+  @@index([accountId])
+  @@index([partyId])
+  @@map("journal_lines")
+}

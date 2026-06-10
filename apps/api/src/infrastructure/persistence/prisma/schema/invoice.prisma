@@ -6,9 +6,9 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
-  clinicId      String        @map("clinic_id")
-  patientId     String        @map("patient_id")
+  id            String  @id @default(uuid())
+  clinicId      String  @map("clinic_id")
+  patientId     String  @map("patient_id")
   appointmentId String? @unique @map("appointment_id")
   paymentId     String? @unique @map("payment_id")
 

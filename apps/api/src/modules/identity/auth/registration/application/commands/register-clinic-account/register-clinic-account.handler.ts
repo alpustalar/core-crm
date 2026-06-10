@@ -11,6 +11,7 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { CreateOrganizationCommand } from '@modules/organization/organization/application/commands/create-organization/create-organization.command';
 import { CreateClinicCommand } from '@modules/organization/clinic/application/commands/create-clinic/create-clinic.command';
+import { NotFoundException } from '@nestjs/common';
 
 @CommandHandler(RegisterClinicAccountCommand)
 export class RegisterClinicAccountHandler
@@ -36,6 +37,11 @@ export class RegisterClinicAccountHandler
     const { data: role } = await this.queryBus.execute(
       new GetRoleBySlugQuery(ROLE_SLUGS.CLINIC_OWNER)
     );
+
+    if (!role?.id) {
+      throw new NotFoundException('Rol bulunamadı');
+    }
+
     const roleId = role.id;
 
     const organizationId = crypto.randomUUID();

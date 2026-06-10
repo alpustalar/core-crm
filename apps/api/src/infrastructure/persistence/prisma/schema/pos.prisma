@@ -28,12 +28,12 @@ model PosDevice {
 }
 
 model PosTransaction {
-  id            String               @id @default(uuid())
-  posDeviceId   String               @map("pos_device_id")
-  clinicId      String               @map("clinic_id")
-  patientId     String?              @map("patient_id")
-  appointmentId String?              @map("appointment_id")
-  paymentId     String?              @map("payment_id")
+  id            String  @id @default(uuid())
+  posDeviceId   String  @map("pos_device_id")
+  clinicId      String  @map("clinic_id")
+  patientId     String? @map("patient_id")
+  appointmentId String? @map("appointment_id")
+  paymentId     String? @map("payment_id")
 
   amount   Decimal @db.Decimal(12, 2)
   currency String  @default("TRY")

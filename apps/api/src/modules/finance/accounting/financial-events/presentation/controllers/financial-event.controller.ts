@@ -1,0 +1,47 @@
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { FinancialEventType } from '@prisma/client';
+import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { GetContext, IGetContext } from '@common/decorators';
+import { PaginationDto } from '@shared';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetFinancialEventsQuery } from '@modules/finance/accounting/financial-events/application/queries/get-financial-events/get-financial-events.query';
+
+@UseGuards(AuthGuard)
+@Controller('financial-events')
+export class FinancialEventController {
+  constructor(private readonly queryBus: TSQueryBus) {}
+
+  @Get()
+  getEvents(
+    @GetContext() ctx: IGetContext,
+    @Query() pagination: PaginationDto,
+    @Query('type') type?: FinancialEventType,
+    @Query('sourceModule') sourceModule?: string,
+    @Query('sourceRefId') sourceRefId?: string
+  ) {
+    return this.queryBus.execute(
+      new GetFinancialEventsQuery(
+        this.resolveOrganizationId(ctx),
+        pagination,
+        ctx,
+        type,
+        sourceModule,
+        sourceRefId
+      )
+    );
+  }
+
+  private resolveOrganizationId(ctx: IGetContext): string {
+    const organizationId = ctx.actor.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('Aktörün organization bağlamı yok.');
+    }
+    return organizationId;
+  }
+}

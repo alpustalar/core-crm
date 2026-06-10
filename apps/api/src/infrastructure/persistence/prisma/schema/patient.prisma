@@ -29,10 +29,10 @@ enum PatientType {
 }
 
 model PatientGroup {
-  id          String    @id @default(uuid())
-  clinicId    String?   @map("clinic_id")
+  id          String  @id @default(uuid())
+  clinicId    String? @map("clinic_id")
   name        String
-  description String?   @db.Text
+  description String? @db.Text
   color       String?
 
   createdAt DateTime  @default(now()) @map("created_at")
@@ -53,9 +53,9 @@ model Patient {
   clinicId       String? @map("clinic_id")
   sectorId       String? @map("sector_id")
 
-  firstName String  @map("first_name")
-  lastName  String? @map("last_name")
-  tcNo      String? @map("tc_no")
+  firstName String    @map("first_name")
+  lastName  String?   @map("last_name")
+  tcNo      String?   @map("tc_no")
   birthDate DateTime? @map("birth_date")
   gender    Gender?
 
@@ -90,12 +90,12 @@ model Patient {
   medicalFile  MedicalFile[]
   appointments Appointment[]
 
-  organization        Organization    @relation(fields: [organizationId], references: [id])
-  clinic              Clinic?         @relation(fields: [clinicId], references: [id])
-  sector              Sector?         @relation(fields: [sectorId], references: [id])
+  organization        Organization              @relation(fields: [organizationId], references: [id])
+  clinic              Clinic?                   @relation(fields: [clinicId], references: [id])
+  sector              Sector?                   @relation(fields: [sectorId], references: [id])
   payments            Payment[]
   financeLedgers      FinanceLedger[]
-  responsibleProvider Provider?       @relation(fields: [responsibleProviderId], references: [id])
+  responsibleProvider Provider?                 @relation(fields: [responsibleProviderId], references: [id])
   groups              PatientGroup[]
   treatmentPackages   PatientTreatmentPackage[]
   invoices            Invoice[]

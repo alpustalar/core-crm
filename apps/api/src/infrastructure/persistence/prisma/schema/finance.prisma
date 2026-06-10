@@ -10,9 +10,9 @@ enum LedgerType {
 }
 
 enum LedgerSource {
-  PAYMENT_MODULE  // Bir Payment kaydına bağlı otomatik oluşan gelir
+  PAYMENT_MODULE // Bir Payment kaydına bağlı otomatik oluşan gelir
   INVENTORY_MODULE // Stok alımı/satımı sonucu oluşan hareket
-  MANUAL_ENTRY     // elle girilen kira, maaş,
+  MANUAL_ENTRY // elle girilen kira, maaş,
 }
 
 enum LedgerCategory {
@@ -30,9 +30,9 @@ model FinanceLedger {
   organizationId String  @map("organization_id")
   clinicId       String  @map("clinic_id")
   patientId      String? @map("patient_id")
-  paymentId     String? @map("payment_id")
-  installmentId String? @unique @map("installment_id")
-  performedById String? @map("performed_by_id")
+  paymentId      String? @map("payment_id")
+  installmentId  String? @unique @map("installment_id")
+  performedById  String? @map("performed_by_id")
 
   type     LedgerType
   source   LedgerSource
@@ -123,11 +123,11 @@ model PaymentInstallment {
   paymentId     String @map("payment_id")
   installmentNo Int    @map("installment_no")
 
-  amount   Decimal       @db.Decimal(10, 2)
-  currency String        @default("TRY")
-  method   PaymentMethod @default(CREDIT_CARD)
-  dueDate  DateTime?     @map("due_date")
-  paidAt   DateTime?     @map("paid_at")
+  amount   Decimal           @db.Decimal(10, 2)
+  currency String            @default("TRY")
+  method   PaymentMethod     @default(CREDIT_CARD)
+  dueDate  DateTime?         @map("due_date")
+  paidAt   DateTime?         @map("paid_at")
   note     String?
   status   InstallmentStatus @default(PENDING)
 

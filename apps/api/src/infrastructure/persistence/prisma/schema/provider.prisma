@@ -41,7 +41,7 @@ model Provider {
   providerAvailabilities ProviderAvailability[]
   medicalFiles           MedicalFile[]
   productUsages          ProductUsage[]
-  sector                 Sector?                @relation(fields: [sectorId], references: [id])
+  sector                 Sector?                    @relation(fields: [sectorId], references: [id])
   sectorId               String?
   providerTitleId        String?
   providerSpecialtyId    String?
@@ -183,4 +183,3 @@ model ProviderSpecialtyTranslation {
   @@unique([specialtyId, languageId])
   @@map("provider_specialty_translations")
 }
-

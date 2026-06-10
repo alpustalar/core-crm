@@ -100,6 +100,7 @@ export class RefundPaymentHandler
         new MarkInstallmentAsRefundedCommand(completedInstallment.id)
       );
 
+      // TODO: entity oluşturulacak. event entity içinde addDomainEvent ile pushlanacak save ile flush edilecek
       this.paymentEventPublisher.paymentRefund({
         installmentId: completedInstallment.id,
         paymentId: payment.id,

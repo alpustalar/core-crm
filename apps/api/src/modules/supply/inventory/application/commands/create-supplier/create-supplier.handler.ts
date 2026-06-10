@@ -22,7 +22,7 @@ export class CreateSupplierHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    // TODO: capability guard ile kullan
+    // TODO: capability guard ile kullan + DTO ile clinicId eklensin
 
     return this.txManager.run(async () => {
       const supplier = Supplier.create({

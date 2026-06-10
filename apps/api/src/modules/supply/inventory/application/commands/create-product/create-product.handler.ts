@@ -1,4 +1,3 @@
-import { POLICY_FACTORY } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
 import {
   IProductCommandRepository,
@@ -16,7 +15,6 @@ export class CreateProductHandler
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productCommandRepo: IProductCommandRepository,
-    @Inject(POLICY_FACTORY)
     private readonly txManager: TransactionManager
   ) {}
 
@@ -24,7 +22,7 @@ export class CreateProductHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    // TODO: capability guard
+    // TODO: controllera capability guard ekle
 
     return this.txManager.run(async () => {
       const product = Product.create({

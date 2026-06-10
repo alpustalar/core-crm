@@ -11,13 +11,16 @@ import {
 import {
   IPhysicalPosProvider,
   PHYSICAL_POS_PROVIDER,
+  PosCallbackStatuses,
 } from '@modules/finance/pos/physical/domain/interfaces/physical-pos-provider.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 @CommandHandler(HandlePosCallbackCommand)
-export class HandlePosCallbackHandler
-  implements
-    ICommandHandler<HandlePosCallbackCommand, HandlePosCallbackResponse>
-{
+export class HandlePosCallbackHandler implements ICommandHandler<
+  HandlePosCallbackCommand,
+  HandlePosCallbackResponse
+> {
   private readonly logger = new Logger(HandlePosCallbackHandler.name);
 
   constructor(
@@ -26,7 +29,9 @@ export class HandlePosCallbackHandler
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
-    private readonly posProvider: IPhysicalPosProvider
+    private readonly posProvider: IPhysicalPosProvider,
+    private readonly txManager: TransactionManager,
+    private readonly posPaymentSync: PosPaymentSyncService
   ) {}
 
   async execute(
@@ -34,40 +39,63 @@ export class HandlePosCallbackHandler
   ): Promise<HandlePosCallbackResponse> {
     const { input } = command;
 
-    const result = await this.posProvider.parseCallback({
+    const posCallbackResult = await this.posProvider.parseCallback({
       externalRef: input.externalRef,
       rawResponse: input.rawPayload,
     });
 
-    const transaction = await this.posTransactionQueryRepo.findByExternalRef(
-      input.externalRef
+    const { posTransactionId, status } = await this.txManager.outboxRun(
+      async () => {
+        const transaction =
+          await this.posTransactionQueryRepo.findByExternalRef(
+            input.externalRef
+          );
+
+        if (!transaction) {
+          throw new NotFoundException(
+            `POS işlemi bulunamadı: externalRef=${input.externalRef}`
+          );
+        }
+
+        switch (posCallbackResult.status) {
+          case PosCallbackStatuses.SUCCESS:
+            transaction.markSuccess(undefined, posCallbackResult.rawResponse);
+            break;
+          case PosCallbackStatuses.CANCELLED:
+            transaction.markCancelled(posCallbackResult.rawResponse);
+            break;
+          case PosCallbackStatuses.TIMEOUT:
+            transaction.markTimeout();
+            break;
+          default:
+            transaction.markFailed(posCallbackResult.rawResponse);
+        }
+
+        await this.posTransactionCommandRepo.save(transaction);
+
+        // Ödeme tahsilat sonucunu payment modülüne yansıt (ledger payment listener üzerinden oluşur)
+        if (transaction.paymentId) {
+          if (posCallbackResult.status === PosCallbackStatuses.SUCCESS) {
+            await this.posPaymentSync.markPaid({
+              paymentId: transaction.paymentId,
+              clinicId: transaction.clinicId,
+            });
+          } else if (posCallbackResult.status === PosCallbackStatuses.FAILED) {
+            await this.posPaymentSync.markFailed({
+              paymentId: transaction.paymentId,
+              clinicId: transaction.clinicId,
+            });
+          }
+        }
+
+        return { posTransactionId: transaction.id, status: transaction.status };
+      }
     );
-    if (!transaction) {
-      throw new NotFoundException(
-        `POS işlemi bulunamadı: externalRef=${input.externalRef}`
-      );
-    }
-
-    switch (result.status) {
-      case 'SUCCESS':
-        transaction.markSuccess(undefined, result.rawResponse);
-        break;
-      case 'CANCELLED':
-        transaction.markCancelled(result.rawResponse);
-        break;
-      case 'TIMEOUT':
-        transaction.markTimeout();
-        break;
-      default:
-        transaction.markFailed(result.rawResponse);
-    }
-
-    await this.posTransactionCommandRepo.save(transaction);
 
     this.logger.log(
-      `POS işlemi güncellendi: id=${transaction.id} status=${transaction.status}`
+      `POS işlemi güncellendi: id=${posTransactionId} status=${status}`
     );
 
-    return { posTransactionId: transaction.id, status: transaction.status };
+    return { posTransactionId, status };
   }
 }

@@ -4,6 +4,10 @@ import {
   Prisma,
 } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { PosTransactionSucceededEvent } from '../events/pos-transaction-succeeded.event';
+import { PosTransactionFailedEvent } from '../events/pos-transaction-failed.event';
+import { PosTransactionCancelledEvent } from '../events/pos-transaction-cancelled.event';
+import { PosTransactionTimeoutEvent } from '../events/pos-transaction-timeout.event';
 
 /**
  * Fiziksel POS işlemini temsil eden domain entity.
@@ -144,6 +148,16 @@ export class PosTransactionEntity
       this._rawResponse = rawResponse as Prisma.JsonValue;
     }
     this._completedAt = new Date();
+    this.addDomainEvent(
+      new PosTransactionSucceededEvent({
+        posTransactionId: this._id,
+        clinicId: this._clinicId,
+        paymentId: this._paymentId,
+        externalRef: this._externalRef,
+        amount: this._amount,
+        currency: this._currency,
+      })
+    );
   }
 
   public markFailed(rawResponse?: unknown): void {
@@ -153,6 +167,13 @@ export class PosTransactionEntity
       this._rawResponse = rawResponse as Prisma.JsonValue;
     }
     this._completedAt = new Date();
+    this.addDomainEvent(
+      new PosTransactionFailedEvent({
+        posTransactionId: this._id,
+        clinicId: this._clinicId,
+        paymentId: this._paymentId,
+      })
+    );
   }
 
   public markCancelled(rawResponse?: unknown): void {
@@ -162,12 +183,25 @@ export class PosTransactionEntity
       this._rawResponse = rawResponse as Prisma.JsonValue;
     }
     this._completedAt = new Date();
+    this.addDomainEvent(
+      new PosTransactionCancelledEvent({
+        posTransactionId: this._id,
+        clinicId: this._clinicId,
+        paymentId: this._paymentId,
+      })
+    );
   }
 
   public markTimeout(): void {
     if (!this.isPending()) return;
     this._status = PosTransactionStatus.TIMEOUT;
     this._completedAt = new Date();
+    this.addDomainEvent(
+      new PosTransactionTimeoutEvent({
+        posTransactionId: this._id,
+        clinicId: this._clinicId,
+      })
+    );
   }
 
   public toPersistence(): IPosTransaction {

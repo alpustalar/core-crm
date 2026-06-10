@@ -100,21 +100,27 @@ export class PaxService {
   }
 
   async void(input: PaxVoidInput): Promise<PaxResult> {
-    const { device, ecReferenceNumber, originalReferenceNumber, timeout } =
-      input;
+    const {
+      device,
+      amountInMinorUnits,
+      ecReferenceNumber,
+      originalReferenceNumber,
+      timeout,
+    } = input;
 
     const packet = buildPacket(PAX_COMMANDS.DO_CREDIT, [
       PAX_PROTOCOL_VERSION,
       PAX_TRANS_TYPE.VOID,
-      // AmountGroup — void'de tutar yok ama grup yapısı korunur
-      ['', '', ''],
+      // AmountGroup: [TransactionAmount, TipAmount, CashBackAmount]
+      // Bazı TR banka firmware'leri void'de orijinal tutarı zorunlu tutar.
+      [formatAmount(amountInMinorUnits), '', ''],
       // TraceGroup: [ReferenceNumber, InvoiceNumber]
       [ecReferenceNumber],
       `OrigRefNum=${originalReferenceNumber}`,
     ]);
 
     this.logger.log(
-      `PAX void — ecRef=${ecReferenceNumber} origRef=${originalReferenceNumber} host=${device.host}`
+      `PAX void — ecRef=${ecReferenceNumber} amount=${amountInMinorUnits} origRef=${originalReferenceNumber} host=${device.host}`
     );
     const response = await this.sendPacket(
       device,
@@ -129,8 +135,9 @@ export class PaxService {
    *
    * PAX POSLINK'de evrensel bir "ref ile sorgula" komutu yoktur; T05 bazı
    * firmware sürümlerinde son onaylı işlemi döner. Desteklenmiyorsa null döner.
-   * Gerçek terminal testinden sonra komut kodu doğrulanmalıdır.
    */
+
+  // TODO: Gerçek terminal testinden sonra komut kodu doğrulanmalı
   async queryTransactionStatus(input: {
     device: PaxDeviceConfig;
     ecReferenceNumber: string;
@@ -146,7 +153,20 @@ export class PaxService {
 
     try {
       const response = await this.sendPacket(device, packet, timeout ?? 15_000);
-      return this.parseTransactionResponse(response);
+      const result = this.parseTransactionResponse(response);
+
+      // T05 "son onaylı işlemi döndür" semantiğinde olabilir; cihaz başka bir
+      // işlemin verisini dönebilir. Yankılanan ECRRefNum bizim sorguladığımızla
+      // eşleşmiyorsa veriyi GÜVENMEYİP null döneriz — aksi halde reconcile yanlış
+      // işlemi tamamlanmış sayar (yanlış müşterinin ödemesini ledger'a yazar).
+      if (result.ecReferenceNumber !== ecReferenceNumber) {
+        this.logger.warn(
+          `PAX durum sorgusu ref uyuşmazlığı: beklenen=${ecReferenceNumber} gelen=${result.ecReferenceNumber ?? '∅'} — yanıt yok sayıldı`
+        );
+        return null;
+      }
+
+      return result;
     } catch (err) {
       this.logger.warn(
         `PAX durum sorgusu başarısız (firmware desteklemeyebilir): ecRef=${ecReferenceNumber} — ${(err as Error).message}`
@@ -200,6 +220,8 @@ export class PaxService {
    * [8] MaskedCardNum  [9] CardType  [10] HostAuthCode
    * (Firmware sürümüne göre ek alanlar gelebilir)
    */
+
+  // TODO: firmware sürümleri kontrol edilecek ona göre DB oluşturulabilir
   private parseTransactionResponse(data: Buffer): PaxResult {
     const { fields, isValid } = parsePacket(data);
 
@@ -211,6 +233,7 @@ export class PaxService {
     const responseText = fields[1] ?? '';
     const authorizationCode = fields[2] || undefined;
     const externalRef = fields[3] || undefined;
+    const ecReferenceNumber = fields[6] || undefined;
     const maskedCardNumber = fields[8] || undefined;
     const cardType = fields[9] || undefined;
 
@@ -220,6 +243,7 @@ export class PaxService {
       responseText,
       authorizationCode,
       externalRef,
+      ecReferenceNumber,
       maskedCardNumber,
       cardType,
       rawResponse: fieldsToRecord(fields),

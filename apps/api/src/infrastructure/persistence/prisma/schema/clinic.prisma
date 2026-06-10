@@ -28,16 +28,16 @@ model Clinic {
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  managers       User[]         @relation("clinic_managers")
-  staffs         User[]         @relation("clinic_staff")
-  treatments         Treatment[]
-  treatmentPackages  TreatmentPackage[]
-  providers          Provider[]
-  appointments       Appointment[]
-  patients           Patient[]
-  medicalFiles       MedicalFile[]
-  resources          Resource[]
-  patientGroups      PatientGroup[]
+  managers          User[]             @relation("clinic_managers")
+  staffs            User[]             @relation("clinic_staff")
+  treatments        Treatment[]
+  treatmentPackages TreatmentPackage[]
+  providers         Provider[]
+  appointments      Appointment[]
+  patients          Patient[]
+  medicalFiles      MedicalFile[]
+  resources         Resource[]
+  patientGroups     PatientGroup[]
 
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")

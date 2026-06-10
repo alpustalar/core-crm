@@ -107,6 +107,20 @@ export class DateTimeManager {
   static endOfDay(date: Date): Date {
     return dayjs(date).endOf('day').toDate();
   }
+
+  /**
+   * Verilen yılın ilk anını döner (1 Ocak 00:00:00)
+   */
+  static startOfYear(year: number): Date {
+    return dayjs().year(year).startOf('year').toDate();
+  }
+
+  /**
+   * Verilen yılın son anını döner (31 Aralık 23:59:59.999)
+   */
+  static endOfYear(year: number): Date {
+    return dayjs().year(year).endOf('year').toDate();
+  }
   /**
    * DD.MM.YYYY formatı döner
    */

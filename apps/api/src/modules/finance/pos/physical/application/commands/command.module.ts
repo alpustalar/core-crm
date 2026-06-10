@@ -12,6 +12,7 @@ import { PosTransactionRepositoryModule } from '@modules/finance/pos/physical/in
 import { PosProviderModule } from '@modules/finance/pos/physical/infrastructure/providers/pos-provider.module';
 import { PaxModule } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';
+import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 export const POS_COMMAND_HANDLERS = [
   RegisterPosDeviceHandler,
@@ -32,7 +33,7 @@ export const POS_COMMAND_HANDLERS = [
     PaxModule,
     PaymentModule,
   ],
-  providers: POS_COMMAND_HANDLERS,
+  providers: [...POS_COMMAND_HANDLERS, PosPaymentSyncService],
   exports: POS_COMMAND_HANDLERS,
 })
 export class PosCommandModule {}

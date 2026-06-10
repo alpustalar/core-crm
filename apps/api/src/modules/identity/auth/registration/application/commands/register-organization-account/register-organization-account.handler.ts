@@ -10,6 +10,7 @@ import { CreateOrganizationCommand } from '@modules/organization/organization/ap
 import { GetRoleBySlugQuery } from '@modules/identity/role/application/queries/get-role-by-slug/get-role-by-slug.query';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { NotFoundException } from '@nestjs/common';
 
 @CommandHandler(RegisterOrganizationAccountCommand)
 export class RegisterOrganizationAccountHandler
@@ -35,6 +36,10 @@ export class RegisterOrganizationAccountHandler
     const { data: role } = await this.queryBus.execute(
       new GetRoleBySlugQuery(ROLE_SLUGS.CLINIC_OWNER)
     );
+
+    if (!role?.id) {
+      throw new NotFoundException('Rol bulunamadı');
+    }
 
     const organizationId = crypto.randomUUID();
 

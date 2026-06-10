@@ -5,7 +5,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { PosTransactionStatus } from '@prisma/client';
 import { PaxVoidCommand } from './pax-void.command';
 import type { PaxVoidResponse } from './pax-void.response';
 import {
@@ -23,11 +22,15 @@ import {
   PaxConnectionError,
   PaxTimeoutError,
 } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
+import { PosTransactionStatus } from '@prisma/client';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler
-  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
-{
+export class PaxVoidHandler implements ICommandHandler<
+  PaxVoidCommand,
+  PaxVoidResponse
+> {
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
@@ -37,7 +40,9 @@ export class PaxVoidHandler
     private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
-    private readonly paxService: PaxService
+    private readonly paxService: PaxService,
+    private readonly txManager: TransactionManager,
+    private readonly posPaymentSync: PosPaymentSyncService
   ) {}
 
   async execute(command: PaxVoidCommand): Promise<PaxVoidResponse> {
@@ -67,17 +72,23 @@ export class PaxVoidHandler
       throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
     }
 
-    const voidTransactionId = crypto.randomUUID();
+    // Faz 1 — PENDING void kaydı atomik olarak oluşturulur (TCP öncesi)
+    const { voidTransactionId, voidTx } = await this.txManager.outboxRun(
+      async () => {
+        const id = crypto.randomUUID();
+        const tx = await this.posTransactionCommandRepo.create({
+          id,
+          posDeviceId: device.id,
+          clinicId: input.clinicId,
+          paymentId: originalTx.paymentId ?? undefined,
+          amount: Number(originalTx.amount),
+          currency: originalTx.currency,
+        });
+        return { voidTransactionId: id, voidTx: tx };
+      }
+    );
 
-    const voidTx = await this.posTransactionCommandRepo.create({
-      id: voidTransactionId,
-      posDeviceId: device.id,
-      clinicId: input.clinicId,
-      paymentId: originalTx.paymentId ?? undefined,
-      amount: Number(originalTx.amount),
-      currency: originalTx.currency,
-    });
-
+    // Faz 2 — PAX TCP çağrısı (transaction dışında)
     try {
       const result = await this.paxService.void({
         device: {
@@ -86,16 +97,27 @@ export class PaxVoidHandler
           terminalId: device.terminalId,
           merchantId: device.merchantId,
         },
+        amountInMinorUnits: Math.round(Number(originalTx.amount) * 100),
         ecReferenceNumber: voidTransactionId,
         originalReferenceNumber: originalTx.externalRef,
       });
 
-      if (result.approved) {
-        voidTx.markSuccess(result.externalRef, result.rawResponse);
-      } else {
-        voidTx.markFailed(result.rawResponse);
-      }
-      await this.posTransactionCommandRepo.save(voidTx);
+      // Faz 3 — sonuç + orijinal ödemeyi iade işaretle + ledger atomik (outboxRun)
+      await this.txManager.outboxRun(async () => {
+        if (result.approved) {
+          voidTx.markSuccess(result.externalRef, result.rawResponse);
+          await this.posTransactionCommandRepo.save(voidTx);
+          if (originalTx.paymentId) {
+            await this.posPaymentSync.markRefunded({
+              paymentId: originalTx.paymentId,
+              clinicId: input.clinicId,
+            });
+          }
+        } else {
+          voidTx.markFailed(result.rawResponse);
+          await this.posTransactionCommandRepo.save(voidTx);
+        }
+      });
 
       const status = result.approved
         ? PosTransactionStatus.SUCCESS
@@ -121,8 +143,10 @@ export class PaxVoidHandler
       }
 
       if (err instanceof PaxConnectionError) {
-        voidTx.markFailed();
-        await this.posTransactionCommandRepo.save(voidTx);
+        await this.txManager.run(async () => {
+          voidTx.markFailed();
+          await this.posTransactionCommandRepo.save(voidTx);
+        });
         this.logger.error(`PAX void bağlantı hatası: id=${voidTransactionId}`);
         return { posTransactionId: voidTransactionId, status: 'FAILED' };
       }

@@ -48,7 +48,7 @@ export class IyzicoClient {
     });
 
     this.createCheckoutForm = promisify(
-      iyzipay.checkoutFormInitialize.create as any
+      iyzipay.checkoutFormInitialize.create
     ).bind(iyzipay.checkoutFormInitialize);
     this.retrieveCheckoutForm = promisify(iyzipay.checkoutForm.retrieve).bind(
       iyzipay.checkoutForm

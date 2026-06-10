@@ -1,0 +1,49 @@
+// FinancialEvent — çift taraflı muhasebenin değişmez kaynağı.
+// Her ekonomik olay önce buraya yazılır (append-only); posting bunu okuyup fiş üretir.
+// NOT: bu tablo asla UPDATE/DELETE edilmez — yalnızca yeni satır eklenir.
+
+enum FinancialEventType {
+  SALES_INVOICE_ISSUED
+  SALES_INVOICE_CANCELLED
+  PURCHASE_INVOICE_RECEIVED
+  PAYMENT_RECEIVED
+  PAYMENT_MADE
+  INSTRUMENT_RECEIVED
+  INSTRUMENT_GIVEN
+  INSTRUMENT_CLEARED
+  STOCK_IN
+  STOCK_OUT
+  EXPENSE_RECORDED
+  PAYROLL_ACCRUED
+  DEPRECIATION
+  FX_REVALUATION
+  MANUAL_JOURNAL
+  OPENING_BALANCE
+  PERIOD_CLOSING
+}
+
+model FinancialEvent {
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  clinicId       String? @map("clinic_id") // şube boyutu
+
+  type       FinancialEventType
+  occurredAt DateTime           @map("occurred_at") // ekonomik olayın tarihi (vergi tarihi)
+
+  payload Json // olaya özgü veri; tutarlar string olarak tutulur (Decimal hassasiyeti)
+
+  sourceModule String  @map("source_module") // 'payment' | 'invoice' | 'pos' | ...
+  sourceRefId  String? @map("source_ref_id") // ilgili Payment/Invoice id
+  dedupeKey    String? @unique @map("dedupe_key") // idempotent append anahtarı
+
+  performedById String? @map("performed_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  journalEntry JournalEntry?
+
+  @@index([organizationId, occurredAt])
+  @@index([sourceModule, sourceRefId])
+  @@map("financial_events")
+}

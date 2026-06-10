@@ -8,14 +8,17 @@ import {
   POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PaxService } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.service';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
 
 @CommandHandler(ReconcilePosTransactionsCommand)
-export class ReconcilePosTransactionsHandler
-  implements ICommandHandler<ReconcilePosTransactionsCommand, void>
-{
+export class ReconcilePosTransactionsHandler implements ICommandHandler<
+  ReconcilePosTransactionsCommand,
+  void
+> {
   private readonly logger = new Logger(ReconcilePosTransactionsHandler.name);
 
   constructor(
@@ -25,7 +28,9 @@ export class ReconcilePosTransactionsHandler
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
 
-    private readonly paxService: PaxService
+    private readonly paxService: PaxService,
+    private readonly txManager: TransactionManager,
+    private readonly posPaymentSync: PosPaymentSyncService
   ) {}
 
   async execute(): Promise<void> {
@@ -46,13 +51,15 @@ export class ReconcilePosTransactionsHandler
       const ageMs = now - tx.initiatedAt.getTime();
 
       if (ageMs > STALE_THRESHOLD_MS) {
-        const entity = await this.posTransactionQueryRepo.findById(tx.id);
-        if (entity) {
-          entity.markTimeout();
-          await this.posTransactionCommandRepo.save(entity);
-        }
+        await this.txManager.outboxRun(async () => {
+          const entity = await this.posTransactionQueryRepo.findById(tx.id);
+          if (entity) {
+            entity.markTimeout();
+            await this.posTransactionCommandRepo.save(entity);
+          }
+        });
         this.logger.warn(
-          `POS işlem TIMEOUT: id=${tx.id} yaş=${Math.round(ageMs / 60_000)}dk — manuel inceleme gerekebilir`
+          `POS işlem TIMEOUT: id=${tx.id} süre=${Math.round(ageMs / 60_000)}dk — manuel inceleme gerekebilir`
         );
         continue;
       }
@@ -65,19 +72,32 @@ export class ReconcilePosTransactionsHandler
         });
 
         if (result) {
-          const entity = await this.posTransactionQueryRepo.findById(tx.id);
-          if (entity) {
+          await this.txManager.outboxRun(async () => {
+            const entity = await this.posTransactionQueryRepo.findById(tx.id);
+            if (!entity) return;
+
             if (result.approved) {
               entity.markSuccess(result.externalRef, result.rawResponse);
+              await this.posTransactionCommandRepo.save(entity);
+              if (entity.paymentId) {
+                await this.posPaymentSync.markPaid({
+                  paymentId: entity.paymentId,
+                  clinicId: entity.clinicId,
+                });
+              }
             } else {
               entity.markFailed(result.rawResponse);
+              await this.posTransactionCommandRepo.save(entity);
+              if (entity.paymentId) {
+                await this.posPaymentSync.markFailed({
+                  paymentId: entity.paymentId,
+                  clinicId: entity.clinicId,
+                });
+              }
             }
-            await this.posTransactionCommandRepo.save(entity);
+          });
 
-            this.logger.log(
-              `POS işlem reconcile edildi: id=${tx.id} → ${entity.status}`
-            );
-          }
+          this.logger.log(`POS işlem reconcile edildi: id=${tx.id}`);
         } else {
           this.logger.warn(
             `POS işlem reconcile edilemedi (cihaz yanıtsız/sorgu desteklenmiyor): id=${tx.id}`

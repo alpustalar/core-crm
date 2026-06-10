@@ -5,7 +5,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { PosTransactionStatus } from '@prisma/client';
 import { PaxRefundCommand } from './pax-refund.command';
 import type { PaxRefundResponse } from './pax-refund.response';
 import {
@@ -23,11 +22,15 @@ import {
   PaxConnectionError,
   PaxTimeoutError,
 } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
+import { PosTransactionStatus } from '@prisma/client';
 
 @CommandHandler(PaxRefundCommand)
-export class PaxRefundHandler
-  implements ICommandHandler<PaxRefundCommand, PaxRefundResponse>
-{
+export class PaxRefundHandler implements ICommandHandler<
+  PaxRefundCommand,
+  PaxRefundResponse
+> {
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
@@ -37,7 +40,9 @@ export class PaxRefundHandler
     private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
-    private readonly paxService: PaxService
+    private readonly paxService: PaxService,
+    private readonly txManager: TransactionManager,
+    private readonly posPaymentSync: PosPaymentSyncService
   ) {}
 
   async execute(command: PaxRefundCommand): Promise<PaxRefundResponse> {
@@ -75,17 +80,23 @@ export class PaxRefundHandler
       throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
     }
 
-    const refundTransactionId = crypto.randomUUID();
+    // Faz 1 — PENDING iade kaydı atomik olarak oluşturulur (TCP öncesi)
+    const { refundTransactionId, refundTx } = await this.txManager.outboxRun(
+      async () => {
+        const id = crypto.randomUUID();
+        const tx = await this.posTransactionCommandRepo.create({
+          id,
+          posDeviceId: device.id,
+          clinicId: input.clinicId,
+          paymentId: originalTx.paymentId ?? undefined,
+          amount: refundAmount,
+          currency: originalTx.currency,
+        });
+        return { refundTransactionId: id, refundTx: tx };
+      }
+    );
 
-    const refundTx = await this.posTransactionCommandRepo.create({
-      id: refundTransactionId,
-      posDeviceId: device.id,
-      clinicId: input.clinicId,
-      paymentId: originalTx.paymentId ?? undefined,
-      amount: refundAmount,
-      currency: originalTx.currency,
-    });
-
+    // Faz 2 — PAX TCP çağrısı (transaction dışında)
     try {
       const result = await this.paxService.refund({
         device: {
@@ -99,12 +110,22 @@ export class PaxRefundHandler
         originalReferenceNumber: originalTx.externalRef,
       });
 
-      if (result.approved) {
-        refundTx.markSuccess(result.externalRef, result.rawResponse);
-      } else {
-        refundTx.markFailed(result.rawResponse);
-      }
-      await this.posTransactionCommandRepo.save(refundTx);
+      // Faz 3 — sonuç + orijinal ödemeyi iade işaretle + ledger atomik (outboxRun)
+      await this.txManager.outboxRun(async () => {
+        if (result.approved) {
+          refundTx.markSuccess(result.externalRef, result.rawResponse);
+          await this.posTransactionCommandRepo.save(refundTx);
+          if (originalTx.paymentId) {
+            await this.posPaymentSync.markRefunded({
+              paymentId: originalTx.paymentId,
+              clinicId: input.clinicId,
+            });
+          }
+        } else {
+          refundTx.markFailed(result.rawResponse);
+          await this.posTransactionCommandRepo.save(refundTx);
+        }
+      });
 
       const status = result.approved
         ? PosTransactionStatus.SUCCESS
@@ -131,8 +152,10 @@ export class PaxRefundHandler
       }
 
       if (err instanceof PaxConnectionError) {
-        refundTx.markFailed();
-        await this.posTransactionCommandRepo.save(refundTx);
+        await this.txManager.run(async () => {
+          refundTx.markFailed();
+          await this.posTransactionCommandRepo.save(refundTx);
+        });
         this.logger.error(
           `PAX iade bağlantı hatası: id=${refundTransactionId}`
         );

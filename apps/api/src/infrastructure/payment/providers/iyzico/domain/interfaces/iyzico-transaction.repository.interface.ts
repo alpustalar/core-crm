@@ -1,6 +1,8 @@
-import { IyzicoTransaction, PaymentInstallment, Payment } from '@prisma/client';
+import { IyzicoTransaction, Payment, PaymentInstallment } from '@prisma/client';
 
-export const IYZICO_TRANSACTION_REPOSITORY = Symbol('IIyzicoTransactionRepository');
+export const IYZICO_TRANSACTION_REPOSITORY = Symbol(
+  'IIyzicoTransactionRepository'
+);
 
 export interface CreateIyzicoTransactionInput {
   installmentId: string;
@@ -38,7 +40,9 @@ export interface IIyzicoTransactionRepository {
     conversationId: string
   ): Promise<IyzicoTransactionWithInstallment | null>;
   findByInstallmentId(installmentId: string): Promise<IyzicoTransaction | null>;
-  createTransaction(input: CreateIyzicoTransactionInput): Promise<IyzicoTransaction>;
+  createTransaction(
+    input: CreateIyzicoTransactionInput
+  ): Promise<IyzicoTransaction>;
   markAsSuccess(input: MarkPaidInput): Promise<IyzicoTransaction>;
   markAsFailed(input: MarkFailedInput): Promise<IyzicoTransaction>;
   markAsRefunded(input: MarkRefundedInput): Promise<IyzicoTransaction>;
