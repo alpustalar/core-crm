@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { JournalEntryStatus, Prisma } from '@prisma/client';
 import { Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
@@ -7,6 +7,8 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import {
   FindJournalEntriesFilter,
   IJournalQueryRepository,
+  TrialBalanceFilter,
+  TrialBalanceRow,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { JournalLine } from '@modules/finance/accounting/posting/domain/entities/journal-line.entity';
@@ -63,6 +65,28 @@ export class JournalQueryRepository
       ),
       total: result.total,
     };
+  }
+
+  async trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]> {
+    const entryWhere: Prisma.JournalEntryWhereInput = {
+      clinicId: filter.clinicId,
+      status: JournalEntryStatus.POSTED,
+    };
+    if (filter.dateFrom || filter.dateTo) {
+      entryWhere.entryDate = { gte: filter.dateFrom, lte: filter.dateTo };
+    }
+
+    const grouped = await this.db.journalLine.groupBy({
+      by: ['accountId'],
+      where: { entry: entryWhere },
+      _sum: { debit: true, credit: true },
+    });
+
+    return grouped.map((row) => ({
+      accountId: row.accountId,
+      totalDebit: row._sum.debit ?? new Prisma.Decimal(0),
+      totalCredit: row._sum.credit ?? new Prisma.Decimal(0),
+    }));
   }
 
   private toEntity(raw: JournalEntryWithLines): JournalEntry {
