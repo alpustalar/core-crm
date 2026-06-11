@@ -121,6 +121,13 @@ export class DateTimeManager {
   static endOfYear(year: number): Date {
     return dayjs().year(year).endOf('year').toDate();
   }
+
+  /**
+   * İçinde bulunulan yılı döner (ör. 2026)
+   */
+  static currentYear(): number {
+    return dayjs().year();
+  }
   /**
    * DD.MM.YYYY formatı döner
    */

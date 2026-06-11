@@ -11,6 +11,9 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { CreateOrganizationCommand } from '@modules/organization/organization/application/commands/create-organization/create-organization.command';
 import { CreateClinicCommand } from '@modules/organization/clinic/application/commands/create-clinic/create-clinic.command';
+import { InitializeChartOfAccountsCommand } from '@modules/finance/accounting/chart-of-accounts/application/commands/initialize-chart-of-accounts/initialize-chart-of-accounts.command';
+import { OpenPeriodCommand } from '@modules/finance/accounting/periods/application/commands/open-period/open-period.command';
+import { DateTimeManager } from '@common/utils';
 import { NotFoundException } from '@nestjs/common';
 
 @CommandHandler(RegisterClinicAccountCommand)
@@ -80,6 +83,20 @@ export class RegisterClinicAccountHandler
           ownedOrganizationIds: [organizationId],
           managedClinicIds: [clinicId],
         })
+      );
+
+      // Finans muhasebe altyapısı: hesap planı (idempotent) + cari yıl dönemi.
+      // Posting'in (çift taraflı fiş üretimi) çalışabilmesi için ön koşul.
+      await this.commandBus.execute(
+        new InitializeChartOfAccountsCommand(organizationId, this.internalCtx)
+      );
+
+      await this.commandBus.execute(
+        new OpenPeriodCommand(
+          organizationId,
+          DateTimeManager.currentYear(),
+          this.internalCtx
+        )
       );
     });
   }
