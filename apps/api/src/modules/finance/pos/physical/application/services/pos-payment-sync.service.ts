@@ -7,10 +7,18 @@ import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
-import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
-import { MarkInstallmentAsFailedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-failed/mark-installment-as-failed.command';
-import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
+import {
+  GetPaymentWithInstallmentsQuery
+} from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
+import {
+  MarkInstallmentAsPaidCommand
+} from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
+import {
+  MarkInstallmentAsFailedCommand
+} from '@modules/finance/payment/application/commands/mark-installment-as-failed/mark-installment-as-failed.command';
+import {
+  MarkInstallmentAsRefundedCommand
+} from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
 
 interface PosPaymentSyncInput {
   paymentId: string;
@@ -53,7 +61,7 @@ export class PosPaymentSyncService {
       new MarkInstallmentAsPaidCommand(resolved.installmentId)
     );
 
-    // TODO: payment modülünün eventini kaldır. command eevent handler içinde fırlatılacak. duruma göre command'e internalContext ve internalData geçilebilir
+    // TODO: payment modülünün eventini kaldır. event, command handler içinde fırlatılacak. duruma göre command'e internalContext ve internalData details geçilebilir
 
     this.paymentEventPublisher.paymentPaid({
       installmentId: resolved.installmentId,

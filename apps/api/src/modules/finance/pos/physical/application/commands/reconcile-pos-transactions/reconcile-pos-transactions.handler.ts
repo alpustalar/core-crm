@@ -15,10 +15,9 @@ const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
 
 @CommandHandler(ReconcilePosTransactionsCommand)
-export class ReconcilePosTransactionsHandler implements ICommandHandler<
-  ReconcilePosTransactionsCommand,
-  void
-> {
+export class ReconcilePosTransactionsHandler
+  implements ICommandHandler<ReconcilePosTransactionsCommand, void>
+{
   private readonly logger = new Logger(ReconcilePosTransactionsHandler.name);
 
   constructor(
@@ -42,7 +41,7 @@ export class ReconcilePosTransactionsHandler implements ICommandHandler<
     if (pending.length === 0) return;
 
     this.logger.log(
-      `Reconcile başladı: ${pending.length} PENDING işlem bulundu`
+      `Reconcile döngüsü başladı. Bulunan PENDING işlem sayısı: ${pending.length}`
     );
 
     const now = Date.now();
@@ -99,13 +98,14 @@ export class ReconcilePosTransactionsHandler implements ICommandHandler<
 
           this.logger.log(`POS işlem reconcile edildi: id=${tx.id}`);
         } else {
-          this.logger.warn(
-            `POS işlem reconcile edilemedi (cihaz yanıtsız/sorgu desteklenmiyor): id=${tx.id}`
+          this.logger.verbose(
+            `POS cihazından durum yanıtı alınamadı veya T05 desteklenmiyor: id=${tx.id}`
           );
         }
       } catch (err) {
         this.logger.error(
-          `POS reconcile hatası: id=${tx.id} — ${(err as Error).message}`
+          `POS reconcile işlemi sırasında beklenmeyen hata fırlatıldı: id=${tx.id}`,
+          (err as Error).stack
         );
       }
     }
