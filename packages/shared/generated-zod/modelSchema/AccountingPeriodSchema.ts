@@ -8,6 +8,7 @@ import { AccountingPeriodStatusSchema } from '../inputTypeSchemas/AccountingPeri
 export const AccountingPeriodSchema = z.object({
   status: AccountingPeriodStatusSchema,
   id: z.uuid(),
+  clinicId: z.string(),
   organizationId: z.string(),
   year: z.number().int(),
   startsAt: z.coerce.date(),

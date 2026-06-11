@@ -85,14 +85,19 @@ export class RegisterClinicAccountHandler
         })
       );
 
-      // Finans muhasebe altyapısı: hesap planı (idempotent) + cari yıl dönemi.
-      // Posting'in (çift taraflı fiş üretimi) çalışabilmesi için ön koşul.
+      // Finans muhasebe altyapısı clinic (defter) seviyesinde kurulur: hesap planı
+      // (idempotent) + cari yıl dönemi. Posting'in çalışabilmesi için ön koşul.
       await this.commandBus.execute(
-        new InitializeChartOfAccountsCommand(organizationId, this.internalCtx)
+        new InitializeChartOfAccountsCommand(
+          clinicId,
+          organizationId,
+          this.internalCtx
+        )
       );
 
       await this.commandBus.execute(
         new OpenPeriodCommand(
+          clinicId,
           organizationId,
           DateTimeManager.currentYear(),
           this.internalCtx

@@ -23,9 +23,9 @@ enum FinancialEventType {
 }
 
 model FinancialEvent {
-  id             String  @id @default(uuid())
-  organizationId String  @map("organization_id")
-  clinicId       String? @map("clinic_id") // şube boyutu
+  id             String @id @default(uuid())
+  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
 
   type       FinancialEventType
   occurredAt DateTime           @map("occurred_at") // ekonomik olayın tarihi (vergi tarihi)
@@ -40,9 +40,10 @@ model FinancialEvent {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  organization Organization  @relation(fields: [organizationId], references: [id])
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
   journalEntry JournalEntry?
 
+  @@index([clinicId, occurredAt])
   @@index([organizationId, occurredAt])
   @@index([sourceModule, sourceRefId])
   @@map("financial_events")

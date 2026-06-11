@@ -198,6 +198,7 @@ export class PaxSaleHandler
       const { partyId, organizationId } = await this.commandBus.execute(
         new EnsurePartyForPatientCommand(
           input.patientId,
+          input.clinicId,
           PartyRole.CUSTOMER,
           ctx
         )

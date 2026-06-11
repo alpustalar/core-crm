@@ -20,8 +20,8 @@ export class GetAccountingPeriodsHandler
   async execute(
     query: GetAccountingPeriodsQuery
   ): Promise<GetAccountingPeriodsResponse> {
-    const periods = await this.periodQueryRepo.findAllByOrganizationId(
-      query.organizationId
+    const periods = await this.periodQueryRepo.findAllByClinicId(
+      query.clinicId
     );
 
     return { data: periods };

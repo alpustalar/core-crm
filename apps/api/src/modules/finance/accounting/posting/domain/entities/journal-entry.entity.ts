@@ -41,8 +41,8 @@ export class JournalEntry extends AggregateRoot implements IJournalEntry {
     return this._organizationId;
   }
 
-  private _clinicId: string | null;
-  get clinicId(): string | null {
+  private _clinicId: string;
+  get clinicId(): string {
     return this._clinicId;
   }
 
@@ -109,7 +109,7 @@ export class JournalEntry extends AggregateRoot implements IJournalEntry {
       {
         id,
         organizationId: props.organizationId,
-        clinicId: props.clinicId ?? null,
+        clinicId: props.clinicId,
         periodId: props.periodId,
         entryNo: null,
         entryDate: props.entryDate,

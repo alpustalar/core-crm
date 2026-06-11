@@ -45,12 +45,9 @@ export class JournalCommandRepository
     return this.toEntity(raw);
   }
 
-  async nextEntryNo(
-    organizationId: string,
-    periodId: string
-  ): Promise<bigint> {
+  async nextEntryNo(clinicId: string, periodId: string): Promise<bigint> {
     const result = await this.db.journalEntry.aggregate({
-      where: { organizationId, periodId, entryNo: { not: null } },
+      where: { clinicId, periodId, entryNo: { not: null } },
       _max: { entryNo: true },
     });
     return (result._max.entryNo ?? 0n) + 1n;

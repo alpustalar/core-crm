@@ -16,10 +16,10 @@ export interface IAccountCommandRepository {
 
 export interface IAccountQueryRepository {
   findById(id: string): Promise<Account | null>;
-  findByCode(organizationId: string, code: string): Promise<Account | null>;
+  findByCode(clinicId: string, code: string): Promise<Account | null>;
 
-  /** Hesap planının tamamı (sınırlı referans set; sayfalanmaz). */
-  findAllByOrganizationId(organizationId: string): Promise<Account[]>;
+  /** Şubenin hesap planının tamamı (sınırlı referans set; sayfalanmaz). */
+  findAllByClinicId(clinicId: string): Promise<Account[]>;
 
-  existsForOrganization(organizationId: string): Promise<boolean>;
+  existsForClinic(clinicId: string): Promise<boolean>;
 }

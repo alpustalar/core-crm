@@ -11,8 +11,8 @@ export interface CreateJournalEntryLineInput {
 
 export interface CreateJournalEntryProps {
   id?: string;
-  organizationId: string;
-  clinicId?: string | null;
+  clinicId: string; // defter sahibi şube (source-of-truth)
+  organizationId: string; // denormalize — konsolide raporlama
   periodId: string;
   entryDate: Date;
   description?: string | null;

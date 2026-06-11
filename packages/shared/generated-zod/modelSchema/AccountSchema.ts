@@ -10,6 +10,7 @@ export const AccountSchema = z.object({
   type: AccountTypeSchema,
   normalSide: AccountSideSchema,
   id: z.uuid(),
+  clinicId: z.string(),
   organizationId: z.string(),
   code: z.string(),
   name: z.string(),

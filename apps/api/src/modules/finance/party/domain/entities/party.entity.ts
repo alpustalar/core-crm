@@ -11,6 +11,7 @@ export class Party extends AggregateRoot implements IParty {
   constructor(data: IParty) {
     super();
     this._id = data.id;
+    this._clinicId = data.clinicId;
     this._organizationId = data.organizationId;
     this._type = data.type;
     this._roles = data.roles;
@@ -35,6 +36,11 @@ export class Party extends AggregateRoot implements IParty {
   private _id: string;
   get id(): string {
     return this._id;
+  }
+
+  private _clinicId: string;
+  get clinicId(): string {
+    return this._clinicId;
   }
 
   private _organizationId: string;
@@ -135,6 +141,7 @@ export class Party extends AggregateRoot implements IParty {
   public static create(props: CreatePartyProps): Party {
     return new Party({
       id: props.id ?? crypto.randomUUID(),
+      clinicId: props.clinicId,
       organizationId: props.organizationId,
       type: props.type,
       roles: props.roles,
@@ -215,6 +222,7 @@ export class Party extends AggregateRoot implements IParty {
   public toPersistence(): IParty {
     return {
       id: this._id,
+      clinicId: this._clinicId,
       organizationId: this._organizationId,
       type: this._type,
       roles: this._roles,

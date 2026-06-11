@@ -11,8 +11,8 @@ import { AccountingPeriod } from '@modules/finance/accounting/periods/domain/ent
 import { OpenPeriodCommand } from './open-period.command';
 
 /**
- * Bir organization için ilgili yılın muhasebe dönemini açar.
- * Aynı yıl için ikinci dönem açılamaz (organizationId+year unique).
+ * Bir clinic (defter) için ilgili yılın muhasebe dönemini açar.
+ * Aynı yıl için ikinci dönem açılamaz (clinicId+year unique).
  */
 @CommandHandler(OpenPeriodCommand)
 export class OpenPeriodHandler
@@ -27,19 +27,16 @@ export class OpenPeriodHandler
   ) {}
 
   async execute(command: OpenPeriodCommand): Promise<string> {
-    const { organizationId, year } = command;
+    const { clinicId, organizationId, year } = command;
 
-    const existing = await this.periodQueryRepo.findByYear(
-      organizationId,
-      year
-    );
+    const existing = await this.periodQueryRepo.findByYear(clinicId, year);
     if (existing) {
       throw new ConflictException(
         `${year} yılı için muhasebe dönemi zaten mevcut.`
       );
     }
 
-    const period = AccountingPeriod.create({ organizationId, year });
+    const period = AccountingPeriod.create({ clinicId, organizationId, year });
 
     await this.txManager.run(async () => {
       await this.periodCommandRepo.save(period);

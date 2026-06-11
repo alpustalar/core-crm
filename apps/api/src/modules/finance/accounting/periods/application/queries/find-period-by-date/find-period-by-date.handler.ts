@@ -20,7 +20,7 @@ export class FindPeriodByDateHandler
     query: FindPeriodByDateQuery
   ): Promise<FindPeriodByDateResponse> {
     const period = await this.periodQueryRepo.findByDate(
-      query.organizationId,
+      query.clinicId,
       query.date
     );
     return { data: period };

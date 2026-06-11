@@ -6,10 +6,16 @@ import {
   CLINIC_CHART_OF_ACCOUNTS_TEMPLATE,
 } from '../constants/clinic-chart-of-accounts.template';
 
+export interface BuildChartInput {
+  clinicId: string;
+  organizationId: string;
+}
+
 export class Account extends AggregateRoot implements IAccount {
   constructor(data: IAccount) {
     super();
     this._id = data.id;
+    this._clinicId = data.clinicId;
     this._organizationId = data.organizationId;
     this._code = data.code;
     this._name = data.name;
@@ -27,6 +33,11 @@ export class Account extends AggregateRoot implements IAccount {
   private _id: string;
   get id(): string {
     return this._id;
+  }
+
+  private _clinicId: string;
+  get clinicId(): string {
+    return this._clinicId;
   }
 
   private _organizationId: string;
@@ -92,6 +103,7 @@ export class Account extends AggregateRoot implements IAccount {
   public static create(props: CreateAccountProps): Account {
     return new Account({
       id: props.id ?? crypto.randomUUID(),
+      clinicId: props.clinicId,
       organizationId: props.organizationId,
       code: props.code,
       name: props.name,
@@ -112,15 +124,17 @@ export class Account extends AggregateRoot implements IAccount {
    * UUID'ler üzerinden (code → id) çözülür; böylece tek bir bulk insert yeterli olur.
    */
   public static buildChartFromTemplate(
-    organizationId: string,
+    input: BuildChartInput,
     template: readonly AccountTemplateNode[] = CLINIC_CHART_OF_ACCOUNTS_TEMPLATE
   ): Account[] {
+    const { clinicId, organizationId } = input;
     const idByCode = new Map<string, string>();
     template.forEach((node) => idByCode.set(node.code, crypto.randomUUID()));
 
     return template.map((node) =>
       Account.create({
         id: idByCode.get(node.code),
+        clinicId,
         organizationId,
         code: node.code,
         name: node.name,
@@ -150,6 +164,7 @@ export class Account extends AggregateRoot implements IAccount {
   public toPersistence(): IAccount {
     return {
       id: this._id,
+      clinicId: this._clinicId,
       organizationId: this._organizationId,
       code: this._code,
       name: this._name,

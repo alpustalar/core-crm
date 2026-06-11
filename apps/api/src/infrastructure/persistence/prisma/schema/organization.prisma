@@ -22,11 +22,8 @@ model Organization {
   patients           Patient[]
   organizationOwners User[]    @relation("organization_owners")
 
-  accounts          Account[]
-  accountingPeriods AccountingPeriod[]
-  parties           Party[]
-  financialEvents   FinancialEvent[]
-  journalEntries    JournalEntry[]
+  // Finansal modeller clinic seviyesine taşındı (Clinic = source-of-truth).
+  // organizationId bu modellerde denormalize scalar FK olarak tutulur (navigation yok).
 
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")

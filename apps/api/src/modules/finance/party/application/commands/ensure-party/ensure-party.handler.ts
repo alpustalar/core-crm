@@ -27,7 +27,7 @@ export class EnsurePartyHandler
     const { input } = command;
 
     const existing = await this.partyQueryRepo.findByOrigin(
-      input.organizationId,
+      input.clinicId,
       input.originType,
       input.originId
     );
@@ -48,6 +48,7 @@ export class EnsurePartyHandler
     }
 
     const party = Party.create({
+      clinicId: input.clinicId,
       organizationId: input.organizationId,
       type: input.type,
       roles: [input.role],
@@ -67,13 +68,13 @@ export class EnsurePartyHandler
       return party.id;
     } catch (error) {
       // Eşzamanlı ensure çağrısı aynı origin için cari oluşturmuş olabilir
-      // (organizationId+originType+originId unique). Bu durumda mevcut olanı döndür.
+      // (clinicId+originType+originId unique). Bu durumda mevcut olanı döndür.
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
         const raced = await this.partyQueryRepo.findByOrigin(
-          input.organizationId,
+          input.clinicId,
           input.originType,
           input.originId
         );

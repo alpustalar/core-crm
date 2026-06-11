@@ -12,6 +12,7 @@ export const PartySchema = z.object({
   roles: PartyRoleSchema.array(),
   originType: PartyOriginTypeSchema,
   id: z.uuid(),
+  clinicId: z.string(),
   organizationId: z.string(),
   name: z.string(),
   taxNumber: z.string().nullable(),

@@ -23,7 +23,7 @@ export class EnsurePartyForPatientHandler
   async execute(
     command: EnsurePartyForPatientCommand
   ): Promise<EnsurePartyForPatientResult> {
-    const { patientId, role, ctx } = command;
+    const { patientId, clinicId, role, ctx } = command;
 
     const { data: patient } = await this.queryBus.execute(
       new FindPatientByIdQuery(patientId, ctx)
@@ -35,6 +35,7 @@ export class EnsurePartyForPatientHandler
     const partyId = await this.commandBus.execute(
       new EnsurePartyCommand(
         {
+          clinicId,
           organizationId: patient.organizationId,
           originType: PartyOriginType.PATIENT,
           originId: patient.id,

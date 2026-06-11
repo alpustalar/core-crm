@@ -23,15 +23,27 @@ export class ChartOfAccountsController {
   @Post('initialize')
   initialize(@GetContext() ctx: IGetContext) {
     return this.commandBus.execute(
-      new InitializeChartOfAccountsCommand(this.resolveOrganizationId(ctx), ctx)
+      new InitializeChartOfAccountsCommand(
+        this.resolveClinicId(ctx),
+        this.resolveOrganizationId(ctx),
+        ctx
+      )
     );
   }
 
   @Get()
   getChart(@GetContext() ctx: IGetContext) {
     return this.queryBus.execute(
-      new GetChartOfAccountsQuery(this.resolveOrganizationId(ctx), ctx)
+      new GetChartOfAccountsQuery(this.resolveClinicId(ctx), ctx)
     );
+  }
+
+  private resolveClinicId(ctx: IGetContext): string {
+    const clinicId = ctx.actor.clinicId;
+    if (!clinicId) {
+      throw new BadRequestException('Aktörün clinic bağlamı yok.');
+    }
+    return clinicId;
   }
 
   private resolveOrganizationId(ctx: IGetContext): string {

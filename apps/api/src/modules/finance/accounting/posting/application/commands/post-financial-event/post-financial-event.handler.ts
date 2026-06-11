@@ -56,7 +56,7 @@ export class PostFinancialEventHandler
     }
 
     const { data: period } = await this.queryBus.execute(
-      new FindPeriodByDateQuery(event.organizationId, event.occurredAt, ctx)
+      new FindPeriodByDateQuery(event.clinicId, event.occurredAt, ctx)
     );
     if (!period) {
       throw new Error(
@@ -68,7 +68,7 @@ export class PostFinancialEventHandler
     }
 
     const { data: accounts } = await this.queryBus.execute(
-      new GetChartOfAccountsQuery(event.organizationId, ctx)
+      new GetChartOfAccountsQuery(event.clinicId, ctx)
     );
     const resolver = new AccountResolver(accounts);
 
@@ -110,7 +110,7 @@ export class PostFinancialEventHandler
     try {
       return await this.txManager.outboxRun(async () => {
         const entryNo = await this.journalCommandRepo.nextEntryNo(
-          event.organizationId,
+          event.clinicId,
           period.id
         );
         entry.post(entryNo);

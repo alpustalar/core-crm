@@ -142,7 +142,12 @@ export class HandlePaymentCallbackHandler
 
     try {
       const { partyId, organizationId } = await this.commandBus.execute(
-        new EnsurePartyForPatientCommand(input.patientId, PartyRole.CUSTOMER, ctx)
+        new EnsurePartyForPatientCommand(
+          input.patientId,
+          input.clinicId,
+          PartyRole.CUSTOMER,
+          ctx
+        )
       );
 
       await this.commandBus.execute(

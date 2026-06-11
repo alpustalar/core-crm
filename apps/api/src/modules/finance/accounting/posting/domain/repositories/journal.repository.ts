@@ -15,8 +15,8 @@ export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
   save(entry: JournalEntry): Promise<JournalEntry>;
 
-  /** Tenant + dönem için bir sonraki boşluksuz fiş numarası. */
-  nextEntryNo(organizationId: string, periodId: string): Promise<bigint>;
+  /** Şube (defter) + dönem için bir sonraki boşluksuz fiş numarası. */
+  nextEntryNo(clinicId: string, periodId: string): Promise<bigint>;
 }
 
 export interface IJournalQueryRepository {

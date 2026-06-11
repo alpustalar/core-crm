@@ -13,7 +13,7 @@ export interface IPartyCommandRepository {
 export interface IPartyQueryRepository {
   findById(id: string): Promise<Party | null>;
   findByOrigin(
-    organizationId: string,
+    clinicId: string,
     originType: PartyOriginType,
     originId: string
   ): Promise<Party | null>;

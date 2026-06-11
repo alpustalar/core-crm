@@ -13,13 +13,7 @@ export interface IAccountingPeriodCommandRepository {
 
 export interface IAccountingPeriodQueryRepository {
   findById(id: string): Promise<AccountingPeriod | null>;
-  findByYear(
-    organizationId: string,
-    year: number
-  ): Promise<AccountingPeriod | null>;
-  findByDate(
-    organizationId: string,
-    date: Date
-  ): Promise<AccountingPeriod | null>;
-  findAllByOrganizationId(organizationId: string): Promise<AccountingPeriod[]>;
+  findByYear(clinicId: string, year: number): Promise<AccountingPeriod | null>;
+  findByDate(clinicId: string, date: Date): Promise<AccountingPeriod | null>;
+  findAllByClinicId(clinicId: string): Promise<AccountingPeriod[]>;
 }

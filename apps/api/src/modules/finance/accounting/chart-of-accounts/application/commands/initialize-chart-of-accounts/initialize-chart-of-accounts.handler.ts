@@ -11,7 +11,7 @@ import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/en
 import { InitializeChartOfAccountsCommand } from './initialize-chart-of-accounts.command';
 
 /**
- * Bir organization (tenant) için klinik TDHP hesap planını kurar.
+ * Bir clinic (şube/defter) için klinik TDHP hesap planını kurar.
  * İdempotenttir: hesap planı zaten varsa hiçbir şey yapmaz (mükerrer kurulumu önler).
  */
 @CommandHandler(InitializeChartOfAccountsCommand)
@@ -27,13 +27,16 @@ export class InitializeChartOfAccountsHandler
   ) {}
 
   async execute(command: InitializeChartOfAccountsCommand): Promise<void> {
-    const { organizationId } = command;
+    const { clinicId, organizationId } = command;
 
     const alreadyInitialized =
-      await this.accountQueryRepo.existsForOrganization(organizationId);
+      await this.accountQueryRepo.existsForClinic(clinicId);
     if (alreadyInitialized) return;
 
-    const accounts = Account.buildChartFromTemplate(organizationId);
+    const accounts = Account.buildChartFromTemplate({
+      clinicId,
+      organizationId,
+    });
 
     await this.txManager.run(async () => {
       await this.accountCommandRepo.createChart(accounts);

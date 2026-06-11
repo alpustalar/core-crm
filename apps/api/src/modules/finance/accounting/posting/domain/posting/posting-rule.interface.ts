@@ -17,8 +17,8 @@ export interface DraftJournalEntry {
 }
 
 export interface PostingContext {
+  clinicId: string;
   organizationId: string;
-  clinicId: string | null;
 }
 
 /**

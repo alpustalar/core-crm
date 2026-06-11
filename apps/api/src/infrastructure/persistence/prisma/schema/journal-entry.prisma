@@ -9,10 +9,10 @@ enum JournalEntryStatus {
 }
 
 model JournalEntry {
-  id             String  @id @default(uuid())
-  organizationId String  @map("organization_id")
-  clinicId       String? @map("clinic_id") // şube boyutu
-  periodId       String  @map("period_id")
+  id             String @id @default(uuid())
+  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
+  periodId       String @map("period_id")
 
   entryNo     BigInt? @map("entry_no") // POSTED olunca atanır, boşluksuz sıralı
   entryDate   DateTime           @map("entry_date")
@@ -27,13 +27,14 @@ model JournalEntry {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organization Organization    @relation(fields: [organizationId], references: [id])
-  period       AccountingPeriod @relation(fields: [periodId], references: [id])
-  event        FinancialEvent?  @relation(fields: [eventId], references: [id])
-  reversedBy   JournalEntry?    @relation("JournalReversal", fields: [reversedById], references: [id])
-  reversals    JournalEntry[]   @relation("JournalReversal")
-  lines        JournalLine[]
+  clinic     Clinic           @relation(fields: [clinicId], references: [id])
+  period     AccountingPeriod @relation(fields: [periodId], references: [id])
+  event      FinancialEvent?  @relation(fields: [eventId], references: [id])
+  reversedBy JournalEntry?    @relation("JournalReversal", fields: [reversedById], references: [id])
+  reversals  JournalEntry[]   @relation("JournalReversal")
+  lines      JournalLine[]
 
+  @@index([clinicId, entryDate])
   @@index([organizationId, entryDate])
   @@index([periodId])
   @@map("journal_entries")

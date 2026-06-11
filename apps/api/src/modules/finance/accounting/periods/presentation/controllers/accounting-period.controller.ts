@@ -24,15 +24,28 @@ export class AccountingPeriodController {
   @Post()
   openPeriod(@GetContext() ctx: IGetContext, @Body('year') year: number) {
     return this.commandBus.execute(
-      new OpenPeriodCommand(this.resolveOrganizationId(ctx), year, ctx)
+      new OpenPeriodCommand(
+        this.resolveClinicId(ctx),
+        this.resolveOrganizationId(ctx),
+        year,
+        ctx
+      )
     );
   }
 
   @Get()
   getPeriods(@GetContext() ctx: IGetContext) {
     return this.queryBus.execute(
-      new GetAccountingPeriodsQuery(this.resolveOrganizationId(ctx), ctx)
+      new GetAccountingPeriodsQuery(this.resolveClinicId(ctx), ctx)
     );
+  }
+
+  private resolveClinicId(ctx: IGetContext): string {
+    const clinicId = ctx.actor.clinicId;
+    if (!clinicId) {
+      throw new BadRequestException('Aktörün clinic bağlamı yok.');
+    }
+    return clinicId;
   }
 
   private resolveOrganizationId(ctx: IGetContext): string {

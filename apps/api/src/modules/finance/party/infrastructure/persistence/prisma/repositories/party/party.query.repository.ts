@@ -23,14 +23,14 @@ export class PartyQueryRepository
   }
 
   async findByOrigin(
-    organizationId: string,
+    clinicId: string,
     originType: PartyOriginType,
     originId: string
   ): Promise<Party | null> {
     const raw = await this.db.party.findUnique({
       where: {
-        organizationId_originType_originId: {
-          organizationId,
+        clinicId_originType_originId: {
+          clinicId,
           originType,
           originId,
         },

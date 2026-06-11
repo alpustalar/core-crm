@@ -19,22 +19,22 @@ export class AccountingPeriodQueryRepository
   }
 
   async findByYear(
-    organizationId: string,
+    clinicId: string,
     year: number
   ): Promise<AccountingPeriod | null> {
     const raw = await this.db.accountingPeriod.findUnique({
-      where: { organizationId_year: { organizationId, year } },
+      where: { clinicId_year: { clinicId, year } },
     });
     return raw ? new AccountingPeriod(raw) : null;
   }
 
   async findByDate(
-    organizationId: string,
+    clinicId: string,
     date: Date
   ): Promise<AccountingPeriod | null> {
     const raw = await this.db.accountingPeriod.findFirst({
       where: {
-        organizationId,
+        clinicId,
         startsAt: { lte: date },
         endsAt: { gte: date },
       },
@@ -42,11 +42,9 @@ export class AccountingPeriodQueryRepository
     return raw ? new AccountingPeriod(raw) : null;
   }
 
-  async findAllByOrganizationId(
-    organizationId: string
-  ): Promise<AccountingPeriod[]> {
+  async findAllByClinicId(clinicId: string): Promise<AccountingPeriod[]> {
     const rows = await this.db.accountingPeriod.findMany({
-      where: { organizationId },
+      where: { clinicId },
       orderBy: { year: 'desc' },
     });
     return rows.map((raw) => new AccountingPeriod(raw));

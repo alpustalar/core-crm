@@ -18,26 +18,23 @@ export class AccountQueryRepository
     return raw ? new Account(raw) : null;
   }
 
-  async findByCode(
-    organizationId: string,
-    code: string
-  ): Promise<Account | null> {
+  async findByCode(clinicId: string, code: string): Promise<Account | null> {
     const raw = await this.db.account.findUnique({
-      where: { organizationId_code: { organizationId, code } },
+      where: { clinicId_code: { clinicId, code } },
     });
     return raw ? new Account(raw) : null;
   }
 
-  async findAllByOrganizationId(organizationId: string): Promise<Account[]> {
+  async findAllByClinicId(clinicId: string): Promise<Account[]> {
     const rows = await this.db.account.findMany({
-      where: { organizationId },
+      where: { clinicId },
       orderBy: { code: 'asc' },
     });
     return rows.map((raw) => new Account(raw));
   }
 
-  async existsForOrganization(organizationId: string): Promise<boolean> {
-    const count = await this.db.account.count({ where: { organizationId } });
+  async existsForClinic(clinicId: string): Promise<boolean> {
+    const count = await this.db.account.count({ where: { clinicId } });
     return count > 0;
   }
 }

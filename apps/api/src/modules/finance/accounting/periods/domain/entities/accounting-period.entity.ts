@@ -13,6 +13,7 @@ export class AccountingPeriod
   constructor(data: IAccountingPeriod) {
     super();
     this._id = data.id;
+    this._clinicId = data.clinicId;
     this._organizationId = data.organizationId;
     this._year = data.year;
     this._status = data.status;
@@ -25,6 +26,11 @@ export class AccountingPeriod
   private _id: string;
   get id(): string {
     return this._id;
+  }
+
+  private _clinicId: string;
+  get clinicId(): string {
+    return this._clinicId;
   }
 
   private _organizationId: string;
@@ -65,6 +71,7 @@ export class AccountingPeriod
   public static create(props: CreateAccountingPeriodProps): AccountingPeriod {
     return new AccountingPeriod({
       id: props.id ?? crypto.randomUUID(),
+      clinicId: props.clinicId,
       organizationId: props.organizationId,
       year: props.year,
       status: AccountingPeriodStatus.OPEN,
@@ -116,6 +123,7 @@ export class AccountingPeriod
   public toPersistence(): IAccountingPeriod {
     return {
       id: this._id,
+      clinicId: this._clinicId,
       organizationId: this._organizationId,
       year: this._year,
       status: this._status,

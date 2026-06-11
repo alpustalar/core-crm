@@ -24,7 +24,8 @@ enum PartyOriginType {
 
 model Party {
   id             String @id @default(uuid())
-  organizationId String @map("organization_id")
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
 
   type  PartyType
   roles PartyRole[]
@@ -55,10 +56,11 @@ model Party {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organization Organization  @relation(fields: [organizationId], references: [id])
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
   journalLines JournalLine[]
 
-  @@unique([organizationId, originType, originId])
+  @@unique([clinicId, originType, originId])
+  @@index([clinicId])
   @@index([organizationId])
   @@map("parties")
 }

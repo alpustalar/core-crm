@@ -8,9 +8,6 @@ import { CreateUserCommand } from '@modules/identity/user/application/commands/c
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { CreateOrganizationCommand } from '@modules/organization/organization/application/commands/create-organization/create-organization.command';
 import { GetRoleBySlugQuery } from '@modules/identity/role/application/queries/get-role-by-slug/get-role-by-slug.query';
-import { InitializeChartOfAccountsCommand } from '@modules/finance/accounting/chart-of-accounts/application/commands/initialize-chart-of-accounts/initialize-chart-of-accounts.command';
-import { OpenPeriodCommand } from '@modules/finance/accounting/periods/application/commands/open-period/open-period.command';
-import { DateTimeManager } from '@common/utils';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { NotFoundException } from '@nestjs/common';
@@ -65,19 +62,9 @@ export class RegisterOrganizationAccountHandler
         })
       );
 
-      // Finans muhasebe altyapısı: hesap planı (idempotent) + cari yıl dönemi.
-      // Posting'in (çift taraflı fiş üretimi) çalışabilmesi için ön koşul.
-      await this.commandBus.execute(
-        new InitializeChartOfAccountsCommand(organizationId, this.internalCtx)
-      );
-
-      await this.commandBus.execute(
-        new OpenPeriodCommand(
-          organizationId,
-          DateTimeManager.currentYear(),
-          this.internalCtx
-        )
-      );
+      // NOT: Muhasebe defteri (hesap planı + dönem) artık clinic seviyesinde kurulur.
+      // Bu akışta klinik oluşturulmadığından muhasebe kurulumu, klinik açılışına
+      // (register-clinic / ileride CreateClinic) bırakılır.
     });
   }
 }

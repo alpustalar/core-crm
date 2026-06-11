@@ -37,8 +37,8 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
     return this._organizationId;
   }
 
-  private _clinicId: string | null;
-  get clinicId(): string | null {
+  private _clinicId: string;
+  get clinicId(): string {
     return this._clinicId;
   }
 
@@ -86,7 +86,7 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
     const event = new FinancialEvent({
       id: props.id ?? crypto.randomUUID(),
       organizationId: props.organizationId,
-      clinicId: props.clinicId ?? null,
+      clinicId: props.clinicId,
       type: props.type,
       occurredAt: props.occurredAt ?? new Date(),
       payload: props.payload as Prisma.JsonValue,

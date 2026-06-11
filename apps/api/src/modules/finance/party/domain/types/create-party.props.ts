@@ -2,6 +2,7 @@ import { PartyOriginType, PartyRole, PartyType } from '@prisma/client';
 
 export interface CreatePartyProps {
   id?: string;
+  clinicId: string;
   organizationId: string;
   type: PartyType;
   roles: PartyRole[];

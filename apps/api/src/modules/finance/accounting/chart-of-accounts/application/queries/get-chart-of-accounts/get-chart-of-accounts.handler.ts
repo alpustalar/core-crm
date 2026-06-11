@@ -19,8 +19,8 @@ export class GetChartOfAccountsHandler
   async execute(
     query: GetChartOfAccountsQuery
   ): Promise<GetChartOfAccountsResponse> {
-    const accounts = await this.accountQueryRepo.findAllByOrganizationId(
-      query.organizationId
+    const accounts = await this.accountQueryRepo.findAllByClinicId(
+      query.clinicId
     );
 
     return { data: accounts };

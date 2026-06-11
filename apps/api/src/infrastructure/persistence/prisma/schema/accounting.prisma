@@ -1,6 +1,7 @@
 // Muhasebe (ledger) katmanı — Hesap Planı (TDHP) + Dönem
-// Defter organization (mükellef) seviyesinde tutulur; clinic ileride fiş satırında
-// opsiyonel şube boyutu olarak taşınır.
+// Defter clinic (şube/mükellef) seviyesinde tutulur — finansal source-of-truth.
+// organizationId, konsolide üst yönetim raporlaması için denormalize edilmiş
+// scalar FK olarak taşınır (navigation yok; Organization karşı-ilişkisi tutulmaz).
 
 enum AccountType {
   ASSET
@@ -17,7 +18,8 @@ enum AccountSide {
 
 model Account {
   id             String @id @default(uuid())
-  organizationId String @map("organization_id")
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
 
   code     String // '120', '600.04', '120.01.0001'
   name     String
@@ -35,13 +37,14 @@ model Account {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  parent       Account?     @relation("AccountTree", fields: [parentId], references: [id])
-  children     Account[]    @relation("AccountTree")
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  parent       Account?      @relation("AccountTree", fields: [parentId], references: [id])
+  children     Account[]     @relation("AccountTree")
   journalLines JournalLine[]
 
-  @@unique([organizationId, code])
-  @@index([organizationId, parentId])
+  @@unique([clinicId, code])
+  @@index([clinicId, parentId])
+  @@index([organizationId])
   @@map("accounts")
 }
 
@@ -53,7 +56,8 @@ enum AccountingPeriodStatus {
 
 model AccountingPeriod {
   id             String @id @default(uuid())
-  organizationId String @map("organization_id")
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
 
   year     Int
   status   AccountingPeriodStatus @default(OPEN)
@@ -63,9 +67,10 @@ model AccountingPeriod {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clinic         Clinic         @relation(fields: [clinicId], references: [id])
   journalEntries JournalEntry[]
 
-  @@unique([organizationId, year])
+  @@unique([clinicId, year])
+  @@index([organizationId])
   @@map("accounting_periods")
 }

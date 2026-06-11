@@ -51,6 +51,13 @@ model Clinic {
   metaAdAccounts       MetaAdAccount[]
   leads                Lead[]
 
+  // Finansal defter clinic seviyesinde (source-of-truth)
+  accounts          Account[]
+  accountingPeriods AccountingPeriod[]
+  parties           Party[]
+  financialEvents   FinancialEvent[]
+  journalEntries    JournalEntry[]
+
   @@map("clinics")
 }
 

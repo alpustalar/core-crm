@@ -7,7 +7,8 @@ import { IGetContext } from '@common/decorators';
  * öncesi bu komutu CommandBus üzerinden çağırıp partyId alır.
  */
 export interface EnsurePartyInput {
-  organizationId: string;
+  clinicId: string; // cari, defter sahibi şubeye aittir (source-of-truth)
+  organizationId: string; // denormalize — konsolide raporlama
   originType: PartyOriginType;
   originId: string;
   role: PartyRole;

@@ -2,8 +2,8 @@ import { FinancialEventType, Prisma } from '@prisma/client';
 
 export interface RecordFinancialEventProps {
   id?: string;
-  organizationId: string;
-  clinicId?: string | null;
+  clinicId: string; // defter sahibi şube (source-of-truth)
+  organizationId: string; // denormalize — konsolide raporlama
   type: FinancialEventType;
   occurredAt?: Date;
   payload: Prisma.InputJsonValue;

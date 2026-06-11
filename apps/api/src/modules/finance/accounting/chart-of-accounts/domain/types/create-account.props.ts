@@ -2,6 +2,7 @@ import { AccountSide, AccountType } from '@prisma/client';
 
 export interface CreateAccountProps {
   id?: string;
+  clinicId: string;
   organizationId: string;
   code: string;
   name: string;

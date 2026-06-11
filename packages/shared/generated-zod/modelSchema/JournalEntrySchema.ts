@@ -8,8 +8,8 @@ import { JournalEntryStatusSchema } from '../inputTypeSchemas/JournalEntryStatus
 export const JournalEntrySchema = z.object({
   status: JournalEntryStatusSchema,
   id: z.uuid(),
+  clinicId: z.string(),
   organizationId: z.string(),
-  clinicId: z.string().nullable(),
   periodId: z.string(),
   entryNo: z.bigint().nullable(),
   entryDate: z.coerce.date(),

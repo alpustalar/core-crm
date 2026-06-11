@@ -5,7 +5,7 @@ import { GetChartOfAccountsResponse } from './get-chart-of-accounts.response';
 export class GetChartOfAccountsQuery implements IQuery {
   readonly __responseType!: GetChartOfAccountsResponse;
   constructor(
-    public readonly organizationId: string,
+    public readonly clinicId: string,
     public readonly ctx: IGetContext
   ) {}
 }
