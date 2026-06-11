@@ -5,6 +5,8 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import {
+  AccountLedger,
+  AccountLedgerFilter,
   FindJournalEntriesFilter,
   IJournalQueryRepository,
   TrialBalanceFilter,
@@ -87,6 +89,64 @@ export class JournalQueryRepository
       totalDebit: row._sum.debit ?? new Prisma.Decimal(0),
       totalCredit: row._sum.credit ?? new Prisma.Decimal(0),
     }));
+  }
+
+  async accountLedger(filter: AccountLedgerFilter): Promise<AccountLedger> {
+    const baseEntryWhere: Prisma.JournalEntryWhereInput = {
+      clinicId: filter.clinicId,
+      status: JournalEntryStatus.POSTED,
+    };
+
+    // Açılış devri: dateFrom öncesi POSTED satırların net bakiyesi.
+    let openingBalance = new Prisma.Decimal(0);
+    if (filter.dateFrom) {
+      const agg = await this.db.journalLine.aggregate({
+        where: {
+          accountId: filter.accountId,
+          entry: { ...baseEntryWhere, entryDate: { lt: filter.dateFrom } },
+        },
+        _sum: { debit: true, credit: true },
+      });
+      openingBalance = (agg._sum.debit ?? new Prisma.Decimal(0)).minus(
+        agg._sum.credit ?? new Prisma.Decimal(0)
+      );
+    }
+
+    const entryWhere: Prisma.JournalEntryWhereInput = { ...baseEntryWhere };
+    if (filter.dateFrom || filter.dateTo) {
+      entryWhere.entryDate = { gte: filter.dateFrom, lte: filter.dateTo };
+    }
+
+    const rows = await this.db.journalLine.findMany({
+      where: { accountId: filter.accountId, entry: entryWhere },
+      include: {
+        entry: {
+          select: {
+            id: true,
+            entryNo: true,
+            entryDate: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: [
+        { entry: { entryDate: 'asc' } },
+        { entry: { entryNo: 'asc' } },
+      ],
+    });
+
+    return {
+      openingBalance,
+      movements: rows.map((row) => ({
+        entryId: row.entry.id,
+        entryNo: row.entry.entryNo,
+        entryDate: row.entry.entryDate,
+        description: row.entry.description,
+        lineDesc: row.lineDesc,
+        debit: row.debit,
+        credit: row.credit,
+      })),
+    };
   }
 
   private toEntity(raw: JournalEntryWithLines): JournalEntry {

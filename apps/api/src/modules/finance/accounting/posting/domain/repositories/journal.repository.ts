@@ -25,6 +25,30 @@ export interface TrialBalanceRow {
   totalCredit: Prisma.Decimal;
 }
 
+/** Defter-i Kebir filtresi — bir hesabın şube bazlı hareketleri. */
+export interface AccountLedgerFilter {
+  clinicId: string;
+  accountId: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+/** Bir hesabın tek fiş satırı hareketi (kebir dökümü için). */
+export interface LedgerMovementRow {
+  entryId: string;
+  entryNo: bigint | null;
+  entryDate: Date;
+  description: string | null; // fiş açıklaması
+  lineDesc: string | null; // satır açıklaması
+  debit: Prisma.Decimal;
+  credit: Prisma.Decimal;
+}
+
+export interface AccountLedger {
+  openingBalance: Prisma.Decimal; // dateFrom öncesi devir (yoksa 0)
+  movements: LedgerMovementRow[]; // entryDate, entryNo sırasında
+}
+
 export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
   save(entry: JournalEntry): Promise<JournalEntry>;
@@ -43,4 +67,7 @@ export interface IJournalQueryRepository {
 
   /** Mizan: hesap bazında borç/alacak toplamı (POSTED fiş satırları). */
   trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]>;
+
+  /** Defter-i Kebir: bir hesabın sıralı hareketleri + açılış devri. */
+  accountLedger(filter: AccountLedgerFilter): Promise<AccountLedger>;
 }
