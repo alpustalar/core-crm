@@ -1,10 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ContextService } from '@src/infrastructure/context/context.service';
 import {
-  CancelAppointmentEvent,
-  CancelAppointmentPayload,
-} from '@modules/clinical/appointment/domain/events/cancel-appointment.event';
-import {
   AppointmentCancellationRequestedEvent,
   AppointmentCancellationRequestedPayload,
 } from '@modules/clinical/appointment/domain/events/appointment-cancellation-requested.event';
@@ -18,11 +14,9 @@ export class AppointmentEventPublisher implements IAppointmentEventPublisher {
     private readonly contextService: ContextService
   ) {}
 
-  cancelAppointment(payload: CancelAppointmentPayload) {
-    this.contextService.addEvent(new CancelAppointmentEvent(payload));
-  }
-
   cancellationRequested(payload: AppointmentCancellationRequestedPayload) {
-    this.contextService.addEvent(new AppointmentCancellationRequestedEvent(payload));
+    this.contextService.addEvent(
+      new AppointmentCancellationRequestedEvent(payload)
+    );
   }
 }

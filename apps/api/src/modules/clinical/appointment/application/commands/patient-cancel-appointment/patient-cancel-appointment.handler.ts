@@ -19,6 +19,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 
 @CommandHandler(PatientCancelAppointmentCommand)
 export class PatientCancelAppointmentHandler
@@ -37,7 +38,7 @@ export class PatientCancelAppointmentHandler
     private readonly eventPublisher: IAppointmentEventPublisher,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly transactionManager: TransactionManager,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(
@@ -45,7 +46,7 @@ export class PatientCancelAppointmentHandler
   ): Promise<PatientCancelAppointmentResponse> {
     const { dto, ctx } = command;
     const { appointmentId, cancelReason } = dto;
-    const { actor } = ctx;
+    const { actor, source } = ctx;
 
     const appointment = await this.appointmentQueryRepo.findById(appointmentId);
     if (!appointment) {
@@ -54,11 +55,13 @@ export class PatientCancelAppointmentHandler
 
     this.policyFactory
       .appointment(actor)
-      .evaluator.check(
-        (p) => p.canCancelOwnBooking({
-          patientId: appointment.patientId,
-          patientEmail: appointment.patientEmail,
-        }),
+      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .check(
+        (p) =>
+          p.canCancelOwnBooking({
+            patientId: appointment.patientId,
+            patientEmail: appointment.patientEmail,
+          }),
         'Bu randevuyu iptal etme yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.CANCELLED);
