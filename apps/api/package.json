@@ -18,8 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:generate": "prisma generate",
-    "migrate:dev": "prisma migrate dev",
+    "prisma:generate": "prisma generate && pnpm zod:clean",
+    "migrate:dev": "prisma migrate dev && pnpm zod:clean",
+    "zod:clean": "node scripts/clean-generated-zod.cjs",
     "gen:module": "node scripts/generate-module.mjs",
     "gen:cqrs": "node scripts/generate-cqrs.cjs"
   },
