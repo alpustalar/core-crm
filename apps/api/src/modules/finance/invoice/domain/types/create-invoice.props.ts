@@ -1,4 +1,4 @@
-import { InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus, Prisma } from '@prisma/client';
 
 export interface CreateInvoiceProps {
   id: string;
@@ -8,6 +8,9 @@ export interface CreateInvoiceProps {
   paymentId: string | null;
   amount: number;
   currency: string;
+  vatRate: number;
+  netTotal: Prisma.Decimal;
+  vatTotal: Prisma.Decimal;
   status: InvoiceStatus;
   invoiceNumber?: string;
   issuedAt?: Date;

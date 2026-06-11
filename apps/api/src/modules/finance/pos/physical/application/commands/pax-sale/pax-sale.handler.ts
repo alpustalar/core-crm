@@ -21,12 +21,15 @@ import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
+import { FinancialEventType, PartyRole } from '@prisma/client';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
+import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 
 @CommandHandler(PaxSaleCommand)
-export class PaxSaleHandler implements ICommandHandler<
-  PaxSaleCommand,
-  PaxSaleResponse
-> {
+export class PaxSaleHandler
+  implements ICommandHandler<PaxSaleCommand, PaxSaleResponse>
+{
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
@@ -108,6 +111,15 @@ export class PaxSaleHandler implements ICommandHandler<
               clinicId: input.clinicId,
             });
           }
+          // Muhasebe köprüsü: kart tahsilatı → 108 / 120 (cari hasta varsa).
+          if (input.patientId) {
+            await this.recordPosPaymentReceived({
+              patientId: input.patientId,
+              clinicId: input.clinicId,
+              amount: transaction.amount.toString(),
+              posTransactionId,
+            });
+          }
         } else {
           transaction.markFailed(result.rawResponse);
           await this.posTransactionCommandRepo.save(transaction);
@@ -172,4 +184,51 @@ export class PaxSaleHandler implements ICommandHandler<
       throw err;
     }
   }
+
+  /**
+   * PAX kart tahsilatını muhasebe katmanına köprüler: cari garanti + PAYMENT_RECEIVED
+   * olayı (POS → 108). dedupeKey ile idempotent; köprü hatası tahsilatı bozmaz.
+   */
+  private async recordPosPaymentReceived(
+    input: RecordPosPaymentReceivedInput
+  ): Promise<void> {
+    const ctx = ExecutionContextFactory.createInternal();
+
+    try {
+      const { partyId, organizationId } = await this.commandBus.execute(
+        new EnsurePartyForPatientCommand(
+          input.patientId,
+          PartyRole.CUSTOMER,
+          ctx
+        )
+      );
+
+      await this.commandBus.execute(
+        new RecordFinancialEventCommand(
+          {
+            organizationId,
+            clinicId: input.clinicId,
+            type: FinancialEventType.PAYMENT_RECEIVED,
+            payload: { method: 'POS_CARD', amount: input.amount, partyId },
+            sourceModule: 'pos',
+            sourceRefId: input.posTransactionId,
+            dedupeKey: `payment-received:pos:${input.posTransactionId}`,
+          },
+          ctx
+        )
+      );
+    } catch (error) {
+      this.logger.error(
+        `Muhasebe köprüsü başarısız: posTransactionId=${input.posTransactionId}`,
+        error
+      );
+    }
+  }
+}
+
+interface RecordPosPaymentReceivedInput {
+  patientId: string;
+  clinicId: string;
+  amount: string;
+  posTransactionId: string;
 }

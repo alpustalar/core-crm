@@ -11,6 +11,7 @@ export interface IssueInvoiceCommandInput extends IAuditLog {
   paymentId: string | null;
   amount: number;
   currency?: string;
+  vatRate?: number; // KDV oranı; verilmezse sağlık hizmeti varsayılanı (%10)
   trigger: InvoiceTrigger;
 }
 

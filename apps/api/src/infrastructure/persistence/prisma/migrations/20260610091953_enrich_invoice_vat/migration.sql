@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "invoices" ADD COLUMN     "net_total" DECIMAL(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "vat_rate" INTEGER NOT NULL DEFAULT 10,
+ADD COLUMN     "vat_total" DECIMAL(12,2) NOT NULL DEFAULT 0;

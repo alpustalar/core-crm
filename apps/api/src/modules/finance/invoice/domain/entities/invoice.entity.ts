@@ -33,6 +33,9 @@ export class Invoice extends AggregateRoot implements IInvoice {
     this._paymentId = data.paymentId;
     this._amount = data.amount;
     this._currency = data.currency;
+    this._vatRate = data.vatRate;
+    this._netTotal = data.netTotal;
+    this._vatTotal = data.vatTotal;
     this._status = data.status;
     this._invoiceNumber = data.invoiceNumber;
     this._issuedAt = data.issuedAt;
@@ -78,6 +81,21 @@ export class Invoice extends AggregateRoot implements IInvoice {
     return this._currency;
   }
 
+  private _vatRate: number;
+  get vatRate(): number {
+    return this._vatRate;
+  }
+
+  private _netTotal: Prisma.Decimal;
+  get netTotal(): Prisma.Decimal {
+    return this._netTotal;
+  }
+
+  private _vatTotal: Prisma.Decimal;
+  get vatTotal(): Prisma.Decimal {
+    return this._vatTotal;
+  }
+
   private _status: InvoiceStatus;
   get status(): InvoiceStatus {
     return this._status;
@@ -116,6 +134,23 @@ export class Invoice extends AggregateRoot implements IInvoice {
   private _isDeleted: boolean;
   get isDeleted(): boolean {
     return this._isDeleted;
+  }
+
+  /**
+   * KDV dahil genel toplamı matrah + KDV'ye ayırır.
+   * net = grand / (1 + oran/100) (2 haneye yuvarlanır), KDV = grand - net.
+   */
+  public static splitVatInclusive(
+    amount: number,
+    vatRate: number
+  ): { netTotal: Prisma.Decimal; vatTotal: Prisma.Decimal } {
+    const grand = new Prisma.Decimal(amount);
+    const divisor = new Prisma.Decimal(1).plus(
+      new Prisma.Decimal(vatRate).div(100)
+    );
+    const netTotal = grand.div(divisor).toDecimalPlaces(2);
+    const vatTotal = grand.minus(netTotal);
+    return { netTotal, vatTotal };
   }
 
   public isPending(): boolean {
@@ -180,6 +215,9 @@ export class Invoice extends AggregateRoot implements IInvoice {
       paymentId: this._paymentId,
       amount: this._amount,
       currency: this._currency,
+      vatRate: this._vatRate,
+      netTotal: this._netTotal,
+      vatTotal: this._vatTotal,
       status: this._status,
       invoiceNumber: this._invoiceNumber,
       issuedAt: this._issuedAt,
