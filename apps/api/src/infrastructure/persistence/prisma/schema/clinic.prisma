@@ -28,8 +28,8 @@ model Clinic {
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  managers          User[]             @relation("clinic_managers")
-  staffs            User[]             @relation("clinic_staff")
+  managers          User[]               @relation("clinic_managers")
+  staffs            User[]               @relation("clinic_staff")
   treatments        Treatment[]
   treatmentPackages TreatmentPackage[]
   providers         Provider[]
@@ -38,6 +38,7 @@ model Clinic {
   medicalFiles      MedicalFile[]
   resources         Resource[]
   patientGroups     PatientGroup[]
+  portalSettings    ClinicPortalSettings
 
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
@@ -75,6 +76,22 @@ model ClinicAvailability {
 
   @@unique([clinicId, dayOfWeek])
   @@map("clinic_availabilities")
+}
+model ClinicPortalSettings {
+  id String @id @default(uuid())
+
+  apiKey String @unique @default(uuid()) @map("api_key")
+
+  primaryColor String  @default("#00bcd4") @map("primary_color")
+  customTitle  String? @map("custom_title") // Örn: "Acıbadem Diş Özel Hasta Paneli"
+
+  clinicId String @unique @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinic_portal_settings")
 }
 
 model ClinicException {
