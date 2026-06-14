@@ -14,10 +14,10 @@ model Clinic {
 
   consultationSlotDuration Int @default(15)
 
-  // Sağlık Bakanlığı tesis kodu — e-Nabız bildirimi için zorunlu
+  // Sağlık Bakanlığı tesis kodu — e-Nabız için zorunlu
   healthFacilityCode String? @map("health_facility_code")
 
-  // İyzico Marketplace — alt üye işyeri anahtarı
+  // Iyzico Marketplace — alt üye işyeri anahtarı
   iyzicoSubMerchantKey String? @map("iyzico_sub_merchant_key")
 
   status   GlobalStatus @default(ACTIVE)
@@ -51,7 +51,7 @@ model Clinic {
   metaAdAccounts       MetaAdAccount[]
   leads                Lead[]
 
-  // Finansal defter clinic seviyesinde (source-of-truth)
+  // Finansal defter 
   accounts          Account[]
   accountingPeriods AccountingPeriod[]
   parties           Party[]

@@ -1,5 +1,3 @@
-// src/common/interfaces/context-service.interface.ts
-
 export const CONTEXT_SERVICE = Symbol('IContextService');
 
 export interface IContextService {

@@ -12,7 +12,7 @@ import { InitializeChartOfAccountsCommand } from './initialize-chart-of-accounts
 
 /**
  * Bir clinic (şube/defter) için klinik TDHP hesap planını kurar.
- * İdempotenttir: hesap planı zaten varsa hiçbir şey yapmaz (mükerrer kurulumu önler).
+ * İdempotent için: hesap planı zaten varsa hiçbir şey yapmaz
  */
 @CommandHandler(InitializeChartOfAccountsCommand)
 export class InitializeChartOfAccountsHandler

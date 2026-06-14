@@ -1,13 +1,3 @@
-/**
- * `prisma generate` sonrası çalışan temizlik adımı.
- *
- * zod-prisma-types, `createInputTypes = false` olmasına rağmen Json alanları
- * yüzünden şu 3 "JSON null" yardımcı şemasını `Prisma` import'u OLMADAN üretir
- * ve bunları barrel index'ine ekler. Sonuç: `Cannot find namespace 'Prisma'`
- * derleme hataları. Bu şemalar input-type'lar kapalı olduğu için kullanılmıyor
- * (yalnızca index re-export ediyor) — bu yüzden boşaltıp index export'larını
- * kaldırıyoruz. Idempotent: tekrar çalıştırmak güvenlidir.
- */
 const { writeFileSync, readFileSync } = require('fs');
 const { join } = require('path');
 

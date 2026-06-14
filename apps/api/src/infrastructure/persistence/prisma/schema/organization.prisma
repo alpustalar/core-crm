@@ -23,7 +23,7 @@ model Organization {
   organizationOwners User[]    @relation("organization_owners")
 
   // Finansal modeller clinic seviyesine taşındı (Clinic = source-of-truth).
-  // organizationId bu modellerde denormalize scalar FK olarak tutulur (navigation yok).
+  // organizationId bu modellerde denormalize scalar FK (navigation yok).
 
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
