@@ -13,6 +13,7 @@ import { GetTrialBalanceQuery } from '@modules/finance/accounting/posting/applic
 import { GetAccountLedgerQuery } from '@modules/finance/accounting/posting/application/queries/get-account-ledger/get-account-ledger.query';
 import { GetJournalReportQuery } from '@modules/finance/accounting/posting/application/queries/get-journal-report/get-journal-report.query';
 import { GetIncomeStatementQuery } from '@modules/finance/accounting/posting/application/queries/get-income-statement/get-income-statement.query';
+import { GetBalanceSheetQuery } from '@modules/finance/accounting/posting/application/queries/get-balance-sheet/get-balance-sheet.query';
 
 /**
  * Resmî muhasebe raporları (şube/defter bazlı): Mizan, ileride Defter-i Kebir +
@@ -86,6 +87,22 @@ export class AccountingReportsController {
   ) {
     return this.queryBus.execute(
       new GetIncomeStatementQuery(
+        this.resolveClinicId(ctx),
+        ctx,
+        dateFrom ? new Date(dateFrom) : undefined,
+        dateTo ? new Date(dateTo) : undefined
+      )
+    );
+  }
+
+  @Get('balance-sheet')
+  balanceSheet(
+    @GetContext() ctx: IGetContext,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string
+  ) {
+    return this.queryBus.execute(
+      new GetBalanceSheetQuery(
         this.resolveClinicId(ctx),
         ctx,
         dateFrom ? new Date(dateFrom) : undefined,

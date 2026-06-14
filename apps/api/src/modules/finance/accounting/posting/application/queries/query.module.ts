@@ -4,6 +4,7 @@ import { GetTrialBalanceHandler } from './get-trial-balance/get-trial-balance.ha
 import { GetAccountLedgerHandler } from './get-account-ledger/get-account-ledger.handler';
 import { GetJournalReportHandler } from './get-journal-report/get-journal-report.handler';
 import { GetIncomeStatementHandler } from './get-income-statement/get-income-statement.handler';
+import { GetBalanceSheetHandler } from './get-balance-sheet/get-balance-sheet.handler';
 import { JournalRepositoryModule } from '@modules/finance/accounting/posting/infrastructure/persistence/prisma/repositories/journal/journal.repository.module';
 
 const QueryHandlers = [
@@ -12,6 +13,7 @@ const QueryHandlers = [
   GetAccountLedgerHandler,
   GetJournalReportHandler,
   GetIncomeStatementHandler,
+  GetBalanceSheetHandler,
 ];
 
 @Module({
