@@ -12,6 +12,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetTrialBalanceQuery } from '@modules/finance/accounting/posting/application/queries/get-trial-balance/get-trial-balance.query';
 import { GetAccountLedgerQuery } from '@modules/finance/accounting/posting/application/queries/get-account-ledger/get-account-ledger.query';
 import { GetJournalReportQuery } from '@modules/finance/accounting/posting/application/queries/get-journal-report/get-journal-report.query';
+import { GetIncomeStatementQuery } from '@modules/finance/accounting/posting/application/queries/get-income-statement/get-income-statement.query';
 
 /**
  * Resmî muhasebe raporları (şube/defter bazlı): Mizan, ileride Defter-i Kebir +
@@ -70,6 +71,22 @@ export class AccountingReportsController {
       new GetJournalReportQuery(
         this.resolveClinicId(ctx),
         pagination,
+        ctx,
+        dateFrom ? new Date(dateFrom) : undefined,
+        dateTo ? new Date(dateTo) : undefined
+      )
+    );
+  }
+
+  @Get('income-statement')
+  incomeStatement(
+    @GetContext() ctx: IGetContext,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string
+  ) {
+    return this.queryBus.execute(
+      new GetIncomeStatementQuery(
+        this.resolveClinicId(ctx),
         ctx,
         dateFrom ? new Date(dateFrom) : undefined,
         dateTo ? new Date(dateTo) : undefined
