@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentMethod, Prisma } from '@prisma/client';
+import { InstallmentStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
@@ -9,10 +9,24 @@ import {
   IPaymentRepository,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import {
+  ArAgingData,
+  ArAgingFilter,
+} from '@modules/finance/payment/domain/types/ar-aging.type';
+import {
+  CollectedInstallmentRow,
+  ProviderRevenueFilter,
+} from '@modules/finance/payment/domain/types/provider-revenue.type';
 
 const INSTALLMENTS_INCLUDE = {
   installments: { orderBy: { installmentNo: 'asc' } },
 } as const;
+
+/** Henüz tahsil edilmemiş (açık) taksit durumları. */
+const OUTSTANDING_STATUSES = [
+  InstallmentStatus.PENDING,
+  InstallmentStatus.OVERDUE,
+];
 
 @Injectable()
 export class PaymentRepository
@@ -170,5 +184,62 @@ export class PaymentRepository
     }
 
     entities.forEach((e) => e.flushEvents());
+  }
+
+  async arAging(filter: ArAgingFilter): Promise<ArAgingData> {
+    const [openRows, collected] = await Promise.all([
+      this.db.paymentInstallment.findMany({
+        where: {
+          status: { in: OUTSTANDING_STATUSES },
+          payment: { clinicId: filter.clinicId },
+        },
+        select: {
+          amount: true,
+          dueDate: true,
+          payment: { select: { patientId: true } },
+        },
+      }),
+      this.db.paymentInstallment.aggregate({
+        where: {
+          status: InstallmentStatus.COMPLETED,
+          payment: { clinicId: filter.clinicId },
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return {
+      openInstallments: openRows.map((row) => ({
+        patientId: row.payment.patientId,
+        amount: row.amount,
+        dueDate: row.dueDate,
+      })),
+      collectedTotal: collected._sum.amount ?? new Prisma.Decimal(0),
+    };
+  }
+
+  async providerRevenue(
+    filter: ProviderRevenueFilter
+  ): Promise<CollectedInstallmentRow[]> {
+    const where: Prisma.PaymentInstallmentWhereInput = {
+      status: InstallmentStatus.COMPLETED,
+      payment: { clinicId: filter.clinicId },
+    };
+    if (filter.dateFrom || filter.dateTo) {
+      where.paidAt = { gte: filter.dateFrom, lte: filter.dateTo };
+    }
+
+    const rows = await this.db.paymentInstallment.findMany({
+      where,
+      select: {
+        amount: true,
+        payment: { select: { providerId: true } },
+      },
+    });
+
+    return rows.map((row) => ({
+      providerId: row.payment.providerId,
+      amount: row.amount,
+    }));
   }
 }

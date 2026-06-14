@@ -7,6 +7,8 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import {
   AccountLedger,
   AccountLedgerFilter,
+  CashFlow,
+  CashFlowFilter,
   FindJournalEntriesFilter,
   IJournalQueryRepository,
   JournalReportFilter,
@@ -178,6 +180,52 @@ export class JournalQueryRepository
     return {
       items: rows.map((raw) => this.toEntity(raw as JournalEntryWithLines)),
       total,
+    };
+  }
+
+  async cashFlow(filter: CashFlowFilter): Promise<CashFlow> {
+    if (filter.accountIds.length === 0) {
+      return { openingBalance: new Prisma.Decimal(0), movements: [] };
+    }
+
+    const baseEntryWhere: Prisma.JournalEntryWhereInput = {
+      clinicId: filter.clinicId,
+      status: JournalEntryStatus.POSTED,
+    };
+
+    // Açılış nakit pozisyonu: dateFrom öncesi nakit hesap satırlarının net bakiyesi.
+    let openingBalance = new Prisma.Decimal(0);
+    if (filter.dateFrom) {
+      const agg = await this.db.journalLine.aggregate({
+        where: {
+          accountId: { in: filter.accountIds },
+          entry: { ...baseEntryWhere, entryDate: { lt: filter.dateFrom } },
+        },
+        _sum: { debit: true, credit: true },
+      });
+      openingBalance = (agg._sum.debit ?? new Prisma.Decimal(0)).minus(
+        agg._sum.credit ?? new Prisma.Decimal(0)
+      );
+    }
+
+    const entryWhere: Prisma.JournalEntryWhereInput = { ...baseEntryWhere };
+    if (filter.dateFrom || filter.dateTo) {
+      entryWhere.entryDate = { gte: filter.dateFrom, lte: filter.dateTo };
+    }
+
+    const rows = await this.db.journalLine.findMany({
+      where: { accountId: { in: filter.accountIds }, entry: entryWhere },
+      include: { entry: { select: { entryDate: true } } },
+      orderBy: { entry: { entryDate: 'asc' } },
+    });
+
+    return {
+      openingBalance,
+      movements: rows.map((row) => ({
+        entryDate: row.entry.entryDate,
+        debit: row.debit,
+        credit: row.credit,
+      })),
     };
   }
 

@@ -1,5 +1,13 @@
 import { PaymentMethod } from '@prisma/client';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import {
+  ArAgingData,
+  ArAgingFilter,
+} from '@modules/finance/payment/domain/types/ar-aging.type';
+import {
+  CollectedInstallmentRow,
+  ProviderRevenueFilter,
+} from '@modules/finance/payment/domain/types/provider-revenue.type';
 
 export const PAYMENT_REPOSITORY = Symbol('IPaymentRepository');
 
@@ -38,4 +46,12 @@ export interface IPaymentRepository {
   findByInstallmentId(installmentId: string): Promise<Payment | null>;
   save(entity: Payment): Promise<Payment>;
   saveMany(entities: Payment[]): Promise<void>;
+
+  /** AR aging: şubenin açık taksitleri + tahsil edilmiş toplamı (yönetim raporu). */
+  arAging(filter: ArAgingFilter): Promise<ArAgingData>;
+
+  /** Hekim cirosu: tahsil edilmiş taksitlerin hekim boyutu (yönetim raporu). */
+  providerRevenue(
+    filter: ProviderRevenueFilter
+  ): Promise<CollectedInstallmentRow[]>;
 }

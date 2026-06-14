@@ -134,4 +134,19 @@ export class DateTimeManager {
   static toDateKey(date: Date): string {
     return date.toISOString().slice(0, 10);
   }
+
+  /**
+   * YYYY-MM formatında ay anahtarı döner (ör. 2026-06) — aylık grup raporları için.
+   */
+  static toMonthKey(date: Date): string {
+    return dayjs(date).format('YYYY-MM');
+  }
+
+  /**
+   * İki tarih arasındaki tam gün farkını döner (later - earlier). Vade
+   * yaşlandırması (AR aging) gibi gün bazlı hesaplar için.
+   */
+  static diffInDays(later: Date, earlier: Date): number {
+    return dayjs(later).diff(dayjs(earlier), 'day');
+  }
 }

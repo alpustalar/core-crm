@@ -56,6 +56,29 @@ export interface JournalReportFilter {
   dateTo?: Date;
 }
 
+/**
+ * Nakit akışı filtresi — şube bazlı; nakit/banka hesap id'leri (10x) handler'da
+ * hesap planından çözülüp verilir (repo kodları bilmez, yalnız id ile çalışır).
+ */
+export interface CashFlowFilter {
+  clinicId: string;
+  accountIds: string[];
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+/** Nakit hesaplarındaki tek satır hareketi (aylık grup için ham veri). */
+export interface CashMovementRow {
+  entryDate: Date;
+  debit: Prisma.Decimal; // nakit girişi
+  credit: Prisma.Decimal; // nakit çıkışı
+}
+
+export interface CashFlow {
+  openingBalance: Prisma.Decimal; // dateFrom öncesi net nakit pozisyonu
+  movements: CashMovementRow[]; // entryDate sırasında
+}
+
 export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
   save(entry: JournalEntry): Promise<JournalEntry>;
@@ -83,4 +106,7 @@ export interface IJournalQueryRepository {
     filter: JournalReportFilter,
     pagination: Pagination
   ): Promise<{ items: JournalEntry[]; total: number }>;
+
+  /** Nakit akışı: nakit/banka hesaplarının POSTED hareketleri + açılış devri. */
+  cashFlow(filter: CashFlowFilter): Promise<CashFlow>;
 }

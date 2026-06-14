@@ -9,6 +9,7 @@ import { FinanceLedgerModule } from '@modules/finance/finance-ledger/finance-led
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { SubscriptionModule } from '@modules/finance/subscription/subscription.module';
 import { PosModule } from '@modules/finance/pos/pos.module';
+import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { AccountingModule } from '@modules/finance/accounting/accounting.module';
 import { PartyModule } from '@modules/finance/party/party.module';
 import { PatientAuthModule } from '@modules/identity/auth/patient-auth/patient-auth.module';
@@ -57,6 +58,10 @@ export const APP_ROUTES: Routes = [
   {
     path: 'pos',
     module: PosModule,
+  },
+  {
+    path: 'payment',
+    module: PaymentModule,
   },
   {
     path: 'accounting',
