@@ -9,6 +9,7 @@ import {
   AccountLedgerFilter,
   FindJournalEntriesFilter,
   IJournalQueryRepository,
+  JournalReportFilter,
   TrialBalanceFilter,
   TrialBalanceRow,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
@@ -146,6 +147,37 @@ export class JournalQueryRepository
         debit: row.debit,
         credit: row.credit,
       })),
+    };
+  }
+
+  async journalReport(
+    filter: JournalReportFilter,
+    pagination: Pagination
+  ): Promise<{ items: JournalEntry[]; total: number }> {
+    const where: Prisma.JournalEntryWhereInput = {
+      clinicId: filter.clinicId,
+      status: JournalEntryStatus.POSTED,
+    };
+    if (filter.dateFrom || filter.dateTo) {
+      where.entryDate = { gte: filter.dateFrom, lte: filter.dateTo };
+    }
+
+    // Yevmiye sırası entryDate + entryNo'dur; paginate helper tek kolon desteklediği
+    // için sorgu burada elle kurulur.
+    const [rows, total] = await Promise.all([
+      this.db.journalEntry.findMany({
+        where,
+        include: { lines: true },
+        orderBy: [{ entryDate: 'asc' }, { entryNo: 'asc' }],
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.db.journalEntry.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((raw) => this.toEntity(raw as JournalEntryWithLines)),
+      total,
     };
   }
 

@@ -7,9 +7,11 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
 import { GetContext, IGetContext } from '@common/decorators';
+import { PaginationDto } from '@shared';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetTrialBalanceQuery } from '@modules/finance/accounting/posting/application/queries/get-trial-balance/get-trial-balance.query';
 import { GetAccountLedgerQuery } from '@modules/finance/accounting/posting/application/queries/get-account-ledger/get-account-ledger.query';
+import { GetJournalReportQuery } from '@modules/finance/accounting/posting/application/queries/get-journal-report/get-journal-report.query';
 
 /**
  * Resmî muhasebe raporları (şube/defter bazlı): Mizan, ileride Defter-i Kebir +
@@ -50,6 +52,24 @@ export class AccountingReportsController {
       new GetAccountLedgerQuery(
         this.resolveClinicId(ctx),
         accountCode,
+        ctx,
+        dateFrom ? new Date(dateFrom) : undefined,
+        dateTo ? new Date(dateTo) : undefined
+      )
+    );
+  }
+
+  @Get('journal')
+  journal(
+    @GetContext() ctx: IGetContext,
+    @Query() pagination: PaginationDto,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string
+  ) {
+    return this.queryBus.execute(
+      new GetJournalReportQuery(
+        this.resolveClinicId(ctx),
+        pagination,
         ctx,
         dateFrom ? new Date(dateFrom) : undefined,
         dateTo ? new Date(dateTo) : undefined

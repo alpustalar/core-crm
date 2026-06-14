@@ -49,6 +49,13 @@ export interface AccountLedger {
   movements: LedgerMovementRow[]; // entryDate, entryNo sırasında
 }
 
+/** Yevmiye Defteri filtresi — şube bazlı, kronolojik POSTED fişler. */
+export interface JournalReportFilter {
+  clinicId: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
 export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
   save(entry: JournalEntry): Promise<JournalEntry>;
@@ -70,4 +77,10 @@ export interface IJournalQueryRepository {
 
   /** Defter-i Kebir: bir hesabın sıralı hareketleri + açılış devri. */
   accountLedger(filter: AccountLedgerFilter): Promise<AccountLedger>;
+
+  /** Yevmiye Defteri: kronolojik POSTED fişler (entryDate, entryNo sırasında). */
+  journalReport(
+    filter: JournalReportFilter,
+    pagination: Pagination
+  ): Promise<{ items: JournalEntry[]; total: number }>;
 }
