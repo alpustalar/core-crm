@@ -10,6 +10,11 @@ import {
 import { PaxService } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { FinancialEventType, PartyRole } from '@prisma/client';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
+import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
@@ -29,7 +34,8 @@ export class ReconcilePosTransactionsHandler
 
     private readonly paxService: PaxService,
     private readonly txManager: TransactionManager,
-    private readonly posPaymentSync: PosPaymentSyncService
+    private readonly posPaymentSync: PosPaymentSyncService,
+    private readonly commandBus: TSCommandBus
   ) {}
 
   async execute(): Promise<void> {
@@ -84,6 +90,17 @@ export class ReconcilePosTransactionsHandler
                   clinicId: entity.clinicId,
                 });
               }
+              // Muhasebe köprüsü: PAX senkron akışı timeout/PENDING kaldığı için
+              // tahsilatın muhasebe olayını üretemedi; reconcile başarıyı bulunca
+              // aynı dedupeKey ile PAYMENT_RECEIVED'ı burada üretir (108 / 120).
+              if (entity.patientId) {
+                await this.recordPosPaymentReceived({
+                  patientId: entity.patientId,
+                  clinicId: entity.clinicId,
+                  amount: entity.amount.toString(),
+                  posTransactionId: entity.id,
+                });
+              }
             } else {
               entity.markFailed(result.rawResponse);
               await this.posTransactionCommandRepo.save(entity);
@@ -110,4 +127,54 @@ export class ReconcilePosTransactionsHandler
       }
     }
   }
+
+  /**
+   * Reconcile ile kurtarılan kart tahsilatını muhasebe katmanına köprüler:
+   * cari garanti + PAYMENT_RECEIVED olayı (POS → 108). dedupeKey pax-sale ile
+   * aynıdır (`payment-received:pos:${posTransactionId}`) — senkron akış olayı
+   * zaten ürettiyse idempotent biçimde yutulur. Köprü hatası reconcile'ı bozmaz.
+   */
+  private async recordPosPaymentReceived(
+    input: RecordPosPaymentReceivedInput
+  ): Promise<void> {
+    const ctx = ExecutionContextFactory.createInternal();
+
+    try {
+      const { partyId, organizationId } = await this.commandBus.execute(
+        new EnsurePartyForPatientCommand(
+          input.patientId,
+          input.clinicId,
+          PartyRole.CUSTOMER,
+          ctx
+        )
+      );
+
+      await this.commandBus.execute(
+        new RecordFinancialEventCommand(
+          {
+            organizationId,
+            clinicId: input.clinicId,
+            type: FinancialEventType.PAYMENT_RECEIVED,
+            payload: { method: 'POS_CARD', amount: input.amount, partyId },
+            sourceModule: 'pos',
+            sourceRefId: input.posTransactionId,
+            dedupeKey: `payment-received:pos:${input.posTransactionId}`,
+          },
+          ctx
+        )
+      );
+    } catch (error) {
+      this.logger.error(
+        `Muhasebe köprüsü başarısız: posTransactionId=${input.posTransactionId}`,
+        error
+      );
+    }
+  }
+}
+
+interface RecordPosPaymentReceivedInput {
+  patientId: string;
+  clinicId: string;
+  amount: string;
+  posTransactionId: string;
 }
