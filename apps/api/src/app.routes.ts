@@ -12,6 +12,8 @@ import { PosModule } from '@modules/finance/pos/pos.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { AccountingModule } from '@modules/finance/accounting/accounting.module';
 import { PartyModule } from '@modules/finance/party/party.module';
+import { PaymentGatewayModule } from '@modules/finance/payment-gateway/payment-gateway.module';
+import { GovernanceModule } from '@modules/platform/governance/governance.module';
 import { PatientAuthModule } from '@modules/identity/auth/patient-auth/patient-auth.module';
 import { MetaAdsModule } from '@modules/crm/meta-ads/meta-ads.module';
 import { LeadModule } from '@modules/crm/lead/lead.module';
@@ -70,6 +72,14 @@ export const APP_ROUTES: Routes = [
   {
     path: 'parties',
     module: PartyModule,
+  },
+  {
+    path: 'payment-gateways',
+    module: PaymentGatewayModule,
+  },
+  {
+    path: 'governance',
+    module: GovernanceModule,
   },
   {
     path: 'patient-auth',

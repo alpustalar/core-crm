@@ -17,8 +17,6 @@ export const ClinicSchema = z.object({
   city: z.string().nullable(),
   district: z.string().nullable(),
   consultationSlotDuration: z.number().int(),
-  healthFacilityCode: z.string().nullable(),
-  iyzicoSubMerchantKey: z.string().nullable(),
   timezone: z.string(),
   logo: z.string().nullable(),
   organizationId: z.string(),

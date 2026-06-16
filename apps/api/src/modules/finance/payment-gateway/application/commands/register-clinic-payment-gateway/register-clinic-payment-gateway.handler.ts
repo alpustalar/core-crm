@@ -1,12 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
-import { RegisterClinicSubMerchantCommand } from './register-submerchant.command';
+import { Inject } from '@nestjs/common';
+import { RegisterClinicPaymentGatewayCommand } from './register-clinic-payment-gateway.command';
 import {
-  CLINIC_COMMAND_REPOSITORY,
-  CLINIC_QUERY_REPOSITORY,
-  IClinicCommandRepository,
-  IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
+  CLINIC_PAYMENT_GATEWAY_COMMAND_REPOSITORY,
+  CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY,
+  IClinicPaymentGatewayCommandRepository,
+  IClinicPaymentGatewayQueryRepository,
+} from '@modules/finance/payment-gateway/domain/repositories/clinic-payment-gateway.repository';
+import { ClinicPaymentGateway } from '@modules/finance/payment-gateway/domain/entities/clinic-payment-gateway.entity';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
@@ -18,15 +19,15 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 
-@CommandHandler(RegisterClinicSubMerchantCommand)
-export class RegisterClinicSubMerchantHandler
-  implements ICommandHandler<RegisterClinicSubMerchantCommand, void>
+@CommandHandler(RegisterClinicPaymentGatewayCommand)
+export class RegisterClinicPaymentGatewayHandler
+  implements ICommandHandler<RegisterClinicPaymentGatewayCommand, void>
 {
   constructor(
-    @Inject(CLINIC_QUERY_REPOSITORY)
-    private readonly clinicQueryRepo: IClinicQueryRepository,
-    @Inject(CLINIC_COMMAND_REPOSITORY)
-    private readonly clinicCommandRepo: IClinicCommandRepository,
+    @Inject(CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY)
+    private readonly gatewayQueryRepo: IClinicPaymentGatewayQueryRepository,
+    @Inject(CLINIC_PAYMENT_GATEWAY_COMMAND_REPOSITORY)
+    private readonly gatewayCommandRepo: IClinicPaymentGatewayCommandRepository,
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
     @Inject(POLICY_FACTORY)
@@ -34,7 +35,7 @@ export class RegisterClinicSubMerchantHandler
     private readonly txManager: TransactionManager
   ) {}
 
-  async execute(command: RegisterClinicSubMerchantCommand): Promise<void> {
+  async execute(command: RegisterClinicPaymentGatewayCommand): Promise<void> {
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
@@ -46,20 +47,18 @@ export class RegisterClinicSubMerchantHandler
       )
       .orThrow(CLINIC_EVENTS.REGISTER_SUBMERCHANT);
 
-    const clinic = await this.clinicQueryRepo.findById(clinicId);
-    if (!clinic) throw new NotFoundException('Klinik bulunamadı.');
-
+    const existing = await this.gatewayQueryRepo.findByClinicId(clinicId);
     const conversationId = crypto.randomUUID();
 
     let subMerchantKey: string;
-    if (clinic.iyzicoSubMerchantKey) {
+    if (existing) {
       await this.iyzicoProvider.updateSubMerchant({
         conversationId,
-        subMerchantKey: clinic.iyzicoSubMerchantKey,
+        subMerchantKey: existing.iyzicoSubMerchantKey,
         subMerchantExternalId: clinicId,
         ...dto,
       });
-      subMerchantKey = clinic.iyzicoSubMerchantKey;
+      subMerchantKey = existing.iyzicoSubMerchantKey;
     } else {
       const result = await this.iyzicoProvider.createSubMerchant({
         conversationId,
@@ -70,8 +69,9 @@ export class RegisterClinicSubMerchantHandler
     }
 
     await this.txManager.run(async () => {
-      clinic.registerSubMerchant(subMerchantKey);
-      await this.clinicCommandRepo.save(clinic);
+      const entity = existing ?? ClinicPaymentGateway.create({ clinicId, iyzicoSubMerchantKey: subMerchantKey });
+      if (existing) entity.updateSubMerchantKey(subMerchantKey);
+      await this.gatewayCommandRepo.save(entity);
     });
   }
 }

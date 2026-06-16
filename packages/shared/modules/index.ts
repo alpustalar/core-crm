@@ -10,3 +10,4 @@ export * from "./patients";
 export * from "./inventory";
 export * from "./lead";
 export * from "./admin-request";
+export * from "./governance";

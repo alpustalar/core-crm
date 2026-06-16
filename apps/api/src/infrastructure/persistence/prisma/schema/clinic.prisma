@@ -14,12 +14,6 @@ model Clinic {
 
   consultationSlotDuration Int @default(15)
 
-  // Sağlık Bakanlığı tesis kodu — e-Nabız için zorunlu
-  healthFacilityCode String? @map("health_facility_code")
-
-  // Iyzico Marketplace — alt üye işyeri anahtarı
-  iyzicoSubMerchantKey String? @map("iyzico_sub_merchant_key")
-
   status   GlobalStatus @default(ACTIVE)
   timezone String       @default("Europe/Istanbul")
 
@@ -38,7 +32,9 @@ model Clinic {
   medicalFiles      MedicalFile[]
   resources         Resource[]
   patientGroups     PatientGroup[]
-  portalSettings    ClinicPortalSettings
+  portalSettings    ClinicPortalSettings?
+  paymentGateway    ClinicPaymentGateway?
+  governmentSpecs   ClinicGovernmentSpecs?
 
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")

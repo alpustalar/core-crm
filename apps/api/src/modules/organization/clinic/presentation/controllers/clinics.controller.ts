@@ -5,22 +5,16 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Put,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
-import {
-  CreateClinicDto,
-  RegisterClinicSubMerchantDto,
-  UpdateClinicDto,
-} from '@shared';
+import { CreateClinicDto, UpdateClinicDto } from '@shared';
 import { CreateClinicCommand } from '@modules/organization/clinic/application/commands/create-clinic/create-clinic.command';
 import {
   GetContext,
   IGetContext,
 } from '@common/decorators/get-context.decorator';
 import { UpdateClinicCommand } from '@modules/organization/clinic/application/commands/update-clinic/update-clinic.command';
-import { RegisterClinicSubMerchantCommand } from '@modules/organization/clinic/application/commands/register-submerchant/register-submerchant.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @UseGuards(AuthGuard)
@@ -40,16 +34,5 @@ export class ClinicController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(new UpdateClinicCommand(id, dto, ctx));
-  }
-
-  @Put(':id/sub-merchant')
-  registerSubMerchant(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: RegisterClinicSubMerchantDto,
-    @GetContext() ctx: IGetContext
-  ) {
-    return this.commandBus.execute(
-      new RegisterClinicSubMerchantCommand(id, dto, ctx)
-    );
   }
 }

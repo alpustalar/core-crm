@@ -25,8 +25,6 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     this._city = data.city;
     this._district = data.district;
     this._consultationSlotDuration = data.consultationSlotDuration;
-    this._healthFacilityCode = data.healthFacilityCode;
-    this._iyzicoSubMerchantKey = data.iyzicoSubMerchantKey;
     this._status = data.status;
     this._timezone = data.timezone;
     this._logo = data.logo;
@@ -84,16 +82,6 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
   private _consultationSlotDuration: number;
   get consultationSlotDuration(): number {
     return this._consultationSlotDuration;
-  }
-
-  private _healthFacilityCode: string | null;
-  get healthFacilityCode(): string | null {
-    return this._healthFacilityCode;
-  }
-
-  private _iyzicoSubMerchantKey: string | null;
-  get iyzicoSubMerchantKey(): string | null {
-    return this._iyzicoSubMerchantKey;
   }
 
   private _status: GlobalStatus;
@@ -166,8 +154,6 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
       city: props.city ?? null,
       district: props.district ?? null,
       consultationSlotDuration: props.consultationSlotDuration,
-      healthFacilityCode: null,
-      iyzicoSubMerchantKey: null,
       status: props.status ?? GlobalStatus.ACTIVE,
       timezone: props.timezone ?? 'Europe/Istanbul',
       logo: null,
@@ -217,10 +203,6 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     );
   }
 
-  public registerSubMerchant(subMerchantKey: string): void {
-    this._iyzicoSubMerchantKey = subMerchantKey;
-  }
-
   toPersistence(): PrismaClinic {
     return {
       id: this._id,
@@ -233,8 +215,6 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
       city: this._city,
       district: this._district,
       consultationSlotDuration: this._consultationSlotDuration,
-      healthFacilityCode: this._healthFacilityCode,
-      iyzicoSubMerchantKey: this._iyzicoSubMerchantKey,
       status: this._status,
       timezone: this._timezone,
       logo: this._logo,

@@ -1,0 +1,18 @@
+// Kliniğin ödeme altyapısı (finance bounded-context) — Clinic'ten ayrıştırılmış
+// 1:1 satellite. Iyzico marketplace alt üye işyeri anahtarı burada yaşar.
+model ClinicPaymentGateway {
+  id String @id @default(uuid())
+
+  // Iyzico Marketplace — alt üye işyeri anahtarı
+  iyzicoSubMerchantKey String @unique @map("iyzico_sub_merchant_key")
+  // Stripe Connect
+  // stripeAccountId   String? @map("stripe_account_id")
+
+  clinicId String @unique @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinic_payment_gateways")
+}

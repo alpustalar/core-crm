@@ -1,0 +1,19 @@
+// Kliniğin devlet/regülasyon kimliği (platform/governance bounded-context) —
+// Clinic'ten ayrıştırılmış 1:1 satellite. SKRS tesis kodu, USS şifresi ve
+// kliniğin kendi vergi numarası (fatura için) burada yaşar.
+model ClinicGovernmentSpecs {
+  id String @id @default(uuid())
+
+  // Sağlık Bakanlığı SKRS tesis kodu — e-Nabız için zorunlu
+  healthFacilityCode String  @unique @map("health_facility_code")
+  ussPassword        String? @map("uss_password") // İleride gerekecek USS şifresi
+  companyTaxNumber   String? @map("company_tax_number") // Kliniğin VKN'si (fatura)
+
+  clinicId String @unique @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinic_government_specs")
+}
