@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PostFinancialEventHandler } from './post-financial-event/post-financial-event.handler';
 import { ReverseJournalEntryHandler } from './reverse-journal-entry/reverse-journal-entry.handler';
+import { GenerateYearEndClosingHandler } from './generate-year-end-closing/generate-year-end-closing.handler';
 import { JournalRepositoryModule } from '@modules/finance/accounting/posting/infrastructure/persistence/prisma/repositories/journal/journal.repository.module';
 import { POSTING_RULES } from '@modules/finance/accounting/posting/domain/posting/posting-rule.interface';
 import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
@@ -9,7 +10,11 @@ import { SalesInvoiceIssuedRule } from '@modules/finance/accounting/posting/doma
 import { PurchaseInvoiceReceivedRule } from '@modules/finance/accounting/posting/domain/posting/rules/purchase-invoice-received.rule';
 import { PayrollAccruedRule } from '@modules/finance/accounting/posting/domain/posting/rules/payroll-accrued.rule';
 
-const CommandHandlers = [PostFinancialEventHandler, ReverseJournalEntryHandler];
+const CommandHandlers = [
+  PostFinancialEventHandler,
+  ReverseJournalEntryHandler,
+  GenerateYearEndClosingHandler,
+];
 
 @Module({
   imports: [JournalRepositoryModule],
