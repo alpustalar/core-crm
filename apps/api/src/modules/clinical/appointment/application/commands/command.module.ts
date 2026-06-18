@@ -14,7 +14,6 @@ import { AppointmentEventModule } from '@modules/clinical/appointment/infrastruc
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
 import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
-import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
 
 const CommandHandlers = [
   StaffRescheduleHandler,
@@ -32,7 +31,7 @@ const CommandHandlers = [
 
 @Module({
   imports: [AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
-  providers: [...CommandHandlers, AppointmentChecker, AppointmentSlotService],
+  providers: [...CommandHandlers, AppointmentChecker],
   exports: [...CommandHandlers],
 })
 export class AppointmentCommandModule {}

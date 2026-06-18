@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
-import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/types/create-pos-transaction.props';
-import { PosTransactionEntity } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { CreatePosTransactionData } from '@modules/finance/pos/physical/domain/types/create-pos-transaction.data';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @Injectable()
 export class PosTransactionCommandRepository
@@ -14,9 +14,7 @@ export class PosTransactionCommandRepository
     super(prisma);
   }
 
-  async create(
-    props: CreatePosTransactionProps
-  ): Promise<PosTransactionEntity> {
+  async create(props: CreatePosTransactionData): Promise<PosTransaction> {
     const raw = await this.db.posTransaction.create({
       data: {
         id: props.id,
@@ -26,15 +24,15 @@ export class PosTransactionCommandRepository
         appointmentId: props.appointmentId,
         paymentId: props.paymentId,
         amount: props.amount,
-        currency: props.currency ?? 'TRY',
+        currency: props.currency,
         externalRef: props.externalRef,
         rawRequest: props.rawRequest ?? undefined,
       },
     });
-    return new PosTransactionEntity(raw);
+    return new PosTransaction(raw);
   }
 
-  async save(entity: PosTransactionEntity): Promise<PosTransactionEntity> {
+  async save(entity: PosTransaction): Promise<PosTransaction> {
     const data = entity.toPersistence();
     const raw = await this.db.posTransaction.update({
       where: { id: data.id },
@@ -48,6 +46,6 @@ export class PosTransactionCommandRepository
       },
     });
     entity.flushEvents();
-    return new PosTransactionEntity(raw);
+    return new PosTransaction(raw);
   }
 }

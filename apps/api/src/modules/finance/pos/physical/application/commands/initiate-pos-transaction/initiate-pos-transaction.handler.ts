@@ -50,22 +50,30 @@ export class InitiatePosTransactionHandler
     }
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
-    const { posTransactionId, transaction } =
-      await this.txManager.outboxRun(async () => {
+    const { posTransactionId, transaction } = await this.txManager.outboxRun(
+      async () => {
+        const internalPaymentId = input.paymentId ?? crypto.randomUUID();
         let paymentId = input.paymentId;
         if (!paymentId && input.patientId) {
-          const result = await this.commandBus.execute(
-            new CreatePaymentCommand({
-              clinicId: input.clinicId,
-              patientId: input.patientId,
-              appointmentId: input.appointmentId,
-              amount: input.amount,
-              currency: input.currency ?? 'TRY',
-              method: PaymentMethodSchema.enum.CREDIT_CARD,
-            })
+          await this.commandBus.execute(
+            new CreatePaymentCommand(
+              {
+                clinicId: input.clinicId,
+                patientId: input.patientId,
+                appointmentId: input.appointmentId,
+                amount: input.amount,
+                currency: input.currency,
+                method: PaymentMethodSchema.enum.CREDIT_CARD,
+              },
+              {
+                paymentId: internalPaymentId,
+              }
+            )
           );
-          paymentId = result.paymentId;
+          paymentId = internalPaymentId;
         }
+
+        // TODO: burada logic hatası olabilir tekrar kontrol etmek gerekiyor
 
         const id = crypto.randomUUID();
         const tx = await this.posTransactionCommandRepo.create({
@@ -79,7 +87,8 @@ export class InitiatePosTransactionHandler
           currency: input.currency ?? 'TRY',
         });
         return { posTransactionId: id, transaction: tx };
-      });
+      }
+    );
 
     // Faz 2 — sağlayıcı TCP/HTTP çağrısı (transaction dışında)
     const result = await this.posProvider.initiate({

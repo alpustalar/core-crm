@@ -1,6 +1,12 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { IyzicoTransactionStatus, PaymentStatus } from '@prisma/client';
 import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
+import PaymentStatusSchema, {
+  PaymentStatusType,
+} from '@input-type-schemas/PaymentStatusSchema';
+import {
+  IyzicoTransactionStatusSchema,
+  IyzicoTransactionStatusType,
+} from '@input-type-schemas/IyzicoTransactionStatusSchema';
 
 interface checkIyzicoSdkStatusOrThrowProps {
   status: string;
@@ -13,10 +19,10 @@ export class PaymentDomainService {
   readonly logger = new Logger(PaymentDomainService.name);
 
   isAlreadyProcessed(
-    iyzicoTx: { status: IyzicoTransactionStatus },
+    iyzicoTx: { status: IyzicoTransactionStatusType },
     conversationId: string
   ): boolean {
-    if (iyzicoTx.status === IyzicoTransactionStatus.SUCCESS) {
+    if (iyzicoTx.status === IyzicoTransactionStatusSchema.enum.SUCCESS) {
       this.logger.warn(`Ödeme zaten önceden işlenmiş (Idempotency).`, {
         conversationId,
       });
@@ -27,9 +33,9 @@ export class PaymentDomainService {
 
   validateRefundEligibilityOrThrow(payment: {
     id: string;
-    status: PaymentStatus;
+    status: PaymentStatusType;
   }) {
-    if (payment.status !== PaymentStatus.COMPLETED) {
+    if (payment.status !== PaymentStatusSchema.enum.COMPLETED) {
       this.logger.warn(`İade reddedildi: Ödeme tamamlanmış durumda değil.`, {
         paymentId: payment.id,
         status: payment.status,
@@ -56,8 +62,8 @@ export class PaymentDomainService {
     }
   }
 
-  paymentIsCompleteOrThrow(payment: { id: string; status: PaymentStatus }) {
-    if (payment.status !== PaymentStatus.COMPLETED) {
+  paymentIsCompleteOrThrow(payment: { id: string; status: PaymentStatusType }) {
+    if (payment.status !== PaymentStatusSchema.enum.COMPLETED) {
       throw new BadRequestException(
         `Yalnızca tamamlanmış ödemeler iptal edilebilir. Mevcut durum: ${payment.status}`
       );

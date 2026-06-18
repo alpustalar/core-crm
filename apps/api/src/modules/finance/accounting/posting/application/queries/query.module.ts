@@ -6,6 +6,7 @@ import { GetJournalReportHandler } from './get-journal-report/get-journal-report
 import { GetIncomeStatementHandler } from './get-income-statement/get-income-statement.handler';
 import { GetBalanceSheetHandler } from './get-balance-sheet/get-balance-sheet.handler';
 import { GetCashFlowHandler } from './get-cash-flow/get-cash-flow.handler';
+import { GetVatDeclarationHandler } from './get-vat-declaration/get-vat-declaration.handler';
 import { JournalRepositoryModule } from '@modules/finance/accounting/posting/infrastructure/persistence/prisma/repositories/journal/journal.repository.module';
 
 const QueryHandlers = [
@@ -16,6 +17,7 @@ const QueryHandlers = [
   GetIncomeStatementHandler,
   GetBalanceSheetHandler,
   GetCashFlowHandler,
+  GetVatDeclarationHandler,
 ];
 
 @Module({

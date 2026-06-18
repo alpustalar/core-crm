@@ -1,4 +1,4 @@
-import { PatientTreatmentPackage } from '@prisma/client';
+import { PatientTreatmentPackage } from '@shared';
 
 export interface FindPatientPackagesResponse {
   items: PatientTreatmentPackage[];

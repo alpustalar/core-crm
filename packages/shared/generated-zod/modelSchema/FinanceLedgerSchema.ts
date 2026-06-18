@@ -4,6 +4,7 @@ import { LedgerTypeSchema } from '../inputTypeSchemas/LedgerTypeSchema'
 import { LedgerSourceSchema } from '../inputTypeSchemas/LedgerSourceSchema'
 import { LedgerCategorySchema } from '../inputTypeSchemas/LedgerCategorySchema'
 import { LedgerStatusSchema } from '../inputTypeSchemas/LedgerStatusSchema'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // FINANCE LEDGER SCHEMA
@@ -14,6 +15,7 @@ export const FinanceLedgerSchema = z.object({
   source: LedgerSourceSchema,
   category: LedgerCategorySchema,
   status: LedgerStatusSchema,
+  currency: CurrencySchema,
   id: z.uuid(),
   organizationId: z.string(),
   clinicId: z.string(),
@@ -22,7 +24,6 @@ export const FinanceLedgerSchema = z.object({
   installmentId: z.string().nullable(),
   performedById: z.string().nullable(),
   amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'FinanceLedger']"}),
-  currency: z.string(),
   taxRate: z.number().int(),
   taxAmount: z.instanceof(Prisma.Decimal, { message: "Field 'taxAmount' must be a Decimal. Location: ['Models', 'FinanceLedger']"}),
   description: z.string().nullable(),

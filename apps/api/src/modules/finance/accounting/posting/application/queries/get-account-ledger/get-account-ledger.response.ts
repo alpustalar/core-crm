@@ -1,11 +1,12 @@
-import { AccountSide } from '@prisma/client';
 import { QueryResponse } from '@shared/common/response/response.interface';
+import { AccountCode } from '@modules/finance/accounting/chart-of-accounts/domain/value-objects/account-code.vo';
+import { AccountSideType } from '@input-type-schemas/AccountSideSchema';
 
 export interface LedgerAccountHeader {
   id: string;
-  code: string;
+  code: AccountCode;
   name: string;
-  normalSide: AccountSide; // bakiye yönü yorumu için
+  normalSide: AccountSideType; // bakiye yönü yorumu için
 }
 
 /** Defter-i Kebir hareketi — tek fiş satırı + yürüyen bakiye (tutarlar string). */

@@ -1,14 +1,15 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundException } from '@nestjs/common';
-import { PartyOriginType, PartyType } from '@prisma/client';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { EnsurePartyCommand } from '@modules/finance/party/application/commands/ensure-party/ensure-party.command';
+import { NationalId } from '@src/domain/value-objects/tck-no.vo';
 import {
   EnsurePartyForPatientCommand,
   EnsurePartyForPatientResult,
 } from './ensure-party-for-patient.command';
+import { PartyOriginTypeSchema, PartyTypeSchema } from '@shared';
 
 @CommandHandler(EnsurePartyForPatientCommand)
 export class EnsurePartyForPatientHandler
@@ -37,12 +38,14 @@ export class EnsurePartyForPatientHandler
         {
           clinicId,
           organizationId: patient.organizationId,
-          originType: PartyOriginType.PATIENT,
+          originType: PartyOriginTypeSchema.enum.PATIENT,
           originId: patient.id,
           role,
-          type: PartyType.INDIVIDUAL,
-          name: [patient.firstName, patient.lastName].filter(Boolean).join(' '),
-          nationalId: patient.tcNo,
+          type: PartyTypeSchema.enum.INDIVIDUAL,
+          name:
+            [patient.firstName, patient.lastName].filter(Boolean).join(' ') ||
+            'İsimsiz Hasta',
+          nationalId: NationalId.tryParse(patient.tcNo),
           email: patient.email,
           phone: patient.phone,
         },

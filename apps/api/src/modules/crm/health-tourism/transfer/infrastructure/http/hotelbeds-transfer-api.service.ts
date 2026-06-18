@@ -23,13 +23,13 @@ export class HotelbedsTransferApiService
 
   constructor(private readonly config: ConfigService) {
     this.apiKey = this.config.getOrThrow<string>(
-      ENV.HOTELBEDS_TRANSFER_API_KEY,
+      ENV.HOTELBEDS_TRANSFER_API_KEY
     );
     this.secret = this.config.getOrThrow<string>(ENV.HOTELBEDS_TRANSFER_SECRET);
   }
 
   async searchAvailability(
-    params: TransferAvailabilityParams,
+    params: TransferAvailabilityParams
   ): Promise<TransferAvailabilityItem[]> {
     const {
       language,
@@ -73,7 +73,7 @@ export class HotelbedsTransferApiService
   }
 
   async createBooking(
-    params: CreateTransferBookingParams,
+    params: CreateTransferBookingParams
   ): Promise<TransferBookingResult> {
     const res = await fetch(
       `${TRANSFER_API_BASE}/bookings/${params.language}`,
@@ -93,7 +93,7 @@ export class HotelbedsTransferApiService
           ...(params.remark ? { remark: params.remark } : {}),
         }),
         signal: AbortSignal.timeout(15_000),
-      },
+      }
     );
 
     if (!res.ok) {
@@ -111,14 +111,14 @@ export class HotelbedsTransferApiService
 
   async getBooking(
     language: string,
-    reference: string,
+    reference: string
   ): Promise<TransferBookingResult> {
     const res = await fetch(
       `${TRANSFER_API_BASE}/bookings/${language}/reference/${reference}`,
       {
         headers: this.buildHeaders(),
         signal: AbortSignal.timeout(10_000),
-      },
+      }
     );
 
     if (!res.ok) {
@@ -136,7 +136,7 @@ export class HotelbedsTransferApiService
 
   async cancelBooking(
     language: string,
-    reference: string,
+    reference: string
   ): Promise<CancelTransferBookingResult> {
     const res = await fetch(
       `${TRANSFER_API_BASE}/bookings/${language}/reference/${reference}`,
@@ -144,7 +144,7 @@ export class HotelbedsTransferApiService
         method: 'DELETE',
         headers: this.buildHeaders(),
         signal: AbortSignal.timeout(10_000),
-      },
+      }
     );
 
     if (!res.ok) {
@@ -244,7 +244,9 @@ interface RawBooking {
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
-function mapToAvailabilityItem(raw: RawTransferService): TransferAvailabilityItem {
+function mapToAvailabilityItem(
+  raw: RawTransferService
+): TransferAvailabilityItem {
   return {
     id: raw.id ?? 0,
     direction: (raw.direction as 'DEPARTURE' | 'ARRIVAL') ?? 'ARRIVAL',

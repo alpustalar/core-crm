@@ -10,6 +10,8 @@ import {
 } from '@src/domain/constants/log-action.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetPaymentByAppointmentIdQuery } from '@modules/finance/payment/application/queries/get-payment-by-appointment-id/get-payment-by-appointment-id.query';
+import { InvoiceTriggers } from '@modules/finance/invoice/domain/constants/invoice-triggers';
 
 @Injectable()
 export class AppointmentCompletedInvoiceListener {
@@ -24,18 +26,24 @@ export class AppointmentCompletedInvoiceListener {
 
   @OnEvent(APPOINTMENT_EVENTS.COMPLETED, { async: true })
   async handle(event: AppointmentCompletedEvent): Promise<void> {
-    if (!event.patientId) return;
+    if (!event.patientId || !event.appointmentId) return;
 
     try {
-      // TODO: Entegratör seçildiğinde GetAppointmentPaymentQuery dispatch edilmeli.amount, ilgili QueryBus sorgusu ile çözülecek.
+      // Tutar, randevuya bağlı ödemeden çözülür (bounded context — QueryBus).
+      const payment = await this.queryBus.execute(
+        new GetPaymentByAppointmentIdQuery(event.appointmentId)
+      );
+      // Ödeme yoksa faturalanacak tutar yok → atla (sıfır tutarlı fatura kesilmez).
+      if (!payment) return;
+
       await this.commandBus.execute(
         new IssueInvoiceCommand({
           clinicId: event.clinicId,
           patientId: event.patientId,
           appointmentId: event.appointmentId,
-          paymentId: null,
-          amount: 0, // TODO: QueryBus üzerinden randevuya ait ödeme tutarı çekilecek
-          trigger: 'APPOINTMENT',
+          paymentId: payment.id,
+          totalAmount: payment.totalAmount,
+          trigger: InvoiceTriggers.APPOINTMENT,
           action: LogAction.INVOICE_ISSUED,
           type: LogType.INFO,
           source: LogSource.SYSTEM,

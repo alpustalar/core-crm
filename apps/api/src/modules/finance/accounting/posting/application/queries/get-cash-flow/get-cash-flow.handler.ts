@@ -1,6 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import {
@@ -10,10 +9,8 @@ import {
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import { GetCashFlowQuery } from './get-cash-flow.query';
-import {
-  CashFlowMonth,
-  GetCashFlowResponse,
-} from './get-cash-flow.response';
+import { CashFlowMonth, GetCashFlowResponse } from './get-cash-flow.response';
+import { Decimal } from 'decimal.js';
 
 /** TDHP "10 Hazır Değerler" grubu = nakit ve nakit benzerleri (kasa/banka/POS). */
 const CASH_CODE_PREFIX = '10';
@@ -36,7 +33,7 @@ export class GetCashFlowHandler
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
     const accountIds = accounts
-      .filter((a) => a.isPostable && a.code.startsWith(CASH_CODE_PREFIX))
+      .filter((a) => a.isPostable && a.code.value.startsWith(CASH_CODE_PREFIX))
       .map((a) => a.id);
 
     const cashFlow = await this.journalQueryRepo.cashFlow({
@@ -53,7 +50,7 @@ export class GetCashFlowHandler
         clinicId,
         dateFrom: dateFrom ?? null,
         dateTo: dateTo ?? null,
-        openingBalance: cashFlow.openingBalance.toFixed(2),
+        openingBalance: new Decimal(cashFlow.openingBalance.toString()).toFixed(2),
         closingBalance: closingBalance.toFixed(2),
         months,
         totals,
@@ -63,44 +60,38 @@ export class GetCashFlowHandler
 
   /** Ham hareketleri aya göre kovalar; yürüyen kapanış bakiyesini hesaplar. */
   private aggregate(cashFlow: CashFlow) {
-    const zero = new Prisma.Decimal(0);
-    const buckets = new Map<
-      string,
-      { inflow: Prisma.Decimal; outflow: Prisma.Decimal }
-    >();
+    const zero = new Decimal(0);
+    const buckets = new Map<string, { inflow: Decimal; outflow: Decimal }>();
+    let totalInflow = zero;
+    let totalOutflow = zero;
 
+    // Tek döngüde hem aylık kovalara hem toplam giriş/çıkışa yaz.
     for (const movement of cashFlow.movements) {
+      const debit = new Decimal(movement.debit.toString());
+      const credit = new Decimal(movement.credit.toString());
       const key = DateTimeManager.toMonthKey(movement.entryDate);
       const bucket = buckets.get(key) ?? { inflow: zero, outflow: zero };
-      bucket.inflow = bucket.inflow.plus(movement.debit);
-      bucket.outflow = bucket.outflow.plus(movement.credit);
+      bucket.inflow = bucket.inflow.plus(debit);
+      bucket.outflow = bucket.outflow.plus(credit);
       buckets.set(key, bucket);
+      totalInflow = totalInflow.plus(debit);
+      totalOutflow = totalOutflow.plus(credit);
     }
 
-    let running = cashFlow.openingBalance;
-    const months: CashFlowMonth[] = [...buckets.keys()]
-      .sort()
-      .map((month) => {
-        const bucket = buckets.get(month)!;
-        const net = bucket.inflow.minus(bucket.outflow);
-        running = running.plus(net);
-        return {
-          month,
-          inflow: bucket.inflow.toFixed(2),
-          outflow: bucket.outflow.toFixed(2),
-          net: net.toFixed(2),
-          closingBalance: running.toFixed(2),
-        };
-      });
-
-    const totalInflow = cashFlow.movements.reduce(
-      (sum, m) => sum.plus(m.debit),
-      zero
-    );
-    const totalOutflow = cashFlow.movements.reduce(
-      (sum, m) => sum.plus(m.credit),
-      zero
-    );
+    // openingBalance her zaman garantili Decimal — hareket olmasa bile kapanış açılışa eşittir.
+    let running = new Decimal(cashFlow.openingBalance.toString());
+    const months: CashFlowMonth[] = [...buckets.keys()].sort().map((month) => {
+      const bucket = buckets.get(month)!;
+      const net = bucket.inflow.minus(bucket.outflow);
+      running = running.plus(net);
+      return {
+        month,
+        inflow: bucket.inflow.toFixed(2),
+        outflow: bucket.outflow.toFixed(2),
+        net: net.toFixed(2),
+        closingBalance: running.toFixed(2),
+      };
+    });
 
     return {
       months,

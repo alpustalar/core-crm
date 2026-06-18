@@ -1,15 +1,12 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { FindProductsQuery } from './find-products.query';
 import { FindProductsResponse } from './find-products.response';
 import {
   IProductQueryRepository,
   PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindProductsQuery)
 export class FindProductsHandler
@@ -17,28 +14,25 @@ export class FindProductsHandler
 {
   constructor(
     @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
-    @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly productQueryRepo: IProductQueryRepository
   ) {}
 
   async execute(query: FindProductsQuery): Promise<FindProductsResponse> {
     const { pagination, ctx } = query;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.organization(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.isOwnOrganization(actor.organizationId)
-    ) {
-      throw new ForbiddenException('Ürün listeleme yetkiniz yok.');
-    }
-
     const result = await this.productQueryRepo.findMany(
       actor.organizationId!,
       pagination
     );
 
-    return { data: result };
+    // TODO: hascapability guard gelecek
+
+    return {
+      data: result.items,
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+      },
+    };
   }
 }

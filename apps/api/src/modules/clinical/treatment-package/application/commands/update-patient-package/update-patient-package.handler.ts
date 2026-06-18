@@ -10,10 +10,10 @@ import {
 } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 
 @CommandHandler(UpdatePatientPackageCommand)
-export class UpdatePatientPackageHandler
-  implements
-    ICommandHandler<UpdatePatientPackageCommand, UpdatePatientPackageResponse>
-{
+export class UpdatePatientPackageHandler implements ICommandHandler<
+  UpdatePatientPackageCommand,
+  UpdatePatientPackageResponse
+> {
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly patientPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
@@ -35,6 +35,6 @@ export class UpdatePatientPackageHandler
       dto
     );
 
-    return { id: updated.id };
+    return updated.id;
   }
 }

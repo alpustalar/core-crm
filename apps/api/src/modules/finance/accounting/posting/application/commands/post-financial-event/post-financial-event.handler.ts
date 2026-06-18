@@ -1,7 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import Decimal from 'decimal.js';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry-unique-constraint.exception';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetFinancialEventByIdQuery } from '@modules/finance/accounting/financial-events/application/queries/get-financial-event-by-id/get-financial-event-by-id.query';
 import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
@@ -41,7 +42,9 @@ export class PostFinancialEventHandler
       new GetFinancialEventByIdQuery(financialEventId, ctx)
     );
     if (!event) {
-      this.logger.warn(`FinancialEvent bulunamadı, atlandı: ${financialEventId}`);
+      this.logger.warn(
+        `FinancialEvent bulunamadı, atlandı: ${financialEventId}`
+      );
       return null;
     }
 
@@ -80,11 +83,13 @@ export class PostFinancialEventHandler
     const lines: CreateJournalEntryLineInput[] = draft.lines.map((line) => {
       const account = resolver.resolve(line.accountCode);
       if (!account.isPostable) {
-        throw new Error(`Yaprak olmayan hesaba fiş atılamaz: ${account.code}`);
+        throw new Error(
+          `Yaprak olmayan hesaba fiş atılamaz: ${account.code.value}`
+        );
       }
       if (account.requiresParty && !line.partyId) {
         throw new Error(
-          `${account.code} hesabında alt defter (party) zorunludur.`
+          `${account.code.value} hesabında alt defter (party) zorunludur.`
         );
       }
       return {
@@ -95,6 +100,20 @@ export class PostFinancialEventHandler
         lineDesc: line.desc,
       };
     });
+
+    let totalDebit = new Decimal(0);
+    let totalCredit = new Decimal(0);
+    for (const line of lines) {
+      totalDebit = totalDebit.plus(new Decimal(line.debit?.toString() ?? '0'));
+      totalCredit = totalCredit.plus(
+        new Decimal(line.credit?.toString() ?? '0')
+      );
+    }
+    if (!totalDebit.equals(totalCredit)) {
+      throw new Error(
+        'Yevmiye fişi borç ve alacak toplamları eşit olmalıdır. Mizan tutarsızlığı engellendi.'
+      );
+    }
 
     const entry = JournalEntry.createDraft({
       organizationId: event.organizationId,
@@ -107,22 +126,24 @@ export class PostFinancialEventHandler
       lines,
     });
 
+    // 1. entryNo'yu izole transaction'da üret; commit olunca numara kesinleşir.
+    const entryNo = await this.txManager.outboxRun(async () =>
+      this.journalCommandRepo.nextEntryNo(event.clinicId, period.id)
+    );
+
+    // 2. Entity'yi transaction dışında saf olarak mühürle.
+    //    Save başarısız olsa bile mutation, commit edilmiş entryNo'ya bağlı kalır.
+    entry.post(entryNo);
+
+    // 3. Mühürlenmiş entity'yi kaydet.
     try {
       return await this.txManager.outboxRun(async () => {
-        const entryNo = await this.journalCommandRepo.nextEntryNo(
-          event.clinicId,
-          period.id
-        );
-        entry.post(entryNo);
         const saved = await this.journalCommandRepo.save(entry);
         return saved.id;
       });
     } catch (error) {
       // Eşzamanlı posting aynı olay için fiş üretmiş olabilir (event_id unique).
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof JournalEntryUniqueConstraintException) {
         const raced = await this.journalQueryRepo.findByEventId(event.id);
         if (raced) return raced.id;
       }

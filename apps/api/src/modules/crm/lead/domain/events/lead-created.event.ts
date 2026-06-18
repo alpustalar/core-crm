@@ -1,7 +1,7 @@
 import { LEAD_EVENTS } from '@src/domain/constants/events';
 import { BaseEvent } from '@common/interfaces';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
-import { LeadSource } from '@prisma/client';
+import { LeadSourceType as LeadSource } from '@input-type-schemas/LeadSourceSchema';
 
 export interface LeadCreatedEventPayload extends IAuditLog {
   readonly leadId: string;

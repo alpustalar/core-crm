@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import CurrencySchema from '@shared/generated-zod/inputTypeSchemas/CurrencySchema';
 
 export const PaxSaleSchema = z.object({
-  posDeviceId: z.string().uuid(),
-  clinicId: z.string().uuid(),
-  patientId: z.string().uuid().optional(),
-  appointmentId: z.string().uuid().optional(),
-  paymentId: z.string().uuid().optional(),
+  posDeviceId: z.uuid(),
+  clinicId: z.uuid(),
+  patientId: z.uuid().optional(),
+  appointmentId: z.uuid().optional(),
+  paymentId: z.uuid().optional(),
   amount: z.number().positive(),
-  currency: z.string().length(3).default('TRY'),
+  currency: CurrencySchema
 });

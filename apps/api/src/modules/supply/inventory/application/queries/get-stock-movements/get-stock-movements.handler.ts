@@ -1,5 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetStockMovementsQuery } from './get-stock-movements.query';
 import { GetStockMovementsResponse } from './get-stock-movements.response';
 import {
@@ -10,6 +10,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetStockMovementsQuery)
 export class GetStockMovementsHandler
@@ -28,15 +29,15 @@ export class GetStockMovementsHandler
     const { clinicId, dto, ctx, pagination } = query;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.clinic(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.actorCanManageTargetClinic(clinicId)
-    ) {
-      throw new ForbiddenException(
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
         'Bu kliniğin stok hareketlerine erişim yetkiniz yok.'
-      );
-    }
+      )
+      .orThrow();
+
+    // TODO: hascapability guard gelecek
 
     const result = dto.productId
       ? await this.stockMovementQueryRepo.findManyByProduct(
@@ -49,6 +50,11 @@ export class GetStockMovementsHandler
           pagination
         );
 
-    return { data: result };
+    return {
+      data: result.items,
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+      },
+    };
   }
 }

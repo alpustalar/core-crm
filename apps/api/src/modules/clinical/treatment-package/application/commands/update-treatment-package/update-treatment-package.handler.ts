@@ -8,6 +8,9 @@ import {
   TREATMENT_PACKAGE_COMMAND_REPO,
   TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { Money } from '@src/domain/value-objects/money.vo';
+import { Decimal } from 'decimal.js';
 
 @CommandHandler(UpdateTreatmentPackageCommand)
 export class UpdateTreatmentPackageHandler
@@ -21,7 +24,8 @@ export class UpdateTreatmentPackageHandler
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
     @Inject(TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository
+    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -29,11 +33,21 @@ export class UpdateTreatmentPackageHandler
   ): Promise<UpdateTreatmentPackageResponse> {
     const { packageId, dto } = command;
 
-    const existing = await this.treatmentPackageQueryRepo.findById(packageId);
-    if (!existing) throw new NotFoundException('Tedavi paketi bulunamadı');
+    await this.txManager.run(async () => {
+      const treatmentPackage =
+        await this.treatmentPackageQueryRepo.findById(packageId);
+      if (!treatmentPackage)
+        throw new NotFoundException('Tedavi paketi bulunamadı');
 
-    const pkg = await this.treatmentPackageCommandRepo.update(packageId, dto);
-
-    return { id: pkg.id };
+      const { price = null, currency = null, ...restDto } = dto;
+      treatmentPackage.update({
+        ...restDto,
+        ...(price &&
+          currency && {
+            price: Money.create(new Decimal(price), currency),
+          }),
+      });
+      await this.treatmentPackageCommandRepo.save(treatmentPackage);
+    });
   }
 }

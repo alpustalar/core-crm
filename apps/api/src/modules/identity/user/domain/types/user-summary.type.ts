@@ -1,4 +1,4 @@
-import { GlobalStatus } from '@prisma/client';
+import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
 
 export type UserSummary = {
   id: string;

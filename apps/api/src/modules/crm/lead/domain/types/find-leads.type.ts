@@ -1,5 +1,6 @@
-import { LeadSource, LeadStatus } from '@prisma/client';
 import { Pagination } from '@shared/common';
+import { LeadSourceType as LeadSource } from '@input-type-schemas/LeadSourceSchema';
+import { LeadStatusType as LeadStatus } from '@input-type-schemas/LeadStatusSchema';
 
 export interface FindLeadsFilter {
   clinicId: string;

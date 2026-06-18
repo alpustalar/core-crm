@@ -1,10 +1,10 @@
 import { Clinic as ClinicEntity } from '@modules/organization/clinic/domain/entities/clinic.entity';
 import { IClinicCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { Injectable } from '@nestjs/common';
-import { GlobalStatus, Prisma } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 
 @Injectable()
 export class ClinicCommandRepository
@@ -19,8 +19,11 @@ export class ClinicCommandRepository
     organizationId: string
   ): Promise<{ deletedCount: number }> {
     const { count: deletedCount } = await this.db.clinic.updateMany({
-      where: { organizationId, status: { not: GlobalStatus.DELETED } },
-      data: { status: GlobalStatus.DELETED, deletedAt: new Date() },
+      where: {
+        organizationId,
+        status: { not: GlobalStatusSchema.enum.DELETED },
+      },
+      data: { status: GlobalStatusSchema.enum.DELETED, deletedAt: new Date() },
     });
     return { deletedCount };
   }
@@ -29,8 +32,8 @@ export class ClinicCommandRepository
     const data = entity.toPersistence();
     const raw = await this.db.clinic.upsert({
       where: { id: data.id },
-      create: data as Prisma.ClinicUncheckedCreateInput,
-      update: data as Prisma.ClinicUncheckedUpdateInput,
+      create: data,
+      update: data,
     });
     entity.flushEvents();
     return new ClinicEntity(raw);

@@ -118,10 +118,11 @@ model TreatmentPackage {
   clinicId String @map("clinic_id")
 
   name             String
-  examinationCount Int     @map("examination_count")
-  controlCount     Int     @map("control_count")
-  validityDays     Int     @map("validity_days")
-  price            Decimal @db.Decimal(10, 2)
+  examinationCount Int      @map("examination_count")
+  controlCount     Int      @map("control_count")
+  validityDays     Int      @map("validity_days")
+  price            Decimal  @db.Decimal(10, 2)
+  currency         Currency @default(TRY)
 
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")

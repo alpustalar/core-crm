@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import CurrencySchema from '@shared/generated-zod/inputTypeSchemas/CurrencySchema';
 
 export const TreatmentPackageItemInputSchema = z.object({
   treatmentId: z.uuid(),
@@ -13,4 +14,5 @@ export const CreateTreatmentPackageSchema = z.object({
   price: z.number().nonnegative(),
   providerIds: z.array(z.uuid()).optional(),
   items: z.array(TreatmentPackageItemInputSchema).optional(),
+  currency: CurrencySchema,
 });

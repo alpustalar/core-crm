@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AccountTypeSchema } from '../inputTypeSchemas/AccountTypeSchema'
 import { AccountSideSchema } from '../inputTypeSchemas/AccountSideSchema'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // ACCOUNT SCHEMA
@@ -9,6 +10,7 @@ import { AccountSideSchema } from '../inputTypeSchemas/AccountSideSchema'
 export const AccountSchema = z.object({
   type: AccountTypeSchema,
   normalSide: AccountSideSchema,
+  currency: CurrencySchema.nullable(),
   id: z.uuid(),
   clinicId: z.string(),
   organizationId: z.string(),
@@ -17,7 +19,6 @@ export const AccountSchema = z.object({
   parentId: z.string().nullable(),
   isPostable: z.boolean(),
   requiresParty: z.boolean(),
-  currency: z.string().nullable(),
   isActive: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

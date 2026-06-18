@@ -1,5 +1,4 @@
-import { PatientTreatmentPackage } from '@prisma/client';
-import { Pagination } from '@shared';
+import { Pagination, PatientTreatmentPackage } from '@shared';
 
 export const PATIENT_TREATMENT_PACKAGE_COMMAND_REPO = Symbol(
   'IPatientTreatmentPackageCommandRepository'

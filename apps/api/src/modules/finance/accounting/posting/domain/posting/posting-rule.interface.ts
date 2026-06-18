@@ -1,5 +1,5 @@
-import { FinancialEventType } from '@prisma/client';
 import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
+import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 
 /** Bir kuralın ürettiği ham fiş taslağı — hesaplar henüz kod (id değil). */
 export interface DraftJournalLine {

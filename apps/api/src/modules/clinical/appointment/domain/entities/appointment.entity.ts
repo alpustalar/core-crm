@@ -1,10 +1,11 @@
+import { Appointment as IAppointment } from '@model-schema/AppointmentSchema';
 import {
-  Appointment as IAppointment,
-  AppointmentStatus,
-  ExaminationType,
-  ExternalSystem,
-  VisitType,
-} from '@prisma/client';
+  AppointmentStatusSchema,
+  AppointmentStatusType as AppointmentStatus,
+} from '@input-type-schemas/AppointmentStatusSchema';
+import { ExaminationTypeType as ExaminationType } from '@input-type-schemas/ExaminationTypeSchema';
+import { ExternalSystemType as ExternalSystem } from '@input-type-schemas/ExternalSystemSchema';
+import { VisitTypeType as VisitType } from '@input-type-schemas/VisitTypeSchema';
 import { randomUUID } from 'crypto';
 import { DateTimeManager } from '@common/utils';
 import { AggregateRoot } from '@common/domain/aggregate-root';
@@ -236,24 +237,42 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return appointment;
   }
 
-  public static calculateEndTime(
+  public static calculateEndTimeOrThrow(
     start: Date,
-    EndTime?: Date,
+    endTime?: Date,
     duration?: number
   ): Date {
-    if (EndTime) return new Date(EndTime);
-    if (duration) return DateTimeManager.addMinutes(start, duration);
+    if (endTime) {
+      const parsedEndTime = new Date(endTime);
+      if (parsedEndTime <= new Date(start)) {
+        throw new Error(
+          'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
+        );
+      }
+      return parsedEndTime;
+    }
 
-    throw new Error('Randevu süresi veya bitiş zamanı belirlenemedi.');
+    if (duration && duration > 0) {
+      return DateTimeManager.addMinutes(start, duration);
+    }
+
+    throw new Error(
+      'Randevu süresi (duration) veya bitiş zamanı (endTime) belirlenemedi.'
+    );
   }
 
   private static create(props: CreateAppointmentProps): Appointment {
     const now = new Date();
-    const endTime = Appointment.calculateEndTime(
+    const endTime = Appointment.calculateEndTimeOrThrow(
       props.startTime,
       props.endTime,
       props.duration
     );
+
+    if (props.startTime < now) {
+      throw new Error('Geçmiş bir tarihe randevu oluşturulamaz.');
+    }
+
     return new Appointment({
       id: props.id ?? randomUUID(),
       patientName: props.patientName,
@@ -273,7 +292,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
       examinationType: props.examinationType ?? null,
       visitType: props.visitType ?? null,
       resourceId: props.resourceId ?? null,
-      status: props.status ?? AppointmentStatus.PENDING,
+      status: props.status ?? AppointmentStatusSchema.enum.PENDING,
       canceledAt: null,
       canceledBy: null,
       cancelReason: null,
@@ -285,14 +304,14 @@ export class Appointment extends AggregateRoot implements IAppointment {
   }
 
   public confirm(): void {
-    if (this._status !== AppointmentStatus.PENDING) {
+    if (this._status !== AppointmentStatusSchema.enum.PENDING) {
       throw new Error('Yalnızca bekleyen randevular onaylanabilir.');
     }
-    this._status = AppointmentStatus.CONFIRMED;
+    this._status = AppointmentStatusSchema.enum.CONFIRMED;
   }
 
   public cancelSchedule(canceledBy: string, reason?: string): void {
-    if (!this.canBeCancelled()) {
+    if (!this._canBeCancelled()) {
       throw new Error(
         'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
       );
@@ -300,12 +319,18 @@ export class Appointment extends AggregateRoot implements IAppointment {
     this._applyCancellation(canceledBy, reason);
   }
 
+  /**
+   * Hasta (Patient) tarafından yapılan iptal işlemi.
+   *
+   */
+
+  // TODO: Klinikten gelen dinamik saat kuralına (`minCancelHoursBefore`) göre denetlensin. DB'de ayar olarak tutulsun. şu an için bir kontrol yok. kaç saat öncesine kadar iptal sağlanabileceği kliniğe göre ayarlanacak.
   public cancelBooking(patientId?: string, reason?: string): void {
     if (!patientId) {
       throw new Error('Kullanıcı bulunamadı');
     }
 
-    if (!this.canBeCancelled()) {
+    if (!this._canBeCancelled()) {
       throw new Error(
         'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
       );
@@ -319,12 +344,14 @@ export class Appointment extends AggregateRoot implements IAppointment {
       'appointmentId' | 'clinicId' | 'patientId' | 'providerId'
     >
   ): void {
-    if (!this.isPending() && !this.iConfirmed()) {
+    if (this.isCancelled() || this.isCompleted() || this.isNoShow()) {
       throw new Error(
-        'Yalnızca onaylanan veya bekleyen randevular tamamlanabilir.'
+        `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular tamamlanamaz.`
       );
     }
-    this._status = AppointmentStatus.COMPLETED;
+    this._status = AppointmentStatusSchema.enum.COMPLETED;
+    this._updatedAt = new Date();
+
     this.addDomainEvent(
       new AppointmentCompletedEvent({
         ...eventPayload,
@@ -337,12 +364,12 @@ export class Appointment extends AggregateRoot implements IAppointment {
   }
 
   public markAsNoShow(): void {
-    if (!this.isPending() && !this.iConfirmed()) {
+    if (!this.isPending() && !this.isConfirmed()) {
       throw new Error(
         'Yalnızca onaylanan veya bekleyen randevular gelmeme olarak işaretlenebilir.'
       );
     }
-    this._status = AppointmentStatus.NOSHOW;
+    this._status = AppointmentStatusSchema.enum.NOSHOW;
   }
 
   public reschedule(
@@ -352,43 +379,66 @@ export class Appointment extends AggregateRoot implements IAppointment {
     notes?: string,
     treatmentId?: string | null
   ): void {
-    if (!this.canBeRescheduled()) {
+    // Ortak zamanlama mantığını çalıştır
+    this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
+
+    // Personel yaptığı için randevu direkt onaylı kalmaya devam edebilir
+    this._status = AppointmentStatusSchema.enum.CONFIRMED;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Hasta (Patient) tarafından yapılan yeniden zamanlama.
+   * 6 saat kısıtlaması doğrulanır ve onay bekliyor (PENDING) statüsüne düşürülür.
+   */
+
+  // TODO: kaç saat öncesine kadar değişiklik yapabilir klinik ayarlarında DB'de tutulsun
+  public rescheduleByPatient(
+    startTime: Date,
+    endTime: Date,
+    providerId: string,
+    notes?: string,
+    treatmentId?: string | null
+  ): void {
+    const now = new Date();
+
+    const hoursLeft = DateTimeManager.diffInHours(this._startTime, now);
+
+    if (hoursLeft < 6) {
       throw new Error(
-        'İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular yeniden zamanlanamaz.'
+        'Randevunuza 6 saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.'
       );
     }
 
-    this._startTime = startTime;
-    this._endTime = endTime;
-    this._providerId = providerId;
-    if (notes !== undefined) this._notes = notes;
-    if (treatmentId !== undefined) this._treatmentId = treatmentId;
+    if (startTime <= now) {
+      throw new Error('Geçmiş bir tarihe randevu yeniden zamanlanamaz.');
+    }
 
-    // Opsiyonel: Yeniden zamanlandığında statüyü tekrar pending'e veya confirmed'a çekmek istersek:
-    // this._status = AppointmentStatus.PENDING;
+    this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
+    this._status = AppointmentStatusSchema.enum.PENDING;
+    this._updatedAt = now;
+  }
+
+  public isPending(): boolean {
+    return this._status === AppointmentStatusSchema.enum.PENDING;
   }
 
   // 4. BUSINESS QUERY METHODS (Durum Sorguları)
 
-  public isPending(): boolean {
-    return this._status === AppointmentStatus.PENDING;
-  }
-
-  public iConfirmed(): boolean {
-    // Prisma'daki isConfirmed ile çakışmaması için veya doğrudan getter'dan bağımsız bir check
-    return this._status === AppointmentStatus.CONFIRMED;
+  public isConfirmed(): boolean {
+    return this._status === AppointmentStatusSchema.enum.CONFIRMED;
   }
 
   public isCancelled(): boolean {
-    return this._status === AppointmentStatus.CANCELLED;
+    return this._status === AppointmentStatusSchema.enum.CANCELLED;
   }
 
   public isCompleted(): boolean {
-    return this._status === AppointmentStatus.COMPLETED;
+    return this._status === AppointmentStatusSchema.enum.COMPLETED;
   }
 
   public isNoShow(): boolean {
-    return this._status === AppointmentStatus.NOSHOW;
+    return this._status === AppointmentStatusSchema.enum.NOSHOW;
   }
 
   public isInThePast(): boolean {
@@ -401,9 +451,9 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   public canBeRescheduled(): boolean {
     const invalidStatuses: AppointmentStatus[] = [
-      AppointmentStatus.CANCELLED,
-      AppointmentStatus.COMPLETED,
-      AppointmentStatus.NOSHOW,
+      AppointmentStatusSchema.enum.CANCELLED,
+      AppointmentStatusSchema.enum.COMPLETED,
+      AppointmentStatusSchema.enum.NOSHOW,
     ];
     return !invalidStatuses.includes(this._status);
   }
@@ -424,7 +474,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
       canceledBy: this._canceledBy,
       cancelReason: this._cancelReason,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: this._updatedAt,
       externalSystem: this._externalSystem,
       externalId: this._externalId,
       treatmentId: this._treatmentId,
@@ -439,8 +489,38 @@ export class Appointment extends AggregateRoot implements IAppointment {
     };
   }
 
+  /**
+   * Yeniden zamanlama işlemlerinin ortak validasyon ve atama motoru (Private Helper)
+   */
+  private _applyReschedule(
+    startTime: Date,
+    endTime: Date,
+    providerId: string,
+    notes?: string,
+    treatmentId?: string | null
+  ): void {
+    if (!this.canBeRescheduled()) {
+      throw new Error(
+        `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular yeniden zamanlanamaz. Mevcut durum: ${this._status}`
+      );
+    }
+
+    if (new Date(endTime) <= new Date(startTime)) {
+      throw new Error(
+        'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
+      );
+    }
+
+    this._startTime = startTime;
+    this._endTime = endTime;
+    this._providerId = providerId;
+
+    if (notes !== undefined) this._notes = notes;
+    if (treatmentId !== undefined) this._treatmentId = treatmentId;
+  }
+
   private _applyCancellation(canceledBy: string, reason?: string): void {
-    this._status = AppointmentStatus.CANCELLED;
+    this._status = AppointmentStatusSchema.enum.CANCELLED;
     this._canceledAt = new Date();
     this._canceledBy = canceledBy;
     if (reason) {
@@ -448,11 +528,11 @@ export class Appointment extends AggregateRoot implements IAppointment {
     }
   }
 
-  private canBeCancelled(): boolean {
+  private _canBeCancelled(): boolean {
     const invalidStatuses: AppointmentStatus[] = [
-      AppointmentStatus.CANCELLED,
-      AppointmentStatus.COMPLETED,
-      AppointmentStatus.NOSHOW,
+      AppointmentStatusSchema.enum.CANCELLED,
+      AppointmentStatusSchema.enum.COMPLETED,
+      AppointmentStatusSchema.enum.NOSHOW,
     ];
     return !invalidStatuses.includes(this._status);
   }

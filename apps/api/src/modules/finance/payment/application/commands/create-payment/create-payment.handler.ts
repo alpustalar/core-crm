@@ -1,16 +1,17 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Prisma } from '@prisma/client';
 import {
   CreatePaymentCommand,
   CreatePaymentCommandResponse,
 } from './create-payment.command';
 import {
-  IPaymentRepository,
-  PAYMENT_REPOSITORY,
+  IPaymentCommandRepository,
+  PAYMENT_COMMAND_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { Decimal } from 'decimal.js';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 @CommandHandler(CreatePaymentCommand)
 export class CreatePaymentHandler
@@ -18,18 +19,18 @@ export class CreatePaymentHandler
     ICommandHandler<CreatePaymentCommand, CreatePaymentCommandResponse>
 {
   constructor(
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly paymentRepo: IPaymentRepository
+    @Inject(PAYMENT_COMMAND_REPOSITORY)
+    private readonly paymentCommandRepo: IPaymentCommandRepository
   ) {}
 
   async execute(
     command: CreatePaymentCommand
   ): Promise<CreatePaymentCommandResponse> {
-    const { dto } = command;
-    const paymentId = randomUUID();
-    const installmentId = randomUUID();
-    const currency = dto.currency ?? 'TRY';
-    const amount = new Prisma.Decimal(dto.amount);
+    const { dto, internalData } = command;
+    const paymentId = internalData?.paymentId ?? randomUUID();
+    const installmentId = internalData?.installmentId ?? randomUUID();
+    const amount = new Decimal(dto.amount);
+    const totalAmount = Money.create(amount, dto.currency);
 
     const payment = Payment.create({
       id: paymentId,
@@ -37,14 +38,12 @@ export class CreatePaymentHandler
       patientId: dto.patientId,
       appointmentId: dto.appointmentId,
       providerId: dto.providerId,
-      totalAmount: amount,
-      currency,
+      totalAmount: totalAmount,
       installments: [
         {
           id: installmentId,
           installmentNo: 1,
-          amount,
-          currency,
+          money: totalAmount,
           method: dto.method,
           dueDate: dto.dueDate,
           note: dto.note,
@@ -52,7 +51,7 @@ export class CreatePaymentHandler
       ],
     });
 
-    await this.paymentRepo.save(payment);
-    return { paymentId, installmentId };
+    const savedPayment = await this.paymentCommandRepo.save(payment);
+    return savedPayment.id;
   }
 }

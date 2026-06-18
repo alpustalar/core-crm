@@ -35,9 +35,20 @@ export class FinanceLedgerController {
   }
 
   @Get('clinic/:clinicId/summary')
-  getClinicSummary() {
-    // TODO: tamamla
-    return this.queryBus.execute(new GetClinicFinanceSummaryQuery('ok'));
+  getClinicSummary(
+    @GetContext() ctx: IGetContext,
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string
+  ) {
+    return this.queryBus.execute(
+      new GetClinicFinanceSummaryQuery(
+        clinicId,
+        ctx,
+        dateFrom ? new Date(dateFrom) : undefined,
+        dateTo ? new Date(dateTo) : undefined
+      )
+    );
   }
 
   @Get('patient/:patientId/summary')

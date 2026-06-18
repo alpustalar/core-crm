@@ -1,10 +1,11 @@
 import { User } from '@modules/identity/user/domain/entities/user.entity';
 import { IUserCommandRepository } from '@modules/identity/user/domain/repositories/user.repository';
 import { Injectable } from '@nestjs/common';
-import { GlobalStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 
 @Injectable()
 export class UserCommandRepository
@@ -84,7 +85,7 @@ export class UserCommandRepository
     const ids = affected.map((u) => u.id);
     const { count: deletedCount } = await this.db.user.updateMany({
       where,
-      data: { status: GlobalStatus.DELETED, deletedAt: new Date() },
+      data: { status: GlobalStatusSchema.enum.DELETED, deletedAt: new Date() },
     });
     return { ids, deletedCount };
   }

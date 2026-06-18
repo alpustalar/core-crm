@@ -1,11 +1,8 @@
-import {
-  LedgerCategory,
-  LedgerStatus,
-  PaymentMethod,
-} from '@prisma/client';
 import { Pagination } from '@shared';
 import { FinanceLedgerEntity } from '../entities/finance-ledger.entity';
-
+import { LedgerCategoryType as LedgerCategory } from '@input-type-schemas/LedgerCategorySchema';
+import { LedgerStatusType as LedgerStatus } from '@input-type-schemas/LedgerStatusSchema';
+import { PaymentMethodType as PaymentMethod } from '@input-type-schemas/PaymentMethodSchema';
 
 export interface LedgerSummary {
   totalIncome: string;

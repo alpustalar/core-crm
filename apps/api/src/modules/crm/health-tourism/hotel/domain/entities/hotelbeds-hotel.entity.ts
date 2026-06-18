@@ -1,5 +1,7 @@
-import { HotelbedsHotel as IHotelbedsHotel, Prisma } from '@prisma/client';
+/* eslint-disable */
+import { HotelbedsHotel as IHotelbedsHotel } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 
 export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
   constructor(data: IHotelbedsHotel) {
@@ -65,13 +67,13 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
     return this._longitude;
   }
 
-  private _images: Prisma.JsonValue | null;
-  get images(): Prisma.JsonValue | null {
+  private _images: JsonValue | null;
+  get images(): JsonValue | null {
     return this._images;
   }
 
-  private _phones: Prisma.JsonValue | null;
-  get phones(): Prisma.JsonValue | null {
+  private _phones: JsonValue | null;
+  get phones(): JsonValue | null {
     return this._phones;
   }
 

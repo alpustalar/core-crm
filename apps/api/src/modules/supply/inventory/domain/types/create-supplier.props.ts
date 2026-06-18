@@ -1,5 +1,5 @@
 export interface CreateSupplierProps {
-  id: string;
+  id?: string;
   name: string;
   contactName?: string | null;
   phone?: string | null;

@@ -14,7 +14,7 @@ model JournalEntry {
   organizationId String @map("organization_id") // denormalize — konsolide raporlama
   periodId       String @map("period_id")
 
-  entryNo     BigInt? @map("entry_no") // POSTED olunca atanır, boşluksuz sıralı
+  entryNo     BigInt?            @map("entry_no") // POSTED olunca atanır, boşluksuz sıralı
   entryDate   DateTime           @map("entry_date")
   description String?
   status      JournalEntryStatus @default(DRAFT)
@@ -46,9 +46,9 @@ model JournalLine {
   accountId String  @map("account_id")
   partyId   String? @map("party_id") // 120/320 satırlarında zorunlu (alt defter)
 
-  debit    Decimal @default(0) @db.Decimal(14, 2)
-  credit   Decimal @default(0) @db.Decimal(14, 2)
-  currency String  @default("TRY")
+  debit    Decimal  @default(0) @db.Decimal(14, 2)
+  credit   Decimal  @default(0) @db.Decimal(14, 2)
+  currency Currency @default(TRY)
 
   lineDesc String? @map("line_desc")
 

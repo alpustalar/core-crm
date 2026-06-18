@@ -1,15 +1,13 @@
 import {
   HotelbedsTransferBooking as IHotelbedsTransferBooking,
-  HotelbedsTransferBookingStatus,
-  Prisma,
-} from '@prisma/client';
+  HotelbedsTransferBookingStatusSchema,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { Decimal } from '@prisma/client/runtime/library';
+import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
+import { HotelbedsTransferBookingStatusType as HotelbedsTransferBookingStatus } from '@input-type-schemas/HotelbedsTransferBookingStatusSchema';
+import { Money } from '@src/domain/value-objects/money.vo';
 
-export class HotelbedsTransferBooking
-  extends AggregateRoot
-  implements IHotelbedsTransferBooking
-{
+export class HotelbedsTransferBooking extends AggregateRoot {
   constructor(data: IHotelbedsTransferBooking) {
     super();
     this._id = data.id;
@@ -21,8 +19,7 @@ export class HotelbedsTransferBooking
     this._holderEmail = data.holderEmail;
     this._holderPhone = data.holderPhone;
     this._transfers = data.transfers;
-    this._totalAmount = data.totalAmount;
-    this._currency = data.currency;
+    this._totalAmount = Money.create(data.totalAmount, data.currency);
     this._remarks = data.remarks;
     this._organizationId = data.organizationId;
     this._clinicId = data.clinicId;
@@ -72,19 +69,14 @@ export class HotelbedsTransferBooking
     return this._holderPhone;
   }
 
-  private _transfers: Prisma.JsonValue;
-  get transfers(): Prisma.JsonValue {
+  private _transfers: JsonValue;
+  get transfers(): JsonValue {
     return this._transfers;
   }
 
-  private _totalAmount: Decimal;
-  get totalAmount(): Decimal {
+  private _totalAmount: Money;
+  get totalAmount(): Money {
     return this._totalAmount;
-  }
-
-  private _currency: string;
-  get currency(): string {
-    return this._currency;
   }
 
   private _remarks: string | null;
@@ -123,14 +115,14 @@ export class HotelbedsTransferBooking
   }
 
   public cancel(): void {
-    if (this._status === HotelbedsTransferBookingStatus.CANCELLED) {
+    if (this._status === HotelbedsTransferBookingStatusSchema.enum.CANCELLED) {
       throw new Error('Transfer rezervasyonu zaten iptal edilmiş.');
     }
-    this._status = HotelbedsTransferBookingStatus.CANCELLED;
+    this._status = HotelbedsTransferBookingStatusSchema.enum.CANCELLED;
   }
 
   public isCancelled(): boolean {
-    return this._status === HotelbedsTransferBookingStatus.CANCELLED;
+    return this._status === HotelbedsTransferBookingStatusSchema.enum.CANCELLED;
   }
 
   toPersistence(): IHotelbedsTransferBooking {
@@ -144,8 +136,8 @@ export class HotelbedsTransferBooking
       holderEmail: this._holderEmail,
       holderPhone: this._holderPhone,
       transfers: this._transfers,
-      totalAmount: this._totalAmount,
-      currency: this._currency,
+      totalAmount: this._totalAmount.amount,
+      currency: this.totalAmount.currency,
       remarks: this._remarks,
       organizationId: this._organizationId,
       clinicId: this._clinicId,

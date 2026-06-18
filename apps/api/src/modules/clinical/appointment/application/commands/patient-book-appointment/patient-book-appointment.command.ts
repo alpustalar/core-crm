@@ -10,6 +10,6 @@ export interface PatientIdentity {
 export class PatientBookAppointmentCommand {
   constructor(
     public readonly dto: PatientBookAppointmentDto,
-    public readonly patient: PatientIdentity,
+    public readonly patient: PatientIdentity
   ) {}
 }

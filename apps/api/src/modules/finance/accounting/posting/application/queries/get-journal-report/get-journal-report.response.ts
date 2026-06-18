@@ -1,5 +1,5 @@
-import { JournalEntryStatus } from '@prisma/client';
 import { QueryResponse } from '@shared/common/response/response.interface';
+import { JournalEntryStatusType } from '@input-type-schemas/JournalEntryStatusSchema';
 
 /** Yevmiye fiş satırı — hesap kodu/adı ile (tutarlar string). */
 export interface JournalReportLine {
@@ -18,7 +18,7 @@ export interface JournalReportEntry {
   entryNo: string | null;
   entryDate: Date;
   description: string | null;
-  status: JournalEntryStatus;
+  status: JournalEntryStatusType;
   lines: JournalReportLine[];
   totalDebit: string;
   totalCredit: string;

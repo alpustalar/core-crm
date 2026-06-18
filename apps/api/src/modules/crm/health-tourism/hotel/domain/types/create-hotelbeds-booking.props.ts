@@ -1,3 +1,5 @@
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
+
 export interface CreateHotelbedsBookingProps {
   id: string;
   reference: string;
@@ -5,7 +7,7 @@ export interface CreateHotelbedsBookingProps {
   checkIn: Date;
   checkOut: Date;
   totalNet: number;
-  currency: string;
+  currency: CurrencyType;
   holderName: string;
   holderSurname: string;
   rooms: unknown;

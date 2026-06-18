@@ -42,7 +42,7 @@ model HotelbedsBooking {
   checkOut       DateTime               @map("check_out") @db.Date
   status         HotelbedsBookingStatus @default(CONFIRMED)
   totalNet       Decimal                @map("total_net") @db.Decimal(10, 2)
-  currency       String                 @default("USD")
+  currency       Currency               @default(EUR)
   holderName     String                 @map("holder_name")
   holderSurname  String                 @map("holder_surname")
   rooms          Json
@@ -72,7 +72,7 @@ model HotelbedsTransferBooking {
   holderPhone     String                         @map("holder_phone")
   transfers       Json
   totalAmount     Decimal                        @map("total_amount") @db.Decimal(10, 2)
-  currency        String                         @default("EUR")
+  currency        Currency                       @default(EUR)
   remarks         String?                        @db.Text
   organizationId  String                         @map("organization_id")
   clinicId        String?                        @map("clinic_id")

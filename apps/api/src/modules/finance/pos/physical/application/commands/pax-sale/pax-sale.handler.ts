@@ -21,10 +21,10 @@ import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
-import { FinancialEventType, PartyRole } from '@prisma/client';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 
 @CommandHandler(PaxSaleCommand)
 export class PaxSaleHandler
@@ -55,18 +55,23 @@ export class PaxSaleHandler
     const { posTransactionId, transaction, paymentId } =
       await this.txManager.outboxRun(async () => {
         let resolvedPaymentId = input.paymentId;
+
+        const paymentId = crypto.randomUUID();
         if (!resolvedPaymentId && input.patientId) {
-          const result = await this.commandBus.execute(
-            new CreatePaymentCommand({
-              clinicId: input.clinicId,
-              patientId: input.patientId,
-              appointmentId: input.appointmentId,
-              amount: input.amount,
-              currency: input.currency,
-              method: PaymentMethodSchema.enum.CREDIT_CARD,
-            })
+          await this.commandBus.execute(
+            new CreatePaymentCommand(
+              {
+                clinicId: input.clinicId,
+                patientId: input.patientId,
+                appointmentId: input.appointmentId,
+                amount: input.amount,
+                currency: input.currency,
+                method: PaymentMethodSchema.enum.CREDIT_CARD,
+              },
+              { paymentId }
+            )
           );
-          resolvedPaymentId = result.paymentId;
+          resolvedPaymentId = paymentId;
         }
 
         const id = crypto.randomUUID();
@@ -116,7 +121,7 @@ export class PaxSaleHandler
             await this.recordPosPaymentReceived({
               patientId: input.patientId,
               clinicId: input.clinicId,
-              amount: transaction.amount.toString(),
+              amount: transaction.amount.amount.toString(),
               posTransactionId,
             });
           }
@@ -199,7 +204,7 @@ export class PaxSaleHandler
         new EnsurePartyForPatientCommand(
           input.patientId,
           input.clinicId,
-          PartyRole.CUSTOMER,
+          PartyRoleSchema.enum.CUSTOMER,
           ctx
         )
       );
@@ -209,7 +214,7 @@ export class PaxSaleHandler
           {
             organizationId,
             clinicId: input.clinicId,
-            type: FinancialEventType.PAYMENT_RECEIVED,
+            type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: { method: 'POS_CARD', amount: input.amount, partyId },
             sourceModule: 'pos',
             sourceRefId: input.posTransactionId,

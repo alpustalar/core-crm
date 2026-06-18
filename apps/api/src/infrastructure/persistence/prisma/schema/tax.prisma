@@ -1,0 +1,33 @@
+// TaxParameter — parametrik vergi oranları (KDV, stopaj, tevkifat, kurumlar).
+// Oranlar koda gömülmez; şube + tarih bazlı versiyonlanır (bkz documents/finans/06-vergi.md §7).
+// Fatura/fiş hesaplamaları geçerli oranı buradan çözer; geçmiş dönemler doğru hesaplanır.
+
+enum TaxParameterKey {
+  VAT_HEALTH // sağlık/diş hizmeti satış KDV'si (genelde %10)
+  VAT_STANDARD // genel KDV (%20)
+  VAT_REDUCED // indirimli KDV (%1)
+  WHT_SELF_EMPLOYMENT // serbest meslek (muayenehane) gelir vergisi stopajı (%20)
+  WHT_RENT // işyeri kira stopajı (%20)
+  CORP_TAX // kurumlar vergisi (%25)
+}
+
+model TaxParameter {
+  id             String @id @default(uuid())
+  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
+
+  key  TaxParameterKey
+  rate Decimal         @db.Decimal(5, 2) // yüzde oran (ör. 10.00, 20.00)
+
+  validFrom DateTime  @map("valid_from") // oranın geçerli olduğu başlangıç (vergi tarihi)
+  validTo   DateTime? @map("valid_to") // null = hâlâ geçerli (açık dönem)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  @@index([clinicId, key, validFrom])
+  @@index([organizationId])
+  @@map("tax_parameters")
+}

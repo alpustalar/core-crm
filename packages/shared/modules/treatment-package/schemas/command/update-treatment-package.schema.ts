@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TreatmentPackageItemInputSchema } from './create-treatment-package.schema';
+import CurrencySchema from '@shared/generated-zod/inputTypeSchemas/CurrencySchema';
 
 export const UpdateTreatmentPackageSchema = z.object({
   name: z.string().min(2).max(150).optional(),
@@ -7,6 +8,7 @@ export const UpdateTreatmentPackageSchema = z.object({
   controlCount: z.number().int().min(0).optional(),
   validityDays: z.number().int().min(1).optional(),
   price: z.number().nonnegative().optional(),
+  currency:CurrencySchema.optional(),
   isActive: z.boolean().optional(),
   providerIds: z.array(z.uuid()).optional(),
   items: z.array(TreatmentPackageItemInputSchema).optional(),

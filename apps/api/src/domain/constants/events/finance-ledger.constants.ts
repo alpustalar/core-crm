@@ -1,5 +1,6 @@
 export const FINANCE_LEDGER_EVENTS = {
   PATIENT_SUMMARY: 'finance.patient-summary',
+  CLINIC_SUMMARY: 'finance.clinic-summary',
   LEDGER: 'finance.ledger',
 } as const;
 

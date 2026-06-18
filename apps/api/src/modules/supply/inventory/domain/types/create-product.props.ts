@@ -1,5 +1,7 @@
-import { ProductCondition, ProductUnit } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { ProductConditionType as ProductCondition } from '@input-type-schemas/ProductConditionSchema';
+import { ProductUnitType as ProductUnit } from '@input-type-schemas/ProductUnitSchema';
+import { Quantity } from '@src/domain/value-objects/quantity.vo';
+import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 
 export interface CreateProductProps {
   id: string;
@@ -11,9 +13,9 @@ export interface CreateProductProps {
   imageUrl?: string | null;
   unit: ProductUnit;
   condition?: ProductCondition;
-  vatRate?: Prisma.Decimal;
-  criticalStockQty?: Prisma.Decimal;
-  reorderQty?: Prisma.Decimal;
+  vatRate?: VatRate;
+  criticalStockQty?: Quantity;
+  reorderQty?: Quantity;
   organizationId: string;
   categoryId?: string | null;
   supplierId?: string | null;

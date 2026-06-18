@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { TransactionContext, txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import {
+  TransactionContext,
+  txStorage,
+} from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 import { OutboxRepository } from '@src/infrastructure/persistence/prisma/outbox/outbox.repository';
 
 @Injectable()
@@ -9,7 +12,7 @@ export class TransactionManager {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
-    private outboxRepo: OutboxRepository,
+    private outboxRepo: OutboxRepository
   ) {}
 
   async run<T>(work: () => Promise<T>): Promise<T> {

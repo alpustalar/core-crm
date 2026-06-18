@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { FinancialEventUniqueConstraintException } from '@modules/finance/accounting/financial-events/domain/exceptions/financial-event-unique-constraint.exception';
 import {
   FINANCIAL_EVENT_COMMAND_REPOSITORY,
   FINANCIAL_EVENT_QUERY_REPOSITORY,
@@ -42,8 +42,7 @@ export class RecordFinancialEventHandler
       // Eşzamanlı kayıt aynı dedupeKey'i yazmış olabilir → mevcut olanı döndür.
       if (
         input.dedupeKey &&
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        error instanceof FinancialEventUniqueConstraintException
       ) {
         const raced = await this.eventQueryRepo.findByDedupeKey(
           input.dedupeKey

@@ -124,7 +124,7 @@ model ProductBatch {
   // Denormalized running total — source of truth is StockMovement records
   quantity      Decimal   @db.Decimal(10, 3)
   purchasePrice Decimal   @map("purchase_price") @db.Decimal(10, 2)
-  currency      String    @default("TRY")
+  currency      Currency  @default(TRY)
   receivedAt    DateTime  @default(now()) @map("received_at")
   notes         String?   @db.Text
 
@@ -149,7 +149,7 @@ model ProductPrice {
   clinicId    String?   @map("clinic_id")
   type        PriceType
   amount      Decimal   @db.Decimal(10, 2)
-  currency    String    @default("TRY")
+  currency    Currency  @default(TRY)
   validFrom   DateTime  @default(now()) @map("valid_from")
   // null = currently active
   validTo     DateTime? @map("valid_to")
@@ -172,7 +172,7 @@ model StockMovement {
   direction       StockMovementDirection
   quantity        Decimal                @db.Decimal(10, 3)
   unitPrice       Decimal?               @map("unit_price") @db.Decimal(10, 2)
-  currency        String                 @default("TRY")
+  currency        Currency               @default(TRY)
   vatRate         Decimal?               @map("vat_rate") @db.Decimal(5, 2)
   vatAmount       Decimal?               @map("vat_amount") @db.Decimal(10, 2)
   totalAmount     Decimal?               @map("total_amount") @db.Decimal(10, 2)

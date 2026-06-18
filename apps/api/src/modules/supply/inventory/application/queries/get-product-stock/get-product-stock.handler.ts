@@ -1,5 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetProductStockQuery } from './get-product-stock.query';
 import { GetProductStockResponse } from './get-product-stock.response';
 import {
@@ -26,15 +26,13 @@ export class GetProductStockHandler
     const { clinicId, ctx } = query;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.clinic(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.actorCanManageTargetClinic(clinicId)
-    ) {
-      throw new ForbiddenException(
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
         'Bu kliniğin stok bilgisine erişim yetkiniz yok.'
-      );
-    }
+      )
+      .orThrow();
 
     const levels = await this.productQueryRepo.getStockLevels(clinicId);
     return { data: levels };

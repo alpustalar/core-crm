@@ -2,13 +2,13 @@ import {
   AdminRequest as IAdminRequest,
   AdminRequestStatus,
   AdminRequestType,
-  Prisma,
-} from '@prisma/client';
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { BadRequestException } from '@nestjs/common';
 import { AdminRequestCreatedEvent } from '@modules/platform/admin-request/domain/events/admin-request-created.event';
 import { AdminRequestReviewedEvent } from '@modules/platform/admin-request/domain/events/admin-request-reviewed.event';
 import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/types/create-admin-request.props';
+import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 
 export class AdminRequest extends AggregateRoot implements IAdminRequest {
   constructor(data: IAdminRequest) {
@@ -57,8 +57,8 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
     return this._organizationId;
   }
 
-  private _metadata: Prisma.JsonValue | null;
-  get metadata(): Prisma.JsonValue | null {
+  private _metadata: JsonValue | null;
+  get metadata(): JsonValue | null {
     return this._metadata;
   }
 
@@ -95,7 +95,7 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
       targetId: props.targetId,
       requestedBy: props.requestedBy,
       organizationId: props.organizationId ?? null,
-      metadata: (props.metadata as Prisma.JsonValue) ?? null,
+      metadata: (props.metadata as JsonValue) ?? null,
       reviewedBy: null,
       reviewedAt: null,
       reviewNote: null,

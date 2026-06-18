@@ -10,7 +10,7 @@ import {
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { GetProviderScheduleQuery } from './get-provider-schedule.query';
 import { GetProviderScheduleQueryResponse } from './get-provider-schedule.response';
-import { OperationMode } from '@prisma/client';
+import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 
 @QueryHandler(GetProviderScheduleQuery)
 export class GetProviderScheduleHandler
@@ -41,21 +41,29 @@ export class GetProviderScheduleHandler
         endDate
       );
 
-    if (provider.operationMode === OperationMode.SHIFT) {
+    if (provider.operationMode === OperationModeSchema.enum.SHIFT) {
       const shifts = await this.providerAvailabilityRepo.findShiftsByDateRange(
         providerId,
         startDate,
         endDate
       );
       return {
-        data: { operationMode: OperationMode.SHIFT, shifts, exceptions },
+        data: {
+          operationMode: OperationModeSchema.enum.SHIFT,
+          shifts,
+          exceptions,
+        },
       };
     }
 
     const availabilities =
       await this.providerAvailabilityRepo.findByProviderId(providerId);
     return {
-      data: { operationMode: OperationMode.STATIC, availabilities, exceptions },
+      data: {
+        operationMode: OperationModeSchema.enum.STATIC,
+        availabilities,
+        exceptions,
+      },
     };
   }
 }

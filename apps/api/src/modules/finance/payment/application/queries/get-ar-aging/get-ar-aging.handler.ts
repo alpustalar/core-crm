@@ -1,10 +1,9 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { DateTimeManager } from '@common/utils';
 import {
-  IPaymentRepository,
-  PAYMENT_REPOSITORY,
+  IPaymentQueryRepository,
+  PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { OpenInstallmentRow } from '@modules/finance/payment/domain/types/ar-aging.type';
 import { GetArAgingQuery } from './get-ar-aging.query';
@@ -14,6 +13,7 @@ import {
   ArAgingPatientRisk,
   GetArAgingResponse,
 } from './get-ar-aging.response';
+import { Decimal } from 'decimal.js';
 
 const BUCKET_ORDER: ArAgingBucketLabel[] = [
   'NOT_DUE',
@@ -24,8 +24,8 @@ const BUCKET_ORDER: ArAgingBucketLabel[] = [
 ];
 
 interface PatientAccumulator {
-  outstanding: Prisma.Decimal;
-  overdue: Prisma.Decimal;
+  outstanding: Decimal;
+  overdue: Decimal;
   oldestDueDate: Date | null;
 }
 
@@ -34,27 +34,31 @@ export class GetArAgingHandler
   implements IQueryHandler<GetArAgingQuery, GetArAgingResponse>
 {
   constructor(
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly paymentRepo: IPaymentRepository
+    @Inject(PAYMENT_QUERY_REPOSITORY)
+    private readonly paymentQueryRepo: IPaymentQueryRepository
   ) {}
 
   async execute(query: GetArAgingQuery): Promise<GetArAgingResponse> {
     const { clinicId } = query;
-    const asOf = query.asOf ?? new Date();
+    // Saat farkından kaynaklanan yanlış vadelendirmeyi önlemek için gün başına normalize et.
+    const asOf = DateTimeManager.startOfDay(query.asOf ?? new Date());
 
     const { openInstallments, collectedTotal } =
-      await this.paymentRepo.arAging({ clinicId });
+      await this.paymentQueryRepo.arAging({ clinicId });
 
     const buckets = this.buildBuckets(openInstallments, asOf);
     const patients = this.buildPatientRisk(openInstallments, asOf);
 
-    const zero = new Prisma.Decimal(0);
+    const zero = new Decimal(0);
     const totalOutstanding = openInstallments.reduce(
-      (sum, row) => sum.plus(row.amount),
+      (sum, row) => sum.plus(new Decimal(row.amount.toString())),
       zero
     );
     const totalOverdue = openInstallments.reduce(
-      (sum, row) => (this.isOverdue(row, asOf) ? sum.plus(row.amount) : sum),
+      (sum, row) =>
+        this.isOverdue(row, asOf)
+          ? sum.plus(new Decimal(row.amount.toString()))
+          : sum,
       zero
     );
     const denominator = collectedTotal.plus(totalOutstanding);
@@ -82,8 +86,8 @@ export class GetArAgingHandler
     rows: OpenInstallmentRow[],
     asOf: Date
   ): ArAgingBucket[] {
-    const zero = new Prisma.Decimal(0);
-    const acc = new Map<ArAgingBucketLabel, { count: number; amount: Prisma.Decimal }>(
+    const zero = new Decimal(0);
+    const acc = new Map<ArAgingBucketLabel, { count: number; amount: Decimal }>(
       BUCKET_ORDER.map((label) => [label, { count: 0, amount: zero }])
     );
 
@@ -91,7 +95,7 @@ export class GetArAgingHandler
       const label = this.classify(row, asOf);
       const bucket = acc.get(label)!;
       bucket.count += 1;
-      bucket.amount = bucket.amount.plus(row.amount);
+      bucket.amount = bucket.amount.plus(new Decimal(row.amount.toString()));
     }
 
     return BUCKET_ORDER.map((label) => {
@@ -104,16 +108,20 @@ export class GetArAgingHandler
     rows: OpenInstallmentRow[],
     asOf: Date
   ): ArAgingPatientRisk[] {
-    const zero = new Prisma.Decimal(0);
+    const zero = new Decimal(0);
     const acc = new Map<string, PatientAccumulator>();
 
     for (const row of rows) {
-      const entry =
-        acc.get(row.patientId) ??
-        { outstanding: zero, overdue: zero, oldestDueDate: null };
-      entry.outstanding = entry.outstanding.plus(row.amount);
+      const entry = acc.get(row.patientId) ?? {
+        outstanding: zero,
+        overdue: zero,
+        oldestDueDate: null,
+      };
+      entry.outstanding = entry.outstanding.plus(
+        new Decimal(row.amount.toString())
+      );
       if (this.isOverdue(row, asOf)) {
-        entry.overdue = entry.overdue.plus(row.amount);
+        entry.overdue = entry.overdue.plus(new Decimal(row.amount.toString()));
       }
       if (
         row.dueDate &&
@@ -124,14 +132,17 @@ export class GetArAgingHandler
       acc.set(row.patientId, entry);
     }
 
+    // Sıralama string'e dönmeden önce ham Decimal'lar üzerinde yapılır.
     return [...acc.entries()]
+      .sort(([, aEntry], [, bEntry]) =>
+        bEntry.overdue.comparedTo(aEntry.overdue)
+      )
       .map(([patientId, entry]) => ({
         patientId,
         outstanding: entry.outstanding.toFixed(2),
         overdue: entry.overdue.toFixed(2),
         oldestDueDate: entry.oldestDueDate,
-      }))
-      .sort((a, b) => Number(b.overdue) - Number(a.overdue));
+      }));
   }
 
   private classify(row: OpenInstallmentRow, asOf: Date): ArAgingBucketLabel {
@@ -143,7 +154,11 @@ export class GetArAgingHandler
     return 'D90_PLUS';
   }
 
+  // dueDate'i de gün başına normalize ederek saat farkı kaynaklı hatalı vadelendirmeyi engeller.
   private isOverdue(row: OpenInstallmentRow, asOf: Date): boolean {
-    return row.dueDate != null && row.dueDate < asOf;
+    return (
+      row.dueDate != null &&
+      DateTimeManager.startOfDay(row.dueDate) < asOf
+    );
   }
 }

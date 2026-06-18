@@ -1,4 +1,6 @@
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import { InvoiceStatusType as InvoiceStatus } from '@input-type-schemas/InvoiceStatusSchema';
+import { Decimal } from 'decimal.js';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 export interface CreateInvoiceProps {
   id: string;
@@ -7,10 +9,10 @@ export interface CreateInvoiceProps {
   appointmentId: string | null;
   paymentId: string | null;
   amount: number;
-  currency: string;
+  currency: CurrencyType;
   vatRate: number;
-  netTotal: Prisma.Decimal;
-  vatTotal: Prisma.Decimal;
+  netTotal: Decimal;
+  vatTotal: Decimal;
   status: InvoiceStatus;
   invoiceNumber?: string;
   issuedAt?: Date;

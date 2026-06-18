@@ -14,6 +14,8 @@ import {
   JournalReportFilter,
   TrialBalanceFilter,
   TrialBalanceRow,
+  VatDeclaration,
+  VatDeclarationFilter,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { JournalLine } from '@modules/finance/accounting/posting/domain/entities/journal-line.entity';
@@ -227,6 +229,49 @@ export class JournalQueryRepository
         credit: row.credit,
       })),
     };
+  }
+
+  async vatDeclaration(
+    filter: VatDeclarationFilter
+  ): Promise<VatDeclaration> {
+    const entryWhere: Prisma.JournalEntryWhereInput = {
+      clinicId: filter.clinicId,
+      status: JournalEntryStatus.POSTED,
+    };
+    if (filter.dateFrom || filter.dateTo) {
+      entryWhere.entryDate = { gte: filter.dateFrom, lte: filter.dateTo };
+    }
+
+    const fetch = (accountIds: string[]) =>
+      accountIds.length === 0
+        ? Promise.resolve(
+            [] as { entry: { entryDate: Date }; debit: Prisma.Decimal; credit: Prisma.Decimal }[]
+          )
+        : this.db.journalLine.findMany({
+            where: { accountId: { in: accountIds }, entry: entryWhere },
+            select: {
+              debit: true,
+              credit: true,
+              entry: { select: { entryDate: true } },
+            },
+            orderBy: { entry: { entryDate: 'asc' } },
+          });
+
+    const [outputRows, inputRows] = await Promise.all([
+      fetch(filter.outputAccountIds),
+      fetch(filter.inputAccountIds),
+    ]);
+
+    const toRows = (
+      rows: { entry: { entryDate: Date }; debit: Prisma.Decimal; credit: Prisma.Decimal }[]
+    ) =>
+      rows.map((row) => ({
+        entryDate: row.entry.entryDate,
+        debit: row.debit,
+        credit: row.credit,
+      }));
+
+    return { output: toRows(outputRows), input: toRows(inputRows) };
   }
 
   private toEntity(raw: JournalEntryWithLines): JournalEntry {

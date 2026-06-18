@@ -1,15 +1,24 @@
-import { JournalLine as IJournalLine, Prisma } from '@prisma/client';
+import { JournalLine as IJournalLine } from '@shared';
 import { CreateJournalEntryLineInput } from '../types/create-journal-entry.props';
+import { JournalEntryLineAmount } from '@modules/finance/shared/domain/value-objects/journal-entry-line-amount.vo';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+import { Decimal } from 'decimal.js';
 
-export class JournalLine implements IJournalLine {
+export class JournalLine {
+  private readonly _amount: JournalEntryLineAmount;
+
   constructor(data: IJournalLine) {
     this._id = data.id;
     this._entryId = data.entryId;
     this._accountId = data.accountId;
     this._partyId = data.partyId;
-    this._debit = data.debit;
-    this._credit = data.credit;
-    this._currency = data.currency;
+
+    this._amount = JournalEntryLineAmount.create(
+      data.debit,
+      data.credit,
+      Currency.create(data.currency)
+    );
+
     this._lineDesc = data.lineDesc;
   }
 
@@ -24,31 +33,33 @@ export class JournalLine implements IJournalLine {
   }
 
   private _accountId: string;
+
   get accountId(): string {
     return this._accountId;
   }
 
   private _partyId: string | null;
+
   get partyId(): string | null {
     return this._partyId;
   }
 
-  private _debit: Prisma.Decimal;
-  get debit(): Prisma.Decimal {
-    return this._debit;
+  get debit(): Decimal {
+    return this._amount.debit;
   }
 
-  private _credit: Prisma.Decimal;
-  get credit(): Prisma.Decimal {
-    return this._credit;
+  get credit(): Decimal {
+    return this._amount.credit;
   }
 
-  private _currency: string;
-  get currency(): string {
-    return this._currency;
+  // Para birimi tek kaynak: JournalEntryLineAmount VO. Ayrı _currency alanı tutulmaz
+  // (constructor'da set edilmediği için undefined kalıyordu → save'de patlıyordu).
+  get currency(): Currency {
+    return this._amount.currency;
   }
 
   private _lineDesc: string | null;
+
   get lineDesc(): string | null {
     return this._lineDesc;
   }
@@ -57,24 +68,35 @@ export class JournalLine implements IJournalLine {
     entryId: string,
     input: CreateJournalEntryLineInput
   ): JournalLine {
+    // hatalı giriş (örn: negatif sayı veya XOR ihlali) anında exception fırlatır.
+    const amount = JournalEntryLineAmount.create(
+      new Decimal(input.debit ?? 0),
+      new Decimal(input.credit ?? 0),
+      input.currency ? Currency.create(input.currency) : Currency.create('TRY')
+    );
+
     return new JournalLine({
       id: crypto.randomUUID(),
       entryId,
       accountId: input.accountId,
       partyId: input.partyId ?? null,
-      debit: new Prisma.Decimal(input.debit ?? 0),
-      credit: new Prisma.Decimal(input.credit ?? 0),
-      currency: input.currency ?? 'TRY',
+      debit: amount.debit,
+      credit: amount.credit,
+      currency: amount.currency.value ?? 'TRY',
       lineDesc: input.lineDesc ?? null,
     });
   }
 
+  public matchesAccount(accountId: string): boolean {
+    return this._accountId === accountId;
+  }
+
   public isDebit(): boolean {
-    return this._debit.gt(0);
+    return this._amount.debit.gt(0);
   }
 
   public isCredit(): boolean {
-    return this._credit.gt(0);
+    return this._amount.credit.gt(0);
   }
 
   public toPersistence(): IJournalLine {
@@ -83,9 +105,9 @@ export class JournalLine implements IJournalLine {
       entryId: this._entryId,
       accountId: this._accountId,
       partyId: this._partyId,
-      debit: this._debit,
-      credit: this._credit,
-      currency: this._currency,
+      debit: this._amount.debit,
+      credit: this._amount.credit,
+      currency: this._amount.currency.value,
       lineDesc: this._lineDesc,
     };
   }

@@ -1,13 +1,14 @@
-import {
-  PosTransaction as IPosTransaction,
-  PosTransactionStatus,
-  Prisma,
-} from '@prisma/client';
+import { PosTransaction as IPosTransaction } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { PosTransactionSucceededEvent } from '../events/pos-transaction-succeeded.event';
 import { PosTransactionFailedEvent } from '../events/pos-transaction-failed.event';
 import { PosTransactionCancelledEvent } from '../events/pos-transaction-cancelled.event';
 import { PosTransactionTimeoutEvent } from '../events/pos-transaction-timeout.event';
+import PosTransactionStatusSchema, {
+  PosTransactionStatusType as PosTransactionStatus,
+} from '@input-type-schemas/PosTransactionStatusSchema';
+import { JsonValueType } from '@input-type-schemas/JsonValueSchema';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 /**
  * Fiziksel POS işlemini temsil eden domain entity.
@@ -20,10 +21,7 @@ import { PosTransactionTimeoutEvent } from '../events/pos-transaction-timeout.ev
  * NOT: Audit/domain event'leri Faz 3'te eklenecektir (publisher + listener
  * akışıyla). Şimdilik entity yalnızca durum yönetiminden sorumludur.
  */
-export class PosTransactionEntity
-  extends AggregateRoot
-  implements IPosTransaction
-{
+export class PosTransaction extends AggregateRoot {
   constructor(data: IPosTransaction) {
     super();
     this._id = data.id;
@@ -32,8 +30,7 @@ export class PosTransactionEntity
     this._patientId = data.patientId;
     this._appointmentId = data.appointmentId;
     this._paymentId = data.paymentId;
-    this._amount = data.amount;
-    this._currency = data.currency;
+    this._amount = Money.create(data.amount, data.currency);
     this._status = data.status;
     this._externalRef = data.externalRef;
     this._rawRequest = data.rawRequest;
@@ -74,14 +71,9 @@ export class PosTransactionEntity
     return this._paymentId;
   }
 
-  private _amount: Prisma.Decimal;
-  get amount(): Prisma.Decimal {
+  private _amount: Money;
+  get amount(): Money {
     return this._amount;
-  }
-
-  private _currency: string;
-  get currency(): string {
-    return this._currency;
   }
 
   private _status: PosTransactionStatus;
@@ -94,13 +86,13 @@ export class PosTransactionEntity
     return this._externalRef;
   }
 
-  private _rawRequest: Prisma.JsonValue | null;
-  get rawRequest(): Prisma.JsonValue | null {
+  private _rawRequest: JsonValueType | null;
+  get rawRequest(): JsonValueType | null {
     return this._rawRequest;
   }
 
-  private _rawResponse: Prisma.JsonValue | null;
-  get rawResponse(): Prisma.JsonValue | null {
+  private _rawResponse: JsonValueType | null;
+  get rawResponse(): JsonValueType | null {
     return this._rawResponse;
   }
 
@@ -125,27 +117,27 @@ export class PosTransactionEntity
   }
 
   public isPending(): boolean {
-    return this._status === PosTransactionStatus.PENDING;
+    return this._status === PosTransactionStatusSchema.enum.PENDING;
   }
 
   public isSuccess(): boolean {
-    return this._status === PosTransactionStatus.SUCCESS;
+    return this._status === PosTransactionStatusSchema.enum.SUCCESS;
   }
 
   /** Terminalin döndürdüğü referansı/ham isteği işler (durum değiştirmez). */
   public setExternalRef(externalRef: string, rawRequest?: unknown): void {
     this._externalRef = externalRef;
     if (rawRequest !== undefined) {
-      this._rawRequest = rawRequest as Prisma.JsonValue;
+      this._rawRequest = rawRequest as JsonValueType;
     }
   }
 
   public markSuccess(externalRef?: string, rawResponse?: unknown): void {
     if (!this.isPending()) return;
-    this._status = PosTransactionStatus.SUCCESS;
+    this._status = PosTransactionStatusSchema.enum.SUCCESS;
     if (externalRef) this._externalRef = externalRef;
     if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse as Prisma.JsonValue;
+      this._rawResponse = rawResponse as JsonValueType;
     }
     this._completedAt = new Date();
     this.addDomainEvent(
@@ -154,17 +146,17 @@ export class PosTransactionEntity
         clinicId: this._clinicId,
         paymentId: this._paymentId,
         externalRef: this._externalRef,
-        amount: this._amount,
-        currency: this._currency,
+        amount: this._amount.amount,
+        currency: this._amount.currency,
       })
     );
   }
 
   public markFailed(rawResponse?: unknown): void {
     if (!this.isPending()) return;
-    this._status = PosTransactionStatus.FAILED;
+    this._status = PosTransactionStatusSchema.enum.FAILED;
     if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse as Prisma.JsonValue;
+      this._rawResponse = rawResponse as JsonValueType;
     }
     this._completedAt = new Date();
     this.addDomainEvent(
@@ -178,9 +170,9 @@ export class PosTransactionEntity
 
   public markCancelled(rawResponse?: unknown): void {
     if (!this.isPending()) return;
-    this._status = PosTransactionStatus.CANCELLED;
+    this._status = PosTransactionStatusSchema.enum.CANCELLED;
     if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse as Prisma.JsonValue;
+      this._rawResponse = rawResponse as JsonValueType;
     }
     this._completedAt = new Date();
     this.addDomainEvent(
@@ -194,7 +186,7 @@ export class PosTransactionEntity
 
   public markTimeout(): void {
     if (!this.isPending()) return;
-    this._status = PosTransactionStatus.TIMEOUT;
+    this._status = PosTransactionStatusSchema.enum.TIMEOUT;
     this._completedAt = new Date();
     this.addDomainEvent(
       new PosTransactionTimeoutEvent({
@@ -212,8 +204,8 @@ export class PosTransactionEntity
       patientId: this._patientId,
       appointmentId: this._appointmentId,
       paymentId: this._paymentId,
-      amount: this._amount,
-      currency: this._currency,
+      amount: this._amount.amount,
+      currency: this._amount.currency,
       status: this._status,
       externalRef: this._externalRef,
       rawRequest: this._rawRequest,

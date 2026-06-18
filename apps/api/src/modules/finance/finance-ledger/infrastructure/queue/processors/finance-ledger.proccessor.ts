@@ -3,10 +3,14 @@ import { Job } from 'bullmq';
 import { FINANCE_JOBS, QUEUES } from '@common/constants';
 import { Logger } from '@nestjs/common';
 import { ILedgerJobData } from '../producers/finance-ledger.producer';
-import { LedgerCategory, LedgerSource, LedgerType } from '@prisma/client';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreateLedgerEntyCommand } from '@modules/finance/finance-ledger/application/commands/create-ledger-enty/create-ledger-enty.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  LedgerCategorySchema,
+  LedgerSourceSchema,
+  LedgerTypeSchema,
+} from '@shared';
 
 @Processor(QUEUES.FINANCE)
 export class FinanceLedgerProcessor extends WorkerHost {
@@ -39,9 +43,9 @@ export class FinanceLedgerProcessor extends WorkerHost {
       organizationId: data.organizationId,
       clinicId: data.clinicId,
       patientId: data.patientId,
-      type: LedgerType.INCOME,
-      source: LedgerSource.PAYMENT_MODULE,
-      category: LedgerCategory.TREATMENT_PAYMENT,
+      type: LedgerTypeSchema.enum.INCOME,
+      source: LedgerSourceSchema.enum.PAYMENT_MODULE,
+      category: LedgerCategorySchema.enum.TREATMENT_PAYMENT,
       amount: data.amount,
       currency: data.currency,
     };

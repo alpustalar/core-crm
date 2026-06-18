@@ -1,5 +1,5 @@
 import { ProviderAvailability } from '@shared';
-import { OperationMode } from '@prisma/client';
+import { OperationModeType as OperationMode } from '@input-type-schemas/OperationModeSchema';
 
 export type ProviderAvailabilityWithCanAcceptExamination =
   ProviderAvailability & {

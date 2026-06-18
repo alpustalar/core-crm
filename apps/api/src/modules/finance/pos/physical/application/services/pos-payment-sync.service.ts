@@ -1,24 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { InstallmentStatus } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
-import {
-  IPaymentEventPublisher,
-  PAYMENT_EVENT_PUBLISHER,
-} from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import {
-  GetPaymentWithInstallmentsQuery
-} from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
-import {
-  MarkInstallmentAsPaidCommand
-} from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
-import {
-  MarkInstallmentAsFailedCommand
-} from '@modules/finance/payment/application/commands/mark-installment-as-failed/mark-installment-as-failed.command';
-import {
-  MarkInstallmentAsRefundedCommand
-} from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
+import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
+import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
+import { MarkInstallmentAsFailedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-failed/mark-installment-as-failed.command';
+import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
+import InstallmentStatusSchema, {
+  InstallmentStatusType,
+} from '@input-type-schemas/InstallmentStatusSchema';
 
 interface PosPaymentSyncInput {
   paymentId: string;
@@ -26,111 +15,75 @@ interface PosPaymentSyncInput {
   reason?: string;
 }
 
-interface ResolvedInstallment {
-  installmentId: string;
-  appointmentId: string | null;
-}
-
 /**
  * Physical POS işlemlerinin sonucunu payment modülüne yansıtır.
  *
  * POS modülü ledger'a doğrudan dokunmaz; yalnızca ilgili taksiti
- * COMPLETED / PENDING / REFUNDED olarak işaretler ve payment event'ini yayınlar.
+ * COMPLETED / PENDING / REFUNDED olarak işaretlemek için payment command'ini
+ * dispatch eder. Payment event'lerinin (PaymentPaid/Failed/Refunded) sahipliği
+ * payment modülündedir; event'ler ilgili command handler içinde fırlatılır.
  * Ledger kayıtları finance-ledger modülündeki payment listener'ları üzerinden oluşur.
  *
  * KURAL: Bu metodlar mutlaka bir TransactionManager.outboxRun() içinden çağrılır;
- * yayınlanan payment event'leri aynı transaction'da Outbox'a mühürlenir.
+ * command handler'ında fırlatılan payment event'leri aynı transaction'da Outbox'a
+ * mühürlenir (nested run/outboxRun mevcut context'i yeniden kullanır).
  */
 @Injectable()
 export class PosPaymentSyncService {
   constructor(
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus,
-    @Inject(PAYMENT_EVENT_PUBLISHER)
-    private readonly paymentEventPublisher: IPaymentEventPublisher
+    private readonly queryBus: TSQueryBus
   ) {}
 
-  /** POS tahsilatı başarılı: taksit COMPLETED + PaymentPaidEvent. */
-  async markPaid({ paymentId, clinicId }: PosPaymentSyncInput): Promise<void> {
-    const resolved = await this.resolveInstallment(paymentId, [
-      InstallmentStatus.PENDING,
+  /** POS tahsilatı başarılı: taksit COMPLETED + PaymentPaidEvent (handler'da). */
+  async markPaid({ paymentId }: PosPaymentSyncInput): Promise<void> {
+    const installmentId = await this.resolveInstallmentId(paymentId, [
+      InstallmentStatusSchema.enum.PENDING,
     ]);
-    if (!resolved) return;
+    if (!installmentId) return;
 
     await this.commandBus.execute(
-      new MarkInstallmentAsPaidCommand(resolved.installmentId)
+      new MarkInstallmentAsPaidCommand(
+        installmentId,
+        'POS ödemesi tahsil edildi'
+      )
     );
-
-    // TODO: payment modülünün eventini kaldır. event, command handler içinde fırlatılacak. duruma göre command'e internalContext ve internalData details geçilebilir
-
-    this.paymentEventPublisher.paymentPaid({
-      installmentId: resolved.installmentId,
-      paymentId,
-      appointmentId: resolved.appointmentId,
-      clinicId,
-      action: LogAction.PAYMENT_SUCCESS,
-      type: LogType.INFO,
-      details: 'POS ödemesi tahsil edildi',
-    });
   }
 
-  /** POS tahsilatı reddedildi: taksit PENDING'e döner + PaymentFailedEvent. */
-  async markFailed({
-    paymentId,
-    clinicId,
-    reason,
-  }: PosPaymentSyncInput): Promise<void> {
-    const resolved = await this.resolveInstallment(paymentId, [
-      InstallmentStatus.PENDING,
+  /** POS tahsilatı reddedildi: taksit PENDING'e döner + PaymentFailedEvent (handler'da). */
+  async markFailed({ paymentId, reason }: PosPaymentSyncInput): Promise<void> {
+    const installmentId = await this.resolveInstallmentId(paymentId, [
+      InstallmentStatusSchema.enum.PENDING,
     ]);
-    if (!resolved) return;
+    if (!installmentId) return;
 
     await this.commandBus.execute(
-      new MarkInstallmentAsFailedCommand(resolved.installmentId)
+      new MarkInstallmentAsFailedCommand(
+        installmentId,
+        reason ?? 'POS ödemesi reddedildi'
+      )
     );
-
-    // TODO: payment modülü eventi kaldıralacak. event command handler içinde fırlatılacak
-
-    this.paymentEventPublisher.paymentFailed({
-      paymentId,
-      appointmentId: resolved.appointmentId,
-      clinicId,
-      action: LogAction.PAYMENT_FAILED,
-      type: LogType.ERROR,
-      details: reason ?? 'POS ödemesi reddedildi',
-    });
   }
 
-  /** POS iade/void başarılı: tamamlanmış taksit REFUNDED + PaymentRefundedEvent. */
-  async markRefunded({
-    paymentId,
-    clinicId,
-  }: PosPaymentSyncInput): Promise<void> {
-    const resolved = await this.resolveInstallment(paymentId, [
-      InstallmentStatus.COMPLETED,
+  /** POS iade/void başarılı: tamamlanmış taksit REFUNDED + PaymentRefundedEvent (handler'da). */
+  async markRefunded({ paymentId }: PosPaymentSyncInput): Promise<void> {
+    const installmentId = await this.resolveInstallmentId(paymentId, [
+      InstallmentStatusSchema.enum.COMPLETED,
     ]);
-    if (!resolved) return;
+    if (!installmentId) return;
 
     await this.commandBus.execute(
-      new MarkInstallmentAsRefundedCommand(resolved.installmentId)
+      new MarkInstallmentAsRefundedCommand(
+        installmentId,
+        'POS işlemi iade edildi'
+      )
     );
-
-    // TODO: bu event command handler içinde fırlatılacak
-    this.paymentEventPublisher.paymentRefund({
-      installmentId: resolved.installmentId,
-      paymentId,
-      appointmentId: resolved.appointmentId,
-      clinicId,
-      action: LogAction.PAYMENT_REFUNDED,
-      type: LogType.INFO,
-      details: 'POS işlemi iade edildi',
-    });
   }
 
-  private async resolveInstallment(
+  private async resolveInstallmentId(
     paymentId: string,
-    statuses: InstallmentStatus[]
-  ): Promise<ResolvedInstallment | null> {
+    statuses: InstallmentStatusType[]
+  ): Promise<string | null> {
     const payment = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
@@ -139,11 +92,6 @@ export class PosPaymentSyncService {
     const installment = payment.installments.find((i) =>
       statuses.includes(i.status)
     );
-    if (!installment) return null;
-
-    return {
-      installmentId: installment.id,
-      appointmentId: payment.appointmentId,
-    };
+    return installment?.id ?? null;
   }
 }

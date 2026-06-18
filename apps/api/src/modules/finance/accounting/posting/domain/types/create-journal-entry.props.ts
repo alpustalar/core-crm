@@ -1,10 +1,10 @@
-import { Prisma } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 
 export interface CreateJournalEntryLineInput {
   accountId: string;
   partyId?: string | null;
-  debit?: string | Prisma.Decimal;
-  credit?: string | Prisma.Decimal;
+  debit?: string | Decimal;
+  credit?: string | Decimal;
   currency?: string;
   lineDesc?: string | null;
 }

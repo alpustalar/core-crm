@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
-import { IyzicoTransactionStatus, Prisma } from '@prisma/client';
-import {
-  CreateIyzicoTransactionInput,
-  IIyzicoTransactionRepository,
-  MarkFailedInput,
-  MarkPaidInput,
-  MarkRefundedInput,
-} from '../domain/interfaces/iyzico-transaction.repository.interface';
+import { Prisma } from '@prisma/client';
+import { IyzicoTransactionStatusSchema as IyzicoTransactionStatus } from '@shared';
+import { IIyzicoTransactionRepository } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+import { CreateIyzicoTransactionInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/create-iyzico-transaction.input';
+import { MarkPaidInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/mark-paid.input';
+import { MarkFailedInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/mark-failed.input';
+import { MarkRefundedInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/mark-refunded.input';
 
 @Injectable()
 export class IyzicoTransactionRepository
@@ -42,7 +41,7 @@ export class IyzicoTransactionRepository
         installmentId: input.installmentId,
         conversationId: input.conversationId,
         token: input.token,
-        status: IyzicoTransactionStatus.INITIALIZE,
+        status: IyzicoTransactionStatus.enum.INITIALIZE,
       },
     });
   }
@@ -51,7 +50,7 @@ export class IyzicoTransactionRepository
     return this.db.iyzicoTransaction.update({
       where: { id: input.iyzicoTransactionId },
       data: {
-        status: IyzicoTransactionStatus.SUCCESS,
+        status: IyzicoTransactionStatus.enum.SUCCESS,
         iyzicoPaymentId: input.iyzicoPaymentId,
         iyzicoPaymentTransactionId: input.iyzicoPaymentTransactionId,
         rawResponse:
@@ -64,7 +63,7 @@ export class IyzicoTransactionRepository
     return this.db.iyzicoTransaction.update({
       where: { id: input.iyzicoTransactionId },
       data: {
-        status: IyzicoTransactionStatus.FAILURE,
+        status: IyzicoTransactionStatus.enum.FAILURE,
         errorCode: input.errorCode,
         errorMessage: input.errorMessage,
         rawResponse:
@@ -77,7 +76,7 @@ export class IyzicoTransactionRepository
     return this.db.iyzicoTransaction.update({
       where: { id: input.iyzicoTransactionId },
       data: {
-        status: IyzicoTransactionStatus.REFUNDED,
+        status: IyzicoTransactionStatus.enum.REFUNDED,
         rawResponse:
           (input.rawResponse as Prisma.InputJsonValue) ?? Prisma.JsonNull,
       },

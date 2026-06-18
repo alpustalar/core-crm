@@ -1,13 +1,13 @@
 import { BaseEvent } from '@common/interfaces';
 import { POS_EVENTS } from '@src/domain/constants/events';
-import { Prisma } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 
 export interface PosTransactionSucceededEventPayload {
   posTransactionId: string;
   clinicId: string;
   paymentId: string | null;
   externalRef: string | null;
-  amount: Prisma.Decimal;
+  amount: Decimal;
   currency: string;
 }
 
@@ -18,7 +18,7 @@ export class PosTransactionSucceededEvent extends BaseEvent {
   public readonly clinicId: string;
   public readonly paymentId: string | null;
   public readonly externalRef: string | null;
-  public readonly amount: Prisma.Decimal;
+  public readonly amount: Decimal;
   public readonly currency: string;
 
   constructor(payload: PosTransactionSucceededEventPayload) {

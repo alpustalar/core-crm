@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from 'decimal.js';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { IHotelbedsTransferBookingCommandRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
@@ -17,7 +17,7 @@ export class HotelbedsTransferBookingCommandRepository
   }
 
   async create(
-    props: CreateTransferBookingProps,
+    props: CreateTransferBookingProps
   ): Promise<HotelbedsTransferBooking> {
     const raw = await this.db.hotelbedsTransferBooking.create({
       data: {
@@ -28,7 +28,8 @@ export class HotelbedsTransferBookingCommandRepository
         holderSurname: props.holderSurname,
         holderEmail: props.holderEmail,
         holderPhone: props.holderPhone,
-        transfers: (props.transfers as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        transfers:
+          (props.transfers as Prisma.InputJsonValue) ?? Prisma.JsonNull,
         totalAmount: new Decimal(props.totalAmount),
         currency: props.currency,
         remarks: props.remarks ?? null,
@@ -42,7 +43,7 @@ export class HotelbedsTransferBookingCommandRepository
   }
 
   async save(
-    booking: HotelbedsTransferBooking,
+    booking: HotelbedsTransferBooking
   ): Promise<HotelbedsTransferBooking> {
     const data = booking.toPersistence();
     const raw = await this.db.hotelbedsTransferBooking.upsert({

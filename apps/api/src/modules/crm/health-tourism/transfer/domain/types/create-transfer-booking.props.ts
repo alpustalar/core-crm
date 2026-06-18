@@ -1,3 +1,5 @@
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
+
 export interface CreateTransferBookingProps {
   id: string;
   reference: string;
@@ -8,7 +10,7 @@ export interface CreateTransferBookingProps {
   holderPhone: string;
   transfers: unknown;
   totalAmount: number;
-  currency: string;
+  currency: CurrencyType;
   remarks?: string;
   organizationId: string;
   clinicId?: string;

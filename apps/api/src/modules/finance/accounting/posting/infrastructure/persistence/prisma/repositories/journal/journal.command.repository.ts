@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry-unique-constraint.exception';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IJournalCommandRepository } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
@@ -23,26 +24,48 @@ export class JournalCommandRepository
     const data = entry.toPersistence();
     const lines = entry.linesToPersistence();
 
-    const raw = await this.db.journalEntry.create({
-      data: {
-        ...data,
-        lines: {
-          create: lines.map((line) => ({
-            id: line.id,
-            accountId: line.accountId,
-            partyId: line.partyId,
-            debit: line.debit,
-            credit: line.credit,
-            currency: line.currency,
-            lineDesc: line.lineDesc,
-          })),
+    try {
+      const raw = await this.db.journalEntry.create({
+        data: {
+          ...data,
+          lines: {
+            create: lines.map((line) => ({
+              id: line.id,
+              accountId: line.accountId,
+              partyId: line.partyId,
+              debit: line.debit,
+              credit: line.credit,
+              currency: line.currency,
+              lineDesc: line.lineDesc,
+            })),
+          },
         },
-      },
-      include: { lines: true },
-    });
+        include: { lines: true },
+      });
 
-    entry.flushEvents();
-    return this.toEntity(raw);
+      entry.flushEvents();
+      return this.toEntity(raw);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new JournalEntryUniqueConstraintException();
+      }
+      throw error;
+    }
+  }
+
+  async applyReversal(entry: JournalEntry): Promise<void> {
+    const data = entry.toPersistence();
+    await this.db.journalEntry.update({
+      where: { id: data.id },
+      data: {
+        status: data.status,
+        reversedById: data.reversedById,
+        updatedAt: new Date(),
+      },
+    });
   }
 
   async nextEntryNo(clinicId: string, periodId: string): Promise<bigint> {

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
 import { Prisma } from '@prisma/client'
 import { HotelbedsBookingStatusSchema } from '../inputTypeSchemas/HotelbedsBookingStatusSchema'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // HOTELBEDS BOOKING SCHEMA
@@ -9,6 +10,7 @@ import { HotelbedsBookingStatusSchema } from '../inputTypeSchemas/HotelbedsBooki
 
 export const HotelbedsBookingSchema = z.object({
   status: HotelbedsBookingStatusSchema,
+  currency: CurrencySchema,
   id: z.uuid(),
   reference: z.string(),
   hotelCode: z.string(),
@@ -17,7 +19,6 @@ export const HotelbedsBookingSchema = z.object({
   checkIn: z.coerce.date(),
   checkOut: z.coerce.date(),
   totalNet: z.instanceof(Prisma.Decimal, { message: "Field 'totalNet' must be a Decimal. Location: ['Models', 'HotelbedsBooking']"}),
-  currency: z.string(),
   holderName: z.string(),
   holderSurname: z.string(),
   rooms: JsonValueSchema,

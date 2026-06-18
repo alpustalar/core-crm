@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
-import { StockMovementDirection, StockMovementType } from '@prisma/client';
 import { ReceiveStockCommand } from './receive-stock.command';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
@@ -26,6 +25,9 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import { StockMovementDirectionSchema, StockMovementTypeSchema } from '@shared';
+import { Quantity } from '@src/domain/value-objects/quantity.vo';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 @CommandHandler(ReceiveStockCommand)
 export class ReceiveStockHandler
@@ -62,9 +64,8 @@ export class ReceiveStockHandler
       supplierId: dto.supplierId ?? null,
       lotNumber: dto.lotNumber ?? null,
       expiresAt: dto.expiresAt ?? null,
-      quantity: dto.quantity,
-      purchasePrice: dto.purchasePrice,
-      currency: dto.currency ?? 'TRY',
+      quantity: Quantity.create(dto.quantity),
+      purchasePrice: Money.create(dto.purchasePrice, dto.currency),
       notes: dto.notes ?? null,
       eventPayload: {
         action: LogAction.INVENTORY_STOCK_RECEIVE,
@@ -78,11 +79,10 @@ export class ReceiveStockHandler
       productId: product.id,
       clinicId,
       batchId,
-      type: StockMovementType.PURCHASE,
-      direction: StockMovementDirection.IN,
+      type: StockMovementTypeSchema.enum.PURCHASE,
+      direction: StockMovementDirectionSchema.enum.IN,
       quantity: dto.quantity,
-      unitPrice: dto.purchasePrice,
-      currency: dto.currency ?? 'TRY',
+      unitPrice: Money.create(dto.purchasePrice, dto.currency),
       vatRate: dto.vatRate ?? null,
       performedById: actor.userId,
       notes: dto.notes ?? null,

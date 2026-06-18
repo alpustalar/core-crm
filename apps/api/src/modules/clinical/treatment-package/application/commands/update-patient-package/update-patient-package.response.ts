@@ -1,3 +1,1 @@
-export interface UpdatePatientPackageResponse {
-  id: string;
-}
+export type UpdatePatientPackageResponse = string;

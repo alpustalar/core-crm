@@ -1,9 +1,9 @@
-import { Prisma } from '@prisma/client';
 import {
   AccountBalanceInput,
   IncomeStatementLine,
   IncomeStatementSection,
 } from './income-statement.calculator';
+import { Decimal } from 'decimal.js';
 
 /**
  * Bilanço hesaplayıcısı (saf domain). Hesap bakiyelerinden TDHP bilançosunu
@@ -18,13 +18,13 @@ import {
 export interface BalanceSheetResult {
   currentAssets: IncomeStatementSection; // sınıf 1 — dönen varlıklar
   nonCurrentAssets: IncomeStatementSection; // sınıf 2 — duran varlıklar
-  totalAssets: Prisma.Decimal; // AKTİF
+  totalAssets: Decimal; // AKTİF
 
   shortTermLiabilities: IncomeStatementSection; // sınıf 3
   longTermLiabilities: IncomeStatementSection; // sınıf 4
   equity: IncomeStatementSection; // sınıf 5
-  periodResult: Prisma.Decimal; // dönem net kârı/zararı (öz kaynağa eklenir)
-  totalLiabilitiesAndEquity: Prisma.Decimal; // PASİF
+  periodResult: Decimal; // dönem net kârı/zararı (öz kaynağa eklenir)
+  totalLiabilitiesAndEquity: Decimal; // PASİF
 
   isBalanced: boolean; // Aktif = Pasif
 }
@@ -36,7 +36,7 @@ type SectionKey = AssetKey | CreditKey;
 export class BalanceSheetCalculator {
   static compute(
     balances: AccountBalanceInput[],
-    periodResult: Prisma.Decimal
+    periodResult: Decimal
   ): BalanceSheetResult {
     const sections: Record<SectionKey, IncomeStatementLine[]> = {
       currentAssets: [],
@@ -62,7 +62,7 @@ export class BalanceSheetCalculator {
       const lines = sections[key].sort((a, b) => a.code.localeCompare(b.code));
       const total = lines.reduce(
         (sum, line) => sum.plus(line.amount),
-        new Prisma.Decimal(0)
+        new Decimal(0)
       );
       return { lines, total };
     };

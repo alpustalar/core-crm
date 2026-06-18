@@ -10,8 +10,8 @@ import {
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { ProviderScheduleEntity } from '@modules/clinical/provider/domain/entities/provider-schedule.entity';
 import { ProviderCanBookOrThrowQuery } from './provider-can-book-or-throw.query';
-import { OperationMode } from '@prisma/client';
 import { DateTimeManager } from '@common/utils';
+import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 
 @QueryHandler(ProviderCanBookOrThrowQuery)
 export class ProviderCanBookOrThrowHandler
@@ -43,7 +43,7 @@ export class ProviderCanBookOrThrowHandler
         endTime
       );
 
-    if (provider.operationMode === OperationMode.SHIFT) {
+    if (provider.operationMode === OperationModeSchema.enum.SHIFT) {
       const shifts = await this.providerAvailabilityRepo.findShiftsByDateRange(
         providerId,
         startTime,

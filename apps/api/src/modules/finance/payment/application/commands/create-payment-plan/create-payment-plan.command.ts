@@ -1,12 +1,14 @@
 import { ICommand } from '@nestjs/cqrs';
 import { CreatePaymentPlanCommandResponse } from './create-payment-plan.response';
-import { PaymentMethod } from '@prisma/client';
+import { PaymentMethodType as PaymentMethod } from '@input-type-schemas/PaymentMethodSchema';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 export type InstallmentDto = {
   amount: number;
   method: PaymentMethod;
   dueDate?: Date;
   note?: string;
+  installmentNo: number;
 };
 
 export type CreatePaymentPlanDto = {
@@ -14,7 +16,7 @@ export type CreatePaymentPlanDto = {
   patientId: string;
   appointmentId?: string;
   providerId?: string;
-  currency?: string;
+  currency: CurrencyType;
   installments: InstallmentDto[];
 };
 

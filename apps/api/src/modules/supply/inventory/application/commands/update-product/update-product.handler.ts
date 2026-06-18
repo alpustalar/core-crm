@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { UpdateProductCommand } from './update-product.command';
 import {
   IProductCommandRepository,
@@ -13,6 +12,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { Decimal } from 'decimal.js';
 
 @CommandHandler(UpdateProductCommand)
 export class UpdateProductHandler
@@ -49,14 +49,13 @@ export class UpdateProductHandler
       brand: dto.brand,
       description: dto.description,
       unit: dto.unit,
-      vatRate:
-        dto.vatRate != null ? new Prisma.Decimal(dto.vatRate) : undefined,
+      vatRate: dto.vatRate != null ? new Decimal(dto.vatRate) : undefined,
       criticalStockQty:
         dto.criticalStockQty != null
-          ? new Prisma.Decimal(dto.criticalStockQty)
+          ? new Decimal(dto.criticalStockQty)
           : undefined,
       reorderQty:
-        dto.reorderQty != null ? new Prisma.Decimal(dto.reorderQty) : undefined,
+        dto.reorderQty != null ? new Decimal(dto.reorderQty) : undefined,
       categoryId: dto.categoryId,
       supplierId: dto.supplierId,
     });

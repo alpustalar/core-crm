@@ -1,15 +1,16 @@
 import {
-  Prisma,
-  Product as PrismaProduct,
-  ProductCondition,
-  ProductUnit,
-  StockMovementDirection,
-  StockMovementType,
-} from '@prisma/client';
+  Product as IProduct,
+  StockMovementDirectionSchema,
+  StockMovementTypeSchema,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
 import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
+import { Decimal } from 'decimal.js';
+import { ProductConditionType as ProductCondition } from '@input-type-schemas/ProductConditionSchema';
+import { ProductUnitType as ProductUnit } from '@input-type-schemas/ProductUnitSchema';
+import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 
 export interface CreateProductProps {
   name: string;
@@ -20,16 +21,16 @@ export interface CreateProductProps {
   imageUrl?: string | null;
   unit: ProductUnit;
   condition?: ProductCondition;
-  vatRate: Prisma.Decimal | number;
-  criticalStockQty: Prisma.Decimal | number;
-  reorderQty: Prisma.Decimal | number;
+  vatRate: Decimal | number;
+  criticalStockQty: Decimal | number;
+  reorderQty: Decimal | number;
   organizationId: string;
   categoryId?: string | null;
   supplierId?: string | null;
 }
 
-export class Product extends AggregateRoot implements PrismaProduct {
-  constructor(data: PrismaProduct) {
+export class Product extends AggregateRoot {
+  constructor(data: IProduct) {
     super();
     this._id = data.id;
     this._name = data.name;
@@ -40,7 +41,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
     this._imageUrl = data.imageUrl;
     this._unit = data.unit;
     this._condition = data.condition;
-    this._vatRate = data.vatRate;
+    this._vatRate = VatRate.create(data.vatRate);
     this._criticalStockQty = data.criticalStockQty;
     this._reorderQty = data.reorderQty;
     this._organizationId = data.organizationId;
@@ -97,18 +98,18 @@ export class Product extends AggregateRoot implements PrismaProduct {
     return this._condition;
   }
 
-  private _vatRate: Prisma.Decimal;
-  get vatRate(): Prisma.Decimal {
+  private _vatRate: VatRate;
+  get vatRate(): VatRate {
     return this._vatRate;
   }
 
-  private _criticalStockQty: Prisma.Decimal;
-  get criticalStockQty(): Prisma.Decimal {
+  private _criticalStockQty: Decimal;
+  get criticalStockQty(): Decimal {
     return this._criticalStockQty;
   }
 
-  private _reorderQty: Prisma.Decimal;
-  get reorderQty(): Prisma.Decimal {
+  private _reorderQty: Decimal;
+  get reorderQty(): Decimal {
     return this._reorderQty;
   }
 
@@ -155,9 +156,9 @@ export class Product extends AggregateRoot implements PrismaProduct {
    * Domain kurallarına uygun olarak yeni bir Ürün (Aggregate) oluşturur.
    */
   public static create(props: CreateProductProps): Product {
-    const vatRateDecimal = new Prisma.Decimal(props.vatRate);
-    const criticalStockDecimal = new Prisma.Decimal(props.criticalStockQty);
-    const reorderDecimal = new Prisma.Decimal(props.reorderQty);
+    const vatRateDecimal = new Decimal(props.vatRate);
+    const criticalStockDecimal = new Decimal(props.criticalStockQty);
+    const reorderDecimal = new Decimal(props.reorderQty);
 
     if (vatRateDecimal.isNegative())
       throw new Error('KDV oranı negatif olamaz.');
@@ -209,9 +210,9 @@ export class Product extends AggregateRoot implements PrismaProduct {
       description: string | null;
       imageUrl: string | null;
       unit: ProductUnit;
-      vatRate: Prisma.Decimal;
-      criticalStockQty: Prisma.Decimal;
-      reorderQty: Prisma.Decimal;
+      vatRate: Decimal;
+      criticalStockQty: Decimal;
+      reorderQty: Decimal;
       categoryId: string | null;
       supplierId: string | null;
     }>
@@ -229,7 +230,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
     if (props.vatRate !== undefined) {
       if (props.vatRate.isNegative())
         throw new Error('KDV oranı negatif olamaz.');
-      this._vatRate = props.vatRate;
+      this._vatRate = VatRate.create(props.vatRate);
     }
     if (props.criticalStockQty !== undefined) {
       if (props.criticalStockQty.isNegative())
@@ -255,7 +256,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
   }
 
   public handleStockChange(props: {
-    quantityDelta: Prisma.Decimal | number;
+    quantityDelta: Decimal | number;
     clinicId: string;
     availableBatches: ProductBatch[];
     explicitBatchId?: string | null;
@@ -265,7 +266,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
     updatedBatch: ProductBatch | null;
     stockMovementProps: CreateStockMovementProps;
   } {
-    const delta = new Prisma.Decimal(props.quantityDelta);
+    const delta = new Decimal(props.quantityDelta);
     const isIncrease = delta.greaterThan(0);
     const absQty = delta.abs();
 
@@ -307,9 +308,9 @@ export class Product extends AggregateRoot implements PrismaProduct {
         productId: this._id,
         clinicId: props.clinicId,
         batchId: null,
-        type: StockMovementType.ADJUSTMENT,
-        direction: StockMovementDirection.IN,
-        quantity: absQty.toNumber(),
+        type: StockMovementTypeSchema.enum.ADJUSTMENT,
+        direction: StockMovementDirectionSchema.enum.IN,
+        quantity: absQty,
         performedById: props.performedById,
         notes: props.notes ?? 'Batch bağımsız stok girişi yapıldı.',
       };
@@ -321,7 +322,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
     };
   }
 
-  toPersistence(): PrismaProduct {
+  toPersistence(): IProduct {
     return {
       id: this._id,
       name: this._name,
@@ -332,7 +333,7 @@ export class Product extends AggregateRoot implements PrismaProduct {
       imageUrl: this._imageUrl,
       unit: this._unit,
       condition: this._condition,
-      vatRate: this._vatRate,
+      vatRate: this._vatRate.value,
       criticalStockQty: this._criticalStockQty,
       reorderQty: this._reorderQty,
       organizationId: this._organizationId,

@@ -79,12 +79,42 @@ export interface CashFlow {
   movements: CashMovementRow[]; // entryDate sırasında
 }
 
+/**
+ * KDV beyan filtresi — şube bazlı; 391 (Hesaplanan) ve 191 (İndirilecek) KDV hesap
+ * id'leri handler'da hesap planından çözülüp verilir (repo kodları bilmez, yalnız id).
+ */
+export interface VatDeclarationFilter {
+  clinicId: string;
+  outputAccountIds: string[]; // 391x Hesaplanan KDV
+  inputAccountIds: string[]; // 191x İndirilecek KDV
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+/** KDV hesabındaki tek satır hareketi (aylık grup için ham veri). */
+export interface VatMovementRow {
+  entryDate: Date;
+  debit: Prisma.Decimal;
+  credit: Prisma.Decimal;
+}
+
+export interface VatDeclaration {
+  output: VatMovementRow[]; // 391 hareketleri (hesaplanan = alacak - borç)
+  input: VatMovementRow[]; // 191 hareketleri (indirilecek = borç - alacak)
+}
+
 export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
   save(entry: JournalEntry): Promise<JournalEntry>;
 
   /** Şube (defter) + dönem için bir sonraki boşluksuz fiş numarası. */
   nextEntryNo(clinicId: string, periodId: string): Promise<bigint>;
+
+  /**
+   * Storno linkajı: orijinal fişi REVERSED yapar + reversedById'yi ayarlar (hedefli
+   * scalar update). Defter append-only olduğu için tek meşru mutasyon budur.
+   */
+  applyReversal(entry: JournalEntry): Promise<void>;
 }
 
 export interface IJournalQueryRepository {
@@ -109,4 +139,7 @@ export interface IJournalQueryRepository {
 
   /** Nakit akışı: nakit/banka hesaplarının POSTED hareketleri + açılış devri. */
   cashFlow(filter: CashFlowFilter): Promise<CashFlow>;
+
+  /** KDV beyan özeti: 391/191 POSTED hareketleri (aylık gruplama handler'da). */
+  vatDeclaration(filter: VatDeclarationFilter): Promise<VatDeclaration>;
 }

@@ -3,6 +3,7 @@ import { ChartOfAccountsModule } from './chart-of-accounts/chart-of-accounts.mod
 import { AccountingPeriodModule } from './periods/accounting-period.module';
 import { FinancialEventModule } from './financial-events/financial-event.module';
 import { PostingModule } from './posting/posting.module';
+import { TaxParameterModule } from './tax-parameters/tax-parameter.module';
 
 @Module({
   imports: [
@@ -10,12 +11,14 @@ import { PostingModule } from './posting/posting.module';
     AccountingPeriodModule,
     FinancialEventModule,
     PostingModule,
+    TaxParameterModule,
   ],
   exports: [
     ChartOfAccountsModule,
     AccountingPeriodModule,
     FinancialEventModule,
     PostingModule,
+    TaxParameterModule,
   ],
 })
 export class AccountingModule {}

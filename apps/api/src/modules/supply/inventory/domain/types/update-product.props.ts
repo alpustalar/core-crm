@@ -1,5 +1,5 @@
-import { ProductUnit } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { ProductUnitType as ProductUnit } from '@input-type-schemas/ProductUnitSchema';
+import { Decimal } from 'decimal.js';
 
 export interface UpdateProductProps {
   name?: string;
@@ -8,9 +8,9 @@ export interface UpdateProductProps {
   description?: string | null;
   imageUrl?: string | null;
   unit?: ProductUnit;
-  vatRate?: Prisma.Decimal;
-  criticalStockQty?: Prisma.Decimal;
-  reorderQty?: Prisma.Decimal;
+  vatRate?: Decimal;
+  criticalStockQty?: Decimal;
+  reorderQty?: Decimal;
   categoryId?: string | null;
   supplierId?: string | null;
 }

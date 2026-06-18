@@ -12,7 +12,6 @@ import {
 } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
-import { InstallmentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
@@ -23,6 +22,7 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
 import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
+import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
 
 @CommandHandler(RefundPaymentCommand)
 export class RefundPaymentHandler
@@ -57,7 +57,7 @@ export class RefundPaymentHandler
     this.paymentDomainService.validateRefundEligibilityOrThrow(payment);
 
     const completedInstallment = payment.installments.find(
-      (i) => i.status === InstallmentStatus.COMPLETED
+      (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
     );
     if (!completedInstallment) {
       throw new BadRequestException(`Tamamlanmış taksit bulunamadı.`);

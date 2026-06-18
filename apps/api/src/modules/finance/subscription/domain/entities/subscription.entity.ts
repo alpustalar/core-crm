@@ -1,5 +1,5 @@
-import { Subscription as PrismaSubscription, SubStatus } from '@prisma/client';
 import { DateTimeManager } from '@common/utils';
+import { Subscription as ISubscription, SubStatusSchema } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { SubscriptionItem } from './subscription-item.entity';
 import {
@@ -8,9 +8,10 @@ import {
   SubscriptionPaymentFailedEvent,
   SubscriptionPaymentFailedEventPayload,
 } from '@modules/finance/subscription/domain/events';
+import { SubStatusType as SubStatus } from '@input-type-schemas/SubStatusSchema';
 
-export class Subscription extends AggregateRoot implements PrismaSubscription {
-  constructor(data: PrismaSubscription) {
+export class Subscription extends AggregateRoot implements ISubscription {
+  constructor(data: ISubscription) {
     super();
     this._id = data.id;
     this._organizationId = data.organizationId;
@@ -81,16 +82,16 @@ export class Subscription extends AggregateRoot implements PrismaSubscription {
 
   // Durum sorguları
   get isActive(): boolean {
-    return this._status === SubStatus.ACTIVE;
+    return this._status === SubStatusSchema.enum.ACTIVE;
   }
   get isCanceled(): boolean {
-    return this._status === SubStatus.CANCELED;
+    return this._status === SubStatusSchema.enum.CANCELED;
   }
   get isPastDue(): boolean {
-    return this._status === SubStatus.PAST_DUE;
+    return this._status === SubStatusSchema.enum.PAST_DUE;
   }
   get isExpired(): boolean {
-    return this._status === SubStatus.EXPIRED;
+    return this._status === SubStatusSchema.enum.EXPIRED;
   }
 
   get isOnTrial(): boolean {
@@ -120,7 +121,7 @@ export class Subscription extends AggregateRoot implements PrismaSubscription {
     >
   ): void {
     this._externalId = iyzicoPaymentId;
-    this._status = SubStatus.ACTIVE;
+    this._status = SubStatusSchema.enum.ACTIVE;
     this._cancelAtPeriodEnd = false;
     this.addDomainEvent(
       new SubscriptionActivatedEvent({
@@ -138,7 +139,7 @@ export class Subscription extends AggregateRoot implements PrismaSubscription {
       'subscriptionId' | 'organizationId'
     >
   ): void {
-    this._status = SubStatus.PAST_DUE;
+    this._status = SubStatusSchema.enum.PAST_DUE;
     this.addDomainEvent(
       new SubscriptionPaymentFailedEvent({
         ...eventPayload,
@@ -168,7 +169,7 @@ export class Subscription extends AggregateRoot implements PrismaSubscription {
     if (this.isCanceled) {
       throw new Error('Abonelik zaten iptal edilmiş.');
     }
-    this._status = SubStatus.CANCELED;
+    this._status = SubStatusSchema.enum.CANCELED;
     this._cancelAtPeriodEnd = false;
   }
 
@@ -176,11 +177,11 @@ export class Subscription extends AggregateRoot implements PrismaSubscription {
     if (this.isActive) {
       throw new Error('Abonelik zaten aktif.');
     }
-    this._status = SubStatus.ACTIVE;
+    this._status = SubStatusSchema.enum.ACTIVE;
     this._cancelAtPeriodEnd = false;
   }
 
-  toPersistence(): PrismaSubscription {
+  toPersistence(): ISubscription {
     return {
       id: this._id,
       organizationId: this._organizationId,

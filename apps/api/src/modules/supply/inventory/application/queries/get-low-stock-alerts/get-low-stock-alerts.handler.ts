@@ -1,5 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetLowStockAlertsQuery } from './get-low-stock-alerts.query';
 import { GetLowStockAlertsResponse } from './get-low-stock-alerts.response';
 import {
@@ -28,15 +28,15 @@ export class GetLowStockAlertsHandler
     const { clinicId, ctx } = query;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.clinic(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.actorCanManageTargetClinic(clinicId)
-    ) {
-      throw new ForbiddenException(
-        'Bu kliniğin stok uyarılarına erişim yetkiniz yok.'
-      );
-    }
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
+        'Bu kliniğin stok uyarısı verilerine erişme yetkiniz yok'
+      )
+      .orThrow();
+
+    // TODO: clinic manage etmesine gerek yok. Capability guard kullanılacak
 
     const alerts = await this.productQueryRepo.getLowStockAlerts(clinicId);
     return { data: alerts };

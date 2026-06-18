@@ -22,8 +22,8 @@ model Clinic {
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  managers          User[]               @relation("clinic_managers")
-  staffs            User[]               @relation("clinic_staff")
+  managers          User[]                 @relation("clinic_managers")
+  staffs            User[]                 @relation("clinic_staff")
   treatments        Treatment[]
   treatmentPackages TreatmentPackage[]
   providers         Provider[]
@@ -48,12 +48,15 @@ model Clinic {
   metaAdAccounts       MetaAdAccount[]
   leads                Lead[]
 
-  // Finansal defter 
-  accounts          Account[]
-  accountingPeriods AccountingPeriod[]
-  parties           Party[]
-  financialEvents   FinancialEvent[]
-  journalEntries    JournalEntry[]
+  // Finansal defter
+  accounts              Account[]
+  accountingPeriods     AccountingPeriod[]
+  parties               Party[]
+  financialEvents       FinancialEvent[]
+  journalEntries        JournalEntry[]
+  taxParameters         TaxParameter[]
+  appointmentSettings   ClinicAppointmentSettings?
+  clinicFinanceSettings ClinicFinanceSettings?
 
   @@map("clinics")
 }
@@ -73,6 +76,7 @@ model ClinicAvailability {
   @@unique([clinicId, dayOfWeek])
   @@map("clinic_availabilities")
 }
+
 model ClinicPortalSettings {
   id String @id @default(uuid())
 
@@ -88,6 +92,54 @@ model ClinicPortalSettings {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("clinic_portal_settings")
+}
+
+model ClinicAppointmentSettings {
+  id String @id @default(uuid())
+
+  // Hastanın iptal/erteleme kuralları
+  rescheduleLimitHours Int     @default(6) @map("reschedule_limit_hours") // Kaç saat kalana kadar erteleyebilir
+  cancelLimitHours     Int     @default(24) @map("cancel_limit_hours") // Kaç saat kalana kadar iptal edebilir
+  allowPatientCancel   Boolean @default(true) @map("allow_patient_cancel") // Hasta panelden kendi iptal edebilsin mi?
+
+  // Çift rezervasyon / Onay kuralları
+  requireConfirmation  Boolean @default(false) @map("require_confirmation") // Randevu alındığında sekreter onayı gereksin mi?
+  maxFutureBookingDays Int     @default(90) @map("max_future_booking_days") // En fazla kaç gün sonrasına randevu açılabilir?
+
+  // İlişki (One-to-One)
+  clinicId String @unique @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinic_appointment_settings")
+}
+
+model ClinicFinanceSettings {
+  id String @id @default(uuid())
+
+  // --- Genel Finansal Davranış ---
+  defaultCurrency   Currency @default(TRY) @map("default_currency")
+  autoCreateInvoice Boolean  @default(true) @map("auto_invoice_on_payment") // Ödeme alındığında fatura otomatik oluşsun mu?
+
+  // --- Vergi/Maliyet Kuraları ---
+  defaultVatRate  Decimal @default(20) @map("default_vat_rate") @db.Decimal(5, 2) // Varsayılan KDV oranı
+  useCostTracking Boolean @default(true) @map("use_cost_tracking") // Stok maliyeti randevuya işlensin mi?
+
+  // --- Borç/Alacak Kuraları ---
+  allowNegativeBalance Boolean @default(false) @map("allow_negative_balance") // Hasta borçlu kalabilir mi?
+  maxInstallmentCount  Int     @default(12) @map("max_installment_count") // Maksimum taksit sayısı (Klinik sınırı)
+
+  // --- Entegrasyon/Raporlama ---
+  fiscalYearStartMonth Int @default(1) @map("fiscal_year_start_month") // Mali yıl başlangıcı (Genelde 1)
+
+  clinicId String @unique @map("clinic_id")
+  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinic_finance_settings")
 }
 
 model ClinicException {

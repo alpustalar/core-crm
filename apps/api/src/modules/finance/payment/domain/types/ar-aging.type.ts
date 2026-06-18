@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 
 /** Açık taksit / tahsilat performansı sorgusu — şube bazlı. */
 export interface ArAgingFilter {
@@ -8,12 +8,12 @@ export interface ArAgingFilter {
 /** Tek bir açık (PENDING/OVERDUE) taksit satırı — yaşlandırma için ham veri. */
 export interface OpenInstallmentRow {
   patientId: string;
-  amount: Prisma.Decimal;
+  amount: Decimal;
   dueDate: Date | null;
 }
 
 /** AR aging ham verisi: açık taksitler + tahsil edilmiş toplam (COMPLETED). */
 export interface ArAgingData {
   openInstallments: OpenInstallmentRow[];
-  collectedTotal: Prisma.Decimal;
+  collectedTotal: Decimal;
 }

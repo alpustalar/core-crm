@@ -6,10 +6,8 @@ import { MarkInstallmentAsPaidHandler } from './mark-installment-as-paid/mark-in
 import { MarkInstallmentAsFailedHandler } from './mark-installment-as-failed/mark-installment-as-failed.handler';
 import { MarkInstallmentAsCancelledHandler } from './mark-installment-as-cancelled/mark-installment-as-cancelled.handler';
 import { MarkInstallmentAsRefundedHandler } from './mark-installment-as-refunded/mark-installment-as-refunded.handler';
-import {
-  PAYMENT_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
-import { PaymentRepository } from '@modules/finance/payment/infrastructure/persistence/prisma/repositories/payment.repository';
+import { PaymentEventModule } from '@modules/finance/payment/infrastructure/events/payment-event.module';
+import { PaymentRepositoryModule } from '@modules/finance/payment/infrastructure/persistence/prisma/repositories/payment.repository.module';
 
 const CommandHandlers = [
   CreatePaymentHandler,
@@ -21,11 +19,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule],
-  providers: [
-    ...CommandHandlers,
-    { provide: PAYMENT_REPOSITORY, useClass: PaymentRepository },
-  ],
-  exports: CommandHandlers,
+  imports: [CqrsModule, PaymentEventModule, PaymentRepositoryModule],
+  providers: CommandHandlers,
 })
 export class PaymentCommandModule {}

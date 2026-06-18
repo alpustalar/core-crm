@@ -24,7 +24,8 @@ export class IyzicoBillingAdapter implements IBillingAdapter {
     input: InitSubscriptionPaymentInput
   ): Promise<{ checkoutUrl: string; conversationId: string }> {
     const conversationId = randomUUID();
-    const formattedPrice = input.amount.toFixed(2);
+
+    const formattedPrice = input.amount.toApiFormat();
 
     const address = {
       contactName: `${input.buyer.name} ${input.buyer.surname}`,
@@ -38,7 +39,7 @@ export class IyzicoBillingAdapter implements IBillingAdapter {
       conversationId,
       price: formattedPrice,
       paidPrice: formattedPrice,
-      currency: 'TRY',
+      currency: input.amount.currency,
       basketId: input.organizationId,
       paymentGroup: 'PRODUCT',
       enabledInstallments: [1, 2, 3, 6, 9, 12],

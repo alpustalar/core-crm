@@ -1,6 +1,6 @@
 import { BaseEvent } from '@common/interfaces';
-import { PlanId } from '@prisma/client';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
+import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 
 export interface SubscriptionCreatedPayload extends IAuditLog {
   organizationId: string;

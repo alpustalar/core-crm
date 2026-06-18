@@ -24,7 +24,6 @@ import { MatchLeadToPatientCommand } from '@modules/crm/meta-ads/application/com
 import { GetMetaReportQuery } from '@modules/crm/meta-ads/application/queries/get-meta-report/get-meta-report.query';
 import { GetMetaLeadsQuery } from '@modules/crm/meta-ads/application/queries/get-meta-leads/get-meta-leads.query';
 import { GetMetaAccountsQuery } from '@modules/crm/meta-ads/application/queries/get-meta-accounts/get-meta-accounts.query';
-import { MetaLeadStatus } from '@prisma/client';
 import { PaginationDto } from '@shared';
 
 @UseGuards(AuthGuard)
@@ -78,12 +77,7 @@ export class MetaAdsController {
     @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(
-      new GetMetaLeadsQuery(
-        clinicId,
-        pagination,
-        ctx,
-        dto.status as MetaLeadStatus | undefined
-      )
+      new GetMetaLeadsQuery(clinicId, pagination, ctx, dto.status)
     );
   }
 

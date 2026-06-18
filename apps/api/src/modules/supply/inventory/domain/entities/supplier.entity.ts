@@ -1,20 +1,10 @@
-import { Supplier as PrismaSupplier } from '@prisma/client';
+import { Supplier as ISupplier } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
+import { CreateSupplierProps } from '@modules/supply/inventory/domain/types/create-supplier.props';
 
-export interface CreateSupplierProps {
-  name: string;
-  contactName?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  address?: string | null;
-  taxNumber?: string | null;
-  taxOffice?: string | null;
-  organizationId: string;
-}
-
-export class Supplier extends AggregateRoot implements PrismaSupplier {
-  constructor(data: PrismaSupplier) {
+export class Supplier extends AggregateRoot {
+  constructor(data: ISupplier) {
     super();
     this._id = data.id;
     this._name = data.name;
@@ -93,7 +83,7 @@ export class Supplier extends AggregateRoot implements PrismaSupplier {
   public static create(props: CreateSupplierProps): Supplier {
     const now = new Date();
     return new Supplier({
-      id: randomUUID(),
+      id: props.id ?? randomUUID(),
       name: props.name.trim(),
       contactName: props.contactName ?? null,
       phone: props.phone ?? null,
@@ -106,10 +96,6 @@ export class Supplier extends AggregateRoot implements PrismaSupplier {
       createdAt: now,
       updatedAt: now,
     });
-  }
-
-  public static fromPersistence(raw: PrismaSupplier): Supplier {
-    return new Supplier(raw);
   }
 
   public update(
@@ -140,7 +126,7 @@ export class Supplier extends AggregateRoot implements PrismaSupplier {
     this._isActive = false;
   }
 
-  toPersistence(): PrismaSupplier {
+  toPersistence(): ISupplier {
     return {
       id: this._id,
       name: this._name,

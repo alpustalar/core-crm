@@ -1,6 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import Decimal from 'decimal.js';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
   IJournalQueryRepository,
@@ -13,6 +13,7 @@ import {
   GetAccountLedgerResponse,
   LedgerMovement,
 } from './get-account-ledger.response';
+import { AccountCode } from '@modules/finance/accounting/chart-of-accounts/domain/value-objects/account-code.vo';
 
 @QueryHandler(GetAccountLedgerQuery)
 export class GetAccountLedgerHandler
@@ -33,7 +34,8 @@ export class GetAccountLedgerHandler
     const { data: accounts } = await this.queryBus.execute(
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
-    const account = accounts.find((a) => a.code === accountCode);
+    const targetAccountCode = AccountCode.create(accountCode);
+    const account = accounts.find((a) => a.code.equals(targetAccountCode));
     if (!account) {
       throw new NotFoundException(
         `Hesap planında kod bulunamadı: ${accountCode}`
@@ -48,16 +50,22 @@ export class GetAccountLedgerHandler
         dateTo,
       });
 
-    let running = openingBalance;
-    let totalDebit = new Prisma.Decimal(0);
-    let totalCredit = new Prisma.Decimal(0);
+    let running = new Decimal(openingBalance.toString());
+    let totalDebit = new Decimal(0);
+    let totalCredit = new Decimal(0);
+    const isDebitNormal = account.isDebitNormal();
 
-    const mapped: LedgerMovement[] = movements.map((row) => {
-      running = running.plus(row.debit).minus(row.credit);
-      totalDebit = totalDebit.plus(row.debit);
-      totalCredit = totalCredit.plus(row.credit);
-      return this.toMovement(row, running);
-    });
+    const mapped: LedgerMovement[] = [];
+    for (const row of movements) {
+      const debit = new Decimal(row.debit.toString());
+      const credit = new Decimal(row.credit.toString());
+      running = isDebitNormal
+        ? running.plus(debit).minus(credit)
+        : running.plus(credit).minus(debit);
+      totalDebit = totalDebit.plus(debit);
+      totalCredit = totalCredit.plus(credit);
+      mapped.push(this.toMovement(row, running));
+    }
 
     return {
       data: {
@@ -79,10 +87,7 @@ export class GetAccountLedgerHandler
     };
   }
 
-  private toMovement(
-    row: LedgerMovementRow,
-    running: Prisma.Decimal
-  ): LedgerMovement {
+  private toMovement(row: LedgerMovementRow, running: Decimal): LedgerMovement {
     return {
       entryId: row.entryId,
       entryNo: row.entryNo !== null ? row.entryNo.toString() : null,

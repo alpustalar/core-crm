@@ -1,15 +1,13 @@
 import {
   HotelbedsBooking as IHotelbedsBooking,
-  HotelbedsBookingStatus,
-  Prisma,
-} from '@prisma/client';
+  HotelbedsBookingStatusSchema,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { Decimal } from '@prisma/client/runtime/library';
+import { HotelbedsBookingStatusType as HotelbedsBookingStatus } from '@input-type-schemas/HotelbedsBookingStatusSchema';
+import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
+import { Money } from '@src/domain/value-objects/money.vo';
 
-export class HotelbedsBooking
-  extends AggregateRoot
-  implements IHotelbedsBooking
-{
+export class HotelbedsBooking extends AggregateRoot {
   constructor(data: IHotelbedsBooking) {
     super();
     this._id = data.id;
@@ -20,13 +18,14 @@ export class HotelbedsBooking
     this._checkIn = data.checkIn;
     this._checkOut = data.checkOut;
     this._status = data.status;
-    this._totalNet = data.totalNet;
-    this._currency = data.currency;
+    this._totalNet = Money.create(data.totalNet, data.currency);
     this._holderName = data.holderName;
     this._holderSurname = data.holderSurname;
     this._rooms = data.rooms;
     this._remarks = data.remarks;
-    this._serviceFee = data.serviceFee;
+    this._serviceFee = data.serviceFee
+      ? Money.create(data.serviceFee, data.currency)
+      : null;
     this._organizationId = data.organizationId;
     this._clinicId = data.clinicId;
     this._createdAt = data.createdAt;
@@ -73,14 +72,9 @@ export class HotelbedsBooking
     return this._status;
   }
 
-  private _totalNet: Decimal;
-  get totalNet(): Decimal {
+  private _totalNet: Money;
+  get totalNet(): Money {
     return this._totalNet;
-  }
-
-  private _currency: string;
-  get currency(): string {
-    return this._currency;
   }
 
   private _holderName: string;
@@ -93,8 +87,8 @@ export class HotelbedsBooking
     return this._holderSurname;
   }
 
-  private _rooms: Prisma.JsonValue;
-  get rooms(): Prisma.JsonValue {
+  private _rooms: JsonValue;
+  get rooms(): JsonValue {
     return this._rooms;
   }
 
@@ -103,8 +97,8 @@ export class HotelbedsBooking
     return this._remarks;
   }
 
-  private _serviceFee: Decimal | null;
-  get serviceFee(): Decimal | null {
+  private _serviceFee: Money | null;
+  get serviceFee(): Money | null {
     return this._serviceFee;
   }
 
@@ -129,14 +123,14 @@ export class HotelbedsBooking
   }
 
   public cancel(): void {
-    if (this._status === HotelbedsBookingStatus.CANCELLED) {
+    if (this._status === HotelbedsBookingStatusSchema.enum.CANCELLED) {
       throw new Error('Rezervasyon zaten iptal edilmiş.');
     }
-    this._status = HotelbedsBookingStatus.CANCELLED;
+    this._status = HotelbedsBookingStatusSchema.enum.CANCELLED;
   }
 
   public isCancelled(): boolean {
-    return this._status === HotelbedsBookingStatus.CANCELLED;
+    return this._status === HotelbedsBookingStatusSchema.enum.CANCELLED;
   }
 
   toPersistence(): IHotelbedsBooking {
@@ -149,13 +143,17 @@ export class HotelbedsBooking
       checkIn: this._checkIn,
       checkOut: this._checkOut,
       status: this._status,
-      totalNet: this._totalNet,
-      currency: this._currency,
+
+      totalNet: this._totalNet.amount,
+      currency: this._totalNet.currency,
+
       holderName: this._holderName,
       holderSurname: this._holderSurname,
       rooms: this._rooms ?? null,
       remarks: this._remarks,
-      serviceFee: this._serviceFee,
+
+      serviceFee: this._serviceFee?.amount ?? null,
+
       organizationId: this._organizationId,
       clinicId: this._clinicId,
       createdAt: this._createdAt,

@@ -1,10 +1,11 @@
 import {
   AccountingPeriod as IAccountingPeriod,
-  AccountingPeriodStatus,
-} from '@prisma/client';
+  AccountingPeriodStatusSchema,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 import { CreateAccountingPeriodProps } from '../types/create-accounting-period.props';
+import { AccountingPeriodStatusType as AccountingPeriodStatus } from '@input-type-schemas/AccountingPeriodStatusSchema';
 
 export class AccountingPeriod
   extends AggregateRoot
@@ -74,7 +75,7 @@ export class AccountingPeriod
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       year: props.year,
-      status: AccountingPeriodStatus.OPEN,
+      status: AccountingPeriodStatusSchema.enum.OPEN,
       startsAt: DateTimeManager.startOfYear(props.year),
       endsAt: DateTimeManager.endOfYear(props.year),
       createdAt: new Date(),
@@ -83,15 +84,15 @@ export class AccountingPeriod
   }
 
   public isOpen(): boolean {
-    return this._status === AccountingPeriodStatus.OPEN;
+    return this._status === AccountingPeriodStatusSchema.enum.OPEN;
   }
 
   public isLocked(): boolean {
-    return this._status === AccountingPeriodStatus.LOCKED;
+    return this._status === AccountingPeriodStatusSchema.enum.LOCKED;
   }
 
   public isClosed(): boolean {
-    return this._status === AccountingPeriodStatus.CLOSED;
+    return this._status === AccountingPeriodStatusSchema.enum.CLOSED;
   }
 
   /** Sadece OPEN döneme fiş atılabilir. */
@@ -103,21 +104,21 @@ export class AccountingPeriod
     if (!this.isOpen()) {
       throw new Error('Yalnızca açık dönemler kilitlenebilir.');
     }
-    this._status = AccountingPeriodStatus.LOCKED;
+    this._status = AccountingPeriodStatusSchema.enum.LOCKED;
   }
 
   public reopen(): void {
     if (!this.isLocked()) {
       throw new Error('Yalnızca kilitli dönemler yeniden açılabilir.');
     }
-    this._status = AccountingPeriodStatus.OPEN;
+    this._status = AccountingPeriodStatusSchema.enum.OPEN;
   }
 
   public close(): void {
     if (this.isClosed()) {
       throw new Error('Dönem zaten kapatılmış.');
     }
-    this._status = AccountingPeriodStatus.CLOSED;
+    this._status = AccountingPeriodStatusSchema.enum.CLOSED;
   }
 
   public toPersistence(): IAccountingPeriod {

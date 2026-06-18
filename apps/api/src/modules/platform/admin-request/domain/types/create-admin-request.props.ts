@@ -1,4 +1,4 @@
-import { AdminRequestType, Prisma } from '@prisma/client';
+import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
 
 export interface CreateAdminRequestProps {
   id: string;
@@ -6,5 +6,5 @@ export interface CreateAdminRequestProps {
   targetId: string;
   requestedBy: string;
   organizationId?: string;
-  metadata?: Prisma.InputJsonValue;
+  metadata?: Record<string, any> | null;
 }

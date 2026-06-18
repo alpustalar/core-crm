@@ -2,15 +2,12 @@ import {
   MetaAdAccount as IMetaAdAccount,
   MetaCampaignMetric,
   MetaLead,
-} from '@prisma/client';
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 
 const TOKEN_EXPIRY_WARNING_DAYS = 7;
 
-export class MetaAdAccount
-  extends AggregateRoot
-  implements IMetaAdAccount
-{
+export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
   constructor(data: IMetaAdAccount) {
     super();
     this._id = data.id;
@@ -27,41 +24,67 @@ export class MetaAdAccount
   }
 
   private _id: string;
-  get id(): string { return this._id; }
+  get id(): string {
+    return this._id;
+  }
 
   private _clinicId: string;
-  get clinicId(): string { return this._clinicId; }
+  get clinicId(): string {
+    return this._clinicId;
+  }
 
   private _adAccountId: string;
-  get adAccountId(): string { return this._adAccountId; }
+  get adAccountId(): string {
+    return this._adAccountId;
+  }
 
   private _accessToken: string;
-  get accessToken(): string { return this._accessToken; }
+  get accessToken(): string {
+    return this._accessToken;
+  }
 
   private _pageId: string | null;
-  get pageId(): string | null { return this._pageId; }
+  get pageId(): string | null {
+    return this._pageId;
+  }
 
   private _businessName: string | null;
-  get businessName(): string | null { return this._businessName; }
+  get businessName(): string | null {
+    return this._businessName;
+  }
 
   private _isActive: boolean;
-  get isActive(): boolean { return this._isActive; }
+  get isActive(): boolean {
+    return this._isActive;
+  }
 
   private _tokenExpiresAt: Date | null;
-  get tokenExpiresAt(): Date | null { return this._tokenExpiresAt; }
+  get tokenExpiresAt(): Date | null {
+    return this._tokenExpiresAt;
+  }
 
   private _lastSyncAt: Date | null;
-  get lastSyncAt(): Date | null { return this._lastSyncAt; }
+  get lastSyncAt(): Date | null {
+    return this._lastSyncAt;
+  }
 
   private _createdAt: Date;
-  get createdAt(): Date { return this._createdAt; }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
 
   private _updatedAt: Date;
-  get updatedAt(): Date { return this._updatedAt; }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 
   // Prisma relation stubs — never populated from domain
-  get leads(): MetaLead[] { return []; }
-  get metrics(): MetaCampaignMetric[] { return []; }
+  get leads(): MetaLead[] {
+    return [];
+  }
+  get metrics(): MetaCampaignMetric[] {
+    return [];
+  }
 
   public deactivate(): void {
     this._isActive = false;

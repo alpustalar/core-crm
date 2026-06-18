@@ -46,17 +46,20 @@ export class AssignPackageToPatientHandler
     if (!pkg) throw new NotFoundException('Tedavi paketi bulunamadı');
 
     const endDate = DateTimeManager.addDays(dto.startDate, pkg.validityDays);
-
+    const paymentId = crypto.randomUUID();
     return this.txManager.run(async () => {
-      const { paymentId } = await this.commandBus.execute(
-        new CreatePaymentCommand({
-          clinicId: actor.clinicId!,
-          patientId: dto.patientId,
-          amount: Number(pkg.price),
-          providerId: dto.providerId,
-          currency: 'TRY',
-          method: dto.method,
-        })
+      await this.commandBus.execute(
+        new CreatePaymentCommand(
+          {
+            clinicId: actor.clinicId!,
+            patientId: dto.patientId,
+            amount: Number(pkg.price),
+            providerId: dto.providerId,
+            currency: 'TRY',
+            method: dto.method,
+          },
+          { paymentId }
+        )
       );
 
       const record = await this.patientPackageCommandRepo.create({

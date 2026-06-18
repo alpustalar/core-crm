@@ -1,4 +1,4 @@
-import { LeadSource } from '@prisma/client';
+import { LeadSourceType as LeadSource } from '@input-type-schemas/LeadSourceSchema';
 
 export interface CreateLeadProps {
   id: string;

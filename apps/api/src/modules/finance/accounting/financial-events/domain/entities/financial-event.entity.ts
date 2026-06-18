@@ -1,11 +1,9 @@
-import {
-  FinancialEvent as IFinancialEvent,
-  FinancialEventType,
-  Prisma,
-} from '@prisma/client';
+import { FinancialEvent as IFinancialEvent } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { RecordFinancialEventProps } from '../types/record-financial-event.props';
 import { FinancialEventRecordedEvent } from '../events/financial-event-recorded.event';
+import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
+import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 
 /**
  * Değişmez (append-only) ekonomik olay. Bir kez yazılır, asla güncellenmez.
@@ -52,8 +50,8 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
     return this._occurredAt;
   }
 
-  private _payload: Prisma.JsonValue;
-  get payload(): Prisma.JsonValue {
+  private _payload: JsonValue;
+  get payload(): JsonValue {
     return this._payload;
   }
 
@@ -89,7 +87,7 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
       clinicId: props.clinicId,
       type: props.type,
       occurredAt: props.occurredAt ?? new Date(),
-      payload: props.payload as Prisma.JsonValue,
+      payload: props.payload as JsonValue,
       sourceModule: props.sourceModule,
       sourceRefId: props.sourceRefId ?? null,
       dedupeKey: props.dedupeKey ?? null,

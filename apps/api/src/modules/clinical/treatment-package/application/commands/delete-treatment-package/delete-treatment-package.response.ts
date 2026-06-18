@@ -1,3 +1,1 @@
-export interface DeleteTreatmentPackageResponse {
-  success: boolean;
-}
+export type DeleteTreatmentPackageResponse = void;

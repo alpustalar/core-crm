@@ -4,10 +4,7 @@ import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
-  CheckConflictProps,
-  FindConflictingAppointmentProps,
-} from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
+import { CheckConflictProps } from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 
 @Injectable()
@@ -24,7 +21,12 @@ export class AppointmentChecker {
     duration,
     ignoreAppointmentId,
   }: CheckConflictProps) {
-    const resolvedEndTime = Appointment.calculateEndTime(startTime, endTime, duration);
+    const resolvedEndTime = Appointment.calculateEndTimeOrThrow(
+      startTime,
+      endTime,
+      duration
+    );
+
     const conflict = await this.appointmentQueryRepo.findConflictingAppointment(
       {
         providerId,
@@ -36,7 +38,7 @@ export class AppointmentChecker {
 
     if (conflict) {
       throw new ConflictException(
-        `Bu doktor için seçilen saatte çakışan bir randevu mevcut: ` +
+        `Bu uzman için seçilen saatte çakışan bir randevu mevcut: ` +
           `${format(conflict.startTime, 'HH:mm')} - ${format(conflict.endTime, 'HH:mm')}.`
       );
     }

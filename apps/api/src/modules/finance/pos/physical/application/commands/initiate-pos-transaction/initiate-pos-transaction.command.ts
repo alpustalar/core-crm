@@ -1,4 +1,5 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 export interface InitiatePosTransactionInput {
   posDeviceId: string;
@@ -7,7 +8,7 @@ export interface InitiatePosTransactionInput {
   appointmentId?: string;
   paymentId?: string;
   amount: number;
-  currency?: string;
+  currency: CurrencyType;
 }
 
 export class InitiatePosTransactionCommand {

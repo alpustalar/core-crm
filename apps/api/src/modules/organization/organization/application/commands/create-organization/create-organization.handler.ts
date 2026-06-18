@@ -5,7 +5,7 @@ import {
   IOrganizationCommandRepository,
   ORGANIZATION_COMMAND_REPOSITORY,
 } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CreateOrganizationResponse } from '@modules/organization/organization/application/commands/create-organization/create-organization.response';
 import {
@@ -13,6 +13,8 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
+
+// REGISTER İŞLEMLERİ BURADAN YAPILMIYOR. BU SADECE CREATE HANDLERI.
 
 @CommandHandler(CreateOrganizationCommand)
 export class CreateOrganizationHandler
@@ -34,11 +36,15 @@ export class CreateOrganizationHandler
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
       if (!internalRelations?.id) {
-        throw new Error('internal işlemlerde id gerekli');
+        throw new Error('internal işlemlerde id gerekli.');
       }
     } else {
-      const { policy } = this.policyFactory.user(actor);
-      if (!policy.isSystemAdmin()) throw new ForbiddenException();
+      this.policyFactory
+        .user(actor)
+        .evaluator.check(
+          (p) => p.isSystemAdmin(),
+          'Admin yetkisine sahip olmalısınız.'
+        );
     }
 
     const id = internalRelations?.id ?? randomUUID();

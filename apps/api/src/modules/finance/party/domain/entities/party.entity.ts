@@ -1,13 +1,11 @@
-import {
-  Party as IParty,
-  PartyOriginType,
-  PartyRole,
-  PartyType,
-} from '@prisma/client';
+import { Party as IParty } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreatePartyProps } from '../types/create-party.props';
+import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
+import { PartyRoleType as PartyRole } from '@input-type-schemas/PartyRoleSchema';
+import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
 
-export class Party extends AggregateRoot implements IParty {
+export class Party extends AggregateRoot {
   constructor(data: IParty) {
     super();
     this._id = data.id;
@@ -166,6 +164,28 @@ export class Party extends AggregateRoot implements IParty {
 
   public hasRole(role: PartyRole): boolean {
     return this._roles.includes(role);
+  }
+
+  public ensure(input: {
+    role: PartyRole;
+    name: string;
+    taxNumber?: string | null;
+    nationalId?: string | null;
+    taxOffice?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+  }) {
+    this.addRole(input.role);
+    this.updateSnapshot({
+      name: input.name,
+      taxNumber: input.taxNumber,
+      nationalId: input.nationalId,
+      taxOffice: input.taxOffice,
+      email: input.email,
+      phone: input.phone,
+      address: input.address,
+    });
   }
 
   /** Rolü ekler (idempotent). Eklendiyse true döner. */

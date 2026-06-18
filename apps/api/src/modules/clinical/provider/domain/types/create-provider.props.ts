@@ -1,4 +1,4 @@
-import { OperationMode } from '@prisma/client';
+import { OperationModeType as OperationMode } from '@input-type-schemas/OperationModeSchema';
 
 export interface CreateProviderProps {
   id: string;

@@ -7,6 +7,10 @@ import {
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetLedgerByClinicIdQuery)
 export class GetLedgerByClinicIdHandler
@@ -15,7 +19,9 @@ export class GetLedgerByClinicIdHandler
 {
   constructor(
     @Inject(FINANCE_LEDGER_QUERY_REPOSITORY)
-    private readonly financeLedgerRepository: IFinanceLedgerQueryRepository
+    private readonly financeLedgerRepository: IFinanceLedgerQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -28,7 +34,10 @@ export class GetLedgerByClinicIdHandler
         pagination
       );
 
-    // TODO: ctx'ten actoru alıp tenant için user policy ile kontrol sağla
+    this.policyFactory
+      .clinic(ctx.actor)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(clinicId))
+      .orThrow();
 
     return {
       data: items,

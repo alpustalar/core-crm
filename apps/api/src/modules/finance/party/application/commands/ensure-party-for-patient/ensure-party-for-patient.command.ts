@@ -1,5 +1,5 @@
-import { PartyRole } from '@prisma/client';
 import { IGetContext } from '@common/decorators';
+import { PartyRoleType } from '@input-type-schemas/PartyRoleSchema';
 
 export interface EnsurePartyForPatientResult {
   partyId: string;
@@ -17,7 +17,7 @@ export class EnsurePartyForPatientCommand {
   constructor(
     public readonly patientId: string,
     public readonly clinicId: string,
-    public readonly role: PartyRole,
+    public readonly role: PartyRoleType,
     public readonly ctx: IGetContext
   ) {}
 }

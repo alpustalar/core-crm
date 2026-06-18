@@ -4,6 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IFinancialEventCommandRepository } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event.repository';
 import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
+import { FinancialEventUniqueConstraintException } from '@modules/finance/accounting/financial-events/domain/exceptions/financial-event-unique-constraint.exception';
 
 @Injectable()
 export class FinancialEventCommandRepository
@@ -16,10 +17,20 @@ export class FinancialEventCommandRepository
 
   async append(event: FinancialEvent): Promise<FinancialEvent> {
     const data = event.toPersistence();
-    const raw = await this.db.financialEvent.create({
-      data: { ...data, payload: data.payload as Prisma.InputJsonValue },
-    });
-    event.flushEvents();
-    return new FinancialEvent(raw);
+    try {
+      const raw = await this.db.financialEvent.create({
+        data: { ...data, payload: data.payload as Prisma.InputJsonValue },
+      });
+      event.flushEvents();
+      return new FinancialEvent(raw);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new FinancialEventUniqueConstraintException();
+      }
+      throw error;
+    }
   }
 }

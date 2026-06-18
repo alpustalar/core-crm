@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // TREATMENT PACKAGE SCHEMA
 /////////////////////////////////////////
 
 export const TreatmentPackageSchema = z.object({
+  currency: CurrencySchema,
   id: z.uuid(),
   clinicId: z.string(),
   name: z.string(),

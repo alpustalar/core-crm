@@ -1,9 +1,8 @@
 import { Expose, Type } from 'class-transformer';
 import { ProviderResponseDto } from '@modules/clinical/provider/presentation/dto/provider-response.dto';
 import { UserResponseGroups } from '@modules/identity/user/domain/constants';
-import { UserResponse } from '@shared';
-import { Role } from '@prisma/client';
-import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
+import { Role, UserResponse } from '@shared';
+import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
 
 export class RelationalDto {
   @Expose()
@@ -50,7 +49,7 @@ export class UserResponseDto implements UserResponse {
   // Management & Operational (Internal Team)
   // --------------------
   @Expose({ groups: [MANAGEMENT, INTERNAL] })
-  status: GlobalStatusType;
+  status: GlobalStatus;
 
   @Expose({ groups: [MANAGEMENT] })
   createdAt: Date;

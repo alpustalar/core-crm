@@ -17,15 +17,11 @@ import {
   IStockMovementCommandRepository,
   STOCK_MOVEMENT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
-import {
-  BadRequestException,
-  Inject,
-  NotFoundException
-} from '@nestjs/common';
+import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Prisma } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { RecordProductUsageCommand } from './record-product-usage.command';
+import { Decimal } from 'decimal.js';
 
 @CommandHandler(RecordProductUsageCommand)
 export class RecordProductUsageHandler
@@ -54,7 +50,7 @@ export class RecordProductUsageHandler
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new NotFoundException('Ürün bulunamadı.');
 
-    const quantity = new Prisma.Decimal(dto.quantity);
+    const quantity = new Decimal(dto.quantity);
 
     let batch = dto.batchId
       ? await this.productBatchQueryRepo.findById(dto.batchId)
@@ -73,11 +69,11 @@ export class RecordProductUsageHandler
     }
 
     const stockMovementProps = batch.deductQuantity(
-        quantity,
-        actor.userId,
-        dto.notes
+      quantity,
+      actor.userId,
+      dto.notes
     );
-    
+
     const stockMovement = StockMovement.create(stockMovementProps);
 
     await this.txManager.run(async () => {

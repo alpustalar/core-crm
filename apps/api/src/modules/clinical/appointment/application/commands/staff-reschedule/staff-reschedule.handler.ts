@@ -8,7 +8,7 @@ import {
   IAppointmentCommandRepository,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
+import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 
 @CommandHandler(StaffRescheduleCommand)
 export class StaffRescheduleHandler
@@ -19,8 +19,7 @@ export class StaffRescheduleHandler
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
-    private readonly appointmentSlotService: AppointmentSlotService
+    private readonly appointmentQueryRepo: IAppointmentQueryRepository
   ) {}
 
   async execute(
@@ -40,7 +39,8 @@ export class StaffRescheduleHandler
     } = dto;
 
     const startTime = new Date(startTimeDto);
-    const endTime = this.appointmentSlotService.calculateEndTimeOrThrow(
+
+    const endTime = Appointment.calculateEndTimeOrThrow(
       startTime,
       dtoEndTime,
       duration

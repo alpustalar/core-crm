@@ -1,8 +1,14 @@
 /* eslint-disable */
 
-import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
-import { User } from '@prisma/client';
+import { User } from '@model-schema/UserSchema';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -24,7 +30,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
         // 2. Detaylı Log (Body ile birlikte)
         this.logger.log(
-          `🌐${userId} ${method} ${url} | Status: ${response.statusCode} | Time: +${delay}ms`,
+          `🌐${userId} ${method} ${url} | Status: ${response.statusCode} | Time: +${delay}ms`
         );
 
         // Sadece POST, PATCH, PUT gibi body içeren isteklerde body'yi göster
@@ -34,7 +40,7 @@ export class LoggingInterceptor implements NestInterceptor {
         ) {
           this.logger.debug(`📦 Body: ${JSON.stringify(safeBody)}`);
         }
-      }),
+      })
     );
   }
 

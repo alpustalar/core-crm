@@ -1,5 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { FindSuppliersQuery } from './find-suppliers.query';
 import { FindSuppliersResponse } from './find-suppliers.response';
 import {
@@ -10,6 +10,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindSuppliersQuery)
 export class FindSuppliersHandler
@@ -26,19 +27,24 @@ export class FindSuppliersHandler
     const { pagination, ctx } = query;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.organization(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.isOwnOrganization(actor.organizationId)
-    ) {
-      throw new ForbiddenException('Tedarikçi listeleme yetkiniz yok.');
-    }
+    this.policyFactory
+      .organization(actor)
+      .evaluator.check(
+        (p) => p.isOwnOrganization(),
+        'Tedarikçi listeleme yetkiniz yok.'
+      )
+      .orThrow();
 
     const result = await this.supplierQueryRepo.findMany(
       actor.organizationId!,
       pagination
     );
 
-    return { data: result };
+    return {
+      data: result.items,
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+      },
+    };
   }
 }

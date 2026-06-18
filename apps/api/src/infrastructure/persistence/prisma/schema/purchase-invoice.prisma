@@ -1,0 +1,30 @@
+// Tedarikçiden alınan alış faturası (finance önmuhasebe). Satış faturasının
+// (invoice.prisma) kardeşi; dış belge sağlayıcı yok — faturayı biz alır kaydederiz.
+// clinicId/organizationId denormalize scalar (Invoice deseni — Clinic navigation yok).
+// Kayıt sonrası PURCHASE_INVOICE_RECEIVED olayı yazılır → posting 150/770 + 191 / 320.
+model PurchaseInvoice {
+  id             String @id @default(uuid())
+  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
+  organizationId String @map("organization_id") // denormalize — konsolide raporlama
+  supplierId     String @map("supplier_id") // tedarikçi (bounded-context: navigation yok)
+
+  invoiceNumber String?  @map("invoice_number") // tedarikçinin belge no'su
+  invoiceDate   DateTime @map("invoice_date")
+
+  // Karşı borç/gider hesabı: 150 (stok) | 770/760/740 (gider). Çağıran belirler.
+  lineAccountCode String   @map("line_account_code")
+  vatRate         Int      @map("vat_rate")
+  netTotal        Decimal  @map("net_total") @db.Decimal(12, 2) // matrah
+  vatTotal        Decimal  @map("vat_total") @db.Decimal(12, 2) // indirilecek KDV
+  grandTotal      Decimal  @map("grand_total") @db.Decimal(12, 2) // KDV dahil toplam
+  currency        Currency @default(TRY)
+  status          String   @default("RECORDED")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([clinicId])
+  @@index([organizationId])
+  @@index([supplierId])
+  @@map("purchase_invoices")
+}

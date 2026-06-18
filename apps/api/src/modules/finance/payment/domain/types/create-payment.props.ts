@@ -1,11 +1,11 @@
-import { PaymentMethod, Prisma } from '@prisma/client';
+import { PaymentMethodType } from '@input-type-schemas/PaymentMethodSchema';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 export interface CreateInstallmentProps {
   id: string;
   installmentNo: number;
-  amount: Prisma.Decimal;
-  currency: string;
-  method?: PaymentMethod;
+  money: Money;
+  method?: PaymentMethodType;
   dueDate?: Date | null;
   note?: string | null;
 }
@@ -16,7 +16,6 @@ export interface CreatePaymentProps {
   patientId: string;
   appointmentId?: string | null;
   providerId?: string | null;
-  totalAmount: Prisma.Decimal;
-  currency: string;
+  totalAmount: Money;
   installments: CreateInstallmentProps[];
 }

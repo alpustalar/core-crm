@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import { ClinicLegalTypeSchema } from '../inputTypeSchemas/ClinicLegalTypeSchema'
 
 /////////////////////////////////////////
 // CLINIC GOVERNMENT SPECS SCHEMA
 /////////////////////////////////////////
 
 export const ClinicGovernmentSpecsSchema = z.object({
+  legalType: ClinicLegalTypeSchema,
   id: z.uuid(),
   healthFacilityCode: z.string(),
   ussPassword: z.string().nullable(),

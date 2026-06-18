@@ -6,7 +6,6 @@ import {
   ADMIN_REQUEST_QUERY_REPOSITORY,
   IAdminRequestQueryRepository,
 } from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
-import { AdminRequestStatus, AdminRequestType } from '@prisma/client';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindAdminRequestsQuery)
@@ -24,8 +23,8 @@ export class FindAdminRequestsHandler
     const { dto, pagination } = query;
 
     const result = await this.adminRequestQueryRepo.findMany({
-      type: dto.type as AdminRequestType | undefined,
-      status: dto.status as AdminRequestStatus | undefined,
+      type: dto.type,
+      status: dto.status,
       pagination,
     });
 

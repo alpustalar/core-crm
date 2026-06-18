@@ -1,11 +1,12 @@
 import {
   Patient,
   PatientPackageStatus,
+  PatientPackageStatusSchema,
   PatientTreatmentPackage as IPatientTreatmentPackage,
   Payment,
   Provider,
   TreatmentPackage,
-} from '@prisma/client';
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 
 export class PatientTreatmentPackage
@@ -115,46 +116,74 @@ export class PatientTreatmentPackage
   }
 
   get isActive(): boolean {
-    return this._status === PatientPackageStatus.ACTIVE;
+    return this._status === PatientPackageStatusSchema.enum.ACTIVE;
   }
 
   get isExpired(): boolean {
     return this._endDate < new Date();
   }
 
+  static create(props: IPatientTreatmentPackage): PatientTreatmentPackage {
+    if (props.endDate <= props.startDate) {
+      throw new Error(
+        'Paket bitiş tarihi, başlangıç tarihinden önce veya başlangıç tarihine eşit olamaz.'
+      );
+    }
+
+    const now = new Date();
+
+    return new PatientTreatmentPackage({
+      id: props.id,
+      patientId: props.patientId,
+      packageId: props.packageId,
+      providerId: props.providerId,
+      paymentId: props.paymentId ?? null,
+      startDate: props.startDate,
+      endDate: props.endDate,
+      notes: props.notes ?? null,
+
+      status: PatientPackageStatusSchema.enum.ACTIVE,
+      usedExaminationCount: 0,
+      usedControlCount: 0,
+
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
   complete(): void {
-    if (this._status !== PatientPackageStatus.ACTIVE) {
+    if (this._status !== PatientPackageStatusSchema.enum.ACTIVE) {
       throw new Error('Yalnızca aktif paketler tamamlanabilir.');
     }
-    this._status = PatientPackageStatus.COMPLETED;
+    this._status = PatientPackageStatusSchema.enum.COMPLETED;
   }
 
   cancel(): void {
     if (
-      this._status === PatientPackageStatus.COMPLETED ||
-      this._status === PatientPackageStatus.CANCELLED
+      this._status === PatientPackageStatusSchema.enum.COMPLETED ||
+      this._status === PatientPackageStatusSchema.enum.CANCELLED
     ) {
       throw new Error(
         'Tamamlanan veya zaten iptal edilmiş paketler iptal edilemez.'
       );
     }
-    this._status = PatientPackageStatus.CANCELLED;
+    this._status = PatientPackageStatusSchema.enum.CANCELLED;
   }
 
   suspend(): void {
-    if (this._status !== PatientPackageStatus.ACTIVE) {
+    if (this._status !== PatientPackageStatusSchema.enum.ACTIVE) {
       throw new Error('Yalnızca aktif paketler askıya alınabilir.');
     }
-    this._status = PatientPackageStatus.SUSPENDED;
+    this._status = PatientPackageStatusSchema.enum.SUSPENDED;
   }
 
   resume(): void {
-    if (this._status !== PatientPackageStatus.SUSPENDED) {
+    if (this._status !== PatientPackageStatusSchema.enum.SUSPENDED) {
       throw new Error(
         'Yalnızca askıya alınmış paketler yeniden aktive edilebilir.'
       );
     }
-    this._status = PatientPackageStatus.ACTIVE;
+    this._status = PatientPackageStatusSchema.enum.ACTIVE;
   }
 
   incrementUsedExaminationCount(): void {

@@ -1,4 +1,6 @@
-import { PartyOriginType, PartyRole, PartyType } from '@prisma/client';
+import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
+import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
+import { PartyRoleType as PartyRole } from '@input-type-schemas/PartyRoleSchema';
 
 export interface CreatePartyProps {
   id?: string;

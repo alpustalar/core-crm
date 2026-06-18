@@ -15,6 +15,7 @@ import { GetJournalReportQuery } from '@modules/finance/accounting/posting/appli
 import { GetIncomeStatementQuery } from '@modules/finance/accounting/posting/application/queries/get-income-statement/get-income-statement.query';
 import { GetBalanceSheetQuery } from '@modules/finance/accounting/posting/application/queries/get-balance-sheet/get-balance-sheet.query';
 import { GetCashFlowQuery } from '@modules/finance/accounting/posting/application/queries/get-cash-flow/get-cash-flow.query';
+import { GetVatDeclarationQuery } from '@modules/finance/accounting/posting/application/queries/get-vat-declaration/get-vat-declaration.query';
 
 /**
  * Resmî muhasebe raporları (şube/defter bazlı): Mizan, ileride Defter-i Kebir +
@@ -120,6 +121,22 @@ export class AccountingReportsController {
   ) {
     return this.queryBus.execute(
       new GetCashFlowQuery(
+        this.resolveClinicId(ctx),
+        ctx,
+        dateFrom ? new Date(dateFrom) : undefined,
+        dateTo ? new Date(dateTo) : undefined
+      )
+    );
+  }
+
+  @Get('vat-declaration')
+  vatDeclaration(
+    @GetContext() ctx: IGetContext,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string
+  ) {
+    return this.queryBus.execute(
+      new GetVatDeclarationQuery(
         this.resolveClinicId(ctx),
         ctx,
         dateFrom ? new Date(dateFrom) : undefined,

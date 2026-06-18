@@ -1,5 +1,5 @@
 import { BaseEvent } from '@common/interfaces';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from 'decimal.js';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
 export interface ModuleAddedEventPayload extends IAuditLog {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Module as PrismaModule } from '@prisma/client';
+import { Module as IModule } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ISubscriptionQueryRepository } from '@modules/finance/subscription/domain/repositories/subscription.repository.interface';
@@ -33,7 +33,7 @@ export class SubscriptionQueryRepository
     return raw ? new Subscription(raw) : null;
   }
 
-  findModuleByKey(key: string): Promise<PrismaModule | null> {
+  findModuleByKey(key: string): Promise<IModule | null> {
     return this.db.module.findUnique({ where: { key } });
   }
 

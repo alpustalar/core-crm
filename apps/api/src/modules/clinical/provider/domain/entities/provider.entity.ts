@@ -1,11 +1,15 @@
-import { OperationMode, Provider as IProvider } from '@prisma/client';
+import { Provider as IProvider } from '@model-schema/ProviderSchema';
+import {
+  OperationModeSchema,
+  OperationModeType as OperationMode,
+} from '@input-type-schemas/OperationModeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateProviderProps } from '@modules/clinical/provider/domain/types/create-provider.props';
 import { ProviderCreatedEvent } from '@modules/clinical/provider/domain/events/provider-created.event';
 import { ProviderSoftDeletedEvent } from '@modules/clinical/provider/domain/events/provider-soft-deleted.event';
 import { UpdateProviderInfo } from '@shared/modules/provider/types/update-provider-info.type';
 
-export class Provider extends AggregateRoot implements IProvider {
+export class Provider extends AggregateRoot {
   constructor(data: IProvider) {
     super();
     this._id = data.id;
@@ -124,7 +128,7 @@ export class Provider extends AggregateRoot implements IProvider {
       hlrNo: null,
       isActive: props.isActive ?? true,
       canAcceptExamination: false,
-      operationMode: props.operationMode ?? OperationMode.STATIC,
+      operationMode: props.operationMode ?? OperationModeSchema.enum.STATIC,
       sectorId: props.sectorId ?? null,
       createdAt: now,
       updatedAt: now,
@@ -186,11 +190,11 @@ export class Provider extends AggregateRoot implements IProvider {
   }
 
   public isStaticMode(): boolean {
-    return this._operationMode === OperationMode.STATIC;
+    return this._operationMode === OperationModeSchema.enum.STATIC;
   }
 
   public isShiftMode(): boolean {
-    return this._operationMode === OperationMode.SHIFT;
+    return this._operationMode === OperationModeSchema.enum.SHIFT;
   }
 
   public toPersistence(): IProvider {

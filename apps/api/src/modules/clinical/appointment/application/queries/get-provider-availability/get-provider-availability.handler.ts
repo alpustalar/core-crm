@@ -15,8 +15,8 @@ import { ProviderCalendarDayResponse } from '@shared';
 import { DateTimeManager } from '@common/utils';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetProviderScheduleQuery } from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.query';
-import { OperationMode } from '@prisma/client';
 import { GetClinicScheduleQuery } from '@modules/organization/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.query';
+import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 
 @QueryHandler(GetProviderAvailabilityQuery)
 export class GetProviderAvailabilityHandler
@@ -86,7 +86,7 @@ export class GetProviderAvailabilityHandler
     const cursor = new Date(startDate);
     cursor.setUTCHours(0, 0, 0, 0);
 
-    if (providerSchedule.operationMode === OperationMode.SHIFT) {
+    if (providerSchedule.operationMode === OperationModeSchema.enum.SHIFT) {
       const shiftByDate = new Map(
         providerSchedule.shifts.map((s) => [
           DateTimeManager.toDateKey(s.date),

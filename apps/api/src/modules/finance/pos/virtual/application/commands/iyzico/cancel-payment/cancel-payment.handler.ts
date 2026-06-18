@@ -16,13 +16,13 @@ import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { InstallmentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
 import { MarkInstallmentAsCancelledCommand } from '@modules/finance/payment/application/commands/mark-installment-as-cancelled/mark-installment-as-cancelled.command';
+import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
 
 @CommandHandler(CancelPaymentCommand)
 export class CancelPaymentHandler
@@ -60,7 +60,7 @@ export class CancelPaymentHandler
     this.paymentDomainService.paymentIsCompleteOrThrow(payment);
 
     const completedInstallment = payment.installments.find(
-      (i) => i.status === InstallmentStatus.COMPLETED
+      (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
     );
     if (!completedInstallment) {
       throw new BadRequestException(`Tamamlanmış taksit bulunamadı.`);

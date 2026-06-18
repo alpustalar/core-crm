@@ -8,6 +8,7 @@ import {
   TREATMENT_PACKAGE_COMMAND_REPO,
   TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(DeleteTreatmentPackageCommand)
 export class DeleteTreatmentPackageHandler
@@ -21,7 +22,8 @@ export class DeleteTreatmentPackageHandler
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
     @Inject(TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository
+    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -29,11 +31,14 @@ export class DeleteTreatmentPackageHandler
   ): Promise<DeleteTreatmentPackageResponse> {
     const { packageId } = command;
 
-    const existing = await this.treatmentPackageQueryRepo.findById(packageId);
-    if (!existing) throw new NotFoundException('Tedavi paketi bulunamadı');
+    const treatmentPackage =
+      await this.treatmentPackageQueryRepo.findById(packageId);
+    if (!treatmentPackage)
+      throw new NotFoundException('Tedavi paketi bulunamadı');
 
-    await this.treatmentPackageCommandRepo.softDelete(packageId);
-
-    return { success: true };
+    await this.txManager.run(async () => {
+      treatmentPackage.softDelete();
+      await this.treatmentPackageCommandRepo.save(treatmentPackage);
+    });
   }
 }

@@ -1,15 +1,17 @@
 import {
   FinanceLedger as IFinanceLedger,
-  LedgerCategory,
-  LedgerSource,
-  LedgerStatus,
-  LedgerType,
-  Prisma,
-} from '@prisma/client';
+  LedgerStatusSchema,
+} from '@shared/generated-zod';
+import { LedgerCategoryType as LedgerCategory } from '@shared/generated-zod/inputTypeSchemas/LedgerCategorySchema';
+import { LedgerTypeType as LedgerType } from '@shared/generated-zod/inputTypeSchemas/LedgerTypeSchema';
+import { LedgerSourceType as LedgerSource } from '@shared/generated-zod/inputTypeSchemas/LedgerSourceSchema';
+import { LedgerStatusType as LedgerStatus } from '@shared/generated-zod/inputTypeSchemas/LedgerStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateFinanceLedgerProps } from '../types/create-finance-ledger.props';
+import { Money } from '@src/domain/value-objects/money.vo';
+import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
 
-export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger {
+export class FinanceLedgerEntity extends AggregateRoot {
   constructor(data: IFinanceLedger) {
     super();
     this._id = data.id;
@@ -23,10 +25,17 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
     this._source = data.source;
     this._category = data.category;
     this._status = data.status;
-    this._amount = data.amount;
-    this._currency = data.currency;
-    this._taxRate = data.taxRate;
-    this._taxAmount = data.taxAmount;
+
+    // Zengin Nesneleri Ayağa Kaldırma (İlkel veritabanı tiplerinden kurtuluyoruz)
+    const netMoney = Money.create(data.amount, data.currency);
+    const taxMoney = Money.create(data.taxAmount, data.currency);
+
+    this._taxSpecification = TaxSpecification.create(
+      netMoney,
+      data.taxRate,
+      taxMoney
+    );
+
     this._description = data.description;
     this._documentNo = data.documentNo;
     this._entryDate = data.entryDate;
@@ -42,6 +51,10 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
   private _organizationId: string;
   get organizationId(): string {
     return this._organizationId;
+  }
+  private _taxSpecification: TaxSpecification;
+  get taxSpecification(): TaxSpecification {
+    return this._taxSpecification;
   }
 
   private _clinicId: string;
@@ -89,11 +102,6 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
     return this._status;
   }
 
-  private _amount: Prisma.Decimal;
-  get amount(): Prisma.Decimal {
-    return this._amount;
-  }
-
   private _currency: string;
   get currency(): string {
     return this._currency;
@@ -102,11 +110,6 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
   private _taxRate: number;
   get taxRate(): number {
     return this._taxRate;
-  }
-
-  private _taxAmount: Prisma.Decimal;
-  get taxAmount(): Prisma.Decimal {
-    return this._taxAmount;
   }
 
   private _description: string | null;
@@ -135,6 +138,11 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
   }
 
   public static create(props: CreateFinanceLedgerProps): FinanceLedgerEntity {
+    // 1. Önce para birimi ve miktar ile Money VO'sunu kuruyoruz
+
+    // 2. Vergi oranını yedirerek kurallara uygun TaxSpecification üretiyoruz (taxAmount içeride hesaplanacak)
+    const taxSpec = TaxSpecification.create(props.money, props.taxRate ?? 0);
+
     return new FinanceLedgerEntity({
       id: crypto.randomUUID(),
       organizationId: props.organizationId,
@@ -146,11 +154,13 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
       type: props.type,
       source: props.source,
       category: props.category,
-      status: LedgerStatus.COMPLETED,
-      amount: new Prisma.Decimal(props.amount),
-      currency: props.currency ?? 'TRY',
-      taxRate: props.taxRate ?? 0,
-      taxAmount: new Prisma.Decimal(0),
+      status: LedgerStatusSchema.enum.COMPLETED,
+
+      amount: taxSpec.netAmount.amount,
+      currency: taxSpec.netAmount.currency,
+      taxRate: taxSpec.taxRate,
+      taxAmount: taxSpec.taxAmount.amount,
+
       description: props.description ?? null,
       documentNo: props.documentNo ?? null,
       entryDate: props.entryDate ?? new Date(),
@@ -160,29 +170,31 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
   }
 
   public isCompleted(): boolean {
-    return this._status === LedgerStatus.COMPLETED;
+    return this._status === LedgerStatusSchema.enum.COMPLETED;
   }
 
   public isRefunded(): boolean {
-    return this._status === LedgerStatus.REFUNDED;
+    return this._status === LedgerStatusSchema.enum.REFUNDED;
   }
 
   public isCancelled(): boolean {
-    return this._status === LedgerStatus.CANCELLED;
+    return this._status === LedgerStatusSchema.enum.CANCELLED;
   }
 
   public refund(): void {
     if (!this.isCompleted()) {
       throw new Error('Yalnızca tamamlanan kayıtlar iade edilebilir.');
     }
-    this._status = LedgerStatus.REFUNDED;
+    this._status = LedgerStatusSchema.enum.REFUNDED;
   }
 
   public cancel(): void {
     if (this.isRefunded() || this.isCancelled()) {
-      throw new Error('İade edilmiş veya iptal edilmiş kayıtlar iptal edilemez.');
+      throw new Error(
+        'İade edilmiş veya iptal edilmiş kayıtlar iptal edilemez.'
+      );
     }
-    this._status = LedgerStatus.CANCELLED;
+    this._status = LedgerStatusSchema.enum.CANCELLED;
   }
 
   public toPersistence(): IFinanceLedger {
@@ -198,10 +210,12 @@ export class FinanceLedgerEntity extends AggregateRoot implements IFinanceLedger
       source: this._source,
       category: this._category,
       status: this._status,
-      amount: this._amount,
-      currency: this._currency,
-      taxRate: this._taxRate,
-      taxAmount: this._taxAmount,
+
+      amount: this._taxSpecification.netAmount.amount,
+      currency: this._taxSpecification.netAmount.currency,
+      taxRate: this._taxSpecification.taxRate,
+      taxAmount: this._taxSpecification.taxAmount.amount,
+
       description: this._description,
       documentNo: this._documentNo,
       entryDate: this._entryDate,

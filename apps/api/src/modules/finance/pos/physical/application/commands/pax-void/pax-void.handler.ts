@@ -24,13 +24,12 @@ import {
 } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
-import { PosTransactionStatus } from '@prisma/client';
+import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler implements ICommandHandler<
-  PaxVoidCommand,
-  PaxVoidResponse
-> {
+export class PaxVoidHandler
+  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
+{
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
@@ -54,7 +53,7 @@ export class PaxVoidHandler implements ICommandHandler<
     if (!originalTx) {
       throw new NotFoundException('Orijinal POS işlemi bulunamadı.');
     }
-    if (originalTx.status !== PosTransactionStatus.SUCCESS) {
+    if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
       throw new BadRequestException(
         'Yalnızca başarılı işlemler iptal edilebilir.'
       );
@@ -82,7 +81,7 @@ export class PaxVoidHandler implements ICommandHandler<
           clinicId: input.clinicId,
           paymentId: originalTx.paymentId ?? undefined,
           amount: Number(originalTx.amount),
-          currency: originalTx.currency,
+          currency: originalTx.amount.currency,
         });
         return { voidTransactionId: id, voidTx: tx };
       }
@@ -120,8 +119,8 @@ export class PaxVoidHandler implements ICommandHandler<
       });
 
       const status = result.approved
-        ? PosTransactionStatus.SUCCESS
-        : PosTransactionStatus.FAILED;
+        ? PosTransactionStatusSchema.enum.SUCCESS
+        : PosTransactionStatusSchema.enum.FAILED;
 
       this.logger.log(
         `PAX void tamamlandı: id=${voidTransactionId} status=${status}`

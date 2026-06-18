@@ -6,12 +6,6 @@ enum AppointmentStatus {
   NOSHOW
 }
 
-enum ExternalSystem {
-  WHATSAPP
-  N8N
-  GOOGLE_CALENDAR
-}
-
 model Appointment {
   id String @id @default(uuid())
 

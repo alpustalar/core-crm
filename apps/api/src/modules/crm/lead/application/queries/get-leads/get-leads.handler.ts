@@ -6,7 +6,6 @@ import {
   ILeadQueryRepository,
   LEAD_QUERY_REPOSITORY,
 } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
-import { LeadSource, LeadStatus } from '@prisma/client';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetLeadsQuery)
@@ -23,8 +22,8 @@ export class GetLeadsHandler
 
     const result = await this.leadQueryRepo.findMany({
       clinicId,
-      status: dto.status as LeadStatus | undefined,
-      source: dto.source as LeadSource | undefined,
+      status: dto.status,
+      source: dto.source,
       assignedToId: dto.assignedToId,
       pagination,
     });

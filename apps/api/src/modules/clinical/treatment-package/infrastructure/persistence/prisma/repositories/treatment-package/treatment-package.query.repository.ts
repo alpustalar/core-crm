@@ -7,6 +7,7 @@ import {
 } from '../../../../../domain/repositories/treatment-package.repository.interface';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
+import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
 
 const packageInclude = {
   items: { select: { id: true, treatmentId: true, count: true } },
@@ -22,11 +23,12 @@ export class TreatmentPackageQueryRepository
     super(prisma);
   }
 
-  findById(id: string) {
-    return this.db.treatmentPackage.findFirst({
+  async findById(id: string): Promise<TreatmentPackage | null> {
+    const raw = await this.db.treatmentPackage.findFirst({
       where: { id, deletedAt: null },
-      include: packageInclude,
-    }) as Promise<TreatmentPackageWithRelations | null>;
+    });
+
+    return raw ? new TreatmentPackage(raw) : null;
   }
 
   async findMany(clinicId: string, pagination: Pagination, isActive?: boolean) {

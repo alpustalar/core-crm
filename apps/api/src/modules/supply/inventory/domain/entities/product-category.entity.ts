@@ -1,18 +1,10 @@
-import { ProductCategory as PrismaProductCategory } from '@prisma/client';
+import { ProductCategory as IProductCategory } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
+import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/types/create-product-category.props';
 
-export interface CreateProductCategoryProps {
-  name: string;
-  organizationId: string;
-  parentId?: string | null;
-}
-
-export class ProductCategory
-  extends AggregateRoot
-  implements PrismaProductCategory
-{
-  private constructor(data: PrismaProductCategory) {
+export class ProductCategory extends AggregateRoot {
+  private constructor(data: IProductCategory) {
     super();
     this._id = data.id;
     this._name = data.name;
@@ -90,7 +82,7 @@ export class ProductCategory
     this._updatedAt = new Date();
   }
 
-  toPersistence(): PrismaProductCategory {
+  toPersistence(): IProductCategory {
     return {
       id: this._id,
       name: this._name,

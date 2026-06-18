@@ -1,26 +1,12 @@
-import { PaymentMethod } from '@prisma/client';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
 import {
   ArAgingData,
   ArAgingFilter,
 } from '@modules/finance/payment/domain/types/ar-aging.type';
-import {
-  CollectedInstallmentRow,
-  ProviderRevenueFilter,
-} from '@modules/finance/payment/domain/types/provider-revenue.type';
-
-export const PAYMENT_REPOSITORY = Symbol('IPaymentRepository');
-
-export interface CreateSinglePaymentInput {
-  clinicId: string;
-  patientId: string;
-  appointmentId?: string;
-  providerId?: string;
-  amount: number;
-  currency: string;
-  method?: PaymentMethod;
-  dueDate?: Date;
-}
+import { ProviderRevenueFilterData } from '@modules/finance/payment/domain/types/provider-revenue-filter.data';
+import { PaymentMethodType as PaymentMethod } from '@input-type-schemas/PaymentMethodSchema';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { CollectedInstallmentRow } from '@modules/finance/payment/domain/types/collected-installment-row.type';
 
 export interface InstallmentPlanItem {
   amount: number;
@@ -29,29 +15,21 @@ export interface InstallmentPlanItem {
   note?: string;
 }
 
-export interface CreateInstallmentPlanInput {
-  clinicId: string;
-  patientId: string;
-  appointmentId?: string;
-  providerId?: string;
-  currency: string;
-  installments: InstallmentPlanItem[];
-}
+export const PAYMENT_QUERY_REPOSITORY = Symbol('IPaymentQueryRepository');
+export const PAYMENT_COMMAND_REPOSITORY = Symbol('IPaymentCommandRepository');
 
-export interface IPaymentRepository {
-  createSinglePayment(input: CreateSinglePaymentInput): Promise<Payment>;
-  createInstallmentPlan(input: CreateInstallmentPlanInput): Promise<Payment>;
+export type IPaymentCommandRepository = IBaseCommandRepository<Payment> & {};
+
+export interface IPaymentQueryRepository {
   findByAppointmentId(appointmentId: string): Promise<Payment | null>;
   findPaymentWithInstallments(paymentId: string): Promise<Payment | null>;
   findByInstallmentId(installmentId: string): Promise<Payment | null>;
-  save(entity: Payment): Promise<Payment>;
-  saveMany(entities: Payment[]): Promise<void>;
 
   /** AR aging: şubenin açık taksitleri + tahsil edilmiş toplamı (yönetim raporu). */
   arAging(filter: ArAgingFilter): Promise<ArAgingData>;
 
   /** Hekim cirosu: tahsil edilmiş taksitlerin hekim boyutu (yönetim raporu). */
   providerRevenue(
-    filter: ProviderRevenueFilter
+    filter: ProviderRevenueFilterData
   ): Promise<CollectedInstallmentRow[]>;
 }

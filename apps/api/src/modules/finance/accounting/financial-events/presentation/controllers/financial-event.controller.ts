@@ -5,12 +5,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { FinancialEventType } from '@prisma/client';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
 import { GetContext, IGetContext } from '@common/decorators';
 import { PaginationDto } from '@shared';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetFinancialEventsQuery } from '@modules/finance/accounting/financial-events/application/queries/get-financial-events/get-financial-events.query';
+import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 
 @UseGuards(AuthGuard)
 @Controller('financial-events')

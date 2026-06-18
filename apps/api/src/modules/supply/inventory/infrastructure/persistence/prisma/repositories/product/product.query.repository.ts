@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
@@ -7,6 +6,7 @@ import { Pagination } from '@shared';
 import { IProductQueryRepository } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
 import { StockLevel } from '@modules/supply/inventory/domain/types/stock-level.type';
+import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class ProductQueryRepository
@@ -68,7 +68,7 @@ export class ProductQueryRepository
 
     return rows.map((row) => {
       const product = productMap.get(row.productId)!;
-      const totalQty = row._sum.quantity ?? new Prisma.Decimal(0);
+      const totalQty = row._sum.quantity ?? new Decimal(0);
       return {
         productId: row.productId,
         productName: product.name,

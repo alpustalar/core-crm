@@ -1,33 +1,12 @@
-import { IyzicoTransaction, Payment, PaymentInstallment } from '@prisma/client';
+import { IyzicoTransaction, Payment, PaymentInstallment } from '@shared';
+import { CreateIyzicoTransactionInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/create-iyzico-transaction.input';
+import { MarkPaidInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/mark-paid.input';
+import { MarkFailedInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/mark-failed.input';
+import { MarkRefundedInput } from '@src/infrastructure/payment/providers/iyzico/domain/types/mark-refunded.input';
 
 export const IYZICO_TRANSACTION_REPOSITORY = Symbol(
   'IIyzicoTransactionRepository'
 );
-
-export interface CreateIyzicoTransactionInput {
-  installmentId: string;
-  conversationId: string;
-  token?: string;
-}
-
-export interface MarkPaidInput {
-  iyzicoTransactionId: string;
-  iyzicoPaymentId: string;
-  iyzicoPaymentTransactionId?: string;
-  rawResponse?: unknown;
-}
-
-export interface MarkRefundedInput {
-  iyzicoTransactionId: string;
-  rawResponse?: unknown;
-}
-
-export interface MarkFailedInput {
-  iyzicoTransactionId: string;
-  errorCode?: string;
-  errorMessage?: string;
-  rawResponse?: unknown;
-}
 
 export type IyzicoTransactionWithInstallment = IyzicoTransaction & {
   installment: PaymentInstallment & {

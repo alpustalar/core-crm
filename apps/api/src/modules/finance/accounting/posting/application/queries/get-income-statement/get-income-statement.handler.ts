@@ -48,8 +48,9 @@ export class GetIncomeStatementHandler
 
     const balances: AccountBalanceInput[] = rows.map((row) => {
       const account = accountById.get(row.accountId);
+
       return {
-        code: account?.code ?? '?',
+        code: account?.code.value ?? '?',
         name: account?.name ?? '(bilinmeyen hesap)',
         debit: row.totalDebit,
         credit: row.totalCredit,

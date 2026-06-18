@@ -1,5 +1,5 @@
-import { MetaLeadStatus } from '@prisma/client';
 import { Pagination } from '@shared/common';
+import { MetaLeadStatusType as MetaLeadStatus } from '@input-type-schemas/MetaLeadStatusSchema';
 
 export interface FindMetaLeadsProps {
   clinicId: string;

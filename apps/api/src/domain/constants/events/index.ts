@@ -7,6 +7,7 @@ import { ProviderEvent } from '@src/domain/constants/events/provider.constant';
 import { PatientEvent } from '@src/domain/constants/events/patient.constant';
 import { ThrottleEvent } from '@src/domain/constants/events/throttle.constant';
 import { TreatmentEvent } from '@src/domain/constants/events/treatment.constant';
+import { TreatmentPackageEvent } from '@src/domain/constants/events/treatment-package.constant';
 import { SubscriptionEvent } from '@src/domain/constants/events/subscription.constant';
 import { InvoiceEvent } from '@src/domain/constants/events/invoice.constants';
 import { PosEvent } from '@src/domain/constants/events/pos.constants';
@@ -28,6 +29,7 @@ export type AppEventName =
   | PaymentEvent
   | ThrottleEvent
   | TreatmentEvent
+  | TreatmentPackageEvent
   | UserEvent
   | SubscriptionEvent
   | InvoiceEvent
@@ -49,6 +51,7 @@ export * from './patient.constant';
 export * from './payment.constants';
 export * from './throttle.constant';
 export * from './treatment.constant';
+export * from './treatment-package.constant';
 export * from './user.constant';
 export * from './subscription.constant';
 export * from './invoice.constants';

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { FinancialEventType } from '@prisma/client';
 import { POSTING_RULES, PostingRule } from './posting-rule.interface';
+import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 
 @Injectable()
 export class PostingRuleRegistry {

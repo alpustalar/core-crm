@@ -1,7 +1,7 @@
-import { PartyRole } from '@prisma/client';
+import { PartyRoleType } from '@input-type-schemas/PartyRoleSchema';
 
 export interface FindPartiesFilter {
   organizationId: string;
-  role?: PartyRole;
+  role?: PartyRoleType;
   isActive?: boolean;
 }

@@ -38,6 +38,13 @@ export class DateTimeManager {
   }
 
   /**
+   * İki tarih arasındaki saat farkını tam (kesirli) olarak döner (later - earlier)
+   */
+  static diffInHours(later: Date, earlier: Date): number {
+    return dayjs(later).diff(dayjs(earlier), 'hour', true); // true parametresi küsuratı korur (örn: 5.5 saat)
+  }
+
+  /**
    * Verilen zamanın belirtilen aralıkta olup olmadığını kontrol eder (Sadece saat bazlı)
    */
   static isTimeWithinRange({

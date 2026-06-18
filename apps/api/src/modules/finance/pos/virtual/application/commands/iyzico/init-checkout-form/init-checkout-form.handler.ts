@@ -20,6 +20,8 @@ import { BadRequestException, Inject } from '@nestjs/common';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
+import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
+import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 
 @CommandHandler(InitCheckoutFormCommand)
 export class InitCheckoutFormHandler
@@ -45,14 +47,16 @@ export class InitCheckoutFormHandler
     const conversationId = randomUUID();
 
     return await this.txManager.run(async () => {
-      const { paymentId, installmentId } = await this.commandBus.execute(
+      const paymentId = crypto.randomUUID();
+      const installmentId = crypto.randomUUID();
+      await this.commandBus.execute(
         new CreatePaymentCommand({
           clinicId: dto.clinicId,
           patientId: dto.patientId,
           appointmentId: dto.appointmentId,
           amount: dto.amount,
-          currency: 'TRY',
-          method: 'CREDIT_CARD',
+          currency: CurrencySchema.enum.TRY,
+          method: PaymentMethodSchema.enum.CREDIT_CARD,
         })
       );
 
@@ -66,7 +70,7 @@ export class InitCheckoutFormHandler
         conversationId,
         price: dto.amount,
         paidPrice: dto.amount,
-        currency: 'TRY',
+        currency: CurrencySchema.enum.TRY,
         paymentChannel: 'WEB',
         paymentGroup: 'PRODUCT',
         buyer: {

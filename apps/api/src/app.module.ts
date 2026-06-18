@@ -43,11 +43,14 @@ import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { AccountingModule } from '@modules/finance/accounting/accounting.module';
 import { PartyModule } from '@modules/finance/party/party.module';
 import { PaymentGatewayModule } from '@modules/finance/payment-gateway/payment-gateway.module';
-import { GovernanceModule } from '@modules/platform/governance/governance.module';
+import { PurchaseInvoiceModule } from '@modules/finance/purchase-invoice/purchase-invoice.module';
+import { PayrollModule } from '@modules/finance/payroll/payroll.module';
+import { EDocumentModule } from '@modules/finance/e-document/e-document.module';
 import { MetaAdsModule } from '@modules/crm/meta-ads/meta-ads.module';
 import { LeadModule } from '@modules/crm/lead/lead.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
+import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
 
 @Module({
   imports: [
@@ -83,6 +86,9 @@ import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.
     AccountingModule,
     PartyModule,
     PaymentGatewayModule,
+    PurchaseInvoiceModule,
+    PayrollModule,
+    EDocumentModule,
     GovernanceModule,
     MetaAdsModule,
     LeadModule,

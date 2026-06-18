@@ -1,6 +1,6 @@
 import { BaseEvent } from '@common/interfaces/base-event.interface';
 import { ADMIN_REQUEST_EVENTS } from '@src/domain/constants/events/admin-request.constants';
-import { AdminRequestType } from '@prisma/client';
+import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
 
 export interface AdminRequestCreatedEventPayload {
   requestId: string;

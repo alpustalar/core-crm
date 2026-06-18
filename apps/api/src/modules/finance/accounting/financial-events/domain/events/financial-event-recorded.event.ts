@@ -1,6 +1,6 @@
-import { FinancialEventType } from '@prisma/client';
 import { BaseEvent } from '@common/interfaces';
 import { FINANCIAL_EVENT_EVENTS } from '@src/domain/constants/events';
+import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 
 export interface FinancialEventRecordedPayload {
   financialEventId: string;

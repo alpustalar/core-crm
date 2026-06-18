@@ -6,3 +6,4 @@ export * from './jobs.constant';
 export * from './routes.constant';
 export * from './env.constant';
 export * from './throttle.constant';
+export * from './currencies.constant';

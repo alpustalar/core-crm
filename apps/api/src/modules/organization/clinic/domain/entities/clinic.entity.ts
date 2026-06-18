@@ -1,19 +1,17 @@
-import {
-  Clinic as PrismaClinic,
-  GlobalStatus,
-  Organization,
-  Sector,
-} from '@prisma/client';
+import { Clinic as IClinic, Organization, Sector, UpdateClinic } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { ClinicCreatedEvent } from '@modules/organization/clinic/domain/events/clinic-created.event';
 import { ClinicSoftDeletedEvent } from '@modules/organization/clinic/domain/events/clinic-soft-deleted.event';
 import { CreateClinicProps } from '@modules/organization/clinic/domain/types/create-clinic.props';
 import { slugIt } from '@common/utils';
 import { randomUUID } from 'crypto';
-import { UpdateClinic } from '@shared';
+import {
+  GlobalStatusSchema,
+  GlobalStatusType as GlobalStatus,
+} from '@input-type-schemas/GlobalStatusSchema';
 
-export class Clinic extends AggregateRoot implements PrismaClinic {
-  constructor(data: PrismaClinic) {
+export class Clinic extends AggregateRoot implements IClinic {
+  constructor(data: IClinic) {
     super();
     this._id = data.id;
     this._name = data.name;
@@ -134,11 +132,7 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
   }
 
   get isActive(): boolean {
-    return this._status === GlobalStatus.ACTIVE && !this.isDeleted;
-  }
-
-  public canAcceptAppointments(): boolean {
-    return this.isActive;
+    return this._status === GlobalStatusSchema.enum.ACTIVE && !this.isDeleted;
   }
 
   public static create(props: CreateClinicProps, actorId?: string): Clinic {
@@ -154,7 +148,7 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
       city: props.city ?? null,
       district: props.district ?? null,
       consultationSlotDuration: props.consultationSlotDuration,
-      status: props.status ?? GlobalStatus.ACTIVE,
+      status: props.status ?? GlobalStatusSchema.enum.ACTIVE,
       timezone: props.timezone ?? 'Europe/Istanbul',
       logo: null,
       organizationId: props.organizationId!,
@@ -172,6 +166,10 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     return clinic;
   }
 
+  public canAcceptAppointments(): boolean {
+    return this.isActive;
+  }
+
   public update(data: UpdateClinic): void {
     if (data.name !== undefined) {
       this._name = data.name;
@@ -184,7 +182,8 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
     if (data.district !== undefined) this._district = data.district;
     if (data.status !== undefined) this._status = data.status;
     if (data.timezone !== undefined) this._timezone = data.timezone;
-    if (data.organizationId !== undefined) this._organizationId = data.organizationId;
+    if (data.organizationId !== undefined)
+      this._organizationId = data.organizationId;
     if (data.sectorId !== undefined) this._sectorId = data.sectorId;
     if (data.consultationSlotDuration !== undefined)
       this._consultationSlotDuration = data.consultationSlotDuration;
@@ -192,18 +191,18 @@ export class Clinic extends AggregateRoot implements PrismaClinic {
   }
 
   public softDelete(actorId?: string): void {
-    this._status = GlobalStatus.DELETED;
+    this._status = GlobalStatusSchema.enum.DELETED;
     this._deletedAt = new Date();
     this.addDomainEvent(
       new ClinicSoftDeletedEvent({
         clinicId: this._id,
         organizationId: this._organizationId,
         actorId,
-      }),
+      })
     );
   }
 
-  toPersistence(): PrismaClinic {
+  toPersistence(): IClinic {
     return {
       id: this._id,
       name: this._name,

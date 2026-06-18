@@ -1,4 +1,4 @@
-import { ClinicPaymentGateway as IClinicPaymentGateway } from '@prisma/client';
+import { ClinicPaymentGateway as IClinicPaymentGateway } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicPaymentGatewayProps } from '../types/create-clinic-payment-gateway.props';
 

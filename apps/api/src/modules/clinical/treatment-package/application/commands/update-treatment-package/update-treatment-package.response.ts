@@ -1,3 +1,1 @@
-export interface UpdateTreatmentPackageResponse {
-  id: string;
-}
+export type UpdateTreatmentPackageResponse = void;

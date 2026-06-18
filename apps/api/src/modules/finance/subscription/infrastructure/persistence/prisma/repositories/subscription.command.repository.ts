@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { SubStatus } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import type { ISubscriptionCommandRepository } from '@modules/finance/subscription/domain/repositories/subscription.repository.interface';
 import { Subscription } from '@modules/finance/subscription/domain/entities/subscription.entity';
 import { SubscriptionItem } from '@modules/finance/subscription/domain/entities/subscription-item.entity';
-import type { CreateSubscriptionProps } from '@modules/finance/subscription/domain/types/create-subscription.props';
-import type { AddItemProps } from '@modules/finance/subscription/domain/types/add-item.props';
+import type { CreateSubscriptionData } from '@modules/finance/subscription/domain/types/create-subscription.data';
+import type { AddItemData } from '@modules/finance/subscription/domain/types/add-item.data';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { SubStatusType as SubStatus } from '@input-type-schemas/SubStatusSchema';
 
 @Injectable()
 export class SubscriptionCommandRepository
@@ -18,7 +18,7 @@ export class SubscriptionCommandRepository
     super(prisma);
   }
 
-  async create(data: CreateSubscriptionProps): Promise<Subscription> {
+  async create(data: CreateSubscriptionData): Promise<Subscription> {
     const raw = await this.db.subscription.create({
       data: {
         organizationId: data.organizationId,
@@ -28,13 +28,13 @@ export class SubscriptionCommandRepository
     return new Subscription(raw);
   }
 
-  async addItem(data: AddItemProps): Promise<SubscriptionItem> {
+  async addItem(data: AddItemData): Promise<SubscriptionItem> {
     const raw = await this.db.subscriptionItem.create({
       data: {
         subscriptionId: data.subscriptionId,
         planId: data.planId,
         moduleId: data.moduleId,
-        priceAtPurchase: data.priceAtPurchase,
+        priceAtPurchase: data.priceAtPurchase.amount,
         externalPriceId: data.externalPriceId,
       },
     });

@@ -1,12 +1,10 @@
-import {
-  BloodType,
-  Gender,
-  Patient as IPatient,
-  PatientStatus,
-  PatientType,
-  Prisma,
-} from '@prisma/client';
+import { Patient as IPatient, PatientStatusSchema } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { GenderType as Gender } from '@input-type-schemas/GenderSchema';
+import { BloodTypeType as BloodType } from '@input-type-schemas/BloodTypeSchema';
+import { PatientStatusType as PatientStatus } from '@input-type-schemas/PatientStatusSchema';
+import { PatientTypeType as PatientType } from '@input-type-schemas/PatientTypeSchema';
+import { Decimal } from 'decimal.js';
 
 export class Patient extends AggregateRoot implements IPatient {
   constructor(data: IPatient) {
@@ -43,116 +41,174 @@ export class Patient extends AggregateRoot implements IPatient {
   }
 
   private _id: string;
-  get id(): string { return this._id; }
+  get id(): string {
+    return this._id;
+  }
 
   private _organizationId: string;
-  get organizationId(): string { return this._organizationId; }
+  get organizationId(): string {
+    return this._organizationId;
+  }
 
   private _clinicId: string | null;
-  get clinicId(): string | null { return this._clinicId; }
+  get clinicId(): string | null {
+    return this._clinicId;
+  }
 
   private _sectorId: string | null;
-  get sectorId(): string | null { return this._sectorId; }
+  get sectorId(): string | null {
+    return this._sectorId;
+  }
 
   private _firstName: string;
-  get firstName(): string { return this._firstName; }
+  get firstName(): string {
+    return this._firstName;
+  }
 
   private _lastName: string | null;
-  get lastName(): string | null { return this._lastName; }
+  get lastName(): string | null {
+    return this._lastName;
+  }
 
   private _tcNo: string | null;
-  get tcNo(): string | null { return this._tcNo; }
+  get tcNo(): string | null {
+    return this._tcNo;
+  }
 
   private _birthDate: Date | null;
-  get birthDate(): Date | null { return this._birthDate; }
+  get birthDate(): Date | null {
+    return this._birthDate;
+  }
 
   private _gender: Gender | null;
-  get gender(): Gender | null { return this._gender; }
+  get gender(): Gender | null {
+    return this._gender;
+  }
 
   private _phone: string;
-  get phone(): string { return this._phone; }
+  get phone(): string {
+    return this._phone;
+  }
 
   private _alternativePhone: string | null;
-  get alternativePhone(): string | null { return this._alternativePhone; }
+  get alternativePhone(): string | null {
+    return this._alternativePhone;
+  }
 
   private _email: string | null;
-  get email(): string | null { return this._email; }
+  get email(): string | null {
+    return this._email;
+  }
 
   private _address: string | null;
-  get address(): string | null { return this._address; }
+  get address(): string | null {
+    return this._address;
+  }
 
   private _emergencyContact: string | null;
-  get emergencyContact(): string | null { return this._emergencyContact; }
+  get emergencyContact(): string | null {
+    return this._emergencyContact;
+  }
 
   private _companionName: string | null;
-  get companionName(): string | null { return this._companionName; }
+  get companionName(): string | null {
+    return this._companionName;
+  }
 
   private _companionPhone: string | null;
-  get companionPhone(): string | null { return this._companionPhone; }
+  get companionPhone(): string | null {
+    return this._companionPhone;
+  }
 
   private _profilePhoto: string | null;
-  get profilePhoto(): string | null { return this._profilePhoto; }
+  get profilePhoto(): string | null {
+    return this._profilePhoto;
+  }
 
   private _protocolNo: string | null;
-  get protocolNo(): string | null { return this._protocolNo; }
+  get protocolNo(): string | null {
+    return this._protocolNo;
+  }
 
   private _allergies: string | null;
-  get allergies(): string | null { return this._allergies; }
+  get allergies(): string | null {
+    return this._allergies;
+  }
 
   private _chronicDiseases: string | null;
-  get chronicDiseases(): string | null { return this._chronicDiseases; }
+  get chronicDiseases(): string | null {
+    return this._chronicDiseases;
+  }
 
   private _bloodType: BloodType | null;
-  get bloodType(): BloodType | null { return this._bloodType; }
+  get bloodType(): BloodType | null {
+    return this._bloodType;
+  }
 
   private _status: PatientStatus;
-  get status(): PatientStatus { return this._status; }
+  get status(): PatientStatus {
+    return this._status;
+  }
 
   private _patientType: PatientType | null;
-  get patientType(): PatientType | null { return this._patientType; }
+  get patientType(): PatientType | null {
+    return this._patientType;
+  }
 
   private _responsibleProviderId: string | null;
-  get responsibleProviderId(): string | null { return this._responsibleProviderId; }
+  get responsibleProviderId(): string | null {
+    return this._responsibleProviderId;
+  }
 
   private _checkupDate: Date | null;
-  get checkupDate(): Date | null { return this._checkupDate; }
+  get checkupDate(): Date | null {
+    return this._checkupDate;
+  }
 
-  private _discountRate: Prisma.Decimal | null;
-  get discountRate(): Prisma.Decimal | null { return this._discountRate; }
+  private _discountRate: Decimal | null;
+  get discountRate(): Decimal | null {
+    return this._discountRate;
+  }
 
   private _createdAt: Date;
-  get createdAt(): Date { return this._createdAt; }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
 
   private _updatedAt: Date;
-  get updatedAt(): Date { return this._updatedAt; }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 
   private _deletedAt: Date | null;
-  get deletedAt(): Date | null { return this._deletedAt; }
+  get deletedAt(): Date | null {
+    return this._deletedAt;
+  }
 
   // DOMAIN METHODS
 
   public activate(): void {
-    if (this._status === PatientStatus.ACTIVE) return;
-    this._status = PatientStatus.ACTIVE;
+    if (this._status === PatientStatusSchema.enum.ACTIVE) return;
+    this._status = PatientStatusSchema.enum.ACTIVE;
     this._deletedAt = null;
   }
 
   public deactivate(): void {
-    if (this._status === PatientStatus.INACTIVE) return;
-    this._status = PatientStatus.INACTIVE;
+    if (this._status === PatientStatusSchema.enum.INACTIVE) return;
+    this._status = PatientStatusSchema.enum.INACTIVE;
   }
 
   public archive(): void {
-    if (this._status === PatientStatus.ARCHIVED) return;
-    this._status = PatientStatus.ARCHIVED;
+    if (this._status === PatientStatusSchema.enum.ARCHIVED) return;
+    this._status = PatientStatusSchema.enum.ARCHIVED;
   }
 
   public blacklist(): void {
-    this._status = PatientStatus.BLACKLISTED;
+    this._status = PatientStatusSchema.enum.BLACKLISTED;
   }
 
   public markDeceased(): void {
-    this._status = PatientStatus.DECEASED;
+    this._status = PatientStatusSchema.enum.DECEASED;
   }
 
   public softDelete(): void {
@@ -161,12 +217,24 @@ export class Patient extends AggregateRoot implements IPatient {
 
   // STATUS QUERIES
 
-  public isActive(): boolean { return this._status === PatientStatus.ACTIVE; }
-  public isInactive(): boolean { return this._status === PatientStatus.INACTIVE; }
-  public isArchived(): boolean { return this._status === PatientStatus.ARCHIVED; }
-  public isBlacklisted(): boolean { return this._status === PatientStatus.BLACKLISTED; }
-  public isDeceased(): boolean { return this._status === PatientStatus.DECEASED; }
-  public isDeleted(): boolean { return this._deletedAt !== null; }
+  public isActive(): boolean {
+    return this._status === PatientStatusSchema.enum.ACTIVE;
+  }
+  public isInactive(): boolean {
+    return this._status === PatientStatusSchema.enum.INACTIVE;
+  }
+  public isArchived(): boolean {
+    return this._status === PatientStatusSchema.enum.ARCHIVED;
+  }
+  public isBlacklisted(): boolean {
+    return this._status === PatientStatusSchema.enum.BLACKLISTED;
+  }
+  public isDeceased(): boolean {
+    return this._status === PatientStatusSchema.enum.DECEASED;
+  }
+  public isDeleted(): boolean {
+    return this._deletedAt !== null;
+  }
 
   public fullName(): string {
     return this._lastName

@@ -3,6 +3,10 @@ export const FINANCE_JOBS = {
   GENERATE_INVOICE: 'generate-invoice',
 } as const;
 
+export const E_DOCUMENT_JOBS = {
+  SEND: 'send-e-document',
+} as const;
+
 export const ORGANIZATION_JOBS = {
   CLEAN_UP: 'organization-clean-up',
 } as const;

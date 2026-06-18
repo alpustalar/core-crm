@@ -1,5 +1,7 @@
-import { PartyOriginType, PartyRole, PartyType } from '@prisma/client';
 import { IGetContext } from '@common/decorators';
+import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
+import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
+import { PartyRoleType } from '@input-type-schemas/PartyRoleSchema';
 
 /**
  * Bir kaynak kayıt (Patient/Supplier/User) için finans carisini garanti eder.
@@ -11,7 +13,7 @@ export interface EnsurePartyInput {
   organizationId: string; // denormalize — konsolide raporlama
   originType: PartyOriginType;
   originId: string;
-  role: PartyRole;
+  role: PartyRoleType;
   type: PartyType;
   name: string;
   taxNumber?: string | null;

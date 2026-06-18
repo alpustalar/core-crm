@@ -1,4 +1,4 @@
-import { Clinic, Organization } from '@prisma/client';
+import { Clinic, Organization } from '@shared';
 
 export type ClinicDetails = Clinic & {
   organization: Organization | null;

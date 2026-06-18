@@ -31,8 +31,8 @@ model Account {
   isPostable    Boolean @default(true) @map("is_postable") // sadece yaprak hesaba fiş atılır
   requiresParty Boolean @default(false) @map("requires_party") // 120/320 → alt defter (cari) zorunlu
 
-  currency String?
-  isActive Boolean @default(true) @map("is_active")
+  currency Currency?
+  isActive Boolean   @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

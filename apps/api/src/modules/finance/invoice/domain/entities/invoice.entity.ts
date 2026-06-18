@@ -1,7 +1,19 @@
-import { Invoice as IInvoice, InvoiceStatus, Prisma } from '@prisma/client';
+import { Invoice as IInvoice } from '@model-schema/InvoiceSchema';
+import {
+  InvoiceStatusSchema,
+  InvoiceStatusType as InvoiceStatus,
+} from '@input-type-schemas/InvoiceStatusSchema';
+import { EDocumentTypeType as EDocumentType } from '@input-type-schemas/EDocumentTypeSchema';
+import { EDocumentStatusType as EDocumentStatus } from '@input-type-schemas/EDocumentStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { InvoiceIssuedEvent } from '../events/invoice-issued.event';
 import { InvoiceFailedEvent } from '../events/invoice-failed.event';
+import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
+import { Money } from '@src/domain/value-objects/money.vo';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+import { InvoiceNumber } from '@modules/finance/invoice/domain/value-objects/invoice-number.vo';
+import { Decimal } from 'decimal.js';
+import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import {
   LogAction,
   LogSource,
@@ -23,7 +35,14 @@ export interface FailInvoiceEntityProps {
   actorId?: string;
 }
 
-export class Invoice extends AggregateRoot implements IInvoice {
+export interface ApplyEDocumentResultProps {
+  documentType: EDocumentType;
+  uuid: string | null;
+  status: EDocumentStatus;
+  invoiceNumber?: string | null;
+}
+
+export class Invoice extends AggregateRoot {
   constructor(data: IInvoice) {
     super();
     this._id = data.id;
@@ -31,69 +50,78 @@ export class Invoice extends AggregateRoot implements IInvoice {
     this._patientId = data.patientId;
     this._appointmentId = data.appointmentId;
     this._paymentId = data.paymentId;
-    this._amount = data.amount;
-    this._currency = data.currency;
+    this._currency = Currency.create(data.currency);
     this._vatRate = data.vatRate;
-    this._netTotal = data.netTotal;
-    this._vatTotal = data.vatTotal;
     this._status = data.status;
-    this._invoiceNumber = data.invoiceNumber;
+    this._invoiceNumber = data.invoiceNumber
+      ? InvoiceNumber.create(data.invoiceNumber)
+      : null;
     this._issuedAt = data.issuedAt;
     this._providerRef = data.providerRef;
+    this._documentType = data.documentType;
+    this._einvoiceUuid = data.einvoiceUuid;
+    this._einvoiceStatus = data.einvoiceStatus;
     this._rawResponse = data.rawResponse;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._isDeleted = data.isDeleted;
+    this._taxSpecification = TaxSpecification.create(
+      Money.create(data.netTotal, data.currency),
+      data.vatRate,
+      Money.create(data.vatTotal, data.currency)
+    );
   }
 
   private _id: string;
+
   get id(): string {
     return this._id;
   }
 
   private _clinicId: string;
+
   get clinicId(): string {
     return this._clinicId;
   }
 
   private _patientId: string;
+
   get patientId(): string {
     return this._patientId;
   }
 
   private _appointmentId: string | null;
+
   get appointmentId(): string | null {
     return this._appointmentId;
   }
 
+  get amount(): Decimal {
+    return this._taxSpecification.grossAmount.amount;
+  }
+
+  private _taxSpecification: TaxSpecification;
+
+  get taxSpecification(): TaxSpecification {
+    return this._taxSpecification;
+  }
+
   private _paymentId: string | null;
+
   get paymentId(): string | null {
     return this._paymentId;
   }
 
-  private _amount: Prisma.Decimal;
-  get amount(): Prisma.Decimal {
-    return this._amount;
-  }
+  private _currency: Currency;
 
-  private _currency: string;
-  get currency(): string {
+  get currency(): Currency {
     return this._currency;
   }
 
   private _vatRate: number;
+
   get vatRate(): number {
     return this._vatRate;
-  }
-
-  private _netTotal: Prisma.Decimal;
-  get netTotal(): Prisma.Decimal {
-    return this._netTotal;
-  }
-
-  private _vatTotal: Prisma.Decimal;
-  get vatTotal(): Prisma.Decimal {
-    return this._vatTotal;
   }
 
   private _status: InvoiceStatus;
@@ -101,8 +129,8 @@ export class Invoice extends AggregateRoot implements IInvoice {
     return this._status;
   }
 
-  private _invoiceNumber: string | null;
-  get invoiceNumber(): string | null {
+  private _invoiceNumber: InvoiceNumber | null;
+  get invoiceNumber(): InvoiceNumber | null {
     return this._invoiceNumber;
   }
 
@@ -116,8 +144,27 @@ export class Invoice extends AggregateRoot implements IInvoice {
     return this._providerRef;
   }
 
-  private _rawResponse: Prisma.JsonValue | null;
-  get rawResponse(): Prisma.JsonValue | null {
+  private _documentType: EDocumentType | null;
+  get documentType(): EDocumentType | null {
+    return this._documentType;
+  }
+
+  private _einvoiceUuid: string | null;
+  get einvoiceUuid(): string | null {
+    return this._einvoiceUuid;
+  }
+
+  private _einvoiceStatus: EDocumentStatus;
+  get einvoiceStatus(): EDocumentStatus {
+    return this._einvoiceStatus;
+  }
+
+  public get totalDue(): Money {
+    return this._taxSpecification.grossAmount;
+  }
+
+  private _rawResponse: JsonValue | null;
+  get rawResponse(): JsonValue | null {
     return this._rawResponse;
   }
 
@@ -140,37 +187,25 @@ export class Invoice extends AggregateRoot implements IInvoice {
    * KDV dahil genel toplamı matrah + KDV'ye ayırır.
    * net = grand / (1 + oran/100) (2 haneye yuvarlanır), KDV = grand - net.
    */
-  public static splitVatInclusive(
-    amount: number,
-    vatRate: number
-  ): { netTotal: Prisma.Decimal; vatTotal: Prisma.Decimal } {
-    const grand = new Prisma.Decimal(amount);
-    const divisor = new Prisma.Decimal(1).plus(
-      new Prisma.Decimal(vatRate).div(100)
-    );
-    const netTotal = grand.div(divisor).toDecimalPlaces(2);
-    const vatTotal = grand.minus(netTotal);
-    return { netTotal, vatTotal };
-  }
 
   public isPending(): boolean {
-    return this._status === InvoiceStatus.PENDING;
+    return this._status === InvoiceStatusSchema.enum.PENDING;
   }
 
   public isIssued(): boolean {
-    return this._status === InvoiceStatus.ISSUED;
+    return this._status === InvoiceStatusSchema.enum.ISSUED;
   }
 
   public issue(props: IssueInvoiceEntityProps): void {
     if (!this.isPending()) {
       throw new Error('Yalnızca bekleyen faturalar kesilebilir.');
     }
-    this._status = InvoiceStatus.ISSUED;
-    this._invoiceNumber = props.invoiceNumber;
+    this._status = InvoiceStatusSchema.enum.ISSUED;
+    this._invoiceNumber = InvoiceNumber.create(props.invoiceNumber);
     this._providerRef = props.providerRef;
     this._issuedAt = props.issuedAt;
     if (props.rawResponse !== undefined) {
-      this._rawResponse = props.rawResponse as Prisma.JsonValue;
+      this._rawResponse = props.rawResponse as JsonValue;
     }
     this.addDomainEvent(
       new InvoiceIssuedEvent({
@@ -188,8 +223,26 @@ export class Invoice extends AggregateRoot implements IInvoice {
     );
   }
 
+  /**
+   * Entegratör (port) belge sonucunu uygular. e-belge gönderimi muhasebeden bağımsız
+   * bir outbound durumdur (doc 07 §5): sonuç REJECTED olsa bile fatura ISSUED'a finalize
+   * edilir; einvoiceStatus ayrı izlenir. Noop'ta documentType=INTERNAL, uuid=null gelir.
+   */
+  public applyEDocumentResult(props: ApplyEDocumentResultProps): void {
+    this._documentType = props.documentType;
+    this._einvoiceUuid = props.uuid;
+    this._einvoiceStatus = props.status;
+    if (props.invoiceNumber) {
+      this._invoiceNumber = InvoiceNumber.create(props.invoiceNumber);
+    }
+    if (this.isPending()) {
+      this._status = InvoiceStatusSchema.enum.ISSUED;
+      this._issuedAt = this._issuedAt ?? new Date();
+    }
+  }
+
   public fail(props: FailInvoiceEntityProps): void {
-    this._status = InvoiceStatus.FAILED;
+    this._status = InvoiceStatusSchema.enum.FAILED;
     this.addDomainEvent(
       new InvoiceFailedEvent({
         invoiceId: this._id,
@@ -213,15 +266,20 @@ export class Invoice extends AggregateRoot implements IInvoice {
       patientId: this._patientId,
       appointmentId: this._appointmentId,
       paymentId: this._paymentId,
-      amount: this._amount,
-      currency: this._currency,
-      vatRate: this._vatRate,
-      netTotal: this._netTotal,
-      vatTotal: this._vatTotal,
+
+      amount: this._taxSpecification.grossAmount.amount,
+      currency: this._taxSpecification.netAmount.currency,
+      vatRate: this._taxSpecification.taxRate,
+      netTotal: this._taxSpecification.netAmount.amount,
+      vatTotal: this._taxSpecification.taxAmount.amount,
+
       status: this._status,
-      invoiceNumber: this._invoiceNumber,
+      invoiceNumber: this._invoiceNumber?.value || null,
       issuedAt: this._issuedAt,
       providerRef: this._providerRef,
+      documentType: this._documentType,
+      einvoiceUuid: this._einvoiceUuid,
+      einvoiceStatus: this._einvoiceStatus,
       rawResponse: this._rawResponse,
       createdAt: this._createdAt,
       updatedAt: new Date(),

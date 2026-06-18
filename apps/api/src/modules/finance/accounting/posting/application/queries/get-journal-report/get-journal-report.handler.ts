@@ -35,7 +35,7 @@ export class GetJournalReportHandler
       pagination
     );
 
-    // Hesap kod/ad'ı şubenin planından — bounded context (QueryBus).
+    // Hesap kod/adı şubenin planından — bounded context (QueryBus).
     const { data: accounts } = await this.queryBus.execute(
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
@@ -55,15 +55,15 @@ export class GetJournalReportHandler
   ): JournalReportEntry {
     return {
       id: entry.id,
-      entryNo: entry.entryNo !== null ? entry.entryNo.toString() : null,
+      entryNo: entry.entryNo?.value !== undefined ? entry.entryNo.value : null,
       entryDate: entry.entryDate,
       description: entry.description,
       status: entry.status,
-      lines: entry.lines.map((line) => {
+      lines: entry.lines.items.map((line) => {
         const account = accountById.get(line.accountId);
         return {
           accountId: line.accountId,
-          code: account?.code ?? '?',
+          code: account?.code.value ?? '?',
           name: account?.name ?? '(bilinmeyen hesap)',
           partyId: line.partyId,
           debit: line.debit.toFixed(2),
@@ -71,8 +71,8 @@ export class GetJournalReportHandler
           lineDesc: line.lineDesc,
         };
       }),
-      totalDebit: entry.totalDebit().toFixed(2),
-      totalCredit: entry.totalCredit().toFixed(2),
+      totalDebit: entry.totalDebit.toFixed(2),
+      totalCredit: entry.totalCredit.toFixed(2),
     };
   }
 }

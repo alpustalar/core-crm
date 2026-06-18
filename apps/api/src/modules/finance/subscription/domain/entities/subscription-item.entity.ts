@@ -1,10 +1,10 @@
 import {
   Module as PrismaModule,
-  PlanId,
   SubscriptionItem as PrismaSubscriptionItem,
-} from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+} from '@shared';
+import { Decimal } from 'decimal.js';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 
 export class SubscriptionItem
   extends AggregateRoot

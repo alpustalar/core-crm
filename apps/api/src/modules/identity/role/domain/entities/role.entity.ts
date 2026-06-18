@@ -1,4 +1,4 @@
-import { Capability, Role as IRole, RoleCapability } from '@prisma/client';
+import { Capability, Role as IRole, RoleCapability } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 
 export type RoleWithCapabilities = IRole & {

@@ -1,6 +1,6 @@
 import { ActorContext } from '@common/interfaces';
-import { PlanId } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from 'decimal.js';
+import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 
 export type SubscribeToPlanProps = {
   organizationId: string;

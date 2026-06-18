@@ -12,7 +12,12 @@ import { PaymentDomainService } from './domain/services/payment-domain.service';
     PaymentEventModule,
     PaymentPresentationModule,
   ],
-  exports: [PaymentCommandModule, PaymentQueryModule, PaymentEventModule, PaymentDomainService],
+  exports: [
+    PaymentCommandModule,
+    PaymentQueryModule,
+    PaymentEventModule,
+    PaymentDomainService,
+  ],
   providers: [PaymentDomainService],
 })
 export class PaymentModule {}

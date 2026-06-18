@@ -4,7 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionQueryRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/types/pending-transaction-for-reconcile.type';
-import { PosTransactionEntity } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @Injectable()
 export class PosTransactionQueryRepository
@@ -15,26 +15,24 @@ export class PosTransactionQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<PosTransactionEntity | null> {
+  async findById(id: string): Promise<PosTransaction | null> {
     const raw = await this.db.posTransaction.findUnique({ where: { id } });
-    return raw ? new PosTransactionEntity(raw) : null;
+    return raw ? new PosTransaction(raw) : null;
   }
 
-  async findByExternalRef(
-    externalRef: string
-  ): Promise<PosTransactionEntity | null> {
+  async findByExternalRef(externalRef: string): Promise<PosTransaction | null> {
     const raw = await this.db.posTransaction.findFirst({
       where: { externalRef },
     });
-    return raw ? new PosTransactionEntity(raw) : null;
+    return raw ? new PosTransaction(raw) : null;
   }
 
-  async findByClinicId(clinicId: string): Promise<PosTransactionEntity[]> {
+  async findByClinicId(clinicId: string): Promise<PosTransaction[]> {
     const rows = await this.db.posTransaction.findMany({
       where: { clinicId },
       orderBy: { initiatedAt: 'desc' },
     });
-    return rows.map((r) => new PosTransactionEntity(r));
+    return rows.map((r) => new PosTransaction(r));
   }
 
   async findPendingForReconcile(

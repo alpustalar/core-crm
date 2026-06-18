@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
-import { PlanId } from '@prisma/client';
+
 import { SubscribeToPlanCommand } from './subscribe-to-plan.command';
 import {
   ISubscriptionCommandRepository,
@@ -12,6 +12,8 @@ import {
   BILLING_ADAPTER,
   IBillingAdapter,
 } from '@modules/finance/subscription/infrastructure/adapters/billing-adapter.interface';
+import { PlanIdSchema } from '@shared';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 export interface SubscribeToPlanResult {
   subscriptionId: string;
@@ -45,7 +47,7 @@ export class SubscribeToPlanHandler
       );
     }
 
-    const isFreeTrial = planId === PlanId.FREE_TRIAL;
+    const isFreeTrial = planId === PlanIdSchema.enum.FREE_TRIAL;
 
     if (!isFreeTrial && !buyer) {
       throw new BadRequestException('Buyer info is required for paid plans');
@@ -57,7 +59,7 @@ export class SubscribeToPlanHandler
     if (!isFreeTrial && buyer) {
       const result = await this.billingAdapter.initializePayment({
         organizationId,
-        amount: Number(priceAtPurchase),
+        amount: Money.create(priceAtPurchase, command.currency),
         label: `${planId} Plan`,
         buyer,
       });
@@ -74,7 +76,7 @@ export class SubscribeToPlanHandler
     await this.subscriptionCommandRepo.addItem({
       subscriptionId: subscription.id,
       planId,
-      priceAtPurchase,
+      priceAtPurchase: Money.create(priceAtPurchase, command.currency),
       externalPriceId,
     });
 

@@ -10,6 +10,9 @@ import {
 } from '@src/domain/constants/log-action.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
+import { InvoiceTriggers } from '@modules/finance/invoice/domain/constants/invoice-triggers';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 @Injectable()
 export class PaymentPaidInvoiceListener {
@@ -23,16 +26,37 @@ export class PaymentPaidInvoiceListener {
   @OnEvent(PAYMENT_EVENTS.PAID, { async: true })
   async handle(event: PaymentPaidEvent): Promise<void> {
     try {
-      // TODO: patientId ve amount, ilgili QueryBus sorguları ile çözülecek.
-      // Entegratör seçildiğinde GetPaymentDetailsQuery dispatch edilmeli.
+      // Cari + tutar payment modülünden çözülür (bounded context — QueryBus).
+      const payment = await this.queryBus.execute(
+        new GetPaymentWithInstallmentsQuery(event.paymentId)
+      );
+      if (!payment) {
+        this.logger.warn(
+          `Fatura için ödeme bulunamadı: paymentId=${event.paymentId}`
+        );
+        return;
+      }
+
+      // Tahsil edilen taksitin tutarı faturalanır; bulunamazsa ödeme toplamı.
+      const installment = payment.installments.find(
+        (i) => i.id === event.installmentId
+      );
+      const amount = installment
+        ? installment.amount.toNumber()
+        : payment.totalAmount.amount.toNumber();
+
+      const currency = installment
+        ? installment.currency
+        : payment.totalAmount.currency;
+
       await this.commandBus.execute(
         new IssueInvoiceCommand({
           clinicId: event.clinicId,
-          patientId: '', // TODO: QueryBus üzerinden Payment'tan çekilecek
+          patientId: payment.patientId,
           appointmentId: event.appointmentId,
           paymentId: event.paymentId,
-          amount: 0, // TODO: QueryBus üzerinden Payment.totalAmount çekilecek
-          trigger: 'PAYMENT',
+          totalAmount: Money.create(amount, currency),
+          trigger: InvoiceTriggers.PAYMENT,
           action: LogAction.INVOICE_ISSUED,
           type: LogType.INFO,
           source: LogSource.SYSTEM,

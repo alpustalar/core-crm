@@ -37,7 +37,7 @@ model MetaCampaignMetric {
   impressions     Int      @default(0)
   cpc             Decimal? @db.Decimal(10, 4)
   ctr             Decimal? @db.Decimal(10, 4)
-  currency        String   @default("TRY")
+  currency        Currency @default(TRY)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 

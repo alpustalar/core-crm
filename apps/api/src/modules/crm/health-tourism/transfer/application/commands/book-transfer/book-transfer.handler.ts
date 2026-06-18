@@ -12,6 +12,7 @@ import {
   IHotelbedsTransferBookingCommandRepository,
 } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(BookTransferCommand)
 export class BookTransferHandler
@@ -24,7 +25,7 @@ export class BookTransferHandler
     @Inject(HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY)
     private readonly bookingCommandRepo: IHotelbedsTransferBookingCommandRepository,
 
-    private readonly txManager: TransactionManager,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: BookTransferCommand): Promise<BookTransferResponse> {
@@ -60,7 +61,7 @@ export class BookTransferHandler
         holderPhone: dto.holderPhone,
         transfers: result.transfers,
         totalAmount: result.totalAmount,
-        currency: result.currency,
+        currency: Currency.create(result.currency).value,
         remarks: dto.remark,
         organizationId: actor.organizationId!,
         clinicId: dto.clinicId ?? actor.clinicId ?? undefined,
@@ -69,12 +70,6 @@ export class BookTransferHandler
       });
     });
 
-    return {
-      id: booking.id,
-      reference: booking.reference,
-      totalAmount: Number(booking.totalAmount),
-      currency: booking.currency,
-      status: booking.status,
-    };
+    return booking.id;
   }
 }

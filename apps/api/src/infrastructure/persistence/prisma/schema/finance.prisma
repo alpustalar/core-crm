@@ -39,8 +39,8 @@ model FinanceLedger {
   category LedgerCategory
   status   LedgerStatus   @default(COMPLETED)
 
-  amount   Decimal @db.Decimal(10, 2)
-  currency String  @default("TRY")
+  amount   Decimal  @db.Decimal(10, 2)
+  currency Currency @default(TRY)
 
   taxRate   Int     @default(0) @map("tax_rate")
   taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(10, 2)
@@ -98,8 +98,8 @@ model Payment {
   appointmentId String? @unique @map("appointment_id")
   providerId    String? @map("provider_id")
 
-  totalAmount Decimal @map("total_amount") @db.Decimal(10, 2)
-  currency    String  @default("TRY")
+  totalAmount Decimal  @map("total_amount") @db.Decimal(10, 2)
+  currency    Currency @default(TRY)
 
   status PaymentStatus @default(PENDING)
 
@@ -124,7 +124,7 @@ model PaymentInstallment {
   installmentNo Int    @map("installment_no")
 
   amount   Decimal           @db.Decimal(10, 2)
-  currency String            @default("TRY")
+  currency Currency          @default(TRY)
   method   PaymentMethod     @default(CREDIT_CARD)
   dueDate  DateTime?         @map("due_date")
   paidAt   DateTime?         @map("paid_at")

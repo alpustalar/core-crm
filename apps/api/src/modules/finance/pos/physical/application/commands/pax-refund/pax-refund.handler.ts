@@ -24,13 +24,12 @@ import {
 } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
-import { PosTransactionStatus } from '@prisma/client';
+import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 
 @CommandHandler(PaxRefundCommand)
-export class PaxRefundHandler implements ICommandHandler<
-  PaxRefundCommand,
-  PaxRefundResponse
-> {
+export class PaxRefundHandler
+  implements ICommandHandler<PaxRefundCommand, PaxRefundResponse>
+{
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
@@ -54,7 +53,7 @@ export class PaxRefundHandler implements ICommandHandler<
     if (!originalTx) {
       throw new NotFoundException('Orijinal POS işlemi bulunamadı.');
     }
-    if (originalTx.status !== PosTransactionStatus.SUCCESS) {
+    if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
       throw new BadRequestException(
         'Yalnızca başarılı işlemler iade edilebilir.'
       );
@@ -90,7 +89,7 @@ export class PaxRefundHandler implements ICommandHandler<
           clinicId: input.clinicId,
           paymentId: originalTx.paymentId ?? undefined,
           amount: refundAmount,
-          currency: originalTx.currency,
+          currency: originalTx.amount.currency,
         });
         return { refundTransactionId: id, refundTx: tx };
       }
@@ -128,8 +127,8 @@ export class PaxRefundHandler implements ICommandHandler<
       });
 
       const status = result.approved
-        ? PosTransactionStatus.SUCCESS
-        : PosTransactionStatus.FAILED;
+        ? PosTransactionStatusSchema.enum.SUCCESS
+        : PosTransactionStatusSchema.enum.FAILED;
 
       this.logger.log(
         `PAX iade tamamlandı: id=${refundTransactionId} status=${status}`

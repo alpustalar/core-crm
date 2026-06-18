@@ -4,6 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaCampaignMetricCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
 import { UpsertCampaignMetricProps } from '@modules/crm/meta-ads/domain/types/upsert-campaign-metric.props';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @Injectable()
 export class MetaCampaignMetricCommandRepository
@@ -36,7 +37,7 @@ export class MetaCampaignMetricCommandRepository
             impressions: p.impressions,
             cpc: p.cpc != null ? new Prisma.Decimal(p.cpc) : null,
             ctr: p.ctr != null ? new Prisma.Decimal(p.ctr) : null,
-            currency: p.currency ?? 'TRY',
+            currency: Currency.create(p.currency).value ?? 'TRY',
           },
           update: {
             campaignName: p.campaignName,

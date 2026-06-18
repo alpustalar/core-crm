@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 
 /**
  * Gelir Tablosu hesaplayıcısı (saf domain). Hesap bakiyelerinden TDHP gelir
@@ -12,32 +12,32 @@ import { Prisma } from '@prisma/client';
 export interface AccountBalanceInput {
   code: string;
   name: string;
-  debit: Prisma.Decimal;
-  credit: Prisma.Decimal;
+  debit: Decimal;
+  credit: Decimal;
 }
 
 export interface IncomeStatementLine {
   code: string;
   name: string;
-  amount: Prisma.Decimal; // bölümün doğal yönünde pozitif büyüklük
+  amount: Decimal; // bölümün doğal yönünde pozitif büyüklük
 }
 
 export interface IncomeStatementSection {
   lines: IncomeStatementLine[];
-  total: Prisma.Decimal;
+  total: Decimal;
 }
 
 export interface IncomeStatementResult {
   grossSales: IncomeStatementSection;
   salesDeductions: IncomeStatementSection;
-  netSales: Prisma.Decimal;
+  netSales: Decimal;
   costOfSales: IncomeStatementSection;
-  grossProfit: Prisma.Decimal;
+  grossProfit: Decimal;
   operatingExpenses: IncomeStatementSection;
-  operatingProfit: Prisma.Decimal;
+  operatingProfit: Decimal;
   otherIncome: IncomeStatementSection;
   otherExpense: IncomeStatementSection;
-  netProfit: Prisma.Decimal; // dönem net kârı/zararı
+  netProfit: Decimal; // dönem net kârı/zararı
 }
 
 type SectionKey =
@@ -80,7 +80,7 @@ export class IncomeStatementCalculator {
       const lines = sections[key].sort((a, b) => a.code.localeCompare(b.code));
       const total = lines.reduce(
         (sum, line) => sum.plus(line.amount),
-        new Prisma.Decimal(0)
+        new Decimal(0)
       );
       return { lines, total };
     };
@@ -119,7 +119,11 @@ export class IncomeStatementCalculator {
   private static classify(code: string): SectionKey | null {
     if (code.startsWith('60')) return 'grossSales'; // 600/601/602
     if (code.startsWith('61')) return 'salesDeductions'; // 610/611/612
-    if (code.startsWith('62') || code.startsWith('73') || code.startsWith('74')) {
+    if (
+      code.startsWith('62') ||
+      code.startsWith('73') ||
+      code.startsWith('74')
+    ) {
       return 'costOfSales'; // satışların maliyeti / hizmet üretim maliyeti
     }
     if (
@@ -131,7 +135,11 @@ export class IncomeStatementCalculator {
       return 'operatingExpenses'; // pazarlama + genel yönetim + ar-ge
     }
     if (code.startsWith('64') || code.startsWith('67')) return 'otherIncome';
-    if (code.startsWith('65') || code.startsWith('66') || code.startsWith('68')) {
+    if (
+      code.startsWith('65') ||
+      code.startsWith('66') ||
+      code.startsWith('68')
+    ) {
       return 'otherExpense';
     }
     return null; // 690/69x ve bilanço (1-5) hesapları

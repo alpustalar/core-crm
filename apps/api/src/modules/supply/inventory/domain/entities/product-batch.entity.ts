@@ -1,15 +1,17 @@
 import {
-  Prisma,
-  ProductBatch as PrismaProductBatch,
-  StockMovementDirection,
-  StockMovementType,
-} from '@prisma/client';
+  ProductBatch as IProductBatch,
+  StockMovementDirectionSchema,
+  StockMovementTypeSchema,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   StockPurchasedEvent,
   StockPurchasedEventPayload,
 } from '../events/stock-purchased.event';
 import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
+import { Decimal } from 'decimal.js';
+import { Money } from '@src/domain/value-objects/money.vo';
+import { Quantity } from '@src/domain/value-objects/quantity.vo';
 
 export interface CreateBatchFromPurchaseProps {
   id: string;
@@ -19,9 +21,8 @@ export interface CreateBatchFromPurchaseProps {
   supplierId: string | null;
   lotNumber: string | null;
   expiresAt: Date | null;
-  quantity: number | string;
-  purchasePrice: number | string;
-  currency: string;
+  quantity: Quantity;
+  purchasePrice: Money;
   notes: string | null;
   eventPayload: Omit<
     StockPurchasedEventPayload,
@@ -36,8 +37,8 @@ export interface CreateBatchFromPurchaseProps {
   >;
 }
 
-export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
-  constructor(data: PrismaProductBatch) {
+export class ProductBatch extends AggregateRoot {
+  constructor(data: IProductBatch) {
     super();
     this._id = data.id;
     this._productId = data.productId;
@@ -45,9 +46,10 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
     this._supplierId = data.supplierId;
     this._lotNumber = data.lotNumber;
     this._expiresAt = data.expiresAt;
-    this._quantity = data.quantity;
-    this._purchasePrice = data.purchasePrice;
-    this._currency = data.currency;
+    this._quantity = Quantity.create(data.quantity);
+
+    this._purchasePrice = Money.create(data.purchasePrice, data.currency);
+
     this._receivedAt = data.receivedAt;
     this._notes = data.notes;
     this._createdAt = data.createdAt;
@@ -84,19 +86,14 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
     return this._expiresAt;
   }
 
-  private _quantity: Prisma.Decimal;
-  get quantity(): Prisma.Decimal {
+  private _quantity: Quantity;
+  get quantity(): Quantity {
     return this._quantity;
   }
 
-  private _purchasePrice: Prisma.Decimal;
-  get purchasePrice(): Prisma.Decimal {
+  private _purchasePrice: Money;
+  get purchasePrice(): Money {
     return this._purchasePrice;
-  }
-
-  private _currency: string;
-  get currency(): string {
-    return this._currency;
   }
 
   private _receivedAt: Date;
@@ -122,9 +119,8 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
   public static createFromPurchase(
     props: CreateBatchFromPurchaseProps
   ): ProductBatch {
-    const quantityDecimal = new Prisma.Decimal(props.quantity);
-    const purchasePriceDecimal = new Prisma.Decimal(props.purchasePrice);
-    const totalAmount = purchasePriceDecimal.times(quantityDecimal);
+    const quantityDecimal = props.quantity.value;
+    const totalAmount = props.purchasePrice.multiply(quantityDecimal);
 
     const batch = new ProductBatch({
       id: props.id,
@@ -134,8 +130,8 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
       lotNumber: props.lotNumber,
       expiresAt: props.expiresAt,
       quantity: quantityDecimal,
-      purchasePrice: purchasePriceDecimal,
-      currency: props.currency,
+      purchasePrice: props.purchasePrice.amount,
+      currency: props.purchasePrice.currency,
       receivedAt: new Date(),
       notes: props.notes,
       createdAt: new Date(),
@@ -151,8 +147,8 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
         organizationId: props.organizationId,
         supplierId: props.supplierId,
         quantity: quantityDecimal.toString(),
-        unitPrice: purchasePriceDecimal.toString(),
-        totalAmount: totalAmount.toString(),
+        unitPrice: props.purchasePrice.amount.toString(),
+        totalAmount: totalAmount.amount.toString(),
       })
     );
 
@@ -160,54 +156,53 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
   }
 
   public deductQuantity(
-    qty: Prisma.Decimal,
+    qty: Decimal,
     performedById: string,
     notes?: string | null
   ): CreateStockMovementProps {
-    if (this._quantity.lessThan(qty)) {
+    if (this._quantity.value.lessThan(qty)) {
       throw new Error(
-        `Yetersiz stok. Mevcut: ${Number(this._quantity)}, İstenen: ${Number(qty)}`
+        `Yersiz stok. Mevcut: ${this._quantity.value.toString()}, İstenen: ${qty.toString()}`
       );
     }
 
-    this._quantity = this._quantity.minus(qty);
+    this._quantity = Quantity.create(this._quantity.value.minus(qty));
 
     return {
       productId: this._productId,
       clinicId: this._clinicId,
       batchId: this._id,
-      type: StockMovementType.ADJUSTMENT,
-      direction: StockMovementDirection.OUT,
-      quantity: qty.toString(),
+      type: StockMovementTypeSchema.enum.ADJUSTMENT,
+      direction: StockMovementDirectionSchema.enum.OUT,
+      quantity: qty,
       performedById,
       notes: notes ?? 'Batch üzerinden stok düşümü yapıldı.',
     };
   }
 
   public addQuantity(
-    qty: Prisma.Decimal,
+    qty: Decimal,
     performedById: string,
     notes?: string | null
   ): CreateStockMovementProps {
     if (qty.lessThanOrEqualTo(0)) {
       throw new Error('Eklenecek stok miktarı sıfırdan büyük olmalıdır.');
     }
-
-    this._quantity = this._quantity.plus(qty);
+    this._quantity = Quantity.create(this._quantity.value.plus(qty));
 
     return {
       productId: this._productId,
       clinicId: this._clinicId,
       batchId: this._id,
-      type: StockMovementType.ADJUSTMENT,
-      direction: StockMovementDirection.IN,
-      quantity: qty.toString(),
+      type: StockMovementTypeSchema.enum.ADJUSTMENT,
+      direction: StockMovementDirectionSchema.enum.IN,
+      quantity: qty,
       performedById,
       notes: notes ?? 'Batch üzerinden stok artırımı yapıldı.',
     };
   }
 
-  toPersistence(): PrismaProductBatch {
+  toPersistence(): IProductBatch {
     return {
       id: this._id,
       productId: this._productId,
@@ -215,9 +210,9 @@ export class ProductBatch extends AggregateRoot implements PrismaProductBatch {
       supplierId: this._supplierId,
       lotNumber: this._lotNumber,
       expiresAt: this._expiresAt,
-      quantity: this._quantity,
-      purchasePrice: this._purchasePrice,
-      currency: this._currency,
+      quantity: this._quantity.value,
+      purchasePrice: this._purchasePrice.amount,
+      currency: this._purchasePrice.currency,
       receivedAt: this._receivedAt,
       notes: this._notes,
       createdAt: this._createdAt,

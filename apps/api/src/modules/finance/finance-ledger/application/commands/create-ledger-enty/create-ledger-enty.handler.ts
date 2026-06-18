@@ -7,6 +7,7 @@ import {
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
 import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 @CommandHandler(CreateLedgerEntyCommand)
 export class CreateLedgerEntyHandler
@@ -25,7 +26,7 @@ export class CreateLedgerEntyHandler
 
     const entry = FinanceLedgerEntity.create({
       ...dto,
-      currency: dto.currency ?? 'TRY',
+      money: Money.create(dto.amount, dto.currency),
     });
 
     await this.financeLedgerCommandRepo.save(entry);

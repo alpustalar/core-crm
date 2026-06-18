@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { FINANCE_JOBS, QUEUES } from '@common/constants';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 export interface ILedgerJobData {
   installmentId: string;
@@ -11,7 +12,7 @@ export interface ILedgerJobData {
   clinicId: string;
   patientId: string;
   amount: string;
-  currency: string;
+  currency: CurrencyType;
 }
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { Capability } from '@prisma/client';
+import { Capability } from '@shared';
 
 export type HasCapabilityType = Omit<Capability, 'id' | 'name'>;
 export const HAS_CAPABILITY_KEY = Symbol.for('has_capability_key');

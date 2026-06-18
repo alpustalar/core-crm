@@ -11,7 +11,6 @@ import {
   IncomeStatementSection,
 } from '@modules/finance/accounting/posting/domain/reporting/income-statement.calculator';
 import { BalanceSheetCalculator } from '@modules/finance/accounting/posting/domain/reporting/balance-sheet.calculator';
-import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import { GetBalanceSheetQuery } from './get-balance-sheet.query';
 import {
@@ -29,9 +28,7 @@ export class GetBalanceSheetHandler
     private readonly queryBus: TSQueryBus
   ) {}
 
-  async execute(
-    query: GetBalanceSheetQuery
-  ): Promise<GetBalanceSheetResponse> {
+  async execute(query: GetBalanceSheetQuery): Promise<GetBalanceSheetResponse> {
     const { clinicId, ctx, dateFrom, dateTo } = query;
 
     const rows = await this.journalQueryRepo.trialBalance({
@@ -39,18 +36,19 @@ export class GetBalanceSheetHandler
       dateFrom,
       dateTo,
     });
-
     const { data: accounts } = await this.queryBus.execute(
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
-    const accountById = new Map<string, Account>(
+
+    const accountById = new Map<string, (typeof accounts)[number]>(
       accounts.map((account) => [account.id, account])
     );
 
     const balances: AccountBalanceInput[] = rows.map((row) => {
       const account = accountById.get(row.accountId);
+
       return {
-        code: account?.code ?? '?',
+        code: account?.code.value ?? '?',
         name: account?.name ?? '(bilinmeyen hesap)',
         debit: row.totalDebit,
         credit: row.totalCredit,

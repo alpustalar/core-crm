@@ -1,4 +1,5 @@
-import { FinancialEventType, Prisma } from '@prisma/client';
+import { InputJsonValueType } from '@input-type-schemas/InputJsonValueSchema';
+import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 
 export interface RecordFinancialEventProps {
   id?: string;
@@ -6,7 +7,7 @@ export interface RecordFinancialEventProps {
   organizationId: string; // denormalize — konsolide raporlama
   type: FinancialEventType;
   occurredAt?: Date;
-  payload: Prisma.InputJsonValue;
+  payload: InputJsonValueType;
   sourceModule: string;
   sourceRefId?: string | null;
   dedupeKey?: string | null;

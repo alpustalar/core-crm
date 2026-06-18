@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { FinancialEventType } from '@prisma/client';
 import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
 import {
   DraftJournalEntry,
@@ -7,6 +6,7 @@ import {
   PostingRule,
 } from '../posting-rule.interface';
 import { PaymentReceivedEventPayload } from '../event-payloads';
+import { FinancialEventTypeSchema } from '@shared';
 
 /**
  * Tahsilat — PAYMENT_RECEIVED
@@ -17,7 +17,7 @@ import { PaymentReceivedEventPayload } from '../event-payloads';
  */
 @Injectable()
 export class PaymentReceivedRule implements PostingRule {
-  readonly eventType = FinancialEventType.PAYMENT_RECEIVED;
+  readonly eventType = FinancialEventTypeSchema.enum.PAYMENT_RECEIVED;
 
   build(event: FinancialEvent, _ctx: PostingContext): DraftJournalEntry {
     const payload = event.payload as unknown as PaymentReceivedEventPayload;
@@ -33,7 +33,11 @@ export class PaymentReceivedRule implements PostingRule {
       date: event.occurredAt,
       description: 'Tahsilat',
       lines: [
-        { accountCode: cashAccountCode, debit: payload.amount, desc: 'Tahsilat' },
+        {
+          accountCode: cashAccountCode,
+          debit: payload.amount,
+          desc: 'Tahsilat',
+        },
         {
           accountCode: '120',
           partyId: payload.partyId,

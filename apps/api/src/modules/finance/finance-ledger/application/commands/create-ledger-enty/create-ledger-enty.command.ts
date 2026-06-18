@@ -1,5 +1,8 @@
-import { LedgerCategory, LedgerSource, LedgerType } from '@prisma/client';
 import { IGetContext } from '@common/decorators';
+import { LedgerTypeType as LedgerType } from '@input-type-schemas/LedgerTypeSchema';
+import { LedgerSourceType as LedgerSource } from '@input-type-schemas/LedgerSourceSchema';
+import { LedgerCategoryType as LedgerCategory } from '@input-type-schemas/LedgerCategorySchema';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 export interface CreateLedgerEntryDto {
   organizationId: string;
@@ -12,7 +15,7 @@ export interface CreateLedgerEntryDto {
   source: LedgerSource;
   category: LedgerCategory;
   amount: string;
-  currency?: string;
+  currency: CurrencyType;
   taxRate?: number;
   description?: string;
   documentNo?: string;

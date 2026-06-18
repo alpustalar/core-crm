@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // META CAMPAIGN METRIC SCHEMA
 /////////////////////////////////////////
 
 export const MetaCampaignMetricSchema = z.object({
+  currency: CurrencySchema,
   id: z.uuid(),
   metaAdAccountId: z.string(),
   campaignId: z.string(),
@@ -16,7 +18,6 @@ export const MetaCampaignMetricSchema = z.object({
   impressions: z.number().int(),
   cpc: z.instanceof(Prisma.Decimal, { message: "Field 'cpc' must be a Decimal. Location: ['Models', 'MetaCampaignMetric']"}).nullable(),
   ctr: z.instanceof(Prisma.Decimal, { message: "Field 'ctr' must be a Decimal. Location: ['Models', 'MetaCampaignMetric']"}).nullable(),
-  currency: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

@@ -11,10 +11,10 @@ import { PaxService } from '@modules/finance/pos/physical/infrastructure/provide
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { FinancialEventType, PartyRole } from '@prisma/client';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
@@ -144,7 +144,7 @@ export class ReconcilePosTransactionsHandler
         new EnsurePartyForPatientCommand(
           input.patientId,
           input.clinicId,
-          PartyRole.CUSTOMER,
+          PartyRoleSchema.enum.CUSTOMER,
           ctx
         )
       );
@@ -154,7 +154,7 @@ export class ReconcilePosTransactionsHandler
           {
             organizationId,
             clinicId: input.clinicId,
-            type: FinancialEventType.PAYMENT_RECEIVED,
+            type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: { method: 'POS_CARD', amount: input.amount, partyId },
             sourceModule: 'pos',
             sourceRefId: input.posTransactionId,

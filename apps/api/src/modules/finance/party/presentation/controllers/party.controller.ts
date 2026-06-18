@@ -7,13 +7,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { PartyRole } from '@prisma/client';
+
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
 import { GetContext, IGetContext } from '@common/decorators';
 import { PaginationDto } from '@shared';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPartyByIdQuery } from '@modules/finance/party/application/queries/get-party-by-id/get-party-by-id.query';
 import { FindPartiesQuery } from '@modules/finance/party/application/queries/find-parties/find-parties.query';
+import { PartyRoleType } from '@input-type-schemas/PartyRoleSchema';
 
 @UseGuards(AuthGuard)
 @Controller()
@@ -24,10 +25,15 @@ export class PartyController {
   findParties(
     @GetContext() ctx: IGetContext,
     @Query() pagination: PaginationDto,
-    @Query('role') role?: PartyRole
+    @Query('role') role?: PartyRoleType
   ) {
     return this.queryBus.execute(
-      new FindPartiesQuery(this.resolveOrganizationId(ctx), pagination, ctx, role)
+      new FindPartiesQuery(
+        this.resolveOrganizationId(ctx),
+        pagination,
+        ctx,
+        role
+      )
     );
   }
 

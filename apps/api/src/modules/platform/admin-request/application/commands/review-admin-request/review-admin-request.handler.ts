@@ -7,8 +7,8 @@ import {
   IAdminRequestCommandRepository,
   IAdminRequestQueryRepository,
 } from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
-import { AdminRequestStatus } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { AdminRequestStatusSchema } from '@shared';
 
 @CommandHandler(ReviewAdminRequestCommand)
 export class ReviewAdminRequestHandler
@@ -30,7 +30,7 @@ export class ReviewAdminRequestHandler
       const request = await this.adminRequestQueryRepo.findById(requestId);
       if (!request) throw new NotFoundException('İstek bulunamadı.');
 
-      if (dto.status === AdminRequestStatus.APPROVED) {
+      if (dto.status === AdminRequestStatusSchema.enum.APPROVED) {
         request.approve(actor.userId, dto.reviewNote);
       } else {
         request.reject(actor.userId, dto.reviewNote);

@@ -11,7 +11,6 @@ import {
   ILeadEventPublisher,
   LEAD_EVENT_PUBLISHER,
 } from '@modules/crm/lead/domain/interfaces/lead-event-publisher.interface';
-import { LeadStatus } from '@prisma/client';
 import {
   LogAction,
   LogSource,

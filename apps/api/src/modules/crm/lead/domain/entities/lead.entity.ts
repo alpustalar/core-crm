@@ -1,6 +1,8 @@
-import { Lead as ILead, LeadSource, LeadStatus } from '@prisma/client';
+import { Lead as ILead, LeadStatusSchema } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { BadRequestException } from '@nestjs/common';
+import { LeadSourceType as LeadSource } from '@input-type-schemas/LeadSourceSchema';
+import { LeadStatusType as LeadStatus } from '@input-type-schemas/LeadStatusSchema';
 
 export class Lead extends AggregateRoot implements ILead {
   constructor(data: ILead) {
@@ -25,85 +27,133 @@ export class Lead extends AggregateRoot implements ILead {
   }
 
   private _id: string;
-  get id(): string { return this._id; }
+  get id(): string {
+    return this._id;
+  }
 
   private _clinicId: string;
-  get clinicId(): string { return this._clinicId; }
+  get clinicId(): string {
+    return this._clinicId;
+  }
 
   private _source: LeadSource;
-  get source(): LeadSource { return this._source; }
+  get source(): LeadSource {
+    return this._source;
+  }
 
   private _status: LeadStatus;
-  get status(): LeadStatus { return this._status; }
+  get status(): LeadStatus {
+    return this._status;
+  }
 
   private _name: string | null;
-  get name(): string | null { return this._name; }
+  get name(): string | null {
+    return this._name;
+  }
 
   private _phone: string | null;
-  get phone(): string | null { return this._phone; }
+  get phone(): string | null {
+    return this._phone;
+  }
 
   private _email: string | null;
-  get email(): string | null { return this._email; }
+  get email(): string | null {
+    return this._email;
+  }
 
   private _notes: string | null;
-  get notes(): string | null { return this._notes; }
+  get notes(): string | null {
+    return this._notes;
+  }
 
   private _assignedToId: string | null;
-  get assignedToId(): string | null { return this._assignedToId; }
+  get assignedToId(): string | null {
+    return this._assignedToId;
+  }
 
   private _patientId: string | null;
-  get patientId(): string | null { return this._patientId; }
+  get patientId(): string | null {
+    return this._patientId;
+  }
 
   private _appointmentId: string | null;
-  get appointmentId(): string | null { return this._appointmentId; }
+  get appointmentId(): string | null {
+    return this._appointmentId;
+  }
 
   private _convertedAt: Date | null;
-  get convertedAt(): Date | null { return this._convertedAt; }
+  get convertedAt(): Date | null {
+    return this._convertedAt;
+  }
 
   private _lostReason: string | null;
-  get lostReason(): string | null { return this._lostReason; }
+  get lostReason(): string | null {
+    return this._lostReason;
+  }
 
   private _lostAt: Date | null;
-  get lostAt(): Date | null { return this._lostAt; }
+  get lostAt(): Date | null {
+    return this._lostAt;
+  }
 
   private _whatsAppConversationId: string | null;
-  get whatsAppConversationId(): string | null { return this._whatsAppConversationId; }
+  get whatsAppConversationId(): string | null {
+    return this._whatsAppConversationId;
+  }
 
   private _createdAt: Date;
-  get createdAt(): Date { return this._createdAt; }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
 
   private _updatedAt: Date;
-  get updatedAt(): Date { return this._updatedAt; }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 
   public contact(): void {
-    if (this._status !== LeadStatus.NEW) {
-      throw new BadRequestException('Yalnızca NEW statüsündeki leadler iletişime geçildi olarak işaretlenebilir.');
+    if (this._status !== LeadStatusSchema.enum.NEW) {
+      throw new BadRequestException(
+        'Yalnızca NEW statüsündeki leadler iletişime geçildi olarak işaretlenebilir.'
+      );
     }
-    this._status = LeadStatus.CONTACTED;
+    this._status = LeadStatusSchema.enum.CONTACTED;
   }
 
   public qualify(): void {
-    if (this._status !== LeadStatus.CONTACTED) {
-      throw new BadRequestException('Yalnızca CONTACTED statüsündeki leadler nitelikli olarak işaretlenebilir.');
+    if (this._status !== LeadStatusSchema.enum.CONTACTED) {
+      throw new BadRequestException(
+        'Yalnızca CONTACTED statüsündeki leadler nitelikli olarak işaretlenebilir.'
+      );
     }
-    this._status = LeadStatus.QUALIFIED;
+    this._status = LeadStatusSchema.enum.QUALIFIED;
   }
 
   public convert(patientId: string | null, appointmentId: string | null): void {
-    if (this._status === LeadStatus.CONVERTED || this._status === LeadStatus.LOST) {
-      throw new BadRequestException('Dönüştürülmüş veya kaybedilmiş leadler tekrar dönüştürülemez.');
+    if (
+      this._status === LeadStatusSchema.enum.CONVERTED ||
+      this._status === LeadStatusSchema.enum.LOST
+    ) {
+      throw new BadRequestException(
+        'Dönüştürülmüş veya kaybedilmiş leadler tekrar dönüştürülemez.'
+      );
     }
     this._patientId = patientId ?? this._patientId;
     this._appointmentId = appointmentId ?? this._appointmentId;
-    this._status = LeadStatus.CONVERTED;
+    this._status = LeadStatusSchema.enum.CONVERTED;
     this._convertedAt = new Date();
   }
 
   public markLost(reason?: string): void {
-    if (this._status === LeadStatus.CONVERTED || this._status === LeadStatus.LOST) {
-      throw new BadRequestException('Bu lead zaten dönüştürülmüş veya kaybedilmiş.');
+    if (
+      this._status === LeadStatusSchema.enum.CONVERTED ||
+      this._status === LeadStatusSchema.enum.LOST
+    ) {
+      throw new BadRequestException(
+        'Bu lead zaten dönüştürülmüş veya kaybedilmiş.'
+      );
     }
-    this._status = LeadStatus.LOST;
+    this._status = LeadStatusSchema.enum.LOST;
     this._lostReason = reason ?? null;
     this._lostAt = new Date();
   }
@@ -113,7 +163,10 @@ export class Lead extends AggregateRoot implements ILead {
   }
 
   public isActive(): boolean {
-    return this._status !== LeadStatus.CONVERTED && this._status !== LeadStatus.LOST;
+    return (
+      this._status !== LeadStatusSchema.enum.CONVERTED &&
+      this._status !== LeadStatusSchema.enum.LOST
+    );
   }
 
   public toPersistence(): ILead {

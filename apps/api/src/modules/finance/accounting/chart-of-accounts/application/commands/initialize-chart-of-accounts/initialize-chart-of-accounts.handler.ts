@@ -29,16 +29,15 @@ export class InitializeChartOfAccountsHandler
   async execute(command: InitializeChartOfAccountsCommand): Promise<void> {
     const { clinicId, organizationId } = command;
 
-    const alreadyInitialized =
-      await this.accountQueryRepo.existsForClinic(clinicId);
-    if (alreadyInitialized) return;
-
-    const accounts = Account.buildChartFromTemplate({
-      clinicId,
-      organizationId,
-    });
-
     await this.txManager.run(async () => {
+      const alreadyInitialized =
+        await this.accountQueryRepo.existsForClinic(clinicId);
+      if (alreadyInitialized) return;
+
+      const accounts = Account.buildChartFromTemplate({
+        clinicId,
+        organizationId,
+      });
       await this.accountCommandRepo.createChart(accounts);
     });
   }

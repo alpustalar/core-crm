@@ -13,6 +13,7 @@ import { CreateOrganizationCommand } from '@modules/organization/organization/ap
 import { CreateClinicCommand } from '@modules/organization/clinic/application/commands/create-clinic/create-clinic.command';
 import { InitializeChartOfAccountsCommand } from '@modules/finance/accounting/chart-of-accounts/application/commands/initialize-chart-of-accounts/initialize-chart-of-accounts.command';
 import { OpenPeriodCommand } from '@modules/finance/accounting/periods/application/commands/open-period/open-period.command';
+import { InitializeTaxParametersCommand } from '@modules/finance/accounting/tax-parameters/application/commands/initialize-tax-parameters/initialize-tax-parameters.command';
 import { DateTimeManager } from '@common/utils';
 import { NotFoundException } from '@nestjs/common';
 
@@ -100,6 +101,16 @@ export class RegisterClinicAccountHandler
           clinicId,
           organizationId,
           DateTimeManager.currentYear(),
+          this.internalCtx
+        )
+      );
+
+      // Varsayılan vergi parametreleri (KDV/stopaj/kurumlar) — idempotent.
+      // Fatura kesimi KDV oranını buradan çözer (bkz documents/finans/06-vergi.md).
+      await this.commandBus.execute(
+        new InitializeTaxParametersCommand(
+          clinicId,
+          organizationId,
           this.internalCtx
         )
       );

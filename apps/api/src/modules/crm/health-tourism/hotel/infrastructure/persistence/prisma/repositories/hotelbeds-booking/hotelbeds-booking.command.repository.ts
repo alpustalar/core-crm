@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from 'decimal.js';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { IHotelbedsBookingCommandRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';

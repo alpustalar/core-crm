@@ -6,7 +6,6 @@ import {
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
-import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ClinicCanBookOrThrowQuery } from '@modules/organization/clinic/application/queries/clinic-can-book-or-throw/clinic-can-book-or-throw.query';
 import { ProviderCanBookOrThrowQuery } from '@modules/clinical/provider/application/queries/provider-can-book-or-throw/provider-can-book-or-throw.query';
@@ -21,9 +20,8 @@ export class PatientBookAppointmentHandler
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
     private readonly appointmentChecker: AppointmentChecker,
-    private readonly appointmentSlotService: AppointmentSlotService,
     private readonly queryBus: TSQueryBus,
-    private readonly transactionManager: TransactionManager,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(command: PatientBookAppointmentCommand): Promise<string> {
@@ -38,18 +36,26 @@ export class PatientBookAppointmentHandler
       notes,
     } = dto;
 
-    const endTime = this.appointmentSlotService.calculateEndTimeOrThrow(
+    const endTime = Appointment.calculateEndTimeOrThrow(
       startTime,
       dtoEndTime,
-      duration,
+      duration
     );
 
     await Promise.all([
-      this.queryBus.execute(new ClinicCanBookOrThrowQuery(clinicId, startTime, endTime)),
-      this.queryBus.execute(new ProviderCanBookOrThrowQuery(providerId, startTime, endTime)),
+      this.queryBus.execute(
+        new ClinicCanBookOrThrowQuery(clinicId, startTime, endTime)
+      ),
+      this.queryBus.execute(
+        new ProviderCanBookOrThrowQuery(providerId, startTime, endTime)
+      ),
     ]);
 
-    await this.appointmentChecker.noConflictOrThrow({ providerId, startTime, endTime });
+    await this.appointmentChecker.noConflictOrThrow({
+      providerId,
+      startTime,
+      endTime,
+    });
 
     const appointment = Appointment.book({
       patientId: patient.patientId,

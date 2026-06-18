@@ -1,4 +1,8 @@
-import { GlobalStatus, Organization as IOrganization } from '@prisma/client';
+import {
+  GlobalStatusSchema,
+  GlobalStatusType as GlobalStatus,
+} from '@input-type-schemas/GlobalStatusSchema';
+import { Organization as IOrganization } from '@model-schema/OrganizationSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { slugIt } from '@common/utils';
 import { OrganizationSoftDeleteEvent } from '@modules/organization/organization/domain/events/organization-soft-delete.event';
@@ -100,7 +104,7 @@ export class Organization extends AggregateRoot implements IOrganization {
       address: props.address ?? null,
       city: props.city ?? null,
       district: props.district ?? null,
-      status: GlobalStatus.ACTIVE,
+      status: GlobalStatusSchema.enum.ACTIVE,
       timezone: props.timezone ?? 'Europe/Istanbul',
       createdAt: now,
       updatedAt: now,
@@ -121,11 +125,14 @@ export class Organization extends AggregateRoot implements IOrganization {
   }
 
   public isActive(): boolean {
-    return this._status === GlobalStatus.ACTIVE && this._deletedAt === null;
+    return (
+      this._status === GlobalStatusSchema.enum.ACTIVE &&
+      this._deletedAt === null
+    );
   }
 
   public isSuspended(): boolean {
-    return this._status === GlobalStatus.SUSPENDED;
+    return this._status === GlobalStatusSchema.enum.SUSPENDED;
   }
 
   public isDeleted(): boolean {
@@ -136,7 +143,7 @@ export class Organization extends AggregateRoot implements IOrganization {
     if (this.isDeleted()) {
       throw new Error('Organizasyon zaten silinmiş.');
     }
-    this._status = GlobalStatus.DELETED;
+    this._status = GlobalStatusSchema.enum.DELETED;
     this._deletedAt = new Date();
     this.addDomainEvent(
       new OrganizationSoftDeleteEvent({
@@ -154,14 +161,14 @@ export class Organization extends AggregateRoot implements IOrganization {
     if (!this.isActive()) {
       throw new Error('Yalnızca aktif organizasyonlar askıya alınabilir.');
     }
-    this._status = GlobalStatus.SUSPENDED;
+    this._status = GlobalStatusSchema.enum.SUSPENDED;
   }
 
   public activate(): void {
     if (this.isDeleted()) {
       throw new Error('Silinmiş organizasyon aktifleştirilemez.');
     }
-    this._status = GlobalStatus.ACTIVE;
+    this._status = GlobalStatusSchema.enum.ACTIVE;
   }
 
   public toPersistence(): IOrganization {

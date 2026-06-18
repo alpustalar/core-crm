@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { IyzicoTransactionStatus } from '@prisma/client';
+
 import { HandlePaymentCallbackHandler } from './handle-payment-callback.handler';
 import { HandlePaymentCallbackCommand } from './handle-payment-callback.command';
 import {
@@ -12,14 +12,20 @@ import {
   IYZICO_TRANSACTION_REPOSITORY,
   IyzicoTransactionWithInstallment,
 } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
-import { PAYMENT_EVENT_PUBLISHER } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
+import { MarkInstallmentAsFailedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-failed/mark-installment-as-failed.command';
+import {
+  IyzicoTransactionStatusSchema,
+  IyzicoTransactionStatusType,
+} from '@input-type-schemas/IyzicoTransactionStatusSchema';
 
 const makeTransaction = (
-  status: IyzicoTransactionStatus = IyzicoTransactionStatus.INITIALIZE
+  status: IyzicoTransactionStatusType = IyzicoTransactionStatusSchema.enum
+    .INITIALIZE
 ): IyzicoTransactionWithInstallment =>
   ({
     id: 'tx-1',
@@ -27,13 +33,16 @@ const makeTransaction = (
     conversationId: 'conv-1',
     installment: {
       id: 'inst-1',
+      amount: { toString: () => '1000.00' },
+      method: 'CREDIT_CARD',
       payment: {
         id: 'pay-1',
+        patientId: 'patient-1',
         appointmentId: 'appt-1',
         clinicId: 'clinic-1',
       },
     },
-  }) as IyzicoTransactionWithInstallment;
+  }) as unknown as IyzicoTransactionWithInstallment;
 
 const makeCommand = () =>
   new HandlePaymentCallbackCommand('token-abc', 'conv-1', 'sig-xyz');
@@ -43,10 +52,6 @@ describe('HandlePaymentCallbackHandler', () => {
   let iyzicoProvider: jest.Mocked<IIyzicoProvider>;
   let iyzicoRepo: jest.Mocked<IIyzicoTransactionRepository>;
   let commandBus: { execute: jest.Mock };
-  let paymentEventPublisher: {
-    paymentPaid: jest.Mock;
-    paymentFailed: jest.Mock;
-  };
 
   beforeEach(async () => {
     const mockIyzicoProvider: jest.Mocked<IIyzicoProvider> = {
@@ -71,11 +76,6 @@ describe('HandlePaymentCallbackHandler', () => {
 
     const mockCommandBus = { execute: jest.fn().mockResolvedValue(undefined) };
 
-    const mockPaymentEventPublisher = {
-      paymentPaid: jest.fn(),
-      paymentFailed: jest.fn(),
-    };
-
     const mockTxManager = {
       outboxRun: jest
         .fn()
@@ -88,7 +88,6 @@ describe('HandlePaymentCallbackHandler', () => {
         PaymentDomainService,
         { provide: IYZICO_PROVIDER, useValue: mockIyzicoProvider },
         { provide: IYZICO_TRANSACTION_REPOSITORY, useValue: mockIyzicoRepo },
-        { provide: PAYMENT_EVENT_PUBLISHER, useValue: mockPaymentEventPublisher },
         { provide: TransactionManager, useValue: mockTxManager },
         { provide: TSCommandBus, useValue: mockCommandBus },
         { provide: TSQueryBus, useValue: {} },
@@ -99,7 +98,6 @@ describe('HandlePaymentCallbackHandler', () => {
     iyzicoProvider = module.get(IYZICO_PROVIDER);
     iyzicoRepo = module.get(IYZICO_TRANSACTION_REPOSITORY);
     commandBus = module.get(TSCommandBus);
-    paymentEventPublisher = module.get(PAYMENT_EVENT_PUBLISHER);
   });
 
   afterEach(() => {
@@ -129,14 +127,13 @@ describe('HandlePaymentCallbackHandler', () => {
         isSuccess: true,
       } as any);
       iyzicoRepo.findTransactionByConversationId.mockResolvedValue(
-        makeTransaction(IyzicoTransactionStatus.SUCCESS)
+        makeTransaction(IyzicoTransactionStatusSchema.enum.SUCCESS)
       );
 
       await handler.execute(makeCommand());
 
       expect(iyzicoRepo.markAsSuccess).not.toHaveBeenCalled();
       expect(commandBus.execute).not.toHaveBeenCalled();
-      expect(paymentEventPublisher.paymentPaid).not.toHaveBeenCalled();
     });
   });
 
@@ -169,32 +166,27 @@ describe('HandlePaymentCallbackHandler', () => {
       });
     });
 
-    it('dispatches MarkInstallmentAsPaidCommand', async () => {
+    it('dispatches MarkInstallmentAsPaidCommand with details (event ownership payment modülünde)', async () => {
       await handler.execute(makeCommand());
 
+      // Event'i artık iyzico handler değil, payment command handler fırlatır.
+      // Bu handler yalnızca command'i details ile dispatch eder.
       expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({ installmentId: 'inst-1' })
+        expect.any(MarkInstallmentAsPaidCommand)
       );
-    });
-
-    it('publishes paymentPaid event with correct payload', async () => {
-      await handler.execute(makeCommand());
-
-      expect(paymentEventPublisher.paymentPaid).toHaveBeenCalledWith(
-        expect.objectContaining({
-          installmentId: 'inst-1',
-          paymentId: 'pay-1',
-          appointmentId: 'appt-1',
-          clinicId: 'clinic-1',
-        })
-      );
+      const paidCmd = commandBus.execute.mock.calls
+        .map((c) => c[0])
+        .find((cmd) => cmd instanceof MarkInstallmentAsPaidCommand);
+      expect(paidCmd).toMatchObject({
+        installmentId: 'inst-1',
+        details: 'Ödeme Başarılı',
+      });
     });
 
     it('does not call failure paths', async () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoRepo.markAsFailed).not.toHaveBeenCalled();
-      expect(paymentEventPublisher.paymentFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -227,31 +219,22 @@ describe('HandlePaymentCallbackHandler', () => {
       });
     });
 
-    it('dispatches MarkInstallmentAsFailedCommand', async () => {
+    it('dispatches MarkInstallmentAsFailedCommand with errorMessage as details', async () => {
       await handler.execute(makeCommand());
 
-      expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({ installmentId: 'inst-1' })
-      );
-    });
-
-    it('publishes paymentFailed event with correct payload', async () => {
-      await handler.execute(makeCommand());
-
-      expect(paymentEventPublisher.paymentFailed).toHaveBeenCalledWith(
-        expect.objectContaining({
-          paymentId: 'pay-1',
-          appointmentId: 'appt-1',
-          clinicId: 'clinic-1',
-        })
-      );
+      const failedCmd = commandBus.execute.mock.calls
+        .map((c) => c[0])
+        .find((cmd) => cmd instanceof MarkInstallmentAsFailedCommand);
+      expect(failedCmd).toMatchObject({
+        installmentId: 'inst-1',
+        details: 'Yetersiz bakiye',
+      });
     });
 
     it('does not call success paths', async () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoRepo.markAsSuccess).not.toHaveBeenCalled();
-      expect(paymentEventPublisher.paymentPaid).not.toHaveBeenCalled();
     });
   });
 });

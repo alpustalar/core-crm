@@ -1,5 +1,5 @@
 import { PosDevice } from '@prisma/client';
-import { CreatePosDeviceProps } from '@modules/finance/pos/physical/domain/types/create-pos-device.props';
+import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/types/create-pos-device.data';
 
 export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
   'IPosDeviceCommandRepository'
@@ -7,7 +7,7 @@ export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
 export const POS_DEVICE_QUERY_REPOSITORY = Symbol('IPosDeviceQueryRepository');
 
 export interface IPosDeviceCommandRepository {
-  create(props: CreatePosDeviceProps): Promise<PosDevice>;
+  create(data: CreatePosDeviceData): Promise<PosDevice>;
   deactivate(id: string): Promise<PosDevice>;
   softDelete(id: string): Promise<void>;
 }

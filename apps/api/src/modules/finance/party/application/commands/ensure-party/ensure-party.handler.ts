@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PartyAlreadyExistsError } from '@modules/finance/party/domain/errors/party.errors';
 import {
   IPartyCommandRepository,
   IPartyQueryRepository,
@@ -10,6 +10,7 @@ import {
 } from '@modules/finance/party/domain/repositories/party.repository';
 import { Party } from '@modules/finance/party/domain/entities/party.entity';
 import { EnsurePartyCommand } from './ensure-party.command';
+import { normalizeArray } from '@common/utils/normalize-array';
 
 @CommandHandler(EnsurePartyCommand)
 export class EnsurePartyHandler
@@ -26,42 +27,19 @@ export class EnsurePartyHandler
   async execute(command: EnsurePartyCommand): Promise<string> {
     const { input } = command;
 
-    const existing = await this.partyQueryRepo.findByOrigin(
+    const ExistingParty = await this.partyQueryRepo.findByOrigin(
       input.clinicId,
       input.originType,
       input.originId
     );
 
-    if (existing) {
-      existing.addRole(input.role);
-      existing.updateSnapshot({
-        name: input.name,
-        taxNumber: input.taxNumber ?? undefined,
-        nationalId: input.nationalId ?? undefined,
-        taxOffice: input.taxOffice ?? undefined,
-        email: input.email ?? undefined,
-        phone: input.phone ?? undefined,
-        address: input.address ?? undefined,
-      });
-      await this.txManager.run(() => this.partyCommandRepo.save(existing));
-      return existing.id;
+    if (ExistingParty) {
+      ExistingParty.ensure(input);
+      await this.txManager.run(() => this.partyCommandRepo.save(ExistingParty));
+      return ExistingParty.id;
     }
 
-    const party = Party.create({
-      clinicId: input.clinicId,
-      organizationId: input.organizationId,
-      type: input.type,
-      roles: [input.role],
-      name: input.name,
-      taxNumber: input.taxNumber,
-      nationalId: input.nationalId,
-      taxOffice: input.taxOffice,
-      email: input.email,
-      phone: input.phone,
-      address: input.address,
-      originType: input.originType,
-      originId: input.originId,
-    });
+    const party = Party.create({ ...input, roles: normalizeArray(input.role) });
 
     try {
       await this.txManager.run(() => this.partyCommandRepo.save(party));
@@ -69,10 +47,7 @@ export class EnsurePartyHandler
     } catch (error) {
       // Eşzamanlı ensure çağrısı aynı origin için cari oluşturmuş olabilir
       // (clinicId+originType+originId unique). Bu durumda mevcut olanı döndür.
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof PartyAlreadyExistsError) {
         const raced = await this.partyQueryRepo.findByOrigin(
           input.clinicId,
           input.originType,

@@ -46,7 +46,7 @@ model AppointmentProcedure {
   description   String?
   quantity      Decimal  @default(1) @db.Decimal(10, 3)
   unitPrice     Decimal? @map("unit_price") @db.Decimal(10, 2)
-  currency      String   @default("TRY")
+  currency      Currency @default(TRY)
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 

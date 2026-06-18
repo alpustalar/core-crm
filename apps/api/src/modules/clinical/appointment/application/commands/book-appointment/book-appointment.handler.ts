@@ -6,7 +6,6 @@ import {
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
-import { AppointmentSlotService } from '@modules/clinical/appointment/domain/services/appointment-slot.service';
 import { BookAppointmentCommandResponse } from '@modules/clinical/appointment/application/commands/book-appointment/book-appointment.response';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ClinicCanBookOrThrowQuery } from '@modules/organization/clinic/application/queries/clinic-can-book-or-throw/clinic-can-book-or-throw.query';
@@ -23,9 +22,8 @@ export class BookAppointmentHandler
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
     private readonly appointmentChecker: AppointmentChecker,
-    private readonly appointmentSlotService: AppointmentSlotService,
     private readonly queryBus: TSQueryBus,
-    private readonly transactionManager: TransactionManager,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(
@@ -47,7 +45,7 @@ export class BookAppointmentHandler
       externalSystem,
     } = dto;
 
-    const endTime = this.appointmentSlotService.calculateEndTimeOrThrow(
+    const endTime = Appointment.calculateEndTimeOrThrow(
       startTime,
       dtoEndTime,
       duration

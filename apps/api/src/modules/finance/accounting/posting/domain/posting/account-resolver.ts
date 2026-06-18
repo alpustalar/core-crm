@@ -9,11 +9,14 @@ export class AccountResolver {
 
   constructor(accounts: Account[]) {
     for (const account of accounts) {
-      this.byCode.set(account.code, account);
+      this.byCode.set(account.code.value, account);
     }
   }
 
-  resolve(code: string): Account {
+  /**
+   * Dışarıdan gelen düz string hesap kodunu hızlıca O(1) maliyetle çözer.
+   */
+  public resolve(code: string): Account {
     const account = this.byCode.get(code);
     if (!account) {
       throw new Error(`Hesap planında kod bulunamadı: ${code}`);

@@ -1,9 +1,3 @@
-enum GlobalStatus {
-  ACTIVE
-  DELETED
-  SUSPENDED
-}
-
 model Organization {
   id   String @id @default(uuid())
   name String

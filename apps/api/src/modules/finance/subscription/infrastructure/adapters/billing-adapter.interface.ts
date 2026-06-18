@@ -1,3 +1,5 @@
+import { Money } from '@src/domain/value-objects/money.vo';
+
 export const BILLING_ADAPTER = Symbol('IBillingAdapter');
 
 export interface SubscriptionBuyerInfo {
@@ -13,7 +15,7 @@ export interface SubscriptionBuyerInfo {
 
 export interface InitSubscriptionPaymentInput {
   organizationId: string;
-  amount: number;
+  amount: Money;
   label: string;
   buyer: SubscriptionBuyerInfo;
 }
