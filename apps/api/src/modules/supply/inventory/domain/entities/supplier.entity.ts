@@ -1,7 +1,7 @@
 import { Supplier as ISupplier } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
-import { CreateSupplierProps } from '@modules/supply/inventory/domain/types/create-supplier.props';
+import { CreateSupplierProps } from '@modules/supply/inventory/domain/supply.contracts';
 
 export class Supplier extends AggregateRoot {
   constructor(data: ISupplier) {

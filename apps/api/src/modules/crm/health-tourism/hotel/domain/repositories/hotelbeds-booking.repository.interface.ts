@@ -1,7 +1,9 @@
 import { Pagination } from '@shared';
 import { HotelbedsBooking } from '../entities/hotelbeds-booking.entity';
-import { CreateHotelbedsBookingProps } from '../types/create-hotelbeds-booking.props';
-import { FindHotelBookingsFilter } from '../types/find-hotel-bookings.type';
+import {
+  CreateHotelbedsBookingData,
+  FindHotelBookingsFilter,
+} from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
 
 export const HOTELBEDS_BOOKING_COMMAND_REPOSITORY = Symbol(
   'IHotelbedsBookingCommandRepository'
@@ -11,7 +13,7 @@ export const HOTELBEDS_BOOKING_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IHotelbedsBookingCommandRepository {
-  create(props: CreateHotelbedsBookingProps): Promise<HotelbedsBooking>;
+  create(props: CreateHotelbedsBookingData): Promise<HotelbedsBooking>;
   save(booking: HotelbedsBooking): Promise<HotelbedsBooking>;
 }
 

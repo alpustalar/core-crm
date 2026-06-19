@@ -15,7 +15,7 @@ import {
 } from '@modules/clinical/appointment/domain/events/complete-appointment.event';
 import { AppointmentScheduledEvent } from '@modules/clinical/appointment/domain/events/schedule-appointment.event';
 import { AppointmentBookedEvent } from '@modules/clinical/appointment/domain/events/book-appointment.event';
-import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/types/create-appointment.props';
+import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/appointment.contracts';
 
 export class Appointment extends AggregateRoot implements IAppointment {
   constructor(data: IAppointment) {

@@ -47,4 +47,17 @@ export class VatRate {
 
     return new VatRate(decimalValue);
   }
+
+  public isZero(): boolean {
+    return this._value.isZero();
+  }
+
+  public validateHasTaxOrThrow(errorMessage?: string): void {
+    if (this.isZero()) {
+      throw new BadRequestException(
+        errorMessage ||
+          'Bu işlem için KDV oranı %0 (muaf) olamaz, geçerli bir KDV oranı girilmelidir.'
+      );
+    }
+  }
 }

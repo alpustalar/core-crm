@@ -4,10 +4,11 @@ import {
   OperationModeType as OperationMode,
 } from '@input-type-schemas/OperationModeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateProviderProps } from '@modules/clinical/provider/domain/types/create-provider.props';
+
 import { ProviderCreatedEvent } from '@modules/clinical/provider/domain/events/provider-created.event';
 import { ProviderSoftDeletedEvent } from '@modules/clinical/provider/domain/events/provider-soft-deleted.event';
 import { UpdateProviderInfo } from '@shared/modules/provider/types/update-provider-info.type';
+import { CreateProviderProps } from '@modules/clinical/provider/domain/provider.contracts';
 
 export class Provider extends AggregateRoot {
   constructor(data: IProvider) {
@@ -127,8 +128,8 @@ export class Provider extends AggregateRoot {
       diplomaNo: null,
       hlrNo: null,
       isActive: props.isActive ?? true,
-      canAcceptExamination: false,
-      operationMode: props.operationMode ?? OperationModeSchema.enum.STATIC,
+      canAcceptExamination: props.canAcceptExamination,
+      operationMode: props.operationMode,
       sectorId: props.sectorId ?? null,
       createdAt: now,
       updatedAt: now,

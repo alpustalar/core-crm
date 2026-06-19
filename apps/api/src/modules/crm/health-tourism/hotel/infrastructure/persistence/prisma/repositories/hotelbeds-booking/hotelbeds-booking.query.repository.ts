@@ -3,11 +3,9 @@ import { Pagination } from '@shared';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import {
-  IHotelbedsBookingQueryRepository,
-} from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
+import { IHotelbedsBookingQueryRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
-import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/types/find-hotel-bookings.type';
+import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
 
 @Injectable()
 export class HotelbedsBookingQueryRepository
@@ -25,7 +23,7 @@ export class HotelbedsBookingQueryRepository
 
   async findMany(
     filter: FindHotelBookingsFilter,
-    pagination: Pagination,
+    pagination: Pagination
   ): Promise<{ items: HotelbedsBooking[]; total: number }> {
     const where = {
       organizationId: filter.organizationId,

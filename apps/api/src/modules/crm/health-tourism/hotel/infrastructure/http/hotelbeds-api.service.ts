@@ -9,8 +9,8 @@ import {
   HotelSearchParams,
   IHotelbedsApiService,
 } from '@modules/crm/health-tourism/hotel/domain/interfaces/hotelbeds-api.interface';
-import { HotelAvailabilityItem } from '@modules/crm/health-tourism/hotel/domain/types/hotel-availability.type';
 import { ENV } from '@common/constants/env.constant';
+import { HotelAvailabilityItem } from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
 
 const HOTELS_API_BASE = 'https://api.hotelbeds.com/hotel-api/1.0';
 const CONTENT_API_BASE = 'https://api.hotelbeds.com/hotel-content-api/1.0';

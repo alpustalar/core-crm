@@ -1,16 +1,19 @@
 import { Pagination } from '@shared';
 import { Appointment as AppointmentEntity } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import { FindConflictingAppointmentProps } from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
-import { ConflictingAppointment } from '@modules/clinical/appointment/domain/types/conflicting-appointment.type';
-import { FindClinicCalendarProps } from '@modules/clinical/appointment/domain/types/find-calendar-clinic.props';
-import { BatchPayload } from '@common/interfaces/batcy-payload.type';
-import { FindByOrganizationIdProps } from '@modules/clinical/appointment/domain/types/find-by-organization-id.props';
-import { FindProviderCalendarProps } from '@modules/clinical/appointment/domain/types/find-provider-calendar.props';
-import { PaginatedAppointments } from '@modules/clinical/appointment/domain/types/paginated-appointments.types';
-import { ProviderDailyLoad } from '@modules/clinical/appointment/domain/types/provider-dailyload.type';
-import { OccupiedSlot } from '@modules/clinical/appointment/domain/types/occupied-slot.type';
-import { AppointmentWithDetails } from '@modules/clinical/appointment/domain/types/appointment-with-details.type';
+
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import {
+  AppointmentWithDetails,
+  ConflictingAppointment,
+  FindByOrganizationIdData,
+  FindClinicCalendarData,
+  FindConflictingAppointmentData,
+  FindProviderCalendarData,
+  OccupiedSlot,
+  PaginatedAppointments,
+  ProviderDailyLoad,
+} from '@modules/clinical/appointment/domain/appointment.contracts';
+import { BatchPayload } from '@common/interfaces/batcy-payload.type';
 
 export const APPOINTMENT_COMMAND_REPOSITORY = Symbol(
   'IAppointmentCommandRepository'
@@ -31,11 +34,11 @@ export interface IAppointmentQueryRepository {
     appointmentId: string
   ): Promise<AppointmentWithDetails | null>;
   findConflictingAppointment(
-    props: FindConflictingAppointmentProps
+    data: FindConflictingAppointmentData
   ): Promise<ConflictingAppointment | null>;
-  findProviderCalendar(props: FindProviderCalendarProps): PaginatedAppointments;
-  findClinicCalendar(props: FindClinicCalendarProps): PaginatedAppointments;
-  findByOrganizationId(props: FindByOrganizationIdProps): PaginatedAppointments;
+  findProviderCalendar(data: FindProviderCalendarData): PaginatedAppointments;
+  findClinicCalendar(data: FindClinicCalendarData): PaginatedAppointments;
+  findByOrganizationId(data: FindByOrganizationIdData): PaginatedAppointments;
   findByPatientId(
     pagination: Pagination,
     patientId: string

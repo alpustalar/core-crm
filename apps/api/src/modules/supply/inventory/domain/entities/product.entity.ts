@@ -5,29 +5,17 @@ import {
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
 import { Decimal } from 'decimal.js';
 import { ProductConditionType as ProductCondition } from '@input-type-schemas/ProductConditionSchema';
 import { ProductUnitType as ProductUnit } from '@input-type-schemas/ProductUnitSchema';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
-
-export interface CreateProductProps {
-  name: string;
-  stockCode: string;
-  barcode?: string | null;
-  brand?: string | null;
-  description?: string | null;
-  imageUrl?: string | null;
-  unit: ProductUnit;
-  condition?: ProductCondition;
-  vatRate: Decimal | number;
-  criticalStockQty: Decimal | number;
-  reorderQty: Decimal | number;
-  organizationId: string;
-  categoryId?: string | null;
-  supplierId?: string | null;
-}
+import { Quantity } from '@src/domain/value-objects/quantity.vo';
+import {
+  CreateProductProps,
+  CreateStockMovementProps,
+  UpdateProductProps,
+} from '@modules/supply/inventory/domain/supply.contracts';
 
 export class Product extends AggregateRoot {
   constructor(data: IProduct) {
@@ -42,8 +30,8 @@ export class Product extends AggregateRoot {
     this._unit = data.unit;
     this._condition = data.condition;
     this._vatRate = VatRate.create(data.vatRate);
-    this._criticalStockQty = data.criticalStockQty;
-    this._reorderQty = data.reorderQty;
+    this._criticalStockQty = Quantity.create(data.criticalStockQty);
+    this._reorderQty = Quantity.create(data.reorderQty);
     this._organizationId = data.organizationId;
     this._categoryId = data.categoryId;
     this._supplierId = data.supplierId;
@@ -103,13 +91,13 @@ export class Product extends AggregateRoot {
     return this._vatRate;
   }
 
-  private _criticalStockQty: Decimal;
-  get criticalStockQty(): Decimal {
+  private _criticalStockQty: Quantity;
+  get criticalStockQty(): Quantity {
     return this._criticalStockQty;
   }
 
-  private _reorderQty: Decimal;
-  get reorderQty(): Decimal {
+  private _reorderQty: Quantity;
+  get reorderQty(): Quantity {
     return this._reorderQty;
   }
 
@@ -156,36 +144,41 @@ export class Product extends AggregateRoot {
    * Domain kurallarına uygun olarak yeni bir Ürün (Aggregate) oluşturur.
    */
   public static create(props: CreateProductProps): Product {
-    const vatRateDecimal = new Decimal(props.vatRate);
-    const criticalStockDecimal = new Decimal(props.criticalStockQty);
-    const reorderDecimal = new Decimal(props.reorderQty);
+    const vatRate =
+      typeof props.vatRate === 'number'
+        ? VatRate.create(props.vatRate)
+        : props.vatRate;
 
-    if (vatRateDecimal.isNegative())
-      throw new Error('KDV oranı negatif olamaz.');
-    if (criticalStockDecimal.isNegative())
-      throw new Error('Kritik stok değeri negatif olamaz.');
-    if (reorderDecimal.isNegative())
-      throw new Error('Sipariş yenileme miktarı negatif olamaz.');
+    const criticalStock =
+      typeof props.criticalStockQty === 'number'
+        ? Quantity.create(props.criticalStockQty)
+        : props.criticalStockQty;
 
+    const reorderQty =
+      typeof props.reorderQty === 'number'
+        ? Quantity.create(props.reorderQty)
+        : props.reorderQty;
+
+    vatRate.validateHasTaxOrThrow();
     const now = new Date();
 
     return new Product({
-      id: randomUUID(),
+      id: props.id ?? randomUUID(),
       name: props.name.trim(),
-      stockCode: props.stockCode.trim().toUpperCase(), // Stok kodları standart olarak büyük harf tutulur
+      stockCode: props.stockCode.trim().toUpperCase(),
       barcode: props.barcode ?? null,
       brand: props.brand ?? null,
       description: props.description ?? null,
       imageUrl: props.imageUrl ?? null,
       unit: props.unit,
       condition: props.condition ?? null,
-      vatRate: vatRateDecimal,
-      criticalStockQty: criticalStockDecimal,
-      reorderQty: reorderDecimal,
+      vatRate: vatRate.value,
+      criticalStockQty: criticalStock.value,
+      reorderQty: reorderQty.value,
       organizationId: props.organizationId,
       categoryId: props.categoryId ?? null,
       supplierId: props.supplierId ?? null,
-      isActive: true, // Yeni açılan ürün varsayılan olarak aktiftir
+      isActive: true,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -202,21 +195,7 @@ export class Product extends AggregateRoot {
     this._updatedAt = new Date();
   }
 
-  public update(
-    props: Partial<{
-      name: string;
-      barcode: string | null;
-      brand: string | null;
-      description: string | null;
-      imageUrl: string | null;
-      unit: ProductUnit;
-      vatRate: Decimal;
-      criticalStockQty: Decimal;
-      reorderQty: Decimal;
-      categoryId: string | null;
-      supplierId: string | null;
-    }>
-  ): void {
+  public update(props: UpdateProductProps): void {
     if (props.name !== undefined) {
       if (!props.name || props.name.trim().length === 0)
         throw new Error('Ürün ismi boş olamaz..');
@@ -228,18 +207,13 @@ export class Product extends AggregateRoot {
     if (props.imageUrl !== undefined) this._imageUrl = props.imageUrl;
     if (props.unit !== undefined) this._unit = props.unit;
     if (props.vatRate !== undefined) {
-      if (props.vatRate.isNegative())
-        throw new Error('KDV oranı negatif olamaz.');
-      this._vatRate = VatRate.create(props.vatRate);
+      props.vatRate.validateHasTaxOrThrow();
+      this._vatRate = props.vatRate;
     }
     if (props.criticalStockQty !== undefined) {
-      if (props.criticalStockQty.isNegative())
-        throw new Error('Kritik stok miktarı negatif olamaz.');
       this._criticalStockQty = props.criticalStockQty;
     }
     if (props.reorderQty !== undefined) {
-      if (props.reorderQty.isNegative())
-        throw new Error('Sipariş yenileme miktarı negatif olamaz.');
       this._reorderQty = props.reorderQty;
     }
     if (props.categoryId !== undefined) this._categoryId = props.categoryId;
@@ -266,9 +240,8 @@ export class Product extends AggregateRoot {
     updatedBatch: ProductBatch | null;
     stockMovementProps: CreateStockMovementProps;
   } {
-    const delta = new Decimal(props.quantityDelta);
-    const isIncrease = delta.greaterThan(0);
-    const absQty = delta.abs();
+    const isIncrease = Quantity.isDeltaAnIncrease(props.quantityDelta);
+    const absQty = Quantity.createAbsFromDelta(props.quantityDelta);
 
     // 1. Eğer sistemde batch takibi yapılan bir ürünse batch bulmaya çalış
     let targetBatch: ProductBatch | null = null;
@@ -280,37 +253,34 @@ export class Product extends AggregateRoot {
       targetBatch = props.availableBatches[0];
     }
 
-    // 2. KORUMA: Düşüm yapılmak isteniyor ama eldeki batch'lerin hiçbiri yetmiyorsa veya batch yoksa
     if (!targetBatch && !isIncrease) {
       throw new Error('Düşüm yapılacak uygun bir lot/batch bulunamadı.');
     }
 
     let stockMovementProps: CreateStockMovementProps;
 
-    // 3. EĞER BATCH VARSA: İşlemi batch'e yaptır ve props'u al
     if (targetBatch) {
       if (isIncrease) {
-        stockMovementProps = targetBatch.addQuantity(
-          absQty,
-          props.performedById,
-          props.notes
-        );
+        stockMovementProps = targetBatch.addQuantity({
+          qty: absQty,
+          performedById: props.performedById,
+          notes: props.notes,
+        });
       } else {
-        stockMovementProps = targetBatch.deductQuantity(
-          absQty,
-          props.performedById,
-          props.notes
-        );
+        stockMovementProps = targetBatch.deductQuantity({
+          qty: absQty,
+          performedById: props.performedById,
+          notes: props.notes,
+        });
       }
     } else {
-      // 4. EĞER BATCH YOKSA (Düz Stok Girişi): Doğrudan hareket reçetesini burada el yapımı kur
       stockMovementProps = {
         productId: this._id,
         clinicId: props.clinicId,
         batchId: null,
         type: StockMovementTypeSchema.enum.ADJUSTMENT,
         direction: StockMovementDirectionSchema.enum.IN,
-        quantity: absQty,
+        quantity: absQty.value,
         performedById: props.performedById,
         notes: props.notes ?? 'Batch bağımsız stok girişi yapıldı.',
       };
@@ -334,8 +304,8 @@ export class Product extends AggregateRoot {
       unit: this._unit,
       condition: this._condition,
       vatRate: this._vatRate.value,
-      criticalStockQty: this._criticalStockQty,
-      reorderQty: this._reorderQty,
+      criticalStockQty: this._criticalStockQty.value,
+      reorderQty: this._reorderQty.value,
       organizationId: this._organizationId,
       categoryId: this._categoryId,
       supplierId: this._supplierId,

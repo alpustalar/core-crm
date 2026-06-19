@@ -1,5 +1,5 @@
 import { ProviderException, ProviderShift } from '@shared';
-import { ProviderAvailabilityWithCanAcceptExamination } from '@modules/clinical/provider/domain/types/provider-availability-with-can-accept-examination';
+import { ProviderAvailabilityWithCanAcceptExamination } from '@modules/clinical/provider/domain/provider.contracts';
 import { QueryResponse } from '@shared/common/response/response.interface';
 import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 

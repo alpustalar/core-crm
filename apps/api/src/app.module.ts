@@ -51,6 +51,7 @@ import { LeadModule } from '@modules/crm/lead/lead.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
+import { MessagingModule } from '@modules/messaging/messaging.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { GovernanceModule } from '@modules/organization/clinic-governance/govern
     LeadModule,
     AdminRequestModule,
     HealthTourismModule,
+    MessagingModule,
   ],
   controllers: [],
   providers: [

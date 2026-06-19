@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProviderAvailabilityRepository } from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
-import { CreateProviderAvailabilityProps } from '@modules/clinical/provider/domain/types/create-provider-availability.props';
-import { CreateProviderShiftProps } from '@modules/clinical/provider/domain/types/create-provider-shift.props';
+import {
+  CreateProviderAvailabilityData,
+  CreateProviderShiftData,
+} from '@modules/clinical/provider/domain/provider.contracts';
 
 @Injectable()
 export class ProviderAvailabilityRepository
@@ -14,11 +16,11 @@ export class ProviderAvailabilityRepository
     super(prisma);
   }
 
-  create(data: CreateProviderAvailabilityProps) {
+  create(data: CreateProviderAvailabilityData) {
     return this.db.providerAvailability.create({ data });
   }
 
-  async createMany(data: CreateProviderAvailabilityProps[]): Promise<void> {
+  async createMany(data: CreateProviderAvailabilityData[]): Promise<void> {
     await this.db.providerAvailability.createMany({ data });
   }
 
@@ -75,7 +77,7 @@ export class ProviderAvailabilityRepository
     });
   }
 
-  async upsertManyShifts(data: CreateProviderShiftProps[]): Promise<void> {
+  async upsertManyShifts(data: CreateProviderShiftData[]): Promise<void> {
     if (!data.length) return;
     const { providerId } = data[0];
     const dates = data.map((d) => d.date);

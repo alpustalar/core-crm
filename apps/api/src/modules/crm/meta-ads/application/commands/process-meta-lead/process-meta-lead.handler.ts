@@ -77,7 +77,7 @@ export class ProcessMetaLeadHandler
     });
 
     if (account && (payload.phone || payload.email)) {
-      const { patient } = await this.queryBus.execute(
+      const { data: patient } = await this.queryBus.execute(
         new FindPatientByContactQuery(
           account.clinicId,
           payload.phone,

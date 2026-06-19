@@ -1,0 +1,104 @@
+// Messaging bounded-context — çok kanallı (şimdilik WhatsApp) yazışma.
+// Kanal-bağımsız çekirdek (Conversation/Message) + klinik başına kanal config'i.
+
+enum MessageChannel {
+  WHATSAPP
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  TEMPLATE
+  MEDIA
+}
+
+enum MessageStatus {
+  RECEIVED // gelen mesaj (inbound)
+  QUEUED // giden, henüz gönderilmedi
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+/// Kliniğin WhatsApp Business kanal config'i (messaging bounded-context) — Clinic'ten
+/// ayrıştırılmış 1:1 satellite. Webhook gelen olayı phoneNumberId ile bu kayda routing eder.
+model ClinicWhatsappChannel {
+  id String @id @default(uuid())
+
+  phoneNumberId      String  @unique @map("phone_number_id") // Meta WhatsApp phone_number_id
+  wabaId             String? @map("waba_id") // WhatsApp Business Account id
+  displayPhoneNumber String? @map("display_phone_number")
+  accessToken        String? @map("access_token") // şifreli saklanır (CryptoModule)
+  verifyToken        String? @map("verify_token")
+  isActive           Boolean @default(true) @map("is_active")
+
+  clinicId       String @unique @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize — Conversation'a taşınır
+  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinic_whatsapp_channels")
+}
+
+/// Bir kontak ile yazışma başlığı (thread). clinicId denormalize scalar (bounded-context;
+/// Clinic ilişkisel tablolarına sızılmaz). Kontak hasta/lead ile ilkel id üzerinden eşlenir.
+model Conversation {
+  id String @id @default(uuid())
+
+  clinicId       String             @map("clinic_id")
+  organizationId String             @map("organization_id")
+  channel        MessageChannel     @default(WHATSAPP)
+  contactPhone   String             @map("contact_phone")
+  contactName    String?            @map("contact_name")
+  patientId      String?            @map("patient_id")
+  leadId         String?            @map("lead_id")
+  status         ConversationStatus @default(OPEN)
+  assignedUserId String?            @map("assigned_user_id")
+  lastMessageAt  DateTime?          @map("last_message_at")
+
+  messages Message[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([clinicId, channel, contactPhone])
+  @@index([clinicId, status])
+  @@map("conversations")
+}
+
+/// Yazışma içindeki tek mesaj (gelen/giden).
+model Message {
+  id String @id @default(uuid())
+
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  direction   MessageDirection
+  type        MessageType      @default(TEXT)
+  body        String?
+  mediaUrl    String?          @map("media_url")
+  status      MessageStatus
+  externalId  String?          @map("external_id") // WhatsApp mesaj id'si
+  errorReason String?          @map("error_reason")
+  sentByUserId String?         @map("sent_by_user_id") // giden mesajı atan personel
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([conversationId, createdAt])
+  @@index([externalId])
+  @@map("messages")
+}

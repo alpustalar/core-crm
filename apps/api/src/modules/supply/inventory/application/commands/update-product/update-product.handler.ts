@@ -12,7 +12,8 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { Decimal } from 'decimal.js';
+import { Quantity } from '@src/domain/value-objects/quantity.vo';
+import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 
 @CommandHandler(UpdateProductCommand)
 export class UpdateProductHandler
@@ -49,13 +50,12 @@ export class UpdateProductHandler
       brand: dto.brand,
       description: dto.description,
       unit: dto.unit,
-      vatRate: dto.vatRate != null ? new Decimal(dto.vatRate) : undefined,
+      vatRate: dto.vatRate ? VatRate.create(dto.vatRate) : undefined,
       criticalStockQty:
         dto.criticalStockQty != null
-          ? new Decimal(dto.criticalStockQty)
+          ? Quantity.create(dto.criticalStockQty, 'Kritik stok miktarı')
           : undefined,
-      reorderQty:
-        dto.reorderQty != null ? new Decimal(dto.reorderQty) : undefined,
+      reorderQty: dto.reorderQty ? Quantity.create(dto.reorderQty) : undefined,
       categoryId: dto.categoryId,
       supplierId: dto.supplierId,
     });

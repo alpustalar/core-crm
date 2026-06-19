@@ -1,7 +1,7 @@
 import { ProductCategory as IProductCategory } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
-import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/types/create-product-category.props';
+import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/supply.contracts';
 
 export class ProductCategory extends AggregateRoot {
   private constructor(data: IProductCategory) {

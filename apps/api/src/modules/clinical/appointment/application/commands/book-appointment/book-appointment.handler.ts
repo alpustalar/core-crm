@@ -72,12 +72,12 @@ export class BookAppointmentHandler
       patientEmail,
       providerId,
       clinicId,
-      treatmentId,
+      treatmentId: treatmentId ?? null,
       startTime,
       endTime,
-      notes,
-      externalId,
-      externalSystem,
+      notes: notes ?? null,
+      externalId: externalId ?? null,
+      externalSystem: externalSystem ?? null,
     });
 
     return this.transactionManager.run(async () => {

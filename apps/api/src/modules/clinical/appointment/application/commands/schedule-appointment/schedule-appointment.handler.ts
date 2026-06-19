@@ -40,7 +40,7 @@ export class ScheduleAppointmentHandler
     private readonly queryBus: TSQueryBus,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: PolicyFactory,
-    private readonly transactionManager: TransactionManager,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(

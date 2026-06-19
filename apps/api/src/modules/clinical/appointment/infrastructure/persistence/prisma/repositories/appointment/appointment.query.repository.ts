@@ -5,16 +5,18 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { FindConflictingAppointmentProps } from '@modules/clinical/appointment/domain/types/find-conflicting-appointment.props';
-import { ConflictingAppointment } from '@modules/clinical/appointment/domain/types/conflicting-appointment.type';
-import { FindProviderCalendarProps } from '@modules/clinical/appointment/domain/types/find-provider-calendar.props';
-import { FindClinicCalendarProps } from '@modules/clinical/appointment/domain/types/find-calendar-clinic.props';
-import { FindByOrganizationIdProps } from '@modules/clinical/appointment/domain/types/find-by-organization-id.props';
-import { PaginatedAppointments } from '@modules/clinical/appointment/domain/types/paginated-appointments.types';
-import { ProviderDailyLoad } from '@modules/clinical/appointment/domain/types/provider-dailyload.type';
-import { OccupiedSlot } from '@modules/clinical/appointment/domain/types/occupied-slot.type';
-import { AppointmentWithDetails } from '@modules/clinical/appointment/domain/types/appointment-with-details.type';
 import { DateTimeManager } from '@common/utils';
+import {
+  AppointmentWithDetails,
+  ConflictingAppointment,
+  FindByOrganizationIdData,
+  FindClinicCalendarData,
+  FindConflictingAppointmentData,
+  FindProviderCalendarData,
+  OccupiedSlot,
+  PaginatedAppointments,
+  ProviderDailyLoad,
+} from '@modules/clinical/appointment/domain/appointment.contracts';
 
 @Injectable()
 export class AppointmentQueryRepository
@@ -51,7 +53,7 @@ export class AppointmentQueryRepository
     startTime,
     endTime,
     ignoreAppointmentId,
-  }: FindConflictingAppointmentProps): Promise<ConflictingAppointment | null> {
+  }: FindConflictingAppointmentData): Promise<ConflictingAppointment | null> {
     return this.db.appointment.findFirst({
       where: {
         providerId,
@@ -75,7 +77,7 @@ export class AppointmentQueryRepository
     providerId,
     startDate,
     endDate,
-  }: FindProviderCalendarProps): PaginatedAppointments {
+  }: FindProviderCalendarData): PaginatedAppointments {
     const result = await paginate({
       delegate: this.db.appointment,
       pagination,
@@ -97,7 +99,7 @@ export class AppointmentQueryRepository
     startDate,
     endDate,
     pagination,
-  }: FindClinicCalendarProps): PaginatedAppointments {
+  }: FindClinicCalendarData): PaginatedAppointments {
     const result = await paginate({
       delegate: this.db.appointment,
       pagination,
@@ -121,7 +123,7 @@ export class AppointmentQueryRepository
     status,
     startDate,
     endDate,
-  }: FindByOrganizationIdProps): PaginatedAppointments {
+  }: FindByOrganizationIdData): PaginatedAppointments {
     const result = await paginate({
       delegate: this.db.appointment,
       pagination,

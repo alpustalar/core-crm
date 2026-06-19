@@ -5,7 +5,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { IHotelbedsBookingCommandRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
-import { CreateHotelbedsBookingProps } from '@modules/crm/health-tourism/hotel/domain/types/create-hotelbeds-booking.props';
+import { CreateHotelbedsBookingData } from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
 
 @Injectable()
 export class HotelbedsBookingCommandRepository
@@ -16,26 +16,26 @@ export class HotelbedsBookingCommandRepository
     super(prisma);
   }
 
-  async create(props: CreateHotelbedsBookingProps): Promise<HotelbedsBooking> {
+  async create(data: CreateHotelbedsBookingData): Promise<HotelbedsBooking> {
     const raw = await this.db.hotelbedsBooking.create({
       data: {
-        id: props.id,
-        reference: props.reference,
-        hotelCode: props.hotelCode,
-        checkIn: props.checkIn,
-        checkOut: props.checkOut,
-        totalNet: new Decimal(props.totalNet),
-        currency: props.currency,
-        holderName: props.holderName,
-        holderSurname: props.holderSurname,
-        rooms: (props.rooms as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-        patientId: props.patientId ?? null,
-        leadId: props.leadId ?? null,
-        remarks: props.remarks ?? null,
+        id: data.id,
+        reference: data.reference,
+        hotelCode: data.hotelCode,
+        checkIn: data.checkIn,
+        checkOut: data.checkOut,
+        totalNet: new Decimal(data.totalNet),
+        currency: data.currency,
+        holderName: data.holderName,
+        holderSurname: data.holderSurname,
+        rooms: (data.rooms as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        patientId: data.patientId ?? null,
+        leadId: data.leadId ?? null,
+        remarks: data.remarks ?? null,
         serviceFee:
-          props.serviceFee != null ? new Decimal(props.serviceFee) : null,
-        organizationId: props.organizationId,
-        clinicId: props.clinicId ?? null,
+          data.serviceFee != null ? new Decimal(data.serviceFee) : null,
+        organizationId: data.organizationId,
+        clinicId: data.clinicId ?? null,
       },
     });
     return new HotelbedsBooking(raw);

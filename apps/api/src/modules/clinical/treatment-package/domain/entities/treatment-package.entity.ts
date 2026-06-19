@@ -5,17 +5,18 @@ import {
 } from '@shared';
 import { randomUUID } from 'crypto';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import {
-  CreateTreatmentPackageProps,
-  TreatmentPackageItemProps,
-  UpdateTreatmentPackageProps,
-} from '@modules/clinical/treatment-package/domain/types/create-treatment-package.props';
+
 import {
   TreatmentPackageCreatedEvent,
   TreatmentPackageDeletedEvent,
   TreatmentPackageUpdatedEvent,
 } from '@modules/clinical/treatment-package/domain/events';
 import { Money } from '@src/domain/value-objects/money.vo';
+import {
+  CreateTreatmentPackageProps,
+  TreatmentPackageItemProps,
+  UpdateTreatmentPackageProps,
+} from '@modules/clinical/treatment-package/domain/treatment-package.contracts';
 
 export class TreatmentPackage extends AggregateRoot {
   constructor(

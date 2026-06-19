@@ -3,17 +3,19 @@ import {
   ProviderException,
   ProviderShift,
 } from '@shared';
-import { CreateProviderAvailabilityProps } from '@modules/clinical/provider/domain/types/create-provider-availability.props';
-import { CreateProviderShiftProps } from '@modules/clinical/provider/domain/types/create-provider-shift.props';
-import { ProviderAvailabilityWithCanAcceptExamination } from '@modules/clinical/provider/domain/types/provider-availability-with-can-accept-examination';
+import {
+  CreateProviderAvailabilityData,
+  CreateProviderShiftData,
+  ProviderAvailabilityWithCanAcceptExamination,
+} from '@modules/clinical/provider/domain/provider.contracts';
 
 export const PROVIDER_AVAILABILITY_REPOSITORY = Symbol(
   'IProviderAvailabilityRepository'
 );
 
 export interface IProviderAvailabilityRepository {
-  create(data: CreateProviderAvailabilityProps): Promise<ProviderAvailability>;
-  createMany(data: CreateProviderAvailabilityProps[]): Promise<void>;
+  create(data: CreateProviderAvailabilityData): Promise<ProviderAvailability>;
+  createMany(data: CreateProviderAvailabilityData[]): Promise<void>;
   findByProviderId(
     providerId: string
   ): Promise<ProviderAvailabilityWithCanAcceptExamination[]>;
@@ -32,5 +34,5 @@ export interface IProviderAvailabilityRepository {
     startDate: Date,
     endDate: Date
   ): Promise<ProviderShift[]>;
-  upsertManyShifts(data: CreateProviderShiftProps[]): Promise<void>;
+  upsertManyShifts(data: CreateProviderShiftData[]): Promise<void>;
 }

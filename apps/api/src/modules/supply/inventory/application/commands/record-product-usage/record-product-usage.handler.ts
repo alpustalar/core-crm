@@ -68,11 +68,11 @@ export class RecordProductUsageHandler
       throw new BadRequestException('Kullanılabilir stok bulunamadı.');
     }
 
-    const stockMovementProps = batch.deductQuantity(
-      quantity,
-      actor.userId,
-      dto.notes
-    );
+    const stockMovementProps = batch.deductQuantity({
+      qty: quantity,
+      performedById: actor.userId,
+      notes: dto.notes,
+    });
 
     const stockMovement = StockMovement.create(stockMovementProps);
 

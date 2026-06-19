@@ -19,6 +19,7 @@ import { CreatePaymentCommand } from '@modules/finance/payment/application/comma
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 
 @CommandHandler(InitiatePosTransactionCommand)
 export class InitiatePosTransactionHandler
@@ -96,7 +97,7 @@ export class InitiatePosTransactionHandler
       terminalId: device.terminalId,
       merchantId: device.merchantId,
       amount: input.amount,
-      currency: input.currency ?? 'TRY',
+      currency: input.currency ?? CurrencySchema.enum.TRY,
     });
 
     // Faz 3 — externalRef kaydedilir

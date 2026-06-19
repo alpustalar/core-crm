@@ -19,6 +19,7 @@ import { SecurityEvent } from '@src/domain/constants/events/security.constants';
 import { FinanceLedgerEvent } from '@src/domain/constants/events/finance-ledger.constants';
 import { FinancialEventEvent } from '@src/domain/constants/events/financial-event.constants';
 import { GovernanceEvent } from '@src/domain/constants/events/governance.constants';
+import { MessagingEvent } from '@src/domain/constants/events/messaging.constants';
 
 export type AppEventName =
   | AppointmentEvent
@@ -41,7 +42,8 @@ export type AppEventName =
   | SecurityEvent
   | FinanceLedgerEvent
   | FinancialEventEvent
-  | GovernanceEvent;
+  | GovernanceEvent
+  | MessagingEvent;
 
 export * from './appointment.constant';
 export * from './clinic.constants';
@@ -64,3 +66,4 @@ export * from './security.constants';
 export * from './finance-ledger.constants';
 export * from './financial-event.constants';
 export * from './governance.constants';
+export * from './messaging.constants';

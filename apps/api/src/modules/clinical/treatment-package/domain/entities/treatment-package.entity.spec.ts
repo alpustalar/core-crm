@@ -4,7 +4,7 @@ import {
   TreatmentPackageDeletedEvent,
   TreatmentPackageUpdatedEvent,
 } from '@modules/clinical/treatment-package/domain/events';
-import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package/domain/types/create-treatment-package.props';
+import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package/domain/treatment-package.contracts';
 import { Money } from '@src/domain/value-objects/money.vo';
 
 describe('TreatmentPackage entity', () => {

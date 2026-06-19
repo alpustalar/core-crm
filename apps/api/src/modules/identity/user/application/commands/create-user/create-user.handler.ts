@@ -25,7 +25,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateProviderDto, CreateUserDto } from '@shared';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
-import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 import { LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { USER_EVENTS } from '@src/domain/constants/events';
@@ -136,6 +135,8 @@ export class CreateUserHandler
           publicPhone,
           publicEmail,
           isActive,
+          canAcceptExamination: profileDto.canAcceptExamination,
+          operationMode: profileDto.operationMode,
         }
       )
     );

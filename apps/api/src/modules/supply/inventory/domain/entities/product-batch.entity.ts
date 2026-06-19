@@ -4,38 +4,15 @@ import {
   StockMovementTypeSchema,
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import {
-  StockPurchasedEvent,
-  StockPurchasedEventPayload,
-} from '../events/stock-purchased.event';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
-import { Decimal } from 'decimal.js';
+import { StockPurchasedEvent } from '../events/stock-purchased.event';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
-
-export interface CreateBatchFromPurchaseProps {
-  id: string;
-  productId: string;
-  clinicId: string;
-  organizationId: string;
-  supplierId: string | null;
-  lotNumber: string | null;
-  expiresAt: Date | null;
-  quantity: Quantity;
-  purchasePrice: Money;
-  notes: string | null;
-  eventPayload: Omit<
-    StockPurchasedEventPayload,
-    | 'batchId'
-    | 'quantity'
-    | 'unitPrice'
-    | 'totalAmount'
-    | 'productId'
-    | 'clinicId'
-    | 'organizationId'
-    | 'supplierId'
-  >;
-}
+import {
+  AddQuantityProps,
+  CreateBatchFromPurchaseProps,
+  CreateStockMovementProps,
+  DeductQuantityProps,
+} from '@modules/supply/inventory/domain/supply.contracts';
 
 export class ProductBatch extends AggregateRoot {
   constructor(data: IProductBatch) {
@@ -119,6 +96,12 @@ export class ProductBatch extends AggregateRoot {
   public static createFromPurchase(
     props: CreateBatchFromPurchaseProps
   ): ProductBatch {
+    if (props.expiresAt && props.expiresAt <= new Date()) {
+      throw new Error(
+        '[Stok Disiplini] Son kullanma tarihi geçmiş bir ürün partisi (batch) oluşturulamaz.'
+      );
+    }
+
     const quantityDecimal = props.quantity.value;
     const totalAmount = props.purchasePrice.multiply(quantityDecimal);
 
@@ -155,53 +138,61 @@ export class ProductBatch extends AggregateRoot {
     return batch;
   }
 
-  public deductQuantity(
-    qty: Decimal,
-    performedById: string,
-    notes?: string | null
-  ): CreateStockMovementProps {
-    if (this._quantity.value.lessThan(qty)) {
-      throw new Error(
-        `Yersiz stok. Mevcut: ${this._quantity.value.toString()}, İstenen: ${qty.toString()}`
-      );
-    }
+  public deductQuantity({
+    qty,
+    movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
+    performedById,
+    notes,
+  }: DeductQuantityProps): CreateStockMovementProps {
+    const incomingQuantity =
+      qty instanceof Quantity
+        ? qty
+        : Quantity.createPositive(qty, 'Stok düşüm');
 
-    this._quantity = Quantity.create(this._quantity.value.minus(qty));
+    incomingQuantity.validateGreaterThanZeroOrThrow();
+
+    this._quantity = this._quantity.sub(incomingQuantity);
+    this._updatedAt = new Date();
 
     return {
       productId: this._productId,
       clinicId: this._clinicId,
       batchId: this._id,
-      type: StockMovementTypeSchema.enum.ADJUSTMENT,
+      type: movementType,
       direction: StockMovementDirectionSchema.enum.OUT,
-      quantity: qty,
+      quantity: incomingQuantity.value,
       performedById,
       notes: notes ?? 'Batch üzerinden stok düşümü yapıldı.',
     };
   }
 
-  public addQuantity(
-    qty: Decimal,
-    performedById: string,
-    notes?: string | null
-  ): CreateStockMovementProps {
-    if (qty.lessThanOrEqualTo(0)) {
-      throw new Error('Eklenecek stok miktarı sıfırdan büyük olmalıdır.');
-    }
-    this._quantity = Quantity.create(this._quantity.value.plus(qty));
+  public addQuantity({
+    qty,
+    movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
+    performedById,
+    notes,
+  }: AddQuantityProps): CreateStockMovementProps {
+    const incomingQuantity =
+      qty instanceof Quantity
+        ? qty
+        : Quantity.createPositive(qty, 'Stok giriş');
+
+    incomingQuantity.validateGreaterThanZeroOrThrow();
+
+    this._quantity = this._quantity.add(incomingQuantity);
+    this._updatedAt = new Date();
 
     return {
       productId: this._productId,
       clinicId: this._clinicId,
       batchId: this._id,
-      type: StockMovementTypeSchema.enum.ADJUSTMENT,
+      type: movementType,
       direction: StockMovementDirectionSchema.enum.IN,
-      quantity: qty,
+      quantity: incomingQuantity.value,
       performedById,
       notes: notes ?? 'Batch üzerinden stok artırımı yapıldı.',
     };
   }
-
   toPersistence(): IProductBatch {
     return {
       id: this._id,

@@ -21,6 +21,7 @@ import { LeadModule } from '@modules/crm/lead/lead.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
+import { MessagingModule } from '@modules/messaging/messaging.module';
 
 export const APP_ROUTES: Routes = [
   {
@@ -110,5 +111,9 @@ export const APP_ROUTES: Routes = [
   {
     path: 'health-tourism',
     module: HealthTourismModule,
+  },
+  {
+    path: 'messaging',
+    module: MessagingModule,
   },
 ];

@@ -28,7 +28,7 @@ export class ConvertUserToProviderHandler
     protected readonly policyFactory: IPolicyFactory,
     @Inject(PROVIDER_COMMAND_REPOSITORY)
     private readonly providerCommandRepo: IProviderCommandRepository,
-    private readonly transactionManager: TransactionManager,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(
@@ -53,10 +53,12 @@ export class ConvertUserToProviderHandler
       publicPhone: dto.publicPhone,
       publicEmail: dto.publicEmail,
       isActive: dto.isActive,
+      canAcceptExamination: dto.canAcceptExamination,
+      operationMode: dto.operationMode,
     });
 
     await this.transactionManager.run(() =>
-      this.providerCommandRepo.save(provider),
+      this.providerCommandRepo.save(provider)
     );
   }
 }

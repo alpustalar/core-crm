@@ -1,7 +1,6 @@
 import { StockMovement as IStockMovement } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { randomUUID } from 'crypto';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/types/create-stock-movement.props';
 import { StockMovementTypeType as StockMovementType } from '@input-type-schemas/StockMovementTypeSchema';
 import { StockMovementDirectionType as StockMovementDirection } from '@input-type-schemas/StockMovementDirectionSchema';
 import { Decimal } from 'decimal.js';
@@ -9,16 +8,15 @@ import { Money } from '@src/domain/value-objects/money.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/supply.contracts';
 
 export class StockMovement extends AggregateRoot {
   constructor(data: IStockMovement) {
     super();
-    const unitPrice = data.unitPrice
-      ? Money.create(data.unitPrice, data.currency)
-      : null;
-    const totalAmount = data.totalAmount
-      ? Money.create(data.totalAmount, data.currency)
-      : null;
+
+    // Para birimi zırhı
+    const currency = data.currency;
+
     this._id = data.id;
     this._productId = data.productId;
     this._clinicId = data.clinicId;
@@ -26,10 +24,23 @@ export class StockMovement extends AggregateRoot {
     this._type = data.type;
     this._direction = data.direction;
     this._quantity = Quantity.create(data.quantity);
-    this._unitPrice = unitPrice;
-    this._currency = Currency.create(data.currency);
-    this._vatRate = VatRate.create(data.vatRate) ?? null;
-    this._totalAmount = totalAmount;
+    this._currency = Currency.create(currency);
+
+    this._unitPrice = data.unitPrice
+      ? Money.create(data.unitPrice, currency)
+      : null;
+    this._vatRate =
+      data.vatRate !== null && data.vatRate !== undefined
+        ? VatRate.create(data.vatRate)
+        : null;
+
+    this._vatAmount = data.vatAmount
+      ? Money.create(data.vatAmount, currency)
+      : null;
+    this._totalAmount = data.totalAmount
+      ? Money.create(data.totalAmount, currency)
+      : null;
+
     this._financeLedgerId = data.financeLedgerId;
     this._performedById = data.performedById;
     this._notes = data.notes;
@@ -143,6 +154,7 @@ export class StockMovement extends AggregateRoot {
       vatAmount = subTotal.calculateVat(props.vatRate ?? 0);
       totalAmount = subTotal.add(vatAmount);
     }
+
     return new StockMovement({
       id: props.id ?? randomUUID(),
       productId: props.productId,
@@ -150,11 +162,13 @@ export class StockMovement extends AggregateRoot {
       batchId: props.batchId ?? null,
       type: props.type,
       direction: props.direction,
-      quantity: new Decimal(quantity),
+      quantity: Quantity.create(quantity).value,
       unitPrice: unitPrice?.amount ?? null,
       currency: unitPrice?.currency ?? 'TRY',
-
-      vatRate: props.vatRate ? new Decimal(props.vatRate) : null,
+      vatRate:
+        props.vatRate !== null && props.vatRate !== undefined
+          ? new Decimal(props.vatRate)
+          : null,
       vatAmount: vatAmount?.amount ?? null,
       totalAmount: totalAmount?.amount ?? null,
 
