@@ -4,10 +4,12 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
@@ -15,14 +17,22 @@ import { GetContext, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { PaginationDto } from '@shared';
-import { GetConversationsDto } from '@shared/modules/messaging/dto/queries';
+import {
+  GetConversationsDto,
+  GetWhatsappUsageDto,
+} from '@shared/modules/messaging/dto/queries';
 import {
   AssignConversationDto,
   SendMessageDto,
+  SendTemplateMessageDto,
 } from '@shared/modules/messaging/dto/commands';
 import { GetConversationsQuery } from '@modules/messaging/conversation/application/queries/get-conversations/get-conversations.query';
 import { GetConversationMessagesQuery } from '@modules/messaging/conversation/application/queries/get-conversation-messages/get-conversation-messages.query';
+import { GetInboundMediaQuery } from '@modules/messaging/conversation/application/queries/get-inbound-media/get-inbound-media.query';
+import { GetWhatsappUsageQuery } from '@modules/messaging/conversation/application/queries/get-whatsapp-usage/get-whatsapp-usage.query';
 import { SendMessageCommand } from '@modules/messaging/conversation/application/commands/send-message/send-message.command';
+import { SendTemplateMessageCommand } from '@modules/messaging/conversation/application/commands/send-template-message/send-template-message.command';
+import { MarkConversationReadCommand } from '@modules/messaging/conversation/application/commands/mark-conversation-read/mark-conversation-read.command';
 import { CloseConversationCommand } from '@modules/messaging/conversation/application/commands/close-conversation/close-conversation.command';
 import { AssignConversationCommand } from '@modules/messaging/conversation/application/commands/assign-conversation/assign-conversation.command';
 
@@ -46,6 +56,17 @@ export class ConversationController {
     );
   }
 
+  @Get('clinics/:clinicId/whatsapp-usage')
+  getUsage(
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Query() dto: GetWhatsappUsageDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.queryBus.execute(
+      new GetWhatsappUsageQuery(clinicId, dto.from, dto.to, ctx)
+    );
+  }
+
   @Get('clinics/:clinicId/conversations/:conversationId/messages')
   getMessages(
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
@@ -63,6 +84,24 @@ export class ConversationController {
     );
   }
 
+  @Get('clinics/:clinicId/conversations/:conversationId/messages/:messageId/media')
+  async getInboundMedia(
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @GetContext() ctx: IGetContext
+  ): Promise<StreamableFile> {
+    const { data } = await this.queryBus.execute(
+      new GetInboundMediaQuery(clinicId, conversationId, messageId, ctx)
+    );
+    if (!data) {
+      throw new NotFoundException(
+        'Medya bulunamadı veya süresi dolmuş (Meta ~30 gün saklar).'
+      );
+    }
+    return new StreamableFile(data.content, { type: data.mimeType });
+  }
+
   @Post('clinics/:clinicId/conversations/:conversationId/messages')
   sendMessage(
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
@@ -78,9 +117,48 @@ export class ConversationController {
           type: dto.type,
           body: dto.body,
           mediaUrl: dto.mediaUrl,
+          mediaType: dto.mediaType,
         },
         ctx
       )
+    );
+  }
+
+  @Post('clinics/:clinicId/conversations/:conversationId/template-messages')
+  sendTemplate(
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    @Body() dto: SendTemplateMessageDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new SendTemplateMessageCommand(
+        clinicId,
+        {
+          conversationId,
+          templateName: dto.templateName,
+          languageCode: dto.languageCode,
+          variables: dto.variables,
+          headerText: dto.headerText,
+          headerMediaUrl: dto.headerMediaUrl,
+          headerMediaType: dto.headerMediaType,
+          buttonParams: dto.buttonParams,
+          category: dto.category,
+        },
+        ctx
+      )
+    );
+  }
+
+  @Post('clinics/:clinicId/conversations/:conversationId/read')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  markRead(
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new MarkConversationReadCommand(clinicId, conversationId, ctx)
     );
   }
 

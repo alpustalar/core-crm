@@ -18,6 +18,7 @@ import {
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
+import { detectOptIntent } from '@modules/messaging/conversation/domain/marketing-opt-out';
 import { ReceiveInboundMessageCommand } from './receive-inbound-message.command';
 
 @CommandHandler(ReceiveInboundMessageCommand)
@@ -55,6 +56,8 @@ export class ReceiveInboundMessageHandler
         mediaUrl: input.mediaUrl,
         type: input.type,
         externalId: input.externalId,
+        payload: input.payload,
+        replyToExternalId: input.replyToExternalId,
       });
       const savedMessage = await this.messageCommandRepo.save(message);
 
@@ -63,6 +66,12 @@ export class ReceiveInboundMessageHandler
         body: input.body ?? null,
         occurredAt: input.occurredAt,
       });
+
+      // Pazarlama opt-out/opt-in: kontak "DUR/STOP" yazdıysa pazarlama şablonları durur.
+      const intent = detectOptIntent(input.body);
+      if (intent === 'opt_out') conversation.optOutMarketing();
+      else if (intent === 'opt_in') conversation.resumeMarketing();
+
       await this.conversationCommandRepo.save(conversation);
 
       return savedMessage.id;

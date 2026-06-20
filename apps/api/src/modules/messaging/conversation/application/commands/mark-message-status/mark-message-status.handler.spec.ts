@@ -6,6 +6,10 @@ import {
   IMessageCommandRepository,
   IMessageQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
+import {
+  IConversationCommandRepository,
+  IConversationQueryRepository,
+} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
@@ -19,6 +23,14 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
       save: jest.fn(async (m: Message) => m),
     } as unknown as IMessageCommandRepository;
 
+    const conversationQueryRepo = {
+      findById: jest.fn().mockResolvedValue(null),
+    } as unknown as IConversationQueryRepository;
+
+    const conversationCommandRepo = {
+      save: jest.fn(),
+    } as unknown as IConversationCommandRepository;
+
     const txManager = {
       run: jest.fn((cb: () => Promise<unknown>) => cb()),
     } as unknown as TransactionManager;
@@ -26,6 +38,8 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     const handler = new MarkMessageStatusHandler(
       messageCommandRepo,
       messageQueryRepo,
+      conversationQueryRepo,
+      conversationCommandRepo,
       txManager
     );
     return { handler, messageCommandRepo };
@@ -67,5 +81,20 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     );
     expect(msg.status).toBe(MessageStatus.FAILED);
     expect(msg.errorReason).toBe('numara WhatsApp kullanmıyor');
+  });
+
+  it('FAILED durumu errorCode ile işlenir', async () => {
+    const msg = sentOutbound();
+    const { handler } = build(msg);
+    await handler.execute(
+      new MarkMessageStatusCommand(
+        'wamid.out.1',
+        MessageStatus.FAILED,
+        '24s pencere kapalı',
+        '131047'
+      )
+    );
+    expect(msg.status).toBe(MessageStatus.FAILED);
+    expect(msg.errorCode).toBe('131047');
   });
 });

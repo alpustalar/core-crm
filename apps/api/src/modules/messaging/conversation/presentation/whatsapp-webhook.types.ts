@@ -1,12 +1,57 @@
 // WhatsApp Cloud API webhook payload tipleri (yalnızca kullanılan alanlar).
 // https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples
 
+/** Medya mesajı gövdesi (image/document/audio/video/sticker ortak alanları). */
+export interface WhatsappMediaObject {
+  id: string; // Meta media id (Graph API ile indirilir)
+  mime_type?: string;
+  sha256?: string;
+  caption?: string;
+  filename?: string;
+}
+
+/** interactive yanıt (buton/liste). */
+export interface WhatsappInteractive {
+  type?: 'button_reply' | 'list_reply' | string;
+  button_reply?: { id: string; title?: string };
+  list_reply?: { id: string; title?: string; description?: string };
+}
+
+export interface WhatsappLocation {
+  latitude: number;
+  longitude: number;
+  name?: string;
+  address?: string;
+}
+
+/** bir mesaja verilen emoji reaksiyon (emoji boşsa reaksiyon kaldırılmış). */
+export interface WhatsappReaction {
+  message_id: string; // reaksiyon verilen mesajın wamid'i
+  emoji?: string;
+}
+
+/** alıntı/yanıt bağlamı — quote edilen mesajın wamid'i. */
+export interface WhatsappContext {
+  id?: string;
+  from?: string;
+}
+
 export interface WhatsappInboundMessage {
   from: string; // gönderenin telefon numarası (wa_id)
   id: string; // WhatsApp mesaj id'si
   timestamp?: string; // unix saniye (string)
-  type: string; // 'text' | 'image' | 'audio' | 'document' | ...
+  type: string; // 'text' | 'image' | 'interactive' | 'location' | 'reaction' | ...
   text?: { body: string };
+  image?: WhatsappMediaObject;
+  document?: WhatsappMediaObject;
+  audio?: WhatsappMediaObject;
+  video?: WhatsappMediaObject;
+  sticker?: WhatsappMediaObject;
+  interactive?: WhatsappInteractive;
+  location?: WhatsappLocation;
+  reaction?: WhatsappReaction;
+  contacts?: unknown[];
+  context?: WhatsappContext;
 }
 
 export interface WhatsappStatus {
@@ -15,6 +60,16 @@ export interface WhatsappStatus {
   timestamp?: string;
   recipient_id?: string;
   errors?: Array<{ code?: number; title?: string }>;
+  pricing?: {
+    billable?: boolean;
+    pricing_model?: string;
+    category?: string; // marketing | utility | authentication | service
+  };
+  conversation?: {
+    id?: string;
+    origin?: { type?: string };
+    expiration_timestamp?: string; // unix saniye (string)
+  };
 }
 
 export interface WhatsappContact {
@@ -33,8 +88,15 @@ export interface WhatsappValue {
   statuses?: WhatsappStatus[];
 }
 
+/** `phone_number_quality_update` olayının value gövdesi. */
+export interface WhatsappQualityValue {
+  display_phone_number?: string;
+  event?: string; // FLAGGED | UNFLAGGED | ONBOARDING
+  current_limit?: string; // ör. TIER_1K
+}
+
 export interface WhatsappWebhookChange {
-  field: string; // 'messages'
+  field: string; // 'messages' | 'phone_number_quality_update' | ...
   value: WhatsappValue;
 }
 

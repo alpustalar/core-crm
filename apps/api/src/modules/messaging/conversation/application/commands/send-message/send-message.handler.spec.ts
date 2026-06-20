@@ -1,22 +1,22 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MessageDirection, MessageStatus, MessageType } from '@prisma/client';
 import { SendMessageHandler } from './send-message.handler';
 import { SendMessageCommand } from './send-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
-import {
-  IConversationCommandRepository,
-  IConversationQueryRepository,
-} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IConversationQueryRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports/message-channel.port';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
 
-describe('SendMessageHandler (giden mesaj — port stub)', () => {
+describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
   const ctx = { actor: { userId: 'user-1' } } as never;
 
   const build = (conversation: Conversation | null) => {
-    let lastSavedMessage: Message | undefined;
+    let savedMessage: Message | undefined;
 
     const conversationQueryRepo = {
       findById: jest.fn().mockResolvedValue(conversation),
@@ -24,42 +24,37 @@ describe('SendMessageHandler (giden mesaj — port stub)', () => {
       findMany: jest.fn(),
     } as unknown as IConversationQueryRepository;
 
-    const conversationCommandRepo = {
-      save: jest.fn(async (c: Conversation) => c),
-    } as unknown as IConversationCommandRepository;
-
     const messageCommandRepo = {
       save: jest.fn(async (m: Message) => {
-        lastSavedMessage = m;
+        savedMessage = m;
         return m;
       }),
     } as unknown as IMessageCommandRepository;
 
-    const channel = {
-      send: jest.fn().mockResolvedValue({ externalId: 'wamid.out.1' }),
-    } as unknown as MessageChannelPort;
-
-    const txManager = {
-      outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    const sendMessageProducer = {
+      enqueueSend: jest.fn().mockResolvedValue(undefined),
+    } as unknown as SendMessageProducer;
 
     const handler = new SendMessageHandler(
       conversationQueryRepo,
-      conversationCommandRepo,
       messageCommandRepo,
-      channel,
-      txManager
+      sendMessageProducer
     );
 
-    return { handler, channel, getLastSavedMessage: () => lastSavedMessage };
+    return { handler, sendMessageProducer, getSavedMessage: () => savedMessage };
   };
 
-  const conversation = () =>
-    Conversation.start({
+  /** Servis penceresi açık (yeni gelen mesaj) yazışma. */
+  const conversation = () => {
+    const c = Conversation.start({
       clinicId: 'clinic-1',
       organizationId: 'org-1',
       contactPhone: '+905550001122',
     });
+    c.recordInboundMessage({ messageId: 'in-1', body: 'merhaba' });
+    c.clearDomainEvents();
+    return c;
+  };
 
   it('yazışma bulunamazsa NotFoundException', async () => {
     const { handler } = build(null);
@@ -79,9 +74,9 @@ describe('SendMessageHandler (giden mesaj — port stub)', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('OUTBOUND mesaj QUEUED→SENT olur, port çağrılır, externalId yazılır', async () => {
+  it('OUTBOUND mesaj QUEUED persist edilir ve kuyruğa alınır', async () => {
     const conv = conversation();
-    const { handler, channel, getLastSavedMessage } = build(conv);
+    const { handler, sendMessageProducer, getSavedMessage } = build(conv);
 
     const id = await handler.execute(
       new SendMessageCommand(
@@ -91,12 +86,32 @@ describe('SendMessageHandler (giden mesaj — port stub)', () => {
       )
     );
 
-    expect(channel.send).toHaveBeenCalledTimes(1);
-    const saved = getLastSavedMessage()!;
+    const saved = getSavedMessage()!;
     expect(saved.id).toBe(id);
     expect(saved.direction).toBe(MessageDirection.OUTBOUND);
-    expect(saved.status).toBe(MessageStatus.SENT);
-    expect(saved.externalId).toBe('wamid.out.1');
+    expect(saved.status).toBe(MessageStatus.QUEUED);
     expect(saved.sentByUserId).toBe('user-1');
+    expect(sendMessageProducer.enqueueSend).toHaveBeenCalledWith(id);
+  });
+
+  it('24s pencere kapalıyken serbest (TEXT) mesaj reddedilir', async () => {
+    // Hiç gelen mesajı olmayan yazışma → pencere kapalı.
+    const closed = Conversation.start({
+      clinicId: 'clinic-1',
+      organizationId: 'org-1',
+      contactPhone: '+905550001122',
+    });
+    const { handler, sendMessageProducer } = build(closed);
+
+    await expect(
+      handler.execute(
+        new SendMessageCommand(
+          'clinic-1',
+          { conversationId: closed.id, type: MessageType.TEXT, body: 'selam' },
+          ctx
+        )
+      )
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(sendMessageProducer.enqueueSend).not.toHaveBeenCalled();
   });
 });

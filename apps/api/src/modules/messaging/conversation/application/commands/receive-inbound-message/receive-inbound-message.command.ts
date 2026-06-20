@@ -1,4 +1,5 @@
 import { MessageType } from '@prisma/client';
+import { InboundMessagePayload } from '@modules/messaging/conversation/domain/types/create-message.props';
 
 export interface ReceiveInboundMessageInput {
   clinicId: string;
@@ -10,6 +11,10 @@ export interface ReceiveInboundMessageInput {
   type?: MessageType;
   body?: string | null;
   mediaUrl?: string | null;
+  /** interactive/location/contacts/reaction yapısal gövdesi. */
+  payload?: InboundMessagePayload | null;
+  /** Alıntılanan mesajın wamid'i (context.id). */
+  replyToExternalId?: string | null;
   occurredAt?: Date;
 }
 

@@ -12,6 +12,8 @@ export interface ConversationResponse {
   status: ConversationStatusValue;
   assignedUserId: string | null;
   lastMessageAt: Date | null;
+  /** Ajanın henüz okumadığı gelen mesaj sayısı. */
+  unreadCount: number;
   createdAt: Date;
   updatedAt: Date;
 }

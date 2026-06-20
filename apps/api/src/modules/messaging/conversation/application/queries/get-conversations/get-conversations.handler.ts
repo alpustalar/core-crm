@@ -49,6 +49,7 @@ export class GetConversationsHandler
       status: c.status,
       assignedUserId: c.assignedUserId,
       lastMessageAt: c.lastMessageAt,
+      unreadCount: c.unreadCount,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     };

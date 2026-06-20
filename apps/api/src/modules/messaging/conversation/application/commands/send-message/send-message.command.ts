@@ -1,11 +1,14 @@
 import { MessageType } from '@prisma/client';
 import { IGetContext } from '@common/decorators';
+import { OutboundMediaType } from '@modules/messaging/conversation/domain/types/create-message.props';
 
 export interface SendMessageInput {
   conversationId: string;
   type?: MessageType;
   body?: string | null;
   mediaUrl?: string | null;
+  /** MEDIA gönderiminde alt-tip (image/document/video/audio/sticker). */
+  mediaType?: OutboundMediaType | null;
 }
 
 /**

@@ -1,0 +1,78 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  NotFoundException,
+} from '@nestjs/common';
+import { MessageType } from '@prisma/client';
+import {
+  CONVERSATION_QUERY_REPOSITORY,
+  IConversationQueryRepository,
+} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import {
+  MESSAGE_COMMAND_REPOSITORY,
+  IMessageCommandRepository,
+} from '@modules/messaging/conversation/domain/repositories/message.repository';
+import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
+import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
+import { SendTemplateMessageCommand } from './send-template-message.command';
+
+@CommandHandler(SendTemplateMessageCommand)
+export class SendTemplateMessageHandler
+  implements ICommandHandler<SendTemplateMessageCommand, string>
+{
+  constructor(
+    @Inject(CONVERSATION_QUERY_REPOSITORY)
+    private readonly conversationQueryRepo: IConversationQueryRepository,
+    @Inject(MESSAGE_COMMAND_REPOSITORY)
+    private readonly messageCommandRepo: IMessageCommandRepository,
+    private readonly sendMessageProducer: SendMessageProducer
+  ) {}
+
+  async execute(command: SendTemplateMessageCommand): Promise<string> {
+    const { clinicId, input, ctx } = command;
+
+    const conversation = await this.conversationQueryRepo.findById(
+      input.conversationId
+    );
+    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
+    if (conversation.clinicId !== clinicId) {
+      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+    }
+
+    // Pazarlama uyumu: kontak opt-out yaptıysa MARKETING kategorili şablon gönderilemez.
+    if (
+      input.category?.toUpperCase() === 'MARKETING' &&
+      conversation.marketingOptOut
+    ) {
+      throw new BadRequestException(
+        'Kontak pazarlama mesajlarından çıkmış; MARKETING şablonu gönderilemez.'
+      );
+    }
+
+    // Şablon mesajı 24s penceresine tabi değildir.
+    const message = Message.createOutbound({
+      conversationId: conversation.id,
+      type: MessageType.TEMPLATE,
+      body: input.templateName, // listede gösterim için
+      sentByUserId: ctx.actor.userId,
+      template: {
+        name: input.templateName,
+        language: input.languageCode,
+        components: {
+          bodyParams: input.variables ?? [],
+          headerText: input.headerText,
+          headerMediaUrl: input.headerMediaUrl,
+          headerMediaType: input.headerMediaType,
+          urlButtonParams: input.buttonParams,
+        },
+      },
+    });
+    const saved = await this.messageCommandRepo.save(message);
+
+    await this.sendMessageProducer.enqueueSend(saved.id);
+
+    return saved.id;
+  }
+}

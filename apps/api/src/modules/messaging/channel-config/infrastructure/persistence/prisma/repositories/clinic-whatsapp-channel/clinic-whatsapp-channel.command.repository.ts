@@ -25,6 +25,11 @@ export class ClinicWhatsappChannelCommandRepository
         accessToken: data.accessToken,
         verifyToken: data.verifyToken,
         isActive: data.isActive,
+        registrationPin: data.registrationPin,
+        registeredAt: data.registeredAt,
+        tokenExpiresAt: data.tokenExpiresAt,
+        qualityRating: data.qualityRating,
+        messagingTier: data.messagingTier,
       },
     });
     entity.flushEvents();

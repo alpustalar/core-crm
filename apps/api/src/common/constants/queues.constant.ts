@@ -8,4 +8,5 @@ export const QUEUES = {
   META_ADS: 'meta-ads-queue',
   HEALTH_TOURISM: 'health-tourism-queue',
   E_DOCUMENT: 'e-document-queue',
+  MESSAGING: 'messaging-queue',
 } as const;

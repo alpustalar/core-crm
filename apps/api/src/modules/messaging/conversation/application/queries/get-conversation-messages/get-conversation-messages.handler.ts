@@ -63,6 +63,8 @@ export class GetConversationMessagesHandler
       externalId: m.externalId,
       errorReason: m.errorReason,
       sentByUserId: m.sentByUserId,
+      payload: m.payload,
+      replyToExternalId: m.replyToExternalId,
       createdAt: m.createdAt,
     };
   }

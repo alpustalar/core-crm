@@ -20,12 +20,26 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindWhatsappChannelByPhoneNumberIdQuery } from '@modules/messaging/channel-config/application/queries/find-whatsapp-channel-by-phone-number-id/find-whatsapp-channel-by-phone-number-id.query';
 import { ReceiveInboundMessageCommand } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.command';
 import { MarkMessageStatusCommand } from '@modules/messaging/conversation/application/commands/mark-message-status/mark-message-status.command';
+import { RecordWhatsappQualityCommand } from '@modules/messaging/channel-config/application/commands/record-whatsapp-quality/record-whatsapp-quality.command';
+import { toWhatsappMediaRef } from '@modules/messaging/conversation/domain/media-reference';
+import { resolveWhatsappError } from '@modules/messaging/conversation/domain/whatsapp-error.map';
+import { InboundMessagePayload } from '@modules/messaging/conversation/domain/types/create-message.props';
 import {
   WhatsappWebhookBody,
   WhatsappValue,
   WhatsappInboundMessage,
+  WhatsappMediaObject,
   WhatsappStatus,
+  WhatsappQualityValue,
 } from './whatsapp-webhook.types';
+
+/** Webhook'tan çıkarılan kanal-bağımsız mesaj içeriği. */
+interface MappedInboundContent {
+  type: MessageType;
+  body: string | null;
+  mediaUrl: string | null;
+  payload: InboundMessagePayload | null;
+}
 
 /** Meta WhatsApp status string → domain MessageStatus. */
 const STATUS_MAP: Record<string, MessageStatus> = {
@@ -87,14 +101,42 @@ export class WhatsappWebhookController {
 
     for (const entry of body.entry ?? []) {
       for (const change of entry.changes ?? []) {
-        if (change.field !== 'messages') continue;
-        await this.processValue(change.value).catch((err) =>
-          this.logger.error('WhatsApp webhook işleme hatası', err)
-        );
+        if (change.field === 'messages') {
+          await this.processValue(change.value).catch((err) =>
+            this.logger.error('WhatsApp webhook işleme hatası', err)
+          );
+        } else if (change.field === 'phone_number_quality_update') {
+          await this.processQualityUpdate(
+            change.value as unknown as WhatsappQualityValue
+          ).catch((err) =>
+            this.logger.error('WhatsApp kalite webhook hatası', err)
+          );
+        }
       }
     }
 
     return { status: 'ok' };
+  }
+
+  /** Numara kalitesi/tier güncellemesini kanala işler (display_phone_number ile routing). */
+  private async processQualityUpdate(
+    value: WhatsappQualityValue
+  ): Promise<void> {
+    const display = value?.display_phone_number;
+    if (!display) return;
+    const qualityRating =
+      value.event === 'FLAGGED'
+        ? 'RED'
+        : value.event === 'UNFLAGGED'
+          ? 'GREEN'
+          : null;
+    await this.commandBus.execute(
+      new RecordWhatsappQualityCommand(
+        display,
+        qualityRating,
+        value.current_limit ?? null
+      )
+    );
   }
 
   /** Bir value bloğunu klinik routing yapıp inbound mesaj/status'lara dağıtır. */
@@ -133,7 +175,8 @@ export class WhatsappWebhookController {
     contactName: string | null;
   }): Promise<void> {
     const { message, clinicId, organizationId, contactName } = input;
-    const isText = message.type === 'text';
+    const content = this.mapContent(message);
+
     await this.commandBus.execute(
       new ReceiveInboundMessageCommand({
         clinicId,
@@ -141,8 +184,11 @@ export class WhatsappWebhookController {
         contactPhone: message.from,
         contactName,
         externalId: message.id,
-        type: isText ? MessageType.TEXT : MessageType.MEDIA,
-        body: isText ? (message.text?.body ?? null) : null,
+        type: content.type,
+        body: content.body,
+        mediaUrl: content.mediaUrl,
+        payload: content.payload,
+        replyToExternalId: message.context?.id ?? null,
         occurredAt: message.timestamp
           ? new Date(Number(message.timestamp) * 1000)
           : undefined,
@@ -150,14 +196,141 @@ export class WhatsappWebhookController {
     );
   }
 
+  /** WhatsApp gelen mesaj tipini kanal-bağımsız içeriğe (type+body+media+payload) çevirir. */
+  private mapContent(message: WhatsappInboundMessage): MappedInboundContent {
+    switch (message.type) {
+      case 'text':
+        return {
+          type: MessageType.TEXT,
+          body: message.text?.body ?? null,
+          mediaUrl: null,
+          payload: null,
+        };
+      case 'image':
+      case 'document':
+      case 'video':
+      case 'audio':
+      case 'sticker': {
+        const media = this.extractMedia(message);
+        return {
+          type: MessageType.MEDIA,
+          body: media?.caption ?? null,
+          // Medya saklanmaz; Meta media id referansı tutulur (önizlemede proxy ile çekilir).
+          mediaUrl: media ? toWhatsappMediaRef(media.id) : null,
+          payload: null,
+        };
+      }
+      case 'interactive': {
+        const reply =
+          message.interactive?.button_reply ??
+          message.interactive?.list_reply;
+        const interactiveType = message.interactive?.button_reply
+          ? 'button_reply'
+          : 'list_reply';
+        return {
+          type: MessageType.INTERACTIVE,
+          body: reply?.title ?? null,
+          mediaUrl: null,
+          payload: reply
+            ? {
+                kind: 'interactive',
+                interactiveType,
+                replyId: reply.id,
+                title: reply.title ?? null,
+              }
+            : null,
+        };
+      }
+      case 'location': {
+        const loc = message.location;
+        if (!loc) {
+          return {
+            type: MessageType.LOCATION,
+            body: '📍 Konum',
+            mediaUrl: null,
+            payload: null,
+          };
+        }
+        return {
+          type: MessageType.LOCATION,
+          body: loc.name ?? loc.address ?? '📍 Konum',
+          mediaUrl: null,
+          payload: {
+            kind: 'location',
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            name: loc.name ?? null,
+            address: loc.address ?? null,
+          },
+        };
+      }
+      case 'reaction':
+        return {
+          type: MessageType.REACTION,
+          body: message.reaction?.emoji ?? null,
+          mediaUrl: null,
+          payload: message.reaction
+            ? {
+                kind: 'reaction',
+                emoji: message.reaction.emoji ?? null,
+                targetExternalId: message.reaction.message_id,
+              }
+            : null,
+        };
+      case 'contacts':
+        return {
+          type: MessageType.CONTACTS,
+          body: '👤 Kişi kartı',
+          mediaUrl: null,
+          payload: { kind: 'contacts', contacts: message.contacts ?? [] },
+        };
+      default:
+        // Konum talebi, sipariş, sistem mesajı vb. — gövdesiz UNSUPPORTED kaydı.
+        return {
+          type: MessageType.UNSUPPORTED,
+          body: null,
+          mediaUrl: null,
+          payload: null,
+        };
+    }
+  }
+
+  /** Medya mesajı gövdesini (id + caption) çıkarır. */
+  private extractMedia(
+    message: WhatsappInboundMessage
+  ): WhatsappMediaObject | undefined {
+    return (
+      message.image ??
+      message.document ??
+      message.video ??
+      message.audio ??
+      message.sticker
+    );
+  }
+
   private async dispatchStatus(status: WhatsappStatus): Promise<void> {
     const mapped = STATUS_MAP[status.status];
     if (!mapped) return;
+
+    // FAILED ise hata kodunu okunabilir nedene çevir; aksi halde reason/kod yok.
+    const error = status.errors?.[0];
+    const resolved =
+      mapped === MessageStatus.FAILED && error
+        ? resolveWhatsappError(error.code, error.title)
+        : null;
+
+    const expiry = status.conversation?.expiration_timestamp;
     await this.commandBus.execute(
       new MarkMessageStatusCommand(
         status.id,
         mapped,
-        status.errors?.[0]?.title ?? null
+        resolved?.reason ?? null,
+        error?.code != null ? String(error.code) : null,
+        {
+          category: status.pricing?.category ?? null,
+          billable: status.pricing?.billable ?? null,
+          windowExpiresAt: expiry ? new Date(Number(expiry) * 1000) : null,
+        }
       )
     );
   }

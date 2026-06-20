@@ -22,6 +22,12 @@ export const ConversationSchema = z.object({
   leadId: z.string().nullable(),
   assignedUserId: z.string().nullable(),
   lastMessageAt: z.coerce.date().nullable(),
+  lastInboundAt: z.coerce.date().nullable(),
+  unreadCount: z.number().int(),
+  agentReadAt: z.coerce.date().nullable(),
+  windowExpiresAt: z.coerce.date().nullable(),
+  marketingOptOut: z.boolean(),
+  optOutAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

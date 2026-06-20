@@ -9,6 +9,7 @@ import { MessageStatusChangedEvent } from '../events/message-status-changed.even
 import {
   CreateInboundMessageProps,
   CreateOutboundMessageProps,
+  MessageTemplateComponents,
 } from '../types/create-message.props';
 
 /** Giden mesaj teslim akışındaki ileri-yön sıralaması (idempotent webhook için). */
@@ -38,7 +39,16 @@ export class Message extends AggregateRoot implements IMessage {
     this._status = data.status;
     this._externalId = data.externalId;
     this._errorReason = data.errorReason;
+    this._errorCode = data.errorCode;
     this._sentByUserId = data.sentByUserId;
+    this._mediaType = data.mediaType;
+    this._pricingCategory = data.pricingCategory;
+    this._billable = data.billable;
+    this._payload = data.payload;
+    this._replyToExternalId = data.replyToExternalId;
+    this._templateName = data.templateName;
+    this._templateLanguage = data.templateLanguage;
+    this._templateParams = data.templateParams;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
@@ -88,9 +98,74 @@ export class Message extends AggregateRoot implements IMessage {
     return this._errorReason;
   }
 
+  private _errorCode: string | null;
+  get errorCode(): string | null {
+    return this._errorCode;
+  }
+
   private _sentByUserId: string | null;
   get sentByUserId(): string | null {
     return this._sentByUserId;
+  }
+
+  private _mediaType: string | null;
+  get mediaType(): string | null {
+    return this._mediaType;
+  }
+
+  private _pricingCategory: string | null;
+  get pricingCategory(): string | null {
+    return this._pricingCategory;
+  }
+
+  private _billable: boolean | null;
+  get billable(): boolean | null {
+    return this._billable;
+  }
+
+  private _payload: IMessage['payload'];
+  get payload(): IMessage['payload'] {
+    return this._payload;
+  }
+
+  private _replyToExternalId: string | null;
+  get replyToExternalId(): string | null {
+    return this._replyToExternalId;
+  }
+
+  private _templateName: string | null;
+  get templateName(): string | null {
+    return this._templateName;
+  }
+
+  private _templateLanguage: string | null;
+  get templateLanguage(): string | null {
+    return this._templateLanguage;
+  }
+
+  private _templateParams: IMessage['templateParams'];
+  get templateParams(): IMessage['templateParams'] {
+    return this._templateParams;
+  }
+
+  /**
+   * TEMPLATE mesajının yapısal bileşenleri (body/header/buton). Geriye uyum: eski
+   * kayıtlarda templateParams düz string dizisi ise body değişkenleri kabul edilir.
+   */
+  get templateComponents(): MessageTemplateComponents {
+    const p = this._templateParams;
+    if (Array.isArray(p)) {
+      return { bodyParams: (p as unknown[]).map((v) => String(v)) };
+    }
+    if (p && typeof p === 'object') {
+      return p as MessageTemplateComponents;
+    }
+    return {};
+  }
+
+  /** TEMPLATE mesajlarda sıralı body değişkenleri (string listesi). */
+  get templateVariables(): string[] {
+    return this.templateComponents.bodyParams ?? [];
   }
 
   private _createdAt: Date;
@@ -116,7 +191,16 @@ export class Message extends AggregateRoot implements IMessage {
       status: MessageStatus.RECEIVED,
       externalId: props.externalId ?? null,
       errorReason: null,
+      errorCode: null,
       sentByUserId: null,
+      mediaType: null,
+      pricingCategory: null,
+      billable: null,
+      payload: (props.payload ?? null) as IMessage['payload'],
+      replyToExternalId: props.replyToExternalId ?? null,
+      templateName: null,
+      templateLanguage: null,
+      templateParams: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -135,7 +219,17 @@ export class Message extends AggregateRoot implements IMessage {
       status: MessageStatus.QUEUED,
       externalId: null,
       errorReason: null,
+      errorCode: null,
       sentByUserId: props.sentByUserId ?? null,
+      mediaType: props.mediaType ?? null,
+      pricingCategory: null,
+      billable: null,
+      payload: null,
+      replyToExternalId: null,
+      templateName: props.template?.name ?? null,
+      templateLanguage: props.template?.language ?? null,
+      templateParams: (props.template?.components ??
+        null) as IMessage['templateParams'],
       createdAt: now,
       updatedAt: now,
     });
@@ -147,6 +241,12 @@ export class Message extends AggregateRoot implements IMessage {
     this.transitionTo(MessageStatus.SENT);
   }
 
+  /** Webhook status'tan gelen konuşma kategorisi/faturalanabilirlik bilgisini kaydeder. */
+  public recordPricing(category?: string | null, billable?: boolean | null): void {
+    if (category != null) this._pricingCategory = category;
+    if (billable != null) this._billable = billable;
+  }
+
   public markDelivered(): void {
     this.transitionTo(MessageStatus.DELIVERED);
   }
@@ -155,7 +255,7 @@ export class Message extends AggregateRoot implements IMessage {
     this.transitionTo(MessageStatus.READ);
   }
 
-  public markFailed(reason?: string): void {
+  public markFailed(reason?: string, code?: string | null): void {
     // Teslim edilmiş/okunmuş mesaj geriye FAILED olamaz.
     if (DELIVERY_RANK[this._status] >= DELIVERY_RANK[MessageStatus.DELIVERED]) {
       return;
@@ -164,6 +264,7 @@ export class Message extends AggregateRoot implements IMessage {
     const previousStatus = this._status;
     this._status = MessageStatus.FAILED;
     this._errorReason = reason ?? null;
+    this._errorCode = code ?? null;
     this.addDomainEvent(
       new MessageStatusChangedEvent({
         messageId: this._id,
@@ -186,7 +287,16 @@ export class Message extends AggregateRoot implements IMessage {
       status: this._status,
       externalId: this._externalId,
       errorReason: this._errorReason,
+      errorCode: this._errorCode,
       sentByUserId: this._sentByUserId,
+      mediaType: this._mediaType,
+      pricingCategory: this._pricingCategory,
+      billable: this._billable,
+      payload: this._payload,
+      replyToExternalId: this._replyToExternalId,
+      templateName: this._templateName,
+      templateLanguage: this._templateLanguage,
+      templateParams: this._templateParams,
       createdAt: this._createdAt,
       updatedAt: new Date(),
     };

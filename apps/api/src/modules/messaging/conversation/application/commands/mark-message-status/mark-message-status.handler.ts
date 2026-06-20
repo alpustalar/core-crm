@@ -8,6 +8,12 @@ import {
   IMessageCommandRepository,
   IMessageQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
+import {
+  CONVERSATION_COMMAND_REPOSITORY,
+  CONVERSATION_QUERY_REPOSITORY,
+  IConversationCommandRepository,
+  IConversationQueryRepository,
+} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { MarkMessageStatusCommand } from './mark-message-status.command';
 
@@ -20,6 +26,10 @@ export class MarkMessageStatusHandler
     private readonly messageCommandRepo: IMessageCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
     private readonly messageQueryRepo: IMessageQueryRepository,
+    @Inject(CONVERSATION_QUERY_REPOSITORY)
+    private readonly conversationQueryRepo: IConversationQueryRepository,
+    @Inject(CONVERSATION_COMMAND_REPOSITORY)
+    private readonly conversationCommandRepo: IConversationCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -30,17 +40,33 @@ export class MarkMessageStatusHandler
     // Bilinmeyen mesaj / bizim göndermediğimiz olay → yok say.
     if (!message) return;
 
-    this.applyStatus(message, command.status, command.errorReason);
+    this.applyStatus(message, command);
+    message.recordPricing(
+      command.pricing?.category,
+      command.pricing?.billable
+    );
 
-    await this.txManager.run(() => this.messageCommandRepo.save(message));
+    await this.txManager.run(async () => {
+      await this.messageCommandRepo.save(message);
+
+      // Konuşma penceresi bitişi geldiyse yazışmaya yaz (yalnız pencere açıldığında gelir).
+      if (command.pricing?.windowExpiresAt) {
+        const conversation = await this.conversationQueryRepo.findById(
+          message.conversationId
+        );
+        if (conversation) {
+          conversation.setWindowExpiry(command.pricing.windowExpiresAt);
+          await this.conversationCommandRepo.save(conversation);
+        }
+      }
+    });
   }
 
   private applyStatus(
     message: Message,
-    status: MessageStatus,
-    errorReason?: string | null
+    command: MarkMessageStatusCommand
   ): void {
-    switch (status) {
+    switch (command.status) {
       case MessageStatus.SENT:
         // externalId zaten atanmış olmalı; yalnızca durum ilerletilir.
         message.markSent(message.externalId ?? '');
@@ -52,7 +78,10 @@ export class MarkMessageStatusHandler
         message.markRead();
         break;
       case MessageStatus.FAILED:
-        message.markFailed(errorReason ?? undefined);
+        message.markFailed(
+          command.errorReason ?? undefined,
+          command.errorCode
+        );
         break;
       default:
         break;

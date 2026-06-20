@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
 import { MessageDirectionSchema } from '../inputTypeSchemas/MessageDirectionSchema'
 import { MessageTypeSchema } from '../inputTypeSchemas/MessageTypeSchema'
 import { MessageStatusSchema } from '../inputTypeSchemas/MessageStatusSchema'
@@ -20,7 +21,16 @@ export const MessageSchema = z.object({
   mediaUrl: z.string().nullable(),
   externalId: z.string().nullable(),
   errorReason: z.string().nullable(),
+  errorCode: z.string().nullable(),
   sentByUserId: z.string().nullable(),
+  payload: JsonValueSchema.nullable(),
+  replyToExternalId: z.string().nullable(),
+  mediaType: z.string().nullable(),
+  pricingCategory: z.string().nullable(),
+  billable: z.boolean().nullable(),
+  templateName: z.string().nullable(),
+  templateLanguage: z.string().nullable(),
+  templateParams: JsonValueSchema.nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

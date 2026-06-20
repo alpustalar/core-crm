@@ -13,6 +13,12 @@ export interface ClinicWhatsappChannelView {
   displayPhoneNumber: string | null;
   hasAccessToken: boolean;
   isActive: boolean;
+  /** Aktif ama token yok/expired → FE yeniden bağlama (reconnect) göstermeli. */
+  needsReauth: boolean;
+  tokenExpiresAt: Date | null;
+  /** Webhook'tan gelen son bilinen kalite/limit (canlı değer için health query). */
+  qualityRating: string | null;
+  messagingTier: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

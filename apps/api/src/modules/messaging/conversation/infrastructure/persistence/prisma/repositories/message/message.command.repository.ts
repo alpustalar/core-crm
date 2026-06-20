@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
@@ -15,13 +16,26 @@ export class MessageCommandRepository
 
   async save(entity: Message): Promise<Message> {
     const data = entity.toPersistence();
+    // Prisma nullable Json: JS null yerine Prisma.JsonNull beklenir.
+    const templateParams =
+      data.templateParams === null
+        ? Prisma.JsonNull
+        : (data.templateParams as Prisma.InputJsonValue);
+    const payload =
+      data.payload === null
+        ? Prisma.JsonNull
+        : (data.payload as Prisma.InputJsonValue);
+
     const raw = await this.db.message.upsert({
       where: { id: data.id },
-      create: data,
+      create: { ...data, templateParams, payload },
       update: {
         status: data.status,
         externalId: data.externalId,
         errorReason: data.errorReason,
+        errorCode: data.errorCode,
+        pricingCategory: data.pricingCategory,
+        billable: data.billable,
       },
     });
     entity.flushEvents();

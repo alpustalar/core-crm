@@ -1,11 +1,15 @@
 import { ConversationStatus, MessageChannel } from '@prisma/client';
 import { Conversation as IConversation } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { DateTimeManager } from '@common/utils';
 import { MessageReceivedEvent } from '../events/message-received.event';
 import {
   LinkContactProps,
   StartConversationProps,
 } from '../types/create-conversation.props';
+
+/** WhatsApp müşteri hizmetleri penceresi: son gelen mesajdan itibaren 24 saat. */
+const SERVICE_WINDOW_HOURS = 24;
 
 /**
  * Bir kontak ile yazışma başlığı (thread) — messaging aggregate root. Mesajlar yüksek
@@ -27,6 +31,12 @@ export class Conversation extends AggregateRoot implements IConversation {
     this._status = data.status;
     this._assignedUserId = data.assignedUserId;
     this._lastMessageAt = data.lastMessageAt;
+    this._lastInboundAt = data.lastInboundAt;
+    this._unreadCount = data.unreadCount;
+    this._agentReadAt = data.agentReadAt;
+    this._windowExpiresAt = data.windowExpiresAt;
+    this._marketingOptOut = data.marketingOptOut;
+    this._optOutAt = data.optOutAt;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
@@ -86,6 +96,36 @@ export class Conversation extends AggregateRoot implements IConversation {
     return this._lastMessageAt;
   }
 
+  private _lastInboundAt: Date | null;
+  get lastInboundAt(): Date | null {
+    return this._lastInboundAt;
+  }
+
+  private _unreadCount: number;
+  get unreadCount(): number {
+    return this._unreadCount;
+  }
+
+  private _agentReadAt: Date | null;
+  get agentReadAt(): Date | null {
+    return this._agentReadAt;
+  }
+
+  private _windowExpiresAt: Date | null;
+  get windowExpiresAt(): Date | null {
+    return this._windowExpiresAt;
+  }
+
+  private _marketingOptOut: boolean;
+  get marketingOptOut(): boolean {
+    return this._marketingOptOut;
+  }
+
+  private _optOutAt: Date | null;
+  get optOutAt(): Date | null {
+    return this._optOutAt;
+  }
+
   private _createdAt: Date;
   get createdAt(): Date {
     return this._createdAt;
@@ -111,6 +151,12 @@ export class Conversation extends AggregateRoot implements IConversation {
       status: ConversationStatus.OPEN,
       assignedUserId: null,
       lastMessageAt: null,
+      lastInboundAt: null,
+      unreadCount: 0,
+      agentReadAt: null,
+      windowExpiresAt: null,
+      marketingOptOut: false,
+      optOutAt: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -126,7 +172,10 @@ export class Conversation extends AggregateRoot implements IConversation {
     body: string | null;
     occurredAt?: Date;
   }): void {
-    this._lastMessageAt = input.occurredAt ?? new Date();
+    const at = input.occurredAt ?? new Date();
+    this._lastMessageAt = at;
+    this._lastInboundAt = at;
+    this._unreadCount += 1;
     if (this._status === ConversationStatus.CLOSED) {
       this._status = ConversationStatus.OPEN;
     }
@@ -149,6 +198,29 @@ export class Conversation extends AggregateRoot implements IConversation {
     this._lastMessageAt = at ?? new Date();
   }
 
+  /** Ajan yazışmayı okudu — okunmamış sayacı sıfırlanır, okuma anı kaydedilir. */
+  public markAgentRead(at: Date = new Date()): void {
+    this._unreadCount = 0;
+    this._agentReadAt = at;
+  }
+
+  /** Aktif WhatsApp konuşma penceresi bitiş anını günceller (webhook pricing'ten). */
+  public setWindowExpiry(at: Date | null): void {
+    this._windowExpiresAt = at;
+  }
+
+  /** Kontak pazarlama mesajlarından çıkma (opt-out) talep etti. */
+  public optOutMarketing(at: Date = new Date()): void {
+    this._marketingOptOut = true;
+    this._optOutAt = at;
+  }
+
+  /** Kontak pazarlama mesajlarına yeniden onay verdi (opt-in). */
+  public resumeMarketing(): void {
+    this._marketingOptOut = false;
+    this._optOutAt = null;
+  }
+
   public assign(userId: string): void {
     this._assignedUserId = userId;
     if (this._status === ConversationStatus.OPEN) {
@@ -162,6 +234,18 @@ export class Conversation extends AggregateRoot implements IConversation {
 
   public reopen(): void {
     this._status = ConversationStatus.OPEN;
+  }
+
+  /**
+   * WhatsApp 24s müşteri hizmetleri penceresi açık mı? Pencere açıkken serbest (session)
+   * mesaj gönderilebilir; kapalıyken yalnızca onaylı şablon (HSM) gönderilebilir.
+   */
+  public isWithinServiceWindow(now: Date = new Date()): boolean {
+    if (!this._lastInboundAt) return false;
+    return (
+      DateTimeManager.diffInHours(now, this._lastInboundAt) <
+      SERVICE_WINDOW_HOURS
+    );
   }
 
   /** Kontağı hasta/lead ile eşler (ilkel id; Clinic/Patient ilişkilerine sızılmaz). */
@@ -184,6 +268,12 @@ export class Conversation extends AggregateRoot implements IConversation {
       status: this._status,
       assignedUserId: this._assignedUserId,
       lastMessageAt: this._lastMessageAt,
+      lastInboundAt: this._lastInboundAt,
+      unreadCount: this._unreadCount,
+      agentReadAt: this._agentReadAt,
+      windowExpiresAt: this._windowExpiresAt,
+      marketingOptOut: this._marketingOptOut,
+      optOutAt: this._optOutAt,
       createdAt: this._createdAt,
       updatedAt: new Date(),
     };

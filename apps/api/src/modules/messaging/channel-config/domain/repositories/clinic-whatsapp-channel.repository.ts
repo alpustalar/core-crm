@@ -18,4 +18,8 @@ export interface IClinicWhatsappChannelQueryRepository {
   findByPhoneNumberId(
     phoneNumberId: string
   ): Promise<ClinicWhatsappChannel | null>;
+  /** Kalite/hesap webhook'ları yalnızca display_phone_number taşır → kanal eşleme. */
+  findByDisplayPhoneNumber(
+    displayPhoneNumber: string
+  ): Promise<ClinicWhatsappChannel | null>;
 }

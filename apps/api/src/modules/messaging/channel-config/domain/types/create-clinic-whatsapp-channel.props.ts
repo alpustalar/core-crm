@@ -8,4 +8,9 @@ export interface CreateClinicWhatsappChannelProps {
   accessToken?: string | null;
   verifyToken?: string | null;
   isActive?: boolean;
+  registrationPin?: string | null;
+  registeredAt?: Date | null;
+  tokenExpiresAt?: Date | null;
+  qualityRating?: string | null;
+  messagingTier?: string | null;
 }

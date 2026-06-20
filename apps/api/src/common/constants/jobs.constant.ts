@@ -31,3 +31,18 @@ export const META_ADS_JOBS = {
 export const HEALTH_TOURISM_JOBS = {
   SYNC_HOTEL_CONTENT: 'health-tourism-sync-hotel-content',
 } as const;
+
+export const MESSAGING_JOBS = {
+  SEND_MESSAGE: 'messaging-send-message',
+} as const;
+
+/** Outbound mesaj job'unun deneme sayısı (producer + processor son-deneme tespiti). */
+export const MESSAGING_SEND_MAX_ATTEMPTS = 5;
+
+/**
+ * Giden mesaj kuyruğu rate-limit'i (worker-global). WhatsApp Cloud API varsayılan ~80
+ * msg/s; limiter olmadan yoğun anda 429 + gereksiz retry olur. Per-numara limit ileri
+ * iş (BullMQ groups) — şimdilik worker geneli güvenli üst sınır.
+ */
+export const MESSAGING_SEND_RATE_MAX = 80;
+export const MESSAGING_SEND_RATE_DURATION_MS = 1000;

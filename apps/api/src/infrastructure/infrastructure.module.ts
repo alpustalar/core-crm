@@ -14,7 +14,7 @@ import { Module } from '@nestjs/common';
       isGlobal: true,
       envFilePath: `envs/.env.${process.env.NODE_ENV ?? 'development'}`,
       validationSchema: Joi.object({
-        [ENV.PORT]: Joi.number().default(8080),
+        [ENV.PORT]: Joi.number().required(),
         [ENV.DATABASE_URL]: Joi.string().required(),
         [ENV.MONGODB_URI]: Joi.string().required(),
         [ENV.REDIS_URL]: Joi.string().required(),
@@ -23,6 +23,7 @@ import { Module } from '@nestjs/common';
         [ENV.IYZICO_API_KEY]: Joi.string().required(),
         [ENV.IYZICO_SECRET_KEY]: Joi.string().required(),
         [ENV.IYZICO_BASE_URL]: Joi.string().uri().required(),
+        // TODO: diğer env değişkenleri schemaya eklenecek
       }),
     }),
     ThrottlerModule.forRoot([

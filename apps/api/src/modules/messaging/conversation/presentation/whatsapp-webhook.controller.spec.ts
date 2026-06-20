@@ -5,6 +5,7 @@ import { Request } from 'express';
 import * as crypto from 'crypto';
 import { WhatsappWebhookController } from './whatsapp-webhook.controller';
 import { ReceiveInboundMessageCommand } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.command';
+import { MarkMessageStatusCommand } from '@modules/messaging/conversation/application/commands/mark-message-status/mark-message-status.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
@@ -130,6 +131,188 @@ describe('WhatsappWebhookController (public webhook)', () => {
 
       expect(result).toEqual({ status: 'ok' });
       expect(commandBus.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('zengin gelen mesaj tipleri (mapContent)', () => {
+    // Tek bir gelen mesajı sarmalayıp dispatch edilen komutun input'unu döndürür.
+    const dispatchMessage = async (
+      message: Record<string, unknown>
+    ): Promise<{
+      type: string;
+      body: string | null;
+      mediaUrl: string | null;
+      payload: unknown;
+      replyToExternalId: string | null;
+    }> => {
+      const { controller, commandBus } = build({
+        clinicId: 'clinic-1',
+        organizationId: 'org-1',
+        id: 'ch-1',
+        isActive: true,
+      });
+      const payload = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: 'waba-1',
+            changes: [
+              {
+                field: 'messages',
+                value: {
+                  metadata: { phone_number_id: 'pn-1' },
+                  messages: [{ from: '90555', id: 'wamid.x', ...message }],
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const req = makeReq(payload);
+      await controller.receive(req, sign(req.rawBody!));
+      return (commandBus.execute as jest.Mock).mock.calls[0][0].input;
+    };
+
+    it('interactive button_reply → INTERACTIVE + başlık body + payload', async () => {
+      const input = await dispatchMessage({
+        type: 'interactive',
+        interactive: {
+          type: 'button_reply',
+          button_reply: { id: 'btn-evet', title: 'Evet' },
+        },
+      });
+      expect(input.type).toBe('INTERACTIVE');
+      expect(input.body).toBe('Evet');
+      expect(input.payload).toEqual({
+        kind: 'interactive',
+        interactiveType: 'button_reply',
+        replyId: 'btn-evet',
+        title: 'Evet',
+      });
+    });
+
+    it('location → LOCATION + isim body + lat/long payload', async () => {
+      const input = await dispatchMessage({
+        type: 'location',
+        location: {
+          latitude: 41.01,
+          longitude: 28.97,
+          name: 'Klinik',
+          address: 'İstanbul',
+        },
+      });
+      expect(input.type).toBe('LOCATION');
+      expect(input.body).toBe('Klinik');
+      expect(input.payload).toEqual({
+        kind: 'location',
+        latitude: 41.01,
+        longitude: 28.97,
+        name: 'Klinik',
+        address: 'İstanbul',
+      });
+    });
+
+    it('reaction → REACTION + emoji body + hedef wamid payload', async () => {
+      const input = await dispatchMessage({
+        type: 'reaction',
+        reaction: { message_id: 'wamid.target', emoji: '👍' },
+      });
+      expect(input.type).toBe('REACTION');
+      expect(input.body).toBe('👍');
+      expect(input.payload).toEqual({
+        kind: 'reaction',
+        emoji: '👍',
+        targetExternalId: 'wamid.target',
+      });
+    });
+
+    it('contacts → CONTACTS + kişi listesi payload', async () => {
+      const input = await dispatchMessage({
+        type: 'contacts',
+        contacts: [{ name: { formatted_name: 'Dr. Ada' } }],
+      });
+      expect(input.type).toBe('CONTACTS');
+      expect(input.payload).toEqual({
+        kind: 'contacts',
+        contacts: [{ name: { formatted_name: 'Dr. Ada' } }],
+      });
+    });
+
+    it('bilinmeyen tip → UNSUPPORTED (gövdesiz)', async () => {
+      const input = await dispatchMessage({ type: 'order', order: {} });
+      expect(input.type).toBe('UNSUPPORTED');
+      expect(input.body).toBeNull();
+      expect(input.payload).toBeNull();
+    });
+
+    it('context.id → replyToExternalId yakalanır (alıntı)', async () => {
+      const input = await dispatchMessage({
+        type: 'text',
+        text: { body: 'cevap' },
+        context: { id: 'wamid.quoted', from: '90555' },
+      });
+      expect(input.type).toBe('TEXT');
+      expect(input.replyToExternalId).toBe('wamid.quoted');
+    });
+  });
+
+  describe('status webhook — FAILED hata-kodu eşleme', () => {
+    const statusPayload = (status: Record<string, unknown>) => ({
+      object: 'whatsapp_business_account',
+      entry: [
+        {
+          id: 'waba-1',
+          changes: [
+            {
+              field: 'messages',
+              value: { metadata: { phone_number_id: 'pn-1' }, statuses: [status] },
+            },
+          ],
+        },
+      ],
+    });
+
+    it('failed status → kod TR nedene çevrilir + errorCode taşınır', async () => {
+      const { controller, commandBus } = build({
+        clinicId: 'clinic-1',
+        organizationId: 'org-1',
+        id: 'ch-1',
+        isActive: true,
+      });
+      const req = makeReq(
+        statusPayload({
+          id: 'wamid.out.1',
+          status: 'failed',
+          errors: [{ code: 131047, title: 'Re-engagement message' }],
+        })
+      );
+
+      await controller.receive(req, sign(req.rawBody!));
+
+      const cmd = (commandBus.execute as jest.Mock).mock.calls[0][0];
+      expect(cmd).toBeInstanceOf(MarkMessageStatusCommand);
+      expect(cmd.status).toBe('FAILED');
+      expect(cmd.errorReason).toMatch(/24 saatlik/);
+      expect(cmd.errorCode).toBe('131047');
+    });
+
+    it('delivered status → reason/kod taşınmaz', async () => {
+      const { controller, commandBus } = build({
+        clinicId: 'clinic-1',
+        organizationId: 'org-1',
+        id: 'ch-1',
+        isActive: true,
+      });
+      const req = makeReq(
+        statusPayload({ id: 'wamid.out.1', status: 'delivered' })
+      );
+
+      await controller.receive(req, sign(req.rawBody!));
+
+      const cmd = (commandBus.execute as jest.Mock).mock.calls[0][0];
+      expect(cmd.status).toBe('DELIVERED');
+      expect(cmd.errorReason).toBeNull();
+      expect(cmd.errorCode).toBeNull();
     });
   });
 });

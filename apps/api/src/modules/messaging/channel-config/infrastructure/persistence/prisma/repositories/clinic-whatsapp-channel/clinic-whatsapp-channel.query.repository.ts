@@ -30,4 +30,13 @@ export class ClinicWhatsappChannelQueryRepository
     });
     return raw ? new ClinicWhatsappChannel(raw) : null;
   }
+
+  async findByDisplayPhoneNumber(
+    displayPhoneNumber: string
+  ): Promise<ClinicWhatsappChannel | null> {
+    const raw = await this.db.clinicWhatsappChannel.findFirst({
+      where: { displayPhoneNumber },
+    });
+    return raw ? new ClinicWhatsappChannel(raw) : null;
+  }
 }

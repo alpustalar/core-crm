@@ -25,6 +25,12 @@ export class ConversationCommandRepository
         status: data.status,
         assignedUserId: data.assignedUserId,
         lastMessageAt: data.lastMessageAt,
+        lastInboundAt: data.lastInboundAt,
+        unreadCount: data.unreadCount,
+        agentReadAt: data.agentReadAt,
+        windowExpiresAt: data.windowExpiresAt,
+        marketingOptOut: data.marketingOptOut,
+        optOutAt: data.optOutAt,
       },
     });
     entity.flushEvents();
