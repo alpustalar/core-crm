@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
-import { CreatePosTransactionData } from '@modules/finance/pos/physical/domain/types/create-pos-transaction.data';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
 
 @Injectable()
 export class PosTransactionCommandRepository
@@ -14,7 +14,7 @@ export class PosTransactionCommandRepository
     super(prisma);
   }
 
-  async create(props: CreatePosTransactionData): Promise<PosTransaction> {
+  async create(props: CreatePosTransactionProps): Promise<PosTransaction> {
     const raw = await this.db.posTransaction.create({
       data: {
         id: props.id,

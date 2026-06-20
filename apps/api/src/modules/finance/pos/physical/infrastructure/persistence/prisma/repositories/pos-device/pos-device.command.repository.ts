@@ -3,7 +3,7 @@ import { PosDevice } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosDeviceCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/types/create-pos-device.data';
+import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
 
 @Injectable()
 export class PosDeviceCommandRepository
@@ -14,8 +14,8 @@ export class PosDeviceCommandRepository
     super(prisma);
   }
 
-  create(props: CreatePosDeviceData): Promise<PosDevice> {
-    return this.db.posDevice.create({ data: props });
+  create(data: CreatePosDeviceData): Promise<PosDevice> {
+    return this.db.posDevice.create({ data });
   }
 
   deactivate(id: string): Promise<PosDevice> {

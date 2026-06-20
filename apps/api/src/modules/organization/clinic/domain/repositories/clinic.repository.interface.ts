@@ -1,6 +1,6 @@
 import { Clinic as ClinicEntity } from '@modules/organization/clinic/domain/entities/clinic.entity';
-import { ClinicDetails } from '@modules/organization/clinic/domain/types/clinic-details.type';
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { ClinicDetails } from '@modules/organization/clinic/domain/clinic.contracts';
 
 export const CLINIC_COMMAND_REPOSITORY = Symbol('IClinicCommandRepository');
 export const CLINIC_QUERY_REPOSITORY = Symbol('IClinicQueryRepository');

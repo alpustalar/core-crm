@@ -16,7 +16,7 @@ import { Public } from '@common/decorators/public.decorator';
 export class PatientController {
   constructor(
     private readonly commandBus: TSCommandBus,
-    private readonly patientAuthService: PatientAuthService,
+    private readonly patientAuthService: PatientAuthService
   ) {}
 
   @Public()
@@ -33,7 +33,7 @@ export class PatientController {
         patientName: patient.firstName,
         patientPhone: patient.phone,
         patientEmail: patient.email,
-      }),
+      })
     );
   }
 

@@ -4,10 +4,12 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import type { ISubscriptionCommandRepository } from '@modules/finance/subscription/domain/repositories/subscription.repository.interface';
 import { Subscription } from '@modules/finance/subscription/domain/entities/subscription.entity';
 import { SubscriptionItem } from '@modules/finance/subscription/domain/entities/subscription-item.entity';
-import type { CreateSubscriptionData } from '@modules/finance/subscription/domain/types/create-subscription.data';
-import type { AddItemData } from '@modules/finance/subscription/domain/types/add-item.data';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { SubStatusType as SubStatus } from '@input-type-schemas/SubStatusSchema';
+import {
+  AddItemData,
+  CreateSubscriptionData,
+} from '@modules/finance/subscription/domain/subscription.contracts';
 
 @Injectable()
 export class SubscriptionCommandRepository

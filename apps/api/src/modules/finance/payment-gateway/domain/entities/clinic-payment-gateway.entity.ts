@@ -1,6 +1,6 @@
 import { ClinicPaymentGateway as IClinicPaymentGateway } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateClinicPaymentGatewayProps } from '../types/create-clinic-payment-gateway.props';
+import { CreateClinicPaymentGatewayProps } from '@modules/finance/payment-gateway/domain/payment-gateway.contracts';
 
 /**
  * Kliniğin ödeme altyapısı (finance bounded-context). Clinic'ten ayrıştırılmış

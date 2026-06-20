@@ -1,6 +1,6 @@
 import { CreateClinicDto } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateClinicInternalRelations } from '@modules/organization/clinic/domain/types/create-clinic-internal-relations.type';
+import { CreateClinicInternalRelations } from '@modules/organization/clinic/domain/clinic.contracts';
 
 export class CreateClinicCommand {
   constructor(

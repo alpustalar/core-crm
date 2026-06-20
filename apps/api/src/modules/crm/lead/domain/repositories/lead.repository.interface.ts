@@ -1,13 +1,15 @@
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
-import { CreateLeadProps } from '@modules/crm/lead/domain/types/create-lead.props';
-import { FindLeadsFilter } from '@modules/crm/lead/domain/types/find-leads.type';
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import {
+  CreateLeadProps,
+  FindLeadsFilter,
+} from '@modules/crm/lead/domain/lead-contracts';
 
 export const LEAD_COMMAND_REPOSITORY = Symbol('ILeadCommandRepository');
 export const LEAD_QUERY_REPOSITORY = Symbol('ILeadQueryRepository');
 
 export interface ILeadCommandRepository extends IBaseCommandRepository<Lead> {
-  create(props: CreateLeadProps): Promise<Lead>;
+  create(data: CreateLeadProps): Promise<Lead>;
 }
 
 export interface ILeadQueryRepository {

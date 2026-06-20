@@ -2,11 +2,13 @@ import { Module as IModule } from '@shared';
 
 import { Subscription } from '@modules/finance/subscription/domain/entities/subscription.entity';
 import { SubscriptionItem } from '@modules/finance/subscription/domain/entities/subscription-item.entity';
-import { CreateSubscriptionData } from '@modules/finance/subscription/domain/types/create-subscription.data';
-import { AddItemData } from '@modules/finance/subscription/domain/types/add-item.data';
-import { SubscriptionWithItems } from '@modules/finance/subscription/domain/types/subscription-with-items.type';
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 import { SubStatusType as SubStatus } from '@input-type-schemas/SubStatusSchema';
+import {
+  AddItemData,
+  CreateSubscriptionData,
+  SubscriptionWithItems,
+} from '@modules/finance/subscription/domain/subscription.contracts';
 
 export const SUBSCRIPTION_COMMAND_REPOSITORY = Symbol(
   'ISubscriptionCommandRepository'

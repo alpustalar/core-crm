@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { AuthUserResponse } from '@modules/identity/user/domain/types/auth-user-response.type';
+import { AuthUserResponse } from '@modules/identity/user/domain/user.contracts';
 
 export type FindUserForAuthQueryResponse =
   QueryResponse<AuthUserResponse | null>;

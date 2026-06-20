@@ -1,6 +1,6 @@
 import { CreateUserDto } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateUserInternalRelations } from '@modules/identity/user/domain/types/create-user-internal-relations.type';
+import { CreateUserInternalRelations } from '@modules/identity/user/domain/user.contracts';
 
 export class CreateUserCommand {
   constructor(

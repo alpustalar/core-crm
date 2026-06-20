@@ -26,10 +26,8 @@ export const CreateTreatmentPackageSchema = z.object({
   controlCount: z.number().int().min(0),
   validityDays: z.number().int().min(1),
 
-  // Private constructor krizini çözen esnek custom tanımı:
   price: z.custom<Money>((val) => val instanceof Money),
 
-  // Interface'indeki gibi opsiyonel diziler:
   providerIds: z.array(z.uuid()).optional(),
   items: z.array(TreatmentPackageItemSchema).optional(),
 });

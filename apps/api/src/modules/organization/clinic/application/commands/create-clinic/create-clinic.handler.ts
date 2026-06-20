@@ -2,7 +2,6 @@ import {
   CLINIC_COMMAND_REPOSITORY,
   IClinicCommandRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
-import { CreateClinicProps } from '@modules/organization/clinic/domain/types/create-clinic.props';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -13,6 +12,7 @@ import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CreateClinicCommand } from './create-clinic.command';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
+import { CreateClinicProps } from '@modules/organization/clinic/domain/clinic.contracts';
 
 @CommandHandler(CreateClinicCommand)
 export class CreateClinicHandler

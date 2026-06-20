@@ -62,7 +62,7 @@ export class SyncCampaignMetricsHandler
         );
 
         if (insights.length > 0) {
-          await this.metricCommandRepo.upsertMany(
+          await this.metricCommandRepo.saveMany(
             insights.map((insight) => ({
               id: randomUUID(),
               metaAdAccountId: account.id,

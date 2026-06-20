@@ -3,8 +3,8 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindPatientByContactQuery } from './find-patient-by-contact.query';
 import { FindPatientByContactResponse } from './find-patient-by-contact.response';
 import {
-  IPatientRepository,
-  PATIENT_REPOSITORY,
+  IPatientQueryRepository,
+  PATIENT_QUERY_REPOSITORY,
 } from '@modules/crm/patient/domain/repositories/patient.repository.interface';
 
 @QueryHandler(FindPatientByContactQuery)
@@ -13,18 +13,23 @@ export class FindPatientByContactHandler
     IQueryHandler<FindPatientByContactQuery, FindPatientByContactResponse>
 {
   constructor(
-    @Inject(PATIENT_REPOSITORY)
-    private readonly patientRepo: IPatientRepository
+    @Inject(PATIENT_QUERY_REPOSITORY)
+    private readonly patientQueryRepo: IPatientQueryRepository
   ) {}
 
   async execute(
     query: FindPatientByContactQuery
   ): Promise<FindPatientByContactResponse> {
-    const patient = await this.patientRepo.findByContact({
-      clinicId: query.clinicId,
+    const patient = await this.patientQueryRepo.findByContact({
+      organizationId: query.clinicId,
       phone: query.phone,
       email: query.email,
     });
+
+    if (!patient) {
+      throw new Error('Misafir bulunamadı');
+    }
+
     return { data: patient };
   }
 }

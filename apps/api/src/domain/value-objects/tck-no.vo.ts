@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
-export class NationalId {
+export class TckNo {
   private static readonly schema = z
     .string()
     .length(11)
@@ -10,7 +10,7 @@ export class NationalId {
   private readonly _value: string;
 
   constructor(value: string) {
-    const result = NationalId.schema.safeParse(value);
+    const result = TckNo.schema.safeParse(value);
 
     if (!result.success) {
       throw new BadRequestException('Geçersiz TCKN formatı.');
@@ -30,7 +30,7 @@ export class NationalId {
   static tryParse(tcNo: string | null | undefined): string | null {
     if (!tcNo) return null;
     try {
-      return new NationalId(tcNo).value;
+      return new TckNo(tcNo).value;
     } catch {
       return null;
     }

@@ -3,8 +3,8 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { Clinic as ClinicEntity } from '@modules/organization/clinic/domain/entities/clinic.entity';
-import { ClinicDetails } from '@modules/organization/clinic/domain/types/clinic-details.type';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
+import { ClinicDetails } from '@modules/organization/clinic/domain/clinic.contracts';
 
 @Injectable()
 export class ClinicQueryRepository

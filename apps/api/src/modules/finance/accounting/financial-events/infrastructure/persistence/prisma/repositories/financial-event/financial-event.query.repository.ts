@@ -6,7 +6,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IFinancialEventQueryRepository } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event.repository';
 import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
-import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/types/find-financial-events.filter';
+import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
 
 @Injectable()
 export class FinancialEventQueryRepository

@@ -1,12 +1,14 @@
 import { Pagination } from '@shared';
 import { User as PrismaUser } from '@prisma/client';
-import { AuthUserResponse } from '@modules/identity/user/domain/types/auth-user-response.type';
-import { FindUsersByClinicIdsData } from '@modules/identity/user/domain/types/find-users-by-clinic-ids.data';
-import { FindUsersByOrganizationIdsData } from '@modules/identity/user/domain/types/find-users-by-organization-ids.data';
-import { PaginatedUsers } from '@modules/identity/user/domain/types/paginated-users.type';
 import { MapPaginationResult } from '@src/infrastructure/persistence/prisma/base.repository';
 import { User } from '@modules/identity/user/domain/entities/user.entity';
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import {
+  AuthUserResponse,
+  FindUsersByClinicIdsFilter,
+  FindUsersByOrganizationIdsFilter,
+  PaginatedUsers,
+} from '@modules/identity/user/domain/user.contracts';
 
 export const USER_COMMAND_REPOSITORY = Symbol('IUserCommandRepository');
 export const USER_QUERY_REPOSITORY = Symbol('IUserQueryRepository');
@@ -31,7 +33,7 @@ export interface IUserQueryRepository {
     where?: Record<string, unknown>
   ): Promise<MapPaginationResult<User>>;
   listByOrganizationIds(
-    data: FindUsersByOrganizationIdsData
+    data: FindUsersByOrganizationIdsFilter
   ): Promise<PaginatedUsers>;
-  listByClinicIds(data: FindUsersByClinicIdsData): Promise<PaginatedUsers>;
+  listByClinicIds(data: FindUsersByClinicIdsFilter): Promise<PaginatedUsers>;
 }

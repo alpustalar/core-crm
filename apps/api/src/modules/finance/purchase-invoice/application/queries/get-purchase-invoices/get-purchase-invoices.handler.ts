@@ -9,7 +9,8 @@ import { GetPurchaseInvoicesResponse } from './get-purchase-invoices.response';
 
 @QueryHandler(GetPurchaseInvoicesQuery)
 export class GetPurchaseInvoicesHandler
-  implements IQueryHandler<GetPurchaseInvoicesQuery, GetPurchaseInvoicesResponse>
+  implements
+    IQueryHandler<GetPurchaseInvoicesQuery, GetPurchaseInvoicesResponse>
 {
   constructor(
     @Inject(PURCHASE_INVOICE_QUERY_REPOSITORY)
@@ -39,10 +40,10 @@ export class GetPurchaseInvoicesHandler
           invoiceDate: invoice.invoiceDate,
           lineAccountCode: invoice.lineAccountCode,
           vatRate: invoice.vatRate,
-          netTotal: invoice.netTotal.toFixed(2),
-          vatTotal: invoice.vatTotal.toFixed(2),
-          grandTotal: invoice.grandTotal.toFixed(2),
-          currency: invoice.currency,
+          netTotal: invoice.netTotal.toApiFormat(),
+          vatTotal: invoice.vatTotal.toApiFormat(),
+          grandTotal: invoice.grandTotal.toApiFormat(),
+          currency: invoice.grandTotal.currency,
           status: invoice.status,
         })),
         total,

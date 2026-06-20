@@ -1,10 +1,15 @@
 import type { Clinic, Role, User as IUser } from '@shared';
-import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
+import {
+  GlobalStatusSchema,
+  GlobalStatusType,
+} from '@input-type-schemas/GlobalStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { UpdateDetailsProps } from '@modules/identity/user/domain/types/update-details.props';
 import { UpdateUserByStaffEvent } from '@modules/identity/user/domain/events/update-user-by-staff.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
-import { CreateUserProps } from '@modules/identity/user/domain/types/create-user.props';
+import {
+  CreateUserProps,
+  UpdateDetailsProps,
+} from '@modules/identity/user/domain/user.contracts';
 
 export type UserWithRelations = IUser & {
   role: Role | null;
@@ -152,7 +157,7 @@ export class User extends AggregateRoot implements IUser {
   // Domain query methods
 
   get isActive(): boolean {
-    return this._status === 'ACTIVE' && !this.isDeleted;
+    return this._status === GlobalStatusSchema.enum.ACTIVE && !this.isDeleted;
   }
 
   static create(props: CreateUserProps): User {

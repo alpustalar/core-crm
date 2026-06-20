@@ -3,7 +3,9 @@ import { Inject } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
+import {
+  GetChartOfAccountsQuery
+} from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import {
   IJournalCommandRepository,
   IJournalQueryRepository,
@@ -12,20 +14,20 @@ import {
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { AccountResolver } from '@modules/finance/accounting/posting/domain/posting/account-resolver';
-import { CreateJournalEntryLineInput } from '@modules/finance/accounting/posting/domain/types/create-journal-entry.props';
 import { GenerateYearEndClosingCommand } from './generate-year-end-closing.command';
+import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
 
 const RESULT_ACCOUNT_PREFIXES = ['6', '7']; // gelir/gider/maliyet sonuç hesapları
 const SUMMARY_ACCOUNT_PREFIX = '69'; // 690/691/692 dönem sonucu özeti — kapatılmaz
 
-interface PostClosingEntryInput {
+interface PostClosingEntryProps {
   clinicId: string;
   organizationId: string;
   periodId: string;
   entryDate: Date;
   description: string;
   performedById?: string | null;
-  lines: CreateJournalEntryLineInput[];
+  lines: CreateJournalEntryLineProps[];
 }
 
 @CommandHandler(GenerateYearEndClosingCommand)
@@ -57,7 +59,7 @@ export class GenerateYearEndClosingHandler
     });
 
     // Sonuç hesaplarını (6xx/7xx, 69x hariç) net bakiyeleriyle kapat.
-    const closingLines: CreateJournalEntryLineInput[] = [];
+    const closingLines: CreateJournalEntryLineProps[] = [];
     let incomeTotal = new Decimal(0); // alacak bakiyeli (gelir)
     let expenseTotal = new Decimal(0); // borç bakiyeli (gider)
 
@@ -130,10 +132,18 @@ export class GenerateYearEndClosingHandler
 
       const account590 = resolver.resolve('590');
       const account591 = resolver.resolve('591');
-      const entryBLines: CreateJournalEntryLineInput[] = profit.isPositive()
+      const entryBLines: CreateJournalEntryLineProps[] = profit.isPositive()
         ? [
-            { accountId: account690.id, debit: profit, lineDesc: 'Dönem net kârı devri' },
-            { accountId: account590.id, credit: profit, lineDesc: 'Dönem Net Kârı' },
+            {
+              accountId: account690.id,
+              debit: profit,
+              lineDesc: 'Dönem net kârı devri',
+            },
+            {
+              accountId: account590.id,
+              credit: profit,
+              lineDesc: 'Dönem Net Kârı',
+            },
           ]
         : [
             {
@@ -163,20 +173,20 @@ export class GenerateYearEndClosingHandler
     );
   }
 
-  private async postClosingEntry(input: PostClosingEntryInput): Promise<void> {
+  private async postClosingEntry(props: PostClosingEntryProps): Promise<void> {
     const entry = JournalEntry.createDraft({
-      clinicId: input.clinicId,
-      organizationId: input.organizationId,
-      periodId: input.periodId,
-      entryDate: input.entryDate,
-      description: input.description,
+      clinicId: props.clinicId,
+      organizationId: props.organizationId,
+      periodId: props.periodId,
+      entryDate: props.entryDate,
+      description: props.description,
       eventId: null,
-      performedById: input.performedById,
-      lines: input.lines,
+      performedById: props.performedById,
+      lines: props.lines,
     });
     const entryNo = await this.journalCommandRepo.nextEntryNo(
-      input.clinicId,
-      input.periodId
+      props.clinicId,
+      props.periodId
     );
     entry.post(entryNo);
     await this.journalCommandRepo.save(entry);

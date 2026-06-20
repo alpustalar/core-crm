@@ -10,7 +10,7 @@ export interface ResolveDocumentTypeInput {
 }
 
 /**
- * Belge türünü çözer (doc 07 §2):
+ * Belge türünü çözer
  *   SERBEST_MESLEK                        → E_SMM   (muayenehane)
  *   KURUM + alıcı e-Fatura mükellefi      → E_FATURA
  *   KURUM + bireysel (nihai tüketici)     → E_ARSIV

@@ -1,7 +1,6 @@
 import { CreateOrganizationDto } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-
-import { CreateOrganizationInternalRelationsProps } from '@modules/organization/organization/domain/types/create-organization-internal-relations.props';
+import { CreateOrganizationInternalRelationsProps } from '@modules/organization/organization/domain/organization.contracts';
 
 export class CreateOrganizationCommand {
   constructor(

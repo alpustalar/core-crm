@@ -26,9 +26,9 @@ export class CreatePaymentHandler
   async execute(
     command: CreatePaymentCommand
   ): Promise<CreatePaymentCommandResponse> {
-    const { dto, internalData } = command;
-    const paymentId = internalData?.paymentId ?? randomUUID();
-    const installmentId = internalData?.installmentId ?? randomUUID();
+    const { dto, internalRelations } = command;
+    const paymentId = internalRelations?.paymentId ?? randomUUID();
+    const installmentId = internalRelations?.installmentId ?? randomUUID();
     const amount = new Decimal(dto.amount);
     const totalAmount = Money.create(amount, dto.currency);
 

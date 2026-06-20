@@ -2,13 +2,13 @@ import { Clinic as IClinic, Organization, Sector, UpdateClinic } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { ClinicCreatedEvent } from '@modules/organization/clinic/domain/events/clinic-created.event';
 import { ClinicSoftDeletedEvent } from '@modules/organization/clinic/domain/events/clinic-soft-deleted.event';
-import { CreateClinicProps } from '@modules/organization/clinic/domain/types/create-clinic.props';
 import { slugIt } from '@common/utils';
 import { randomUUID } from 'crypto';
 import {
   GlobalStatusSchema,
   GlobalStatusType as GlobalStatus,
 } from '@input-type-schemas/GlobalStatusSchema';
+import { CreateClinicProps } from '@modules/organization/clinic/domain/clinic.contracts';
 
 export class Clinic extends AggregateRoot implements IClinic {
   constructor(data: IClinic) {

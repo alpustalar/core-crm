@@ -4,11 +4,11 @@ import PaymentStatusSchema, {
   PaymentStatusType as PaymentStatus,
 } from '@input-type-schemas/PaymentStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreatePaymentProps } from '@modules/finance/payment/domain/types/create-payment.props';
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { BadRequestException } from '@nestjs/common';
+import { CreatePaymentProps } from '@modules/finance/payment/domain/payment.contracts';
 
 export type PaymentWithInstallmentsData = IPayment & {
   installments: PaymentInstallment[];

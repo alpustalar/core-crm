@@ -1,9 +1,9 @@
 import { Party as IParty } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreatePartyProps } from '../types/create-party.props';
 import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
 import { PartyRoleType as PartyRole } from '@input-type-schemas/PartyRoleSchema';
 import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
+import { CreatePartyProps } from '@modules/finance/party/domain/party.contracts';
 
 export class Party extends AggregateRoot {
   constructor(data: IParty) {

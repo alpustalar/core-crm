@@ -3,8 +3,8 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaAdAccountCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
-import { CreateMetaAdAccountProps } from '@modules/crm/meta-ads/domain/types/create-meta-ad-account.props';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { CreateMetaAdAccountData } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
 
 @Injectable()
 export class MetaAdAccountCommandRepository
@@ -15,16 +15,16 @@ export class MetaAdAccountCommandRepository
     super(prisma);
   }
 
-  async create(props: CreateMetaAdAccountProps): Promise<MetaAdAccount> {
+  async create(data: CreateMetaAdAccountData): Promise<MetaAdAccount> {
     const raw = await this.db.metaAdAccount.create({
       data: {
-        id: props.id,
-        clinicId: props.clinicId,
-        adAccountId: props.adAccountId,
-        accessToken: props.accessToken,
-        tokenExpiresAt: props.tokenExpiresAt ?? null,
-        pageId: props.pageId ?? null,
-        businessName: props.businessName ?? null,
+        id: data.id,
+        clinicId: data.clinicId,
+        adAccountId: data.adAccountId,
+        accessToken: data.accessToken,
+        tokenExpiresAt: data.tokenExpiresAt ?? null,
+        pageId: data.pageId ?? null,
+        businessName: data.businessName ?? null,
       },
     });
     return new MetaAdAccount(raw);

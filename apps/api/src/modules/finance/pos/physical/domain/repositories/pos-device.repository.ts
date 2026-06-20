@@ -1,5 +1,5 @@
 import { PosDevice } from '@prisma/client';
-import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/types/create-pos-device.data';
+import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
 
 export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
   'IPosDeviceCommandRepository'

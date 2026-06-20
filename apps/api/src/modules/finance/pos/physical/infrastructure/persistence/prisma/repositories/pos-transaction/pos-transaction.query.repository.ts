@@ -3,8 +3,8 @@ import { PosTransactionStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionQueryRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
-import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/types/pending-transaction-for-reconcile.type';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
 
 @Injectable()
 export class PosTransactionQueryRepository

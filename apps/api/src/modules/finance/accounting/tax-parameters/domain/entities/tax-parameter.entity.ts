@@ -3,7 +3,7 @@ import { Decimal } from 'decimal.js';
 import { randomUUID } from 'crypto';
 import { BadRequestException } from '@nestjs/common';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateTaxParameterProps } from '../types/set-tax-parameter.props';
+import { CreateTaxParameterProps } from '@modules/finance/accounting/tax-parameters/domain/tax-parameters.contracts';
 import { TaxParameterKeyType as TaxParameterKey } from '@input-type-schemas/TaxParameterKeySchema';
 
 /**

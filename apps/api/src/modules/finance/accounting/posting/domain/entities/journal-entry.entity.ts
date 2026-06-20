@@ -4,13 +4,15 @@ import {
   JournalLine as IJournalLine,
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateJournalEntryProps } from '../types/create-journal-entry.props';
-import { BuildReversalDraftProps } from '../types/reverse-journal-entry.props';
 import { JournalLine } from './journal-line.entity';
 import { JournalEntrySequence } from '@modules/finance/shared/domain/value-objects/journal-entry-sequence.vo';
 import { JournalLines } from '@modules/finance/accounting/posting/domain/value-objects/journal-lines.vo';
 import { BadRequestException } from '@nestjs/common';
 import { JournalEntryStatusType as JournalEntryStatus } from '@input-type-schemas/JournalEntryStatusSchema';
+import {
+  BuildReversalDraftProps,
+  CreateJournalEntryProps,
+} from '@modules/finance/accounting/posting/domain/posting.contracts';
 
 /**
  * Yevmiye fişi (aggregate root). Satırlarını (JournalLine) içinde tutar.
@@ -151,6 +153,11 @@ export class JournalEntry extends AggregateRoot {
     return entry;
   }
 
+  /** bigint sıra no → en az 3 haneli string ('1' → '001'). VO min-3 kuralı için. */
+  private static formatEntryNo(entryNo: bigint): string {
+    return entryNo.toString().padStart(3, '0');
+  }
+
   /** Denge ve yapısal aggregate invariant'larını doğrular. */
   public validateStructure(): void {
     // Koleksiyon VO'nun sunduğu metodlar ile doğrulama
@@ -176,10 +183,6 @@ export class JournalEntry extends AggregateRoot {
     this._status = JournalEntryStatusSchema.enum.POSTED;
   }
 
-  /** bigint sıra no → en az 3 haneli string ('1' → '001'). VO min-3 kuralı için. */
-  private static formatEntryNo(entryNo: bigint): string {
-    return entryNo.toString().padStart(3, '0');
-  }
   public isPosted(): boolean {
     return this._status === JournalEntryStatusSchema.enum.POSTED;
   }
@@ -223,15 +226,6 @@ export class JournalEntry extends AggregateRoot {
     this._reversedById = reversalId;
   }
 
-  private ensureReversible(): void {
-    if (!this.isPosted()) {
-      throw new BadRequestException('Yalnızca POSTED fişler storno edilebilir.');
-    }
-    if (this._reversedById) {
-      throw new BadRequestException('Fiş zaten storno edilmiş.');
-    }
-  }
-
   public toPersistence(): IJournalEntry {
     return {
       id: this._id,
@@ -252,5 +246,16 @@ export class JournalEntry extends AggregateRoot {
 
   public linesToPersistence(): IJournalLine[] {
     return this._lines.toPersistence();
+  }
+
+  private ensureReversible(): void {
+    if (!this.isPosted()) {
+      throw new BadRequestException(
+        'Yalnızca POSTED fişler storno edilebilir.'
+      );
+    }
+    if (this._reversedById) {
+      throw new BadRequestException('Fiş zaten storno edilmiş.');
+    }
   }
 }

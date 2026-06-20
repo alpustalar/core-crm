@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators';
-import { SetTaxParameterInput } from '@modules/finance/accounting/tax-parameters/domain/types/set-tax-parameter.props';
+import { SetTaxParameterInput } from '@modules/finance/accounting/tax-parameters/domain/tax-parameters.contracts';
 
 /**
  * Bir (clinicId, key) için yeni bir vergi oranı sürümü açar. Mevcut açık sürüm

@@ -1,15 +1,17 @@
 import * as crypto from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ENV } from '@common/constants/env.constant';
 import {
   CancelTransferBookingResult,
-  CreateTransferBookingParams,
-  IHotelbedsTransferApiService,
-  TransferAvailabilityParams,
+  CreateTransferBookingData,
+  TransferAvailabilityFilter,
+  TransferAvailabilityItem,
   TransferBookingResult,
+} from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
+import {
+  IHotelbedsTransferApiService
 } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
-import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/types/transfer-availability.type';
-import { ENV } from '@common/constants/env.constant';
 
 const TRANSFER_API_BASE = 'https://api.hotelbeds.com/transfer-api/1.0';
 
@@ -29,7 +31,7 @@ export class HotelbedsTransferApiService
   }
 
   async searchAvailability(
-    params: TransferAvailabilityParams
+    filter: TransferAvailabilityFilter
   ): Promise<TransferAvailabilityItem[]> {
     const {
       language,
@@ -45,7 +47,7 @@ export class HotelbedsTransferApiService
       ages,
       returnDate,
       returnTime,
-    } = params;
+    } = filter;
 
     let url = `${TRANSFER_API_BASE}/availability/${language}/from/${fromType}/${fromCode}/to/${toType}/${toCode}/${outboundDate}/${outboundTime}/${adults}/${children}/${infants}`;
 
@@ -73,28 +75,23 @@ export class HotelbedsTransferApiService
   }
 
   async createBooking(
-    params: CreateTransferBookingParams
+    data: CreateTransferBookingData
   ): Promise<TransferBookingResult> {
-    const res = await fetch(
-      `${TRANSFER_API_BASE}/bookings/${params.language}`,
-      {
-        method: 'POST',
-        headers: this.buildHeaders(),
-        body: JSON.stringify({
-          language: params.language,
-          holder: params.holder,
-          transfers: params.transfers,
-          ...(params.clientReference
-            ? { clientReference: params.clientReference }
-            : {}),
-          ...(params.welcomeMessage
-            ? { welcomeMessage: params.welcomeMessage }
-            : {}),
-          ...(params.remark ? { remark: params.remark } : {}),
-        }),
-        signal: AbortSignal.timeout(15_000),
-      }
-    );
+    const res = await fetch(`${TRANSFER_API_BASE}/bookings/${data.language}`, {
+      method: 'POST',
+      headers: this.buildHeaders(),
+      body: JSON.stringify({
+        language: data.language,
+        holder: data.holder,
+        transfers: data.transfers,
+        ...(data.clientReference
+          ? { clientReference: data.clientReference }
+          : {}),
+        ...(data.welcomeMessage ? { welcomeMessage: data.welcomeMessage } : {}),
+        ...(data.remark ? { remark: data.remark } : {}),
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
 
     if (!res.ok) {
       const err = await res.text();

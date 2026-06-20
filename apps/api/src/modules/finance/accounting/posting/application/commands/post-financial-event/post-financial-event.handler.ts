@@ -15,9 +15,9 @@ import {
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { AccountResolver } from '@modules/finance/accounting/posting/domain/posting/account-resolver';
-import { CreateJournalEntryLineInput } from '@modules/finance/accounting/posting/domain/types/create-journal-entry.props';
 import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
 import { PostFinancialEventCommand } from './post-financial-event.command';
+import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
 
 @CommandHandler(PostFinancialEventCommand)
 export class PostFinancialEventHandler
@@ -49,6 +49,7 @@ export class PostFinancialEventHandler
     }
 
     // İdempotentlik: olay zaten fişlenmişse mevcut fişi döndür.
+
     const existing = await this.journalQueryRepo.findByEventId(event.id);
     if (existing) return existing.id;
 
@@ -80,7 +81,7 @@ export class PostFinancialEventHandler
       clinicId: event.clinicId,
     });
 
-    const lines: CreateJournalEntryLineInput[] = draft.lines.map((line) => {
+    const lines: CreateJournalEntryLineProps[] = draft.lines.map((line) => {
       const account = resolver.resolve(line.accountCode);
       if (!account.isPostable) {
         throw new Error(

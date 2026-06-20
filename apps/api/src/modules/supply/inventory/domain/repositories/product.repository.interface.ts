@@ -6,8 +6,7 @@ import { StockLevel } from '@modules/supply/inventory/domain/supply.contracts';
 export const PRODUCT_COMMAND_REPOSITORY = Symbol('IProductCommandRepository');
 export const PRODUCT_QUERY_REPOSITORY = Symbol('IProductQueryRepository');
 
-export interface IProductCommandRepository
-  extends IBaseCommandRepository<Product> {}
+export type IProductCommandRepository = IBaseCommandRepository<Product>;
 
 export interface IProductQueryRepository {
   findById(id: string): Promise<Product | null>;

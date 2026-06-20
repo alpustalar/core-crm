@@ -5,7 +5,7 @@ import { Vkn } from '@src/domain/value-objects/vkn.vo';
 import {
   CreateClinicGovernmentSpecsProps,
   UpdateClinicGovernmentSpecsProps,
-} from '../types/upsert-clinic-government-specs.props';
+} from '@modules/organization/clinic-governance/domain/clinic-governance.contracts';
 
 /**
  * Kliniğin devlet/regülasyon kimliği (platform/governance bounded-context).

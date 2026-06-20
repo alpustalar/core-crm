@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
 import { FinancialEvent } from '../entities/financial-event.entity';
-import { FindFinancialEventsFilter } from '../types/find-financial-events.filter';
+import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
 
 export const FINANCIAL_EVENT_COMMAND_REPOSITORY = Symbol(
   'IFinancialEventCommandRepository'

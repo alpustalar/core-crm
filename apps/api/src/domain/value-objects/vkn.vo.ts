@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 /**
  * VKN — Türkiye Vergi Kimlik Numarası (10 hane + doğrulama algoritması).
- * Kurum/şirket vergi kimliği. Şahıs mükellefler TCKN kullanır → [[NationalId]].
+ * Kurum/şirket vergi kimliği. Şahıs mükellefler TCKN kullanır → [[TckNo]].
  */
 export class Vkn {
   private static readonly schema = z
@@ -28,11 +28,6 @@ export class Vkn {
     return this._value;
   }
 
-  equals(other: Vkn): boolean {
-    if (!other) return false;
-    return this._value === other.value;
-  }
-
   /**
    * Resmî VKN algoritması: ilk 9 hane üzerinden 10. (kontrol) hane hesaplanır.
    */
@@ -51,5 +46,10 @@ export class Vkn {
     }
 
     return (10 - (sum % 10)) % 10 === checkDigit;
+  }
+
+  equals(other: Vkn): boolean {
+    if (!other) return false;
+    return this._value === other.value;
   }
 }

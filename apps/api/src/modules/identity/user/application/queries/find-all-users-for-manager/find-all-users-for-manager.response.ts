@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared';
-import { UserSummary } from '@modules/identity/user/domain/types/user-summary.type';
+import { UserSummary } from '@modules/identity/user/domain/user.contracts';
 
 export type FindAllUsersForManagerQueryResponse = QueryResponse<UserSummary[]>;

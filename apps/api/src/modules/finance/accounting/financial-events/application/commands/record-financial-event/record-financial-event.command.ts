@@ -1,5 +1,5 @@
 import { IGetContext } from '@common/decorators';
-import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/types/record-financial-event.props';
+import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
 
 /**
  * Ekonomik olayı kalıcı olay defterine yazar (append-only).

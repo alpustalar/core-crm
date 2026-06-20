@@ -7,8 +7,8 @@ import {
   HOTELBEDS_TRANSFER_API_SERVICE,
   IHotelbedsTransferApiService,
 } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
-import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/types/transfer-availability.type';
 import { RedisService } from '@common/redis/redis.service';
+import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
 
 @QueryHandler(SearchTransferAvailabilityQuery)
 export class SearchTransferAvailabilityHandler
@@ -22,11 +22,11 @@ export class SearchTransferAvailabilityHandler
     @Inject(HOTELBEDS_TRANSFER_API_SERVICE)
     private readonly transferApi: IHotelbedsTransferApiService,
 
-    private readonly redis: RedisService,
+    private readonly redis: RedisService
   ) {}
 
   async execute(
-    query: SearchTransferAvailabilityQuery,
+    query: SearchTransferAvailabilityQuery
   ): Promise<SearchTransferAvailabilityResponse> {
     const { dto } = query;
 

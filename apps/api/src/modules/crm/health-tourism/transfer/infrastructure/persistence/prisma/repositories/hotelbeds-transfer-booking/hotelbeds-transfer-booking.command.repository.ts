@@ -5,7 +5,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { IHotelbedsTransferBookingCommandRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
-import { CreateTransferBookingProps } from '@modules/crm/health-tourism/transfer/domain/types/create-transfer-booking.props';
+import { CreateTransferBookingProps } from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
 
 @Injectable()
 export class HotelbedsTransferBookingCommandRepository

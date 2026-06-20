@@ -6,14 +6,16 @@ import { z } from 'zod';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IUserQueryRepository } from '@modules/identity/user/domain/repositories/user.repository';
-import { FindUsersByOrganizationIdsData } from '@modules/identity/user/domain/types/find-users-by-organization-ids.data';
-import { FindUsersByClinicIdsData } from '@modules/identity/user/domain/types/find-users-by-clinic-ids.data';
 import { User } from '@modules/identity/user/domain/entities/user.entity';
-import { UserSummary } from '@modules/identity/user/domain/types/user-summary.type';
-import { PaginatedUsers } from '@modules/identity/user/domain/types/paginated-users.type';
-import { AuthUserResponse } from '@modules/identity/user/domain/types/auth-user-response.type';
 import { RoleWithCapabilities } from '@common/interfaces';
 import { normalizeArray } from '@common/utils/normalize-array';
+import {
+  AuthUserResponse,
+  FindUsersByClinicIdsFilter,
+  FindUsersByOrganizationIdsFilter,
+  PaginatedUsers,
+  UserSummary,
+} from '@modules/identity/user/domain/user.contracts';
 
 const USER_SELECT = {
   id: true,
@@ -180,7 +182,7 @@ export class UserQueryRepository
   async listByOrganizationIds({
     pagination,
     organizationId,
-  }: FindUsersByOrganizationIdsData): Promise<PaginatedUsers> {
+  }: FindUsersByOrganizationIdsFilter): Promise<PaginatedUsers> {
     const organizationIds = normalizeArray(organizationId);
     const result = await paginate<UserSummary, Prisma.UserWhereInput>({
       delegate: this.db.user as any,
@@ -197,7 +199,7 @@ export class UserQueryRepository
   async listByClinicIds({
     pagination,
     clinicId,
-  }: FindUsersByClinicIdsData): Promise<PaginatedUsers> {
+  }: FindUsersByClinicIdsFilter): Promise<PaginatedUsers> {
     const clinicIds = normalizeArray(clinicId);
     const result = await paginate<UserSummary, Prisma.UserWhereInput>({
       delegate: this.db.user as any,

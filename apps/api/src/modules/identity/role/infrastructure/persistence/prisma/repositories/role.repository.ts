@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { RoleSlug } from '@src/domain/constants/db/role/role-slugs';
 import { IRoleRepository } from '@modules/identity/role/domain/repositories/role.repository.interface';
 import { Role } from '@modules/identity/role/domain/entities/role.entity';
-import { FindBySlugResponse } from '@modules/identity/role/domain/types/find-by-slug-response.type';
+import { FindBySlugResponse } from '@modules/identity/role/domain/role.contracts';
 
 @Injectable()
 export class RoleRepository extends BaseRepository implements IRoleRepository {

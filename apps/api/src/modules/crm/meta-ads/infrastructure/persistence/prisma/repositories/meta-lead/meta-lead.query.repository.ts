@@ -5,7 +5,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IMetaLeadQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
-import { FindMetaLeadsProps } from '@modules/crm/meta-ads/domain/types/find-meta-leads.type';
+import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
 
 @Injectable()
 export class MetaLeadQueryRepository
@@ -59,16 +59,16 @@ export class MetaLeadQueryRepository
   }
 
   async findMany(
-    props: FindMetaLeadsProps
+    filter: FindMetaLeadsFilter
   ): Promise<{ items: MetaLead[]; total: number }> {
     const where: Record<string, unknown> = {
-      metaAdAccount: { clinicId: props.clinicId },
+      metaAdAccount: { clinicId: filter.clinicId },
     };
-    if (props.status) where.status = props.status;
+    if (filter.status) where.status = filter.status;
 
     const result = await paginate({
       delegate: this.db.metaLead,
-      pagination: props.pagination,
+      pagination: filter.pagination,
       where,
     });
 

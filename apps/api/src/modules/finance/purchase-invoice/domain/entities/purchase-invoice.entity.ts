@@ -1,8 +1,7 @@
 import { PurchaseInvoice as IPurchaseInvoice } from '@model-schema/PurchaseInvoiceSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { Decimal } from 'decimal.js';
-import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import { CreatePurchaseInvoiceProps } from '../types/create-purchase-invoice.props';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 /**
  * Tedarikçiden alınan alış faturası. Satış faturasının kardeşi; dış belge
@@ -12,6 +11,7 @@ import { CreatePurchaseInvoiceProps } from '../types/create-purchase-invoice.pro
 export class PurchaseInvoice extends AggregateRoot {
   constructor(data: IPurchaseInvoice) {
     super();
+    const currency = data.currency;
     this._id = data.id;
     this._clinicId = data.clinicId;
     this._organizationId = data.organizationId;
@@ -20,10 +20,9 @@ export class PurchaseInvoice extends AggregateRoot {
     this._invoiceDate = data.invoiceDate;
     this._lineAccountCode = data.lineAccountCode;
     this._vatRate = data.vatRate;
-    this._netTotal = new Decimal(data.netTotal.toString());
-    this._vatTotal = new Decimal(data.vatTotal.toString());
-    this._grandTotal = new Decimal(data.grandTotal.toString());
-    this._currency = data.currency;
+    this._netTotal = Money.create(data.netTotal, currency);
+    this._vatTotal = Money.create(data.vatTotal, currency);
+    this._grandTotal = Money.create(data.grandTotal, currency);
     this._status = data.status;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -69,24 +68,19 @@ export class PurchaseInvoice extends AggregateRoot {
     return this._vatRate;
   }
 
-  private _netTotal: Decimal;
-  get netTotal(): Decimal {
+  private _netTotal: Money;
+  get netTotal(): Money {
     return this._netTotal;
   }
 
-  private _vatTotal: Decimal;
-  get vatTotal(): Decimal {
+  private _vatTotal: Money;
+  get vatTotal(): Money {
     return this._vatTotal;
   }
 
-  private _grandTotal: Decimal;
-  get grandTotal(): Decimal {
+  private _grandTotal: Money;
+  get grandTotal(): Money {
     return this._grandTotal;
-  }
-
-  private _currency: CurrencyType;
-  get currency(): CurrencyType {
-    return this._currency;
   }
 
   private _status: string;
@@ -106,6 +100,7 @@ export class PurchaseInvoice extends AggregateRoot {
 
   public static create(props: CreatePurchaseInvoiceProps): PurchaseInvoice {
     const now = new Date();
+
     return new PurchaseInvoice({
       id: props.id,
       clinicId: props.clinicId,
@@ -115,9 +110,9 @@ export class PurchaseInvoice extends AggregateRoot {
       invoiceDate: props.invoiceDate,
       lineAccountCode: props.lineAccountCode,
       vatRate: props.vatRate,
-      netTotal: props.netTotal as unknown as IPurchaseInvoice['netTotal'],
-      vatTotal: props.vatTotal as unknown as IPurchaseInvoice['vatTotal'],
-      grandTotal: props.grandTotal as unknown as IPurchaseInvoice['grandTotal'],
+      netTotal: props.netTotal,
+      vatTotal: props.vatTotal,
+      grandTotal: props.grandTotal,
       currency: props.currency,
       status: 'RECORDED',
       createdAt: now,
@@ -136,10 +131,10 @@ export class PurchaseInvoice extends AggregateRoot {
       invoiceDate: this._invoiceDate,
       lineAccountCode: this._lineAccountCode,
       vatRate: this._vatRate,
-      netTotal: this._netTotal,
-      vatTotal: this._vatTotal,
-      grandTotal: this._grandTotal,
-      currency: this._currency,
+      netTotal: this._netTotal.amount,
+      vatTotal: this._vatTotal.amount,
+      grandTotal: this._grandTotal.amount,
+      currency: this._grandTotal.currency,
       status: this._status,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,

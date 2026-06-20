@@ -7,8 +7,10 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { slugIt } from '@common/utils';
 import { OrganizationSoftDeleteEvent } from '@modules/organization/organization/domain/events/organization-soft-delete.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
-import { CreateOrganizationProps } from '@modules/organization/organization/domain/types/create-organization.props';
-import { UpdateOrganizationInfoProps } from '@modules/organization/organization/domain/types/update-organization.props';
+import {
+  CreateOrganizationProps,
+  UpdateOrganizationInfoProps,
+} from '@modules/organization/organization/domain/organization.contracts';
 
 export class Organization extends AggregateRoot implements IOrganization {
   constructor(data: IOrganization) {

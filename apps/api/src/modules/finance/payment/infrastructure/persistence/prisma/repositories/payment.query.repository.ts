@@ -7,9 +7,9 @@ import { Payment } from '@modules/finance/payment/domain/entities/payment.entity
 import {
   ArAgingData,
   ArAgingFilter,
-} from '@modules/finance/payment/domain/types/ar-aging.type';
-import { ProviderRevenueFilterData } from '@modules/finance/payment/domain/types/provider-revenue-filter.data';
-import { CollectedInstallmentRow } from '@modules/finance/payment/domain/types/collected-installment-row.type';
+  CollectedInstallmentRow,
+  ProviderRevenueFilterData,
+} from '@modules/finance/payment/domain/payment.contracts';
 
 /** Henüz tahsil edilmemiş (açık) taksit durumları. */
 const OUTSTANDING_STATUSES = [

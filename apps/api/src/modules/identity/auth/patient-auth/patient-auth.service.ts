@@ -3,11 +3,14 @@ import {
   FIREBASE_SERVICE,
   IFirebaseService,
 } from '@modules/identity/auth/firebase/domain/interfaces/firebase.service.interface';
-import { FindOrCreatePatientForAuthQuery } from '@modules/crm/patient/application/queries/find-or-create-patient-for-auth/find-or-create-patient-for-auth.query';
+
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { FindPatientByContactQuery } from '@modules/crm/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';
+import { CreatePatientCommand } from '@modules/crm/patient/application/commands/create-patient/create-patient.command';
 
 interface PatientVerifyInput {
   idToken: string;
@@ -22,7 +25,8 @@ export class PatientAuthService {
   constructor(
     @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    private readonly commandBus: TSCommandBus
   ) {}
 
   async verifyAndRegister(dto: PatientVerifyInput): Promise<Patient> {
@@ -38,15 +42,20 @@ export class PatientAuthService {
       throw new UnauthorizedException('Token telefon numarası içermiyor.');
     }
 
-    const { data } = await this.queryBus.execute(
-      new FindOrCreatePatientForAuthQuery({
-        phone,
-        organizationId,
-        firstName,
-        firebaseUid: decodedToken.uid,
-      })
+    const patient = await this.queryBus.execute(
+      new FindPatientByContactQuery(organizationId, phone)
     );
-    return data;
+
+    if (!patient) {
+      const id = crypto.randomUUID();
+      await this.commandBus.execute(
+        new CreatePatientCommand({ phone, organizationId, firstName, id })
+      );
+
+      return Patient.create({ id, phone, organizationId, firstName });
+    }
+
+    return patient.data!;
   }
 
   async findPatientByToken(idToken: string): Promise<Patient> {

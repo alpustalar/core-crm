@@ -4,8 +4,9 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaLeadCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
-import { CreateMetaLeadProps } from '@modules/crm/meta-ads/domain/types/create-meta-lead.props';
+
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { CreateMetaLeadData } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
 
 @Injectable()
 export class MetaLeadCommandRepository
@@ -16,7 +17,7 @@ export class MetaLeadCommandRepository
     super(prisma);
   }
 
-  async create(props: CreateMetaLeadProps): Promise<MetaLead> {
+  async create(props: CreateMetaLeadData): Promise<MetaLead> {
     const raw = await this.db.metaLead.create({
       data: {
         id: props.id,

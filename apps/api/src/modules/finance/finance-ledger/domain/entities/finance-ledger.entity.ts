@@ -7,9 +7,9 @@ import { LedgerTypeType as LedgerType } from '@shared/generated-zod/inputTypeSch
 import { LedgerSourceType as LedgerSource } from '@shared/generated-zod/inputTypeSchemas/LedgerSourceSchema';
 import { LedgerStatusType as LedgerStatus } from '@shared/generated-zod/inputTypeSchemas/LedgerStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateFinanceLedgerProps } from '../types/create-finance-ledger.props';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
+import { CreateFinanceLedgerProps } from '@modules/finance/finance-ledger/domain/finance-ledger.contracts';
 
 export class FinanceLedgerEntity extends AggregateRoot {
   constructor(data: IFinanceLedger) {
@@ -138,8 +138,6 @@ export class FinanceLedgerEntity extends AggregateRoot {
   }
 
   public static create(props: CreateFinanceLedgerProps): FinanceLedgerEntity {
-    // 1. Önce para birimi ve miktar ile Money VO'sunu kuruyoruz
-
     // 2. Vergi oranını yedirerek kurallara uygun TaxSpecification üretiyoruz (taxAmount içeride hesaplanacak)
     const taxSpec = TaxSpecification.create(props.money, props.taxRate ?? 0);
 

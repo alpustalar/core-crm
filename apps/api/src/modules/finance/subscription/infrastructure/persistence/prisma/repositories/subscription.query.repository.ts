@@ -4,7 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ISubscriptionQueryRepository } from '@modules/finance/subscription/domain/repositories/subscription.repository.interface';
 import { Subscription } from '@modules/finance/subscription/domain/entities/subscription.entity';
-import { SubscriptionWithItems } from '@modules/finance/subscription/domain/types/subscription-with-items.type';
+import { SubscriptionWithItems } from '@modules/finance/subscription/domain/subscription.contracts';
 
 @Injectable()
 export class SubscriptionQueryRepository

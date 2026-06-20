@@ -1,12 +1,12 @@
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { PaymentMethod } from '@prisma/client';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 import {
   ArAgingData,
   ArAgingFilter,
-} from '@modules/finance/payment/domain/types/ar-aging.type';
-import { ProviderRevenueFilterData } from '@modules/finance/payment/domain/types/provider-revenue-filter.data';
-import { PaymentMethodType as PaymentMethod } from '@input-type-schemas/PaymentMethodSchema';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
-import { CollectedInstallmentRow } from '@modules/finance/payment/domain/types/collected-installment-row.type';
+  CollectedInstallmentRow,
+  ProviderRevenueFilterData,
+} from '@modules/finance/payment/domain/payment.contracts';
 
 export interface InstallmentPlanItem {
   amount: number;

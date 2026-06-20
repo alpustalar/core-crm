@@ -4,8 +4,9 @@ import {
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
-import { CreateAccountingPeriodProps } from '../types/create-accounting-period.props';
+
 import { AccountingPeriodStatusType as AccountingPeriodStatus } from '@input-type-schemas/AccountingPeriodStatusSchema';
+import { CreateAccountingPeriodProps } from '@modules/finance/accounting/periods/domain/periods.contracts';
 
 export class AccountingPeriod
   extends AggregateRoot

@@ -3,8 +3,8 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
-import { CreateLeadProps } from '@modules/crm/lead/domain/types/create-lead.props';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { CreateLeadProps } from '@modules/crm/lead/domain/lead-contracts';
 
 @Injectable()
 export class LeadCommandRepository

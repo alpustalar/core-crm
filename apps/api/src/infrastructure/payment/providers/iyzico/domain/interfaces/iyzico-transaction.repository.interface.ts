@@ -14,6 +14,8 @@ export type IyzicoTransactionWithInstallment = IyzicoTransaction & {
   };
 };
 
+// TODO: bu repo ikiye ayrılacak. entity yazılacak. payment providers'tan pos modülüne geçecek. pos virtual kısmına
+
 export interface IIyzicoTransactionRepository {
   findTransactionByConversationId(
     conversationId: string

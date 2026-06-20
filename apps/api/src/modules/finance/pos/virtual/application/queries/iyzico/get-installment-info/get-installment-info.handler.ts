@@ -4,12 +4,13 @@ import { GetInstallmentInfoQueryResponse } from './get-installment-info.response
 import { randomUUID } from 'crypto';
 import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
 import { BadRequestException, Inject } from '@nestjs/common';
-import { InstallmentOption } from '@modules/finance/payment/domain/types/installment-option.type';
+
 import Iyzipay from 'iyzipay';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+import { InstallmentOption } from '@modules/finance/payment/domain/payment.contracts';
 
 @QueryHandler(GetInstallmentInfoQuery)
 export class GetInstallmentInfoHandler

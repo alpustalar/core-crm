@@ -3,8 +3,8 @@ import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaCampaignMetricCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
-import { UpsertCampaignMetricProps } from '@modules/crm/meta-ads/domain/types/upsert-campaign-metric.props';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { UpsertCampaignMetricData } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
 
 @Injectable()
 export class MetaCampaignMetricCommandRepository
@@ -15,9 +15,9 @@ export class MetaCampaignMetricCommandRepository
     super(prisma);
   }
 
-  async upsertMany(props: UpsertCampaignMetricProps[]): Promise<void> {
+  async saveMany(data: UpsertCampaignMetricData[]): Promise<void> {
     await Promise.all(
-      props.map((p) =>
+      data.map((p) =>
         this.db.metaCampaignMetric.upsert({
           where: {
             metaAdAccountId_campaignId_date: {

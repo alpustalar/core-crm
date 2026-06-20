@@ -1,17 +1,20 @@
-import { FindOrCreatePatientForAuth } from '@shared/modules/patients/types/queries';
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
+import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
 
 export const PATIENT_REPOSITORY = Symbol('IPatientRepository');
 
-export interface FindPatientByContactProps {
-  clinicId: string;
+export interface FindPatientByContactFilter {
+  organizationId?: string;
   phone?: string | null;
   email?: string | null;
 }
 
-export interface IPatientRepository {
+export const PATIENT_COMMAND_REPOSITORY = Symbol('IPatientCommandRepository');
+export const PATIENT_QUERY_REPOSITORY = Symbol('IPatientQueryRepository');
+
+export type IPatientCommandRepository = IBaseCommandRepository<Patient>;
+
+export interface IPatientQueryRepository {
   find(id: string): Promise<Patient | null>;
-  findOrCreateByPhone(dto: FindOrCreatePatientForAuth): Promise<Patient>;
-  save(entity: Patient): Promise<void>;
-  findByContact(props: FindPatientByContactProps): Promise<Patient | null>;
+  findByContact(filter: FindPatientByContactFilter): Promise<Patient | null>;
 }

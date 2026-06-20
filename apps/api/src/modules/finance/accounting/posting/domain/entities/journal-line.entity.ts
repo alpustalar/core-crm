@@ -1,8 +1,8 @@
 import { JournalLine as IJournalLine } from '@shared';
-import { CreateJournalEntryLineInput } from '../types/create-journal-entry.props';
 import { JournalEntryLineAmount } from '@modules/finance/shared/domain/value-objects/journal-entry-line-amount.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Decimal } from 'decimal.js';
+import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
 
 export class JournalLine {
   private readonly _amount: JournalEntryLineAmount;
@@ -66,24 +66,24 @@ export class JournalLine {
 
   public static create(
     entryId: string,
-    input: CreateJournalEntryLineInput
+    props: CreateJournalEntryLineProps
   ): JournalLine {
-    // hatalı giriş (örn: negatif sayı veya XOR ihlali) anında exception fırlatır.
+    // hatalı giriş (negatif sayı, XOR ihlali vb.) anında exception fırlatır.
     const amount = JournalEntryLineAmount.create(
-      new Decimal(input.debit ?? 0),
-      new Decimal(input.credit ?? 0),
-      input.currency ? Currency.create(input.currency) : Currency.create('TRY')
+      new Decimal(props.debit ?? 0),
+      new Decimal(props.credit ?? 0),
+      props.currency ? Currency.create(props.currency) : Currency.create('TRY')
     );
 
     return new JournalLine({
       id: crypto.randomUUID(),
       entryId,
-      accountId: input.accountId,
-      partyId: input.partyId ?? null,
+      accountId: props.accountId,
+      partyId: props.partyId ?? null,
       debit: amount.debit,
       credit: amount.credit,
       currency: amount.currency.value ?? 'TRY',
-      lineDesc: input.lineDesc ?? null,
+      lineDesc: props.lineDesc ?? null,
     });
   }
 

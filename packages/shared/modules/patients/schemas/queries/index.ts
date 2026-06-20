@@ -1,1 +1,1 @@
-export * from './find-or-create-patient-for-auth.schema';
+export * from './create-patient.schema';

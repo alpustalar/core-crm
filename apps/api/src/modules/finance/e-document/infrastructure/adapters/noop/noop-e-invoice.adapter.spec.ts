@@ -1,6 +1,6 @@
 import { NoopEInvoiceAdapter } from './noop-e-invoice.adapter';
 import { EInvoicePort } from '@modules/finance/e-document/domain/ports/e-invoice.port';
-import { EDocumentRequest } from '@modules/finance/e-document/domain/types/e-document-request.type';
+import { EDocumentRequest } from '@modules/finance/e-document/domain/e-document.contracts';
 import { EDocumentTypeSchema } from '@input-type-schemas/EDocumentTypeSchema';
 import { EDocumentStatusSchema } from '@input-type-schemas/EDocumentStatusSchema';
 

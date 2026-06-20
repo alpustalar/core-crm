@@ -6,7 +6,7 @@ import { PatientStatusType as PatientStatus } from '@input-type-schemas/PatientS
 import { PatientTypeType as PatientType } from '@input-type-schemas/PatientTypeSchema';
 import { Decimal } from 'decimal.js';
 
-export class Patient extends AggregateRoot implements IPatient {
+export class Patient extends AggregateRoot {
   constructor(data: IPatient) {
     super();
     this._id = data.id;
@@ -91,98 +91,184 @@ export class Patient extends AggregateRoot implements IPatient {
   }
 
   private _alternativePhone: string | null;
+
   get alternativePhone(): string | null {
     return this._alternativePhone;
   }
 
   private _email: string | null;
+
   get email(): string | null {
     return this._email;
   }
 
   private _address: string | null;
+
   get address(): string | null {
     return this._address;
   }
 
   private _emergencyContact: string | null;
+
   get emergencyContact(): string | null {
     return this._emergencyContact;
   }
 
   private _companionName: string | null;
+
   get companionName(): string | null {
     return this._companionName;
   }
 
   private _companionPhone: string | null;
+
   get companionPhone(): string | null {
     return this._companionPhone;
   }
 
   private _profilePhoto: string | null;
+
   get profilePhoto(): string | null {
     return this._profilePhoto;
   }
 
   private _protocolNo: string | null;
+
   get protocolNo(): string | null {
     return this._protocolNo;
   }
 
   private _allergies: string | null;
+
   get allergies(): string | null {
     return this._allergies;
   }
 
   private _chronicDiseases: string | null;
+
   get chronicDiseases(): string | null {
     return this._chronicDiseases;
   }
 
   private _bloodType: BloodType | null;
+
   get bloodType(): BloodType | null {
     return this._bloodType;
   }
 
   private _status: PatientStatus;
+
   get status(): PatientStatus {
     return this._status;
   }
 
   private _patientType: PatientType | null;
+
   get patientType(): PatientType | null {
     return this._patientType;
   }
 
   private _responsibleProviderId: string | null;
+
   get responsibleProviderId(): string | null {
     return this._responsibleProviderId;
   }
 
   private _checkupDate: Date | null;
+
   get checkupDate(): Date | null {
     return this._checkupDate;
   }
 
   private _discountRate: Decimal | null;
+
   get discountRate(): Decimal | null {
     return this._discountRate;
   }
 
   private _createdAt: Date;
+
   get createdAt(): Date {
     return this._createdAt;
   }
 
   private _updatedAt: Date;
+
   get updatedAt(): Date {
     return this._updatedAt;
   }
 
   private _deletedAt: Date | null;
+
   get deletedAt(): Date | null {
     return this._deletedAt;
+  }
+
+  // 🎯 BURSA DISIPLINI: Kılavuza tam uyumlu Giriş Tipleri (Props)
+  public static create(props: {
+    id: string;
+    organizationId: string;
+    phone: string;
+    firstName: string;
+    clinicId?: string | null;
+    sectorId?: string | null;
+    lastName?: string | null;
+    tcNo?: string | null;
+    birthDate?: Date | null;
+    gender?: Gender | null;
+    alternativePhone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    emergencyContact?: string | null;
+    companionName?: string | null;
+    companionPhone?: string | null;
+    profilePhoto?: string | null;
+    protocolNo?: string | null;
+    allergies?: string | null;
+    chronicDiseases?: string | null;
+    bloodType?: BloodType | null;
+    patientType?: PatientType | null;
+    responsibleProviderId?: string | null;
+    checkupDate?: Date | null;
+    discountRate?: Decimal | null;
+  }): Patient {
+    if (!props.phone.trim() || !props.firstName.trim()) {
+      throw new Error(
+        '[Hasta Disiplini] Hasta adı ve telefon numarası boş bırakılamaz.'
+      );
+    }
+
+    return new Patient({
+      id: props.id,
+      organizationId: props.organizationId,
+      phone: props.phone,
+      firstName: props.firstName,
+      clinicId: props.clinicId ?? null,
+      sectorId: props.sectorId ?? null,
+      lastName: props.lastName ?? null,
+      tcNo: props.tcNo ?? null,
+      birthDate: props.birthDate ?? null,
+      gender: props.gender ?? null,
+      alternativePhone: props.alternativePhone ?? null,
+      email: props.email ?? null,
+      address: props.address ?? null,
+      emergencyContact: props.emergencyContact ?? null,
+      companionName: props.companionName ?? null,
+      companionPhone: props.companionPhone ?? null,
+      profilePhoto: props.profilePhoto ?? null,
+      protocolNo: props.protocolNo ?? null,
+      allergies: props.allergies ?? null,
+      chronicDiseases: props.chronicDiseases ?? null,
+      bloodType: props.bloodType ?? null,
+      patientType: props.patientType ?? null,
+      responsibleProviderId: props.responsibleProviderId ?? null,
+      checkupDate: props.checkupDate ?? null,
+      discountRate: props.discountRate ?? null,
+      status: PatientStatusSchema.enum.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+    });
   }
 
   // DOMAIN METHODS

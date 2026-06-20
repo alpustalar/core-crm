@@ -1,7 +1,7 @@
 import { Job } from 'bullmq';
 import { EDocumentProcessor } from './e-document.processor';
 import { EInvoicePort } from '@modules/finance/e-document/domain/ports/e-invoice.port';
-import { EDocumentRequest } from '@modules/finance/e-document/domain/types/e-document-request.type';
+import { EDocumentRequest } from '@modules/finance/e-document/domain/e-document.contracts';
 import { GetInvoiceByIdQuery } from '@modules/finance/invoice/application/queries/get-invoice-by-id/get-invoice-by-id.query';
 import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
 import { GetPartyByIdQuery } from '@modules/finance/party/application/queries/get-party-by-id/get-party-by-id.query';

@@ -11,12 +11,13 @@ import {
   EInvoicePort,
 } from '@modules/finance/e-document/domain/ports/e-invoice.port';
 import { resolveDocumentType } from '@modules/finance/e-document/domain/services/document-type-resolver';
-import { EDocumentRequest } from '@modules/finance/e-document/domain/types/e-document-request.type';
+
 import { GetInvoiceByIdQuery } from '@modules/finance/invoice/application/queries/get-invoice-by-id/get-invoice-by-id.query';
 import { MarkInvoiceEDocumentResultCommand } from '@modules/finance/invoice/application/commands/mark-invoice-edocument-result/mark-invoice-edocument-result.command';
 import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { GetPartyByIdQuery } from '@modules/finance/party/application/queries/get-party-by-id/get-party-by-id.query';
+import { EDocumentRequest } from '@modules/finance/e-document/domain/e-document.contracts';
 
 interface SendJobData {
   invoiceId: string;

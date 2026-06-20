@@ -3,8 +3,8 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IAdminRequestQueryRepository } from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
 import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
-import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/types/find-admin-requests.type';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
+import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/admin-request.contracts';
 
 @Injectable()
 export class AdminRequestQueryRepository

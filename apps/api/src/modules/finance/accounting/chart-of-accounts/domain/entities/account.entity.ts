@@ -1,6 +1,5 @@
 import { Account as IAccount, AccountSideSchema } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateAccountProps } from '../types/create-account.props';
 import {
   AccountTemplateNode,
   CLINIC_CHART_OF_ACCOUNTS_TEMPLATE,
@@ -10,6 +9,7 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { AccountTypeType as AccountType } from '@input-type-schemas/AccountTypeSchema';
 import { AccountSideType as AccountSide } from '@input-type-schemas/AccountSideSchema';
 import { BadRequestException } from '@nestjs/common';
+import { CreateAccountProps } from '@modules/finance/accounting/chart-of-accounts/domain/chart-of-accounts.contracts';
 
 export interface BuildChartInput {
   clinicId: string;

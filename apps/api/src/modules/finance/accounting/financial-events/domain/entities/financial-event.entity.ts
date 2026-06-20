@@ -1,9 +1,9 @@
 import { FinancialEvent as IFinancialEvent } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { RecordFinancialEventProps } from '../types/record-financial-event.props';
 import { FinancialEventRecordedEvent } from '../events/financial-event-recorded.event';
 import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
+import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
 
 /**
  * Değişmez (append-only) ekonomik olay. Bir kez yazılır, asla güncellenmez.

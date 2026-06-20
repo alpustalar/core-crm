@@ -1,6 +1,6 @@
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
-import { CreateMetaAdAccountProps } from '@modules/crm/meta-ads/domain/types/create-meta-ad-account.props';
 import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { CreateMetaAdAccountData } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
 
 export const META_AD_ACCOUNT_COMMAND_REPOSITORY = Symbol(
   'IMetaAdAccountCommandRepository'
@@ -11,7 +11,7 @@ export const META_AD_ACCOUNT_QUERY_REPOSITORY = Symbol(
 
 export interface IMetaAdAccountCommandRepository
   extends IBaseCommandRepository<MetaAdAccount> {
-  create(props: CreateMetaAdAccountProps): Promise<MetaAdAccount>;
+  create(data: CreateMetaAdAccountData): Promise<MetaAdAccount>;
   deactivate(id: string): Promise<void>;
 }
 

@@ -5,7 +5,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IHotelbedsTransferBookingQueryRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
-import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/types/find-transfer-bookings.type';
+import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
 
 @Injectable()
 export class HotelbedsTransferBookingQueryRepository
@@ -24,7 +24,7 @@ export class HotelbedsTransferBookingQueryRepository
   }
 
   async findByReference(
-    reference: string,
+    reference: string
   ): Promise<HotelbedsTransferBooking | null> {
     const raw = await this.db.hotelbedsTransferBooking.findUnique({
       where: { reference },
@@ -34,7 +34,7 @@ export class HotelbedsTransferBookingQueryRepository
 
   async findMany(
     filter: FindTransferBookingsFilter,
-    pagination: Pagination,
+    pagination: Pagination
   ): Promise<{ items: HotelbedsTransferBooking[]; total: number }> {
     const where = {
       organizationId: filter.organizationId,

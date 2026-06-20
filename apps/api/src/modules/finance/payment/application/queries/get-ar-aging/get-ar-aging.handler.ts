@@ -5,7 +5,6 @@ import {
   IPaymentQueryRepository,
   PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
-import { OpenInstallmentRow } from '@modules/finance/payment/domain/types/ar-aging.type';
 import { GetArAgingQuery } from './get-ar-aging.query';
 import {
   ArAgingBucket,
@@ -14,6 +13,7 @@ import {
   GetArAgingResponse,
 } from './get-ar-aging.response';
 import { Decimal } from 'decimal.js';
+import { OpenInstallmentRow } from '@modules/finance/payment/domain/payment.contracts';
 
 const BUCKET_ORDER: ArAgingBucketLabel[] = [
   'NOT_DUE',
@@ -157,8 +157,7 @@ export class GetArAgingHandler
   // dueDate'i de gün başına normalize ederek saat farkı kaynaklı hatalı vadelendirmeyi engeller.
   private isOverdue(row: OpenInstallmentRow, asOf: Date): boolean {
     return (
-      row.dueDate != null &&
-      DateTimeManager.startOfDay(row.dueDate) < asOf
+      row.dueDate != null && DateTimeManager.startOfDay(row.dueDate) < asOf
     );
   }
 }

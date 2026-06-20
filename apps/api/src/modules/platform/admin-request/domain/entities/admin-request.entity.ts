@@ -7,8 +7,8 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { BadRequestException } from '@nestjs/common';
 import { AdminRequestCreatedEvent } from '@modules/platform/admin-request/domain/events/admin-request-created.event';
 import { AdminRequestReviewedEvent } from '@modules/platform/admin-request/domain/events/admin-request-reviewed.event';
-import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/types/create-admin-request.props';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
+import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/admin-request.contracts';
 
 export class AdminRequest extends AggregateRoot implements IAdminRequest {
   constructor(data: IAdminRequest) {
