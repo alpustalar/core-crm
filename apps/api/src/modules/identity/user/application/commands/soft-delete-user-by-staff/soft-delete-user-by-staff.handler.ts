@@ -13,7 +13,7 @@ import {
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { SoftDeleteUserByStaffResponse } from '@modules/identity/user/application/commands/soft-delete-user-by-staff/soft-delete-user-by-staff.response';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { USER_EVENTS } from '@src/domain/constants/events';
 

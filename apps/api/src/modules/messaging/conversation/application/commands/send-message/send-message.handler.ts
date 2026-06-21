@@ -5,18 +5,19 @@ import {
   Inject,
   NotFoundException,
 } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
+
 import {
   CONVERSATION_QUERY_REPOSITORY,
   IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
-  MESSAGE_COMMAND_REPOSITORY,
   IMessageCommandRepository,
+  MESSAGE_COMMAND_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
 import { SendMessageCommand } from './send-message.command';
+import { MessageTypeSchema } from '@shared/generated-zod';
 
 @CommandHandler(SendMessageCommand)
 export class SendMessageHandler
@@ -43,8 +44,11 @@ export class SendMessageHandler
 
     // WhatsApp 24s servis penceresi: pencere kapalıyken serbest (TEXT/MEDIA) mesaj
     // gönderilemez, yalnızca onaylı şablon (TEMPLATE/HSM) gönderilebilir.
-    const type = input.type ?? MessageType.TEXT;
-    if (type !== MessageType.TEMPLATE && !conversation.isWithinServiceWindow()) {
+    const type = input.type ?? MessageTypeSchema.enum.TEXT;
+    if (
+      type !== MessageTypeSchema.enum.TEMPLATE &&
+      !conversation.isWithinServiceWindow()
+    ) {
       throw new BadRequestException(
         '24 saatlik servis penceresi kapalı; yalnızca onaylı şablon mesaj gönderilebilir.'
       );

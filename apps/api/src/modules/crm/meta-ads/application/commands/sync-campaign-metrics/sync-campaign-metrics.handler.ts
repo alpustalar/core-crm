@@ -17,7 +17,7 @@ import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import { DateTimeManager } from '@common/utils';
 
 @CommandHandler(SyncCampaignMetricsCommand)

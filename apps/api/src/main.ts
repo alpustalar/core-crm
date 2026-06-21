@@ -4,11 +4,12 @@ import { AppModule } from './app.module';
 import { SetupApp } from '@common/setup-app';
 import { ConfigService } from '@nestjs/config';
 import { WinstonModule } from 'nest-winston';
-import { winstonConfig } from '@common/logger/winston.config';
+import { winstonConfig } from '@src/infrastructure/logging/winston.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
+    rawBody: true,
   });
 
   SetupApp(app);

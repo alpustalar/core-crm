@@ -9,7 +9,7 @@ import {
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUsersByClinicIdCommand } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-users-by-clinic-id.command';
 import { SoftDeleteManyUserByClinicIdResponse } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-user-by-clinic-id.response';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(SoftDeleteManyUsersByClinicIdCommand)

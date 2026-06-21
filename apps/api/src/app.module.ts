@@ -6,7 +6,7 @@ import {
   RouterModule,
 } from '@nestjs/core';
 import { LoggingInterceptor } from '@common/interceptors/logger/logger.interceptor';
-import { AllExceptionsFilter } from '@common/filters/all-exceptions-filter';
+import { AllExceptionsFilter } from '@src/infrastructure/http/filters/all-exceptions-filter';
 import { ThrottleMonitorGuard } from '@common/guards/throttle-monitor.guard';
 import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listener';
 import { UserModule } from '@modules/identity/user/user.module';
@@ -18,7 +18,7 @@ import { AppointmentModule } from '@modules/clinical/appointment/appointment.mod
 import { ClinicModule } from '@modules/organization/clinic/clinic.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { TreatmentModule } from '@modules/clinical/treatment/treatment.module';
-import { RedisModule } from '@common/redis/redis.module';
+import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 import { OrganizationModule } from '@modules/organization/organization/organization.module';
 import { MedicalFilesModule } from '@modules/clinical/medical-files/medical-files.module';
 import { LookupModule } from '@modules/platform/lookup/lookup.module';
@@ -36,7 +36,7 @@ import { OutboxModule } from '@src/infrastructure/persistence/prisma/outbox/outb
 import { PatientAuthModule } from '@modules/identity/auth/patient-auth/patient-auth.module';
 import { ContextModule } from '@src/infrastructure/context/context.module';
 import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
-import { CryptoModule } from '@common/crypto/crypto.module';
+import { CryptoModule } from '@src/infrastructure/security/crypto/crypto.module';
 import { InvoiceModule } from '@modules/finance/invoice/invoice.module';
 import { PosModule } from '@modules/finance/pos/pos.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';

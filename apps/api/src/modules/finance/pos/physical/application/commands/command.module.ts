@@ -9,8 +9,7 @@ import { PaxRefundHandler } from './pax-refund/pax-refund.handler';
 import { PaxBatchCloseHandler } from './pax-batch-close/pax-batch-close.handler';
 import { PosDeviceRepositoryModule } from '@modules/finance/pos/physical/infrastructure/persistence/prisma/repositories/pos-device/pos-device.repository.module';
 import { PosTransactionRepositoryModule } from '@modules/finance/pos/physical/infrastructure/persistence/prisma/repositories/pos-transaction/pos-transaction.repository.module';
-import { PosProviderModule } from '@modules/finance/pos/physical/infrastructure/providers/pos-provider.module';
-import { PaxModule } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.module';
+import { PaxModule } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
@@ -29,7 +28,6 @@ export const POS_COMMAND_HANDLERS = [
   imports: [
     PosDeviceRepositoryModule,
     PosTransactionRepositoryModule,
-    PosProviderModule,
     PaxModule,
     PaymentModule,
   ],

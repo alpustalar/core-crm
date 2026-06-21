@@ -10,11 +10,11 @@ import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
-import { PaxService } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.service';
+import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
   PaxConnectionError,
   PaxTimeoutError,
-} from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
+} from '@src/infrastructure/payment/pos/physical/providers/pax/pax.errors';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';

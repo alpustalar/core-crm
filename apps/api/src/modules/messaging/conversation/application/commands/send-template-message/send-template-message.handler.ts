@@ -5,18 +5,18 @@ import {
   Inject,
   NotFoundException,
 } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
 import {
   CONVERSATION_QUERY_REPOSITORY,
   IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
-  MESSAGE_COMMAND_REPOSITORY,
   IMessageCommandRepository,
+  MESSAGE_COMMAND_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
 import { SendTemplateMessageCommand } from './send-template-message.command';
+import { MessageTypeSchema } from '@shared/generated-zod';
 
 @CommandHandler(SendTemplateMessageCommand)
 export class SendTemplateMessageHandler
@@ -51,10 +51,11 @@ export class SendTemplateMessageHandler
       );
     }
 
-    // Şablon mesajı 24s penceresine tabi değildir.
+    // şablon mesajı 24 saat penceresine tabii değil
+
     const message = Message.createOutbound({
       conversationId: conversation.id,
-      type: MessageType.TEMPLATE,
+      type: MessageTypeSchema.enum.TEMPLATE,
       body: input.templateName, // listede gösterim için
       sentByUserId: ctx.actor.userId,
       template: {

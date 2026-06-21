@@ -1,4 +1,4 @@
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import {
   IPolicyFactory,
   POLICY_FACTORY,

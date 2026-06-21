@@ -18,8 +18,6 @@ import { Money } from '@src/domain/value-objects/money.vo';
  * bir işlem tekrar işaretlenmeye çalışılırsa sessizce yok sayılır — reconcile
  * ve callback yarışlarına karşı güvenli).
  *
- * NOT: Audit/domain event'leri Faz 3'te eklenecektir (publisher + listener
- * akışıyla). Şimdilik entity yalnızca durum yönetiminden sorumludur.
  */
 export class PosTransaction extends AggregateRoot {
   constructor(data: IPosTransaction) {
@@ -128,7 +126,7 @@ export class PosTransaction extends AggregateRoot {
   public setExternalRef(externalRef: string, rawRequest?: unknown): void {
     this._externalRef = externalRef;
     if (rawRequest !== undefined) {
-      this._rawRequest = rawRequest as JsonValueType;
+      this._rawRequest = rawRequest;
     }
   }
 
@@ -137,7 +135,7 @@ export class PosTransaction extends AggregateRoot {
     this._status = PosTransactionStatusSchema.enum.SUCCESS;
     if (externalRef) this._externalRef = externalRef;
     if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse as JsonValueType;
+      this._rawResponse = rawResponse;
     }
     this._completedAt = new Date();
     this.addDomainEvent(
@@ -156,7 +154,7 @@ export class PosTransaction extends AggregateRoot {
     if (!this.isPending()) return;
     this._status = PosTransactionStatusSchema.enum.FAILED;
     if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse as JsonValueType;
+      this._rawResponse = rawResponse;
     }
     this._completedAt = new Date();
     this.addDomainEvent(
@@ -172,7 +170,7 @@ export class PosTransaction extends AggregateRoot {
     if (!this.isPending()) return;
     this._status = PosTransactionStatusSchema.enum.CANCELLED;
     if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse as JsonValueType;
+      this._rawResponse = rawResponse;
     }
     this._completedAt = new Date();
     this.addDomainEvent(

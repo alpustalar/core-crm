@@ -177,7 +177,7 @@ export const UpdateSupplierSchema = z.object({
   name: z.string().min(1).optional(),
   contactName: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
-  email: z.string().email('Geçersiz e-posta formatı').nullable().optional(),
+  email: z.email('Geçersiz e-posta formatı').nullable().optional(),
   address: z.string().nullable().optional(),
   taxNumber: z.string().nullable().optional(),
   taxOffice: z.string().nullable().optional(),

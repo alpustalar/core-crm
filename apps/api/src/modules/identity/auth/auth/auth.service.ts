@@ -1,5 +1,10 @@
 import { ActorContext } from '@common/interfaces';
-import { Inject, Injectable, Logger, UnauthorizedException, } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { LogSource } from '@src/domain/constants/log-action.constant';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
@@ -13,14 +18,10 @@ import { rolesCreateManyInputs } from '@src/infrastructure/persistence/prisma/da
 
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
-import {
-  UpdateLastLoginCommand
-} from '@modules/identity/user/application/commands/update-last-login/update-last-login.command';
-import {
-  FindUserForAuthQuery
-} from '@modules/identity/user/application/queries/find-user-for-auth/find-user-for-auth.query';
+import { UpdateLastLoginCommand } from '@modules/identity/user/application/commands/update-last-login/update-last-login.command';
+import { FindUserForAuthQuery } from '@modules/identity/user/application/queries/find-user-for-auth/find-user-for-auth.query';
 
 // TODO: PROD'TA KALDIR
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;

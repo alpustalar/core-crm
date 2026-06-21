@@ -3,7 +3,7 @@ import { ENV } from '@common/constants/env.constant';
 import { ROUTE_PATHS } from '@common/constants/routes.constant';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IyzicoProvider } from '@src/infrastructure/payment/providers/iyzico/iyzico.provider';
+import { IyzicoProvider } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/iyzico.provider';
 import { randomUUID } from 'crypto';
 import {
   IBillingAdapter,

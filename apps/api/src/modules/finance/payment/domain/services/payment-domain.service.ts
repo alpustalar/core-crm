@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
+import { IyzicoSdkStatus } from '@src/infrastructure/payment/pos/virtual/providers/iyzico';
 import PaymentStatusSchema, {
   PaymentStatusType,
 } from '@input-type-schemas/PaymentStatusSchema';

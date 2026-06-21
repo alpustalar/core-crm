@@ -2,14 +2,14 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetInstallmentInfoQuery } from './get-installment-info.query';
 import { GetInstallmentInfoQueryResponse } from './get-installment-info.response';
 import { randomUUID } from 'crypto';
-import { IyzicoSdkStatus } from '@src/infrastructure/payment/providers/iyzico';
+import { IyzicoSdkStatus } from '@src/infrastructure/payment/pos/virtual/providers/iyzico';
 import { BadRequestException, Inject } from '@nestjs/common';
 
 import Iyzipay from 'iyzipay';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import { InstallmentOption } from '@modules/finance/payment/domain/payment.contracts';
 
 @QueryHandler(GetInstallmentInfoQuery)

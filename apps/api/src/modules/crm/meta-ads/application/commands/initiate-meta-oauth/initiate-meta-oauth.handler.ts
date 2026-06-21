@@ -8,7 +8,7 @@ import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { ENV } from '@common/constants/env.constant';
 
 @CommandHandler(InitiateMetaOAuthCommand)

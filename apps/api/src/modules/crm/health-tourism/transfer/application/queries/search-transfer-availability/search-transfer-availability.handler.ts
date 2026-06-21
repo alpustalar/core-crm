@@ -7,7 +7,7 @@ import {
   HOTELBEDS_TRANSFER_API_SERVICE,
   IHotelbedsTransferApiService,
 } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
 
 @QueryHandler(SearchTransferAvailabilityQuery)

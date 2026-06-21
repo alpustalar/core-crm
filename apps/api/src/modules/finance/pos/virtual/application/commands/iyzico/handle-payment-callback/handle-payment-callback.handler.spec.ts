@@ -6,12 +6,12 @@ import { HandlePaymentCallbackCommand } from './handle-payment-callback.command'
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import {
   IIyzicoTransactionRepository,
   IYZICO_TRANSACTION_REPOSITORY,
   IyzicoTransactionWithInstallment,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';

@@ -13,7 +13,7 @@ import {
   IMetaAdsEventPublisher,
   META_ADS_EVENT_PUBLISHER,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   LogAction,
   LogSource,

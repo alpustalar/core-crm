@@ -1,7 +1,6 @@
 import {
   AdminRequest as IAdminRequest,
-  AdminRequestStatus,
-  AdminRequestType,
+  AdminRequestStatusSchema,
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { BadRequestException } from '@nestjs/common';
@@ -9,6 +8,8 @@ import { AdminRequestCreatedEvent } from '@modules/platform/admin-request/domain
 import { AdminRequestReviewedEvent } from '@modules/platform/admin-request/domain/events/admin-request-reviewed.event';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/admin-request.contracts';
+import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
+import { AdminRequestStatusType as AdminRequestStatus } from '@input-type-schemas/AdminRequestStatusSchema';
 
 export class AdminRequest extends AggregateRoot implements IAdminRequest {
   constructor(data: IAdminRequest) {
@@ -91,7 +92,7 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
     const entity = new AdminRequest({
       id: props.id,
       type: props.type,
-      status: AdminRequestStatus.PENDING,
+      status: AdminRequestStatusSchema.enum.PENDING,
       targetId: props.targetId,
       requestedBy: props.requestedBy,
       organizationId: props.organizationId ?? null,
@@ -117,12 +118,12 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
   }
 
   public approve(reviewedBy: string, reviewNote?: string): void {
-    if (this._status !== AdminRequestStatus.PENDING) {
+    if (this._status !== AdminRequestStatusSchema.enum.PENDING) {
       throw new BadRequestException(
         'Yalnızca bekleyen istekler onaylanabilir.'
       );
     }
-    this._status = AdminRequestStatus.APPROVED;
+    this._status = AdminRequestStatusSchema.enum.APPROVED;
     this._reviewedBy = reviewedBy;
     this._reviewedAt = new Date();
     this._reviewNote = reviewNote ?? null;
@@ -131,7 +132,7 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
       new AdminRequestReviewedEvent({
         requestId: this._id,
         type: this._type,
-        status: AdminRequestStatus.APPROVED,
+        status: AdminRequestStatusSchema.enum.APPROVED,
         targetId: this._targetId,
         requestedBy: this._requestedBy,
         reviewedBy,
@@ -142,12 +143,12 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
   }
 
   public reject(reviewedBy: string, reviewNote?: string): void {
-    if (this._status !== AdminRequestStatus.PENDING) {
+    if (this._status !== AdminRequestStatusSchema.enum.PENDING) {
       throw new BadRequestException(
         'Yalnızca bekleyen istekler reddedilebilir.'
       );
     }
-    this._status = AdminRequestStatus.REJECTED;
+    this._status = AdminRequestStatusSchema.enum.REJECTED;
     this._reviewedBy = reviewedBy;
     this._reviewedAt = new Date();
     this._reviewNote = reviewNote ?? null;
@@ -156,7 +157,7 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
       new AdminRequestReviewedEvent({
         requestId: this._id,
         type: this._type,
-        status: AdminRequestStatus.REJECTED,
+        status: AdminRequestStatusSchema.enum.REJECTED,
         targetId: this._targetId,
         requestedBy: this._requestedBy,
         reviewedBy,
@@ -167,7 +168,7 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
   }
 
   public isPending(): boolean {
-    return this._status === AdminRequestStatus.PENDING;
+    return this._status === AdminRequestStatusSchema.enum.PENDING;
   }
 
   public toPersistence(): IAdminRequest {

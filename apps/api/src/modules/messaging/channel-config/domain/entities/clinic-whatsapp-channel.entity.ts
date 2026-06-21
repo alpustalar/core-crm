@@ -1,6 +1,6 @@
 import { ClinicWhatsappChannel as IClinicWhatsappChannel } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateClinicWhatsappChannelProps } from '../types/create-clinic-whatsapp-channel.props';
+import { CreateClinicWhatsappChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
 
 /**
  * Kliniğin WhatsApp Business kanal config'i (messaging bounded-context). Clinic'ten
@@ -153,13 +153,16 @@ export class ClinicWhatsappChannel
   }
 
   /** accessToken'ın geçerlilik süresi dolmuş mu? (reconnect gerekir) */
+
   public isTokenExpired(now: Date = new Date()): boolean {
     return this._tokenExpiresAt !== null && this._tokenExpiresAt <= now;
   }
 
   /** Aktif ama token yok/expired → FE yeniden bağlama (reconnect) istemeli. */
   public needsReauth(now: Date = new Date()): boolean {
-    return this._isActive && (this._accessToken === null || this.isTokenExpired(now));
+    return (
+      this._isActive && (this._accessToken === null || this.isTokenExpired(now))
+    );
   }
 
   public toPersistence(): IClinicWhatsappChannel {

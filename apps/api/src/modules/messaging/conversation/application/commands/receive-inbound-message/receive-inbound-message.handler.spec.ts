@@ -108,7 +108,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     expect((events[0] as MessageReceivedEvent).messageId).toBe(message.id);
   });
 
-  it('var olan yazışma: hasta sorgusu yapılmaz, mevcut Conversation kullanılır', async () => {
+  it('var olan yazışma: hasta sorgusu yapılır, mevcut Conversation kullanılır', async () => {
     const existing = Conversation.start({
       clinicId: 'clinic-1',
       organizationId: 'org-1',
@@ -118,7 +118,8 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
 
     await t.handler.execute(new ReceiveInboundMessageCommand(baseInput));
 
-    expect(t.queryBus.execute).not.toHaveBeenCalled();
+    // Hasta eşlemesi her gelen mesajda çözülür (AI/CRM bağlamı için).
+    expect(t.queryBus.execute).toHaveBeenCalledTimes(1);
     expect(t.getSavedConversation()).toBe(existing);
   });
 

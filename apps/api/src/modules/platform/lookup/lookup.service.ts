@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { citiesAndDistricts } from '@common/data';
+import { citiesAndDistricts } from '@common/assets';
 
 @Injectable()
 export class LookupService {

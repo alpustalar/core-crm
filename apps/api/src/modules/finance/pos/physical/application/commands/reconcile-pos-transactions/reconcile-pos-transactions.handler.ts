@@ -7,13 +7,17 @@ import {
   POS_TRANSACTION_COMMAND_REPOSITORY,
   POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
-import { PaxService } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.service';
+import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
-import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import {
+  EnsurePartyForPatientCommand
+} from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
+import {
+  RecordFinancialEventCommand
+} from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla

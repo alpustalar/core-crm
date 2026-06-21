@@ -5,7 +5,7 @@ import { GetTransferBookingsHandler } from './get-transfer-bookings/get-transfer
 import { GetTransferBookingByIdHandler } from './get-transfer-booking-by-id/get-transfer-booking-by-id.handler';
 import { HotelbedsTransferApiModule } from '../../infrastructure/http/hotelbeds-transfer-api.module';
 import { HotelbedsTransferBookingRepositoryModule } from '../../infrastructure/persistence/prisma/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.repository.module';
-import { RedisModule } from '@common/redis/redis.module';
+import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 
 export const TRANSFER_QUERY_HANDLERS = [
   SearchTransferAvailabilityHandler,

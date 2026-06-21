@@ -2,7 +2,7 @@ import { GetWhatsappChannelCredentialsHandler } from './get-whatsapp-channel-cre
 import { GetWhatsappChannelCredentialsQuery } from './get-whatsapp-channel-credentials.query';
 import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
 import { IClinicWhatsappChannelQueryRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 
 describe('GetWhatsappChannelCredentialsHandler (decrypted credential — internal)', () => {
   const build = (channel: ClinicWhatsappChannel | null) => {
@@ -16,7 +16,10 @@ describe('GetWhatsappChannelCredentialsHandler (decrypted credential — interna
     } as unknown as TokenCipherService;
 
     return {
-      handler: new GetWhatsappChannelCredentialsHandler(channelQueryRepo, cipher),
+      handler: new GetWhatsappChannelCredentialsHandler(
+        channelQueryRepo,
+        cipher
+      ),
       cipher,
     };
   };

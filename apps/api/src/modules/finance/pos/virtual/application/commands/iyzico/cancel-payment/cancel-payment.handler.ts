@@ -6,11 +6,11 @@ import { PaymentDomainService } from '@modules/finance/payment/domain/services/p
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import {
   IIyzicoTransactionRepository,
   IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import {
   IPaymentEventPublisher,

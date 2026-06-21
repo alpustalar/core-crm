@@ -11,7 +11,7 @@ import { ClinicPaymentGateway } from '@modules/finance/payment-gateway/domain/en
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -69,7 +69,12 @@ export class RegisterClinicPaymentGatewayHandler
     }
 
     await this.txManager.run(async () => {
-      const entity = existing ?? ClinicPaymentGateway.create({ clinicId, iyzicoSubMerchantKey: subMerchantKey });
+      const entity =
+        existing ??
+        ClinicPaymentGateway.create({
+          clinicId,
+          iyzicoSubMerchantKey: subMerchantKey,
+        });
       if (existing) entity.updateSubMerchantKey(subMerchantKey);
       await this.gatewayCommandRepo.save(entity);
     });

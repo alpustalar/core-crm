@@ -3,7 +3,7 @@ import { GetWhatsappTemplatesQuery } from './get-whatsapp-templates.query';
 import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
 import { IClinicWhatsappChannelQueryRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { IWhatsappCloudApi } from '@modules/messaging/channel-config/domain/interfaces/whatsapp-cloud-api.interface';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 
 describe('GetWhatsappTemplatesHandler', () => {
   const ctx = { actor: { userId: 'u1' } } as never;
@@ -31,12 +31,19 @@ describe('GetWhatsappTemplatesHandler', () => {
     } as unknown as TokenCipherService;
 
     return {
-      handler: new GetWhatsappTemplatesHandler(channelQueryRepo, cloudApi, cipher),
+      handler: new GetWhatsappTemplatesHandler(
+        channelQueryRepo,
+        cloudApi,
+        cipher
+      ),
       cloudApi,
     };
   };
 
-  const channel = (params: { accessToken?: string | null; wabaId?: string | null }) =>
+  const channel = (params: {
+    accessToken?: string | null;
+    wabaId?: string | null;
+  }) =>
     ClinicWhatsappChannel.create({
       clinicId: 'clinic-1',
       organizationId: 'org-1',
@@ -51,9 +58,15 @@ describe('GetWhatsappTemplatesHandler', () => {
     const { data } = await handler.execute(
       new GetWhatsappTemplatesQuery('clinic-1', ctx)
     );
-    expect(cloudApi.listMessageTemplates).toHaveBeenCalledWith('waba-1', 'dec(enc)');
+    expect(cloudApi.listMessageTemplates).toHaveBeenCalledWith(
+      'waba-1',
+      'dec(enc)'
+    );
     expect(data).toHaveLength(1);
-    expect(data[0]).toMatchObject({ name: 'randevu_hatirlatma', status: 'APPROVED' });
+    expect(data[0]).toMatchObject({
+      name: 'randevu_hatirlatma',
+      status: 'APPROVED',
+    });
   });
 
   it('kanal yoksa boş liste (API çağrılmaz)', async () => {

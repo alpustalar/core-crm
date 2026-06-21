@@ -12,7 +12,7 @@ import { MetaCampaignMetricRepositoryModule } from '@modules/crm/meta-ads/infras
 import { MetaAdsEventModule } from '@modules/crm/meta-ads/infrastructure/events/meta-ads-event.module';
 import { MetaMarketingApiModule } from '@modules/crm/meta-ads/infrastructure/http/meta-marketing-api.module';
 import { PatientQueryModule } from '@modules/crm/patient/application/queries/query.module';
-import { RedisModule } from '@common/redis/redis.module';
+import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 
 export const META_ADS_COMMAND_HANDLERS = [
   ConnectMetaAccountHandler,

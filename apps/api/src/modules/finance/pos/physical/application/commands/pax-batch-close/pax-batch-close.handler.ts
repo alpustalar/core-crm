@@ -6,7 +6,7 @@ import {
   IPosDeviceQueryRepository,
   POS_DEVICE_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import { PaxService } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.service';
+import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 
 @CommandHandler(PaxBatchCloseCommand)
 export class PaxBatchCloseHandler

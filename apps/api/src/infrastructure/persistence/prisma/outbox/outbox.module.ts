@@ -9,13 +9,19 @@ import { OutboxProcessor } from './outbox.processor';
   providers: [OutboxProcessor],
 })
 export class OutboxModule implements OnModuleInit {
-  constructor(@InjectQueue(QUEUES.OUTBOX) private readonly outboxQueue: Queue) {}
+  constructor(
+    @InjectQueue(QUEUES.OUTBOX) private readonly outboxQueue: Queue
+  ) {}
 
   async onModuleInit() {
-    await this.outboxQueue.add(OUTBOX_JOBS.PROCESS, {}, {
-      repeat: { every: 5000 },
-      removeOnComplete: true,
-      removeOnFail: false,
-    });
+    await this.outboxQueue.add(
+      OUTBOX_JOBS.PROCESS,
+      {},
+      {
+        repeat: { every: 5000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      }
+    );
   }
 }

@@ -6,12 +6,12 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import {
   IIyzicoTransactionRepository,
   IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
-import { PaymentInitializeRequest } from '@src/infrastructure/payment/providers/iyzico/domain/types/payment-initialize.request';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+import { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/payment-initialize.request';
 import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,

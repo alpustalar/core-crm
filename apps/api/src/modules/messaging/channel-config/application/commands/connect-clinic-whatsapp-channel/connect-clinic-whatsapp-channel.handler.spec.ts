@@ -3,7 +3,7 @@ import { ConnectClinicWhatsappChannelCommand } from './connect-clinic-whatsapp-c
 import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
 import { IClinicWhatsappChannelCommandRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { IWhatsappCloudApi } from '@modules/messaging/channel-config/domain/interfaces/whatsapp-cloud-api.interface';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 describe('ConnectClinicWhatsappChannelHandler (Embedded Signup self-service)', () => {
@@ -18,12 +18,10 @@ describe('ConnectClinicWhatsappChannelHandler (Embedded Signup self-service)', (
       exchangeCodeForToken: jest
         .fn()
         .mockResolvedValue({ accessToken: 'short-token', expiresAt: null }),
-      exchangeForLongLivedToken: jest
-        .fn()
-        .mockResolvedValue({
-          accessToken: 'long-token',
-          expiresAt: longLivedExpiry,
-        }),
+      exchangeForLongLivedToken: jest.fn().mockResolvedValue({
+        accessToken: 'long-token',
+        expiresAt: longLivedExpiry,
+      }),
       subscribeAppToWaba: jest.fn().mockResolvedValue(undefined),
       registerPhoneNumber: jest.fn().mockResolvedValue(undefined),
     } as unknown as IWhatsappCloudApi;
@@ -106,7 +104,10 @@ describe('ConnectClinicWhatsappChannelHandler (Embedded Signup self-service)', (
       )
     );
 
-    expect(cloudApi.subscribeAppToWaba).toHaveBeenCalledWith('w', 'short-token');
+    expect(cloudApi.subscribeAppToWaba).toHaveBeenCalledWith(
+      'w',
+      'short-token'
+    );
     expect(cipher.encrypt).toHaveBeenCalledWith('short-token');
     expect(getSaved()!.accessToken).toBe('enc(short-token)');
   });

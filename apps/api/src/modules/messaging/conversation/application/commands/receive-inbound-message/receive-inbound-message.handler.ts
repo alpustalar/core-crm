@@ -1,9 +1,6 @@
+import { ReceiveInboundMessageCommand } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { MessageChannel } from '@prisma/client';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { FindPatientByContactQuery } from '@modules/crm/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
   CONVERSATION_QUERY_REPOSITORY,
@@ -11,15 +8,18 @@ import {
   IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
-  MESSAGE_COMMAND_REPOSITORY,
-  MESSAGE_QUERY_REPOSITORY,
   IMessageCommandRepository,
   IMessageQueryRepository,
+  MESSAGE_COMMAND_REPOSITORY,
+  MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { FindPatientByContactQuery } from '@modules/crm/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { detectOptIntent } from '@modules/messaging/conversation/domain/marketing-opt-out';
-import { ReceiveInboundMessageCommand } from './receive-inbound-message.command';
+import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
+import { MessageChannelSchema } from '@shared';
 
 @CommandHandler(ReceiveInboundMessageCommand)
 export class ReceiveInboundMessageHandler
@@ -41,14 +41,20 @@ export class ReceiveInboundMessageHandler
   async execute(command: ReceiveInboundMessageCommand): Promise<string> {
     const { input } = command;
 
-    // Idempotency: Meta aynı mesajı tekrar iletebilir.
+    // idempotemcy check meta aynı mesajı tekrar iletebiliyor
     const existingMessage = await this.messageQueryRepo.findByExternalId(
       input.externalId
     );
     if (existingMessage) return existingMessage.id;
 
+    const { data: patient } = await this.queryBus.execute(
+      new FindPatientByContactQuery(input.clinicId, input.contactPhone)
+    );
+    const patientId = patient?.id ?? null;
+
     return this.txManager.outboxRun(async () => {
-      const conversation = await this.resolveConversation(command);
+      // resolveConversation ctx içinde çalışıp mükerrerliği engellemeli
+      const conversation = await this.resolveConversation(command, patientId);
 
       const message = Message.createInbound({
         conversationId: conversation.id,
@@ -59,6 +65,7 @@ export class ReceiveInboundMessageHandler
         payload: input.payload,
         replyToExternalId: input.replyToExternalId,
       });
+
       const savedMessage = await this.messageCommandRepo.save(message);
 
       conversation.recordInboundMessage({
@@ -67,7 +74,7 @@ export class ReceiveInboundMessageHandler
         occurredAt: input.occurredAt,
       });
 
-      // Pazarlama opt-out/opt-in: kontak "DUR/STOP" yazdıysa pazarlama şablonları durur.
+      // Pazarlama yönelimi kontrolü
       const intent = detectOptIntent(input.body);
       if (intent === 'opt_out') conversation.optOutMarketing();
       else if (intent === 'opt_in') conversation.resumeMarketing();
@@ -78,30 +85,29 @@ export class ReceiveInboundMessageHandler
     });
   }
 
-  /** Var olan yazışmayı bulur; yoksa kontak eşlemesini yapıp yeni yazışma başlatır. */
+  // var olan yazışmayı bul yoksa kilit altında yeni yazışma başlat
+
   private async resolveConversation(
-    command: ReceiveInboundMessageCommand
+    command: ReceiveInboundMessageCommand,
+    patientId: string | null
   ): Promise<Conversation> {
     const { input } = command;
 
     const existing = await this.conversationQueryRepo.findByContact({
       clinicId: input.clinicId,
-      channel: MessageChannel.WHATSAPP,
+      channel: MessageChannelSchema.enum.WHATSAPP,
       contactPhone: input.contactPhone,
     });
-    if (existing) return existing;
 
-    const { data: patient } = await this.queryBus.execute(
-      new FindPatientByContactQuery(input.clinicId, input.contactPhone)
-    );
+    if (existing) return existing;
 
     return Conversation.start({
       clinicId: input.clinicId,
       organizationId: input.organizationId,
-      channel: MessageChannel.WHATSAPP,
+      channel: MessageChannelSchema.enum.WHATSAPP,
       contactPhone: input.contactPhone,
       contactName: input.contactName,
-      patientId: patient?.id ?? null,
+      patientId: patientId,
     });
   }
 }

@@ -1,6 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY,
   IClinicWhatsappChannelQueryRepository,

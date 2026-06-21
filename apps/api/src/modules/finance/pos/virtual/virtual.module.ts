@@ -4,7 +4,11 @@ import { PaymentQueryModule } from './application/queries/query.module';
 import { PaymentPresentationModule } from './presentation/payment-presentation.module';
 
 @Module({
-  imports: [PaymentCommandModule, PaymentQueryModule, PaymentPresentationModule],
+  imports: [
+    PaymentCommandModule,
+    PaymentQueryModule,
+    PaymentPresentationModule,
+  ],
   exports: [PaymentCommandModule, PaymentQueryModule],
 })
 export class VirtualPosModule {}

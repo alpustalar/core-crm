@@ -4,7 +4,7 @@ import { FirebaseModule } from '@modules/identity/auth/firebase/firebase.module'
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
 import { UserModule } from '@modules/identity/user/user.module';
-import { RedisModule } from '@common/redis/redis.module';
+import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 
 @Global()
 @Module({

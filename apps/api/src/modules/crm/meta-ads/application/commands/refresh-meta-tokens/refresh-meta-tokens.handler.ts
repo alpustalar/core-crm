@@ -15,7 +15,7 @@ import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
-import { TokenCipherService } from '@common/crypto/token-cipher.service';
+import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import { ENV } from '@common/constants/env.constant';
 
 const REFRESH_WITHIN_DAYS = 7;

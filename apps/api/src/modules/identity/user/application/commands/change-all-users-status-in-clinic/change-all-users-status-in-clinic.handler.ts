@@ -9,7 +9,7 @@ import { ChangeAllUsersStatusInClinicCommand } from '@modules/identity/user/appl
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ChangeAllUsersStatusInClinicResponse } from '@modules/identity/user/application/commands/change-all-users-status-in-clinic/change-all-users-status-in-clinic.response';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(ChangeAllUsersStatusInClinicCommand)

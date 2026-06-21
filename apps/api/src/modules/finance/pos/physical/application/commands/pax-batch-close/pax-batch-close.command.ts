@@ -8,6 +8,6 @@ export interface PaxBatchCloseInput extends PaxBatchClose {
 export class PaxBatchCloseCommand {
   constructor(
     public readonly input: PaxBatchCloseInput,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

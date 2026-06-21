@@ -33,10 +33,10 @@ export class UpsertClinicGovernmentSpecsHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const { evaluator } = this.policyFactory.clinic(actor);
-    evaluator
-      .check(
-        (p) => p.actorCanManageTargetClinic(clinicId),
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
         'Bu kliniğin resmi/regülasyon bilgilerini yönetme yetkiniz yok.'
       )
       .orThrow(GOVERNANCE_EVENTS.UPSERT_CLINIC_SPECS);

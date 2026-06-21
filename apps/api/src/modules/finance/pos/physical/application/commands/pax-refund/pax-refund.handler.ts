@@ -17,11 +17,11 @@ import {
   POS_TRANSACTION_COMMAND_REPOSITORY,
   POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
-import { PaxService } from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.service';
+import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
   PaxConnectionError,
   PaxTimeoutError,
-} from '@modules/finance/pos/physical/infrastructure/providers/pax/pax.errors';
+} from '@src/infrastructure/payment/pos/physical/providers/pax/pax.errors';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';

@@ -5,7 +5,7 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AllExceptionsFilter } from './filters/all-exceptions-filter';
+import { AllExceptionsFilter } from '../infrastructure/http/filters/all-exceptions-filter';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { API_CONFIG } from '@common/constants';
 

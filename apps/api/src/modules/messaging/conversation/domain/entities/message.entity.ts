@@ -1,9 +1,9 @@
 import {
-  MessageDirection,
-  MessageStatus,
-  MessageType,
-} from '@prisma/client';
-import { Message as IMessage } from '@shared/generated-zod';
+  Message as IMessage,
+  MessageDirectionSchema,
+  MessageStatusSchema,
+  MessageTypeSchema,
+} from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { MessageStatusChangedEvent } from '../events/message-status-changed.event';
 import {
@@ -11,6 +11,9 @@ import {
   CreateOutboundMessageProps,
   MessageTemplateComponents,
 } from '../types/create-message.props';
+import { MessageDirectionType as MessageDirection } from '@input-type-schemas/MessageDirectionSchema';
+import { MessageStatusType as MessageStatus } from '@input-type-schemas/MessageStatusSchema';
+import { MessageTypeType as MessageType } from '@input-type-schemas/MessageTypeSchema';
 
 /** Giden mesaj teslim akışındaki ileri-yön sıralaması (idempotent webhook için). */
 const DELIVERY_RANK: Record<MessageStatus, number> = {
@@ -27,6 +30,7 @@ const DELIVERY_RANK: Record<MessageStatus, number> = {
  * mükerrer/sırasız status iletebildiği için yalnızca ileri-yön geçişler uygulanır ve
  * gerçek değişimde MessageStatusChangedEvent fırlatılır.
  */
+
 export class Message extends AggregateRoot implements IMessage {
   constructor(data: IMessage) {
     super();
@@ -184,11 +188,11 @@ export class Message extends AggregateRoot implements IMessage {
     return new Message({
       id: props.id ?? crypto.randomUUID(),
       conversationId: props.conversationId,
-      direction: MessageDirection.INBOUND,
-      type: props.type ?? MessageType.TEXT,
+      direction: MessageDirectionSchema.enum.INBOUND,
+      type: props.type ?? MessageTypeSchema.enum.TEXT,
       body: props.body ?? null,
       mediaUrl: props.mediaUrl ?? null,
-      status: MessageStatus.RECEIVED,
+      status: MessageStatusSchema.enum.RECEIVED,
       externalId: props.externalId ?? null,
       errorReason: null,
       errorCode: null,
@@ -212,11 +216,11 @@ export class Message extends AggregateRoot implements IMessage {
     return new Message({
       id: props.id ?? crypto.randomUUID(),
       conversationId: props.conversationId,
-      direction: MessageDirection.OUTBOUND,
-      type: props.type ?? MessageType.TEXT,
+      direction: MessageDirectionSchema.enum.OUTBOUND,
+      type: props.type ?? MessageTypeSchema.enum.TEXT,
       body: props.body ?? null,
       mediaUrl: props.mediaUrl ?? null,
-      status: MessageStatus.QUEUED,
+      status: MessageStatusSchema.enum.QUEUED,
       externalId: null,
       errorReason: null,
       errorCode: null,
@@ -238,31 +242,64 @@ export class Message extends AggregateRoot implements IMessage {
   /** Kanal portu mesajı kabul etti — externalId atanır, QUEUED→SENT. */
   public markSent(externalId: string): void {
     this._externalId = externalId;
-    this.transitionTo(MessageStatus.SENT);
+    this.transitionTo(MessageStatusSchema.enum.SENT);
   }
 
   /** Webhook status'tan gelen konuşma kategorisi/faturalanabilirlik bilgisini kaydeder. */
-  public recordPricing(category?: string | null, billable?: boolean | null): void {
+  public recordPricing(
+    category?: string | null,
+    billable?: boolean | null
+  ): void {
     if (category != null) this._pricingCategory = category;
     if (billable != null) this._billable = billable;
   }
 
   public markDelivered(): void {
-    this.transitionTo(MessageStatus.DELIVERED);
+    this.transitionTo(MessageStatusSchema.enum.DELIVERED);
   }
 
   public markRead(): void {
-    this.transitionTo(MessageStatus.READ);
+    this.transitionTo(MessageStatusSchema.enum.READ);
+  }
+
+  public transitionStatus(
+    status: MessageStatus,
+    payload?: {
+      errorReason?: string | null;
+      errorCode?: string | null;
+      externalId?: string | null;
+    }
+  ): void {
+    const statusActions: Record<MessageStatus, () => void> = {
+      [MessageStatusSchema.enum.SENT]: () =>
+        this.markSent(payload?.externalId ?? this._externalId ?? ''),
+      [MessageStatusSchema.enum.DELIVERED]: () => this.markDelivered(),
+      [MessageStatusSchema.enum.READ]: () => this.markRead(),
+      [MessageStatusSchema.enum.FAILED]: () =>
+        this.markFailed(payload?.errorReason ?? undefined, payload?.errorCode),
+
+      [MessageStatusSchema.enum.RECEIVED]: () => {},
+      [MessageStatusSchema.enum.QUEUED]: () => {},
+    };
+
+    const action = statusActions[status];
+    if (action) {
+      action();
+      this._updatedAt = new Date();
+    }
   }
 
   public markFailed(reason?: string, code?: string | null): void {
     // Teslim edilmiş/okunmuş mesaj geriye FAILED olamaz.
-    if (DELIVERY_RANK[this._status] >= DELIVERY_RANK[MessageStatus.DELIVERED]) {
+    if (
+      DELIVERY_RANK[this._status] >=
+      DELIVERY_RANK[MessageStatusSchema.enum.DELIVERED]
+    ) {
       return;
     }
-    if (this._status === MessageStatus.FAILED) return;
+    if (this._status === MessageStatusSchema.enum.FAILED) return;
     const previousStatus = this._status;
-    this._status = MessageStatus.FAILED;
+    this._status = MessageStatusSchema.enum.FAILED;
     this._errorReason = reason ?? null;
     this._errorCode = code ?? null;
     this.addDomainEvent(
@@ -271,7 +308,7 @@ export class Message extends AggregateRoot implements IMessage {
         conversationId: this._conversationId,
         externalId: this._externalId,
         previousStatus,
-        status: MessageStatus.FAILED,
+        status: MessageStatusSchema.enum.FAILED,
       })
     );
   }

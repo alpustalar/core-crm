@@ -5,7 +5,7 @@ import { GetHotelBookingsHandler } from './get-hotel-bookings/get-hotel-bookings
 import { GetHotelBookingByIdHandler } from './get-hotel-booking-by-id/get-hotel-booking-by-id.handler';
 import { HotelbedsApiModule } from '../../infrastructure/http/hotelbeds-api.module';
 import { HotelbedsBookingRepositoryModule } from '../../infrastructure/persistence/prisma/repositories/hotelbeds-booking/hotelbeds-booking.repository.module';
-import { RedisModule } from '@common/redis/redis.module';
+import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 
 export const HOTEL_QUERY_HANDLERS = [
   SearchHotelsHandler,
@@ -14,7 +14,12 @@ export const HOTEL_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, HotelbedsApiModule, HotelbedsBookingRepositoryModule, RedisModule],
+  imports: [
+    CqrsModule,
+    HotelbedsApiModule,
+    HotelbedsBookingRepositoryModule,
+    RedisModule,
+  ],
   providers: HOTEL_QUERY_HANDLERS,
   exports: HOTEL_QUERY_HANDLERS,
 })

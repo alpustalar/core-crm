@@ -4,13 +4,13 @@ import { HandlePaymentCallbackCommandResponse } from './handle-payment-callback.
 import {
   IIyzicoTransactionRepository,
   IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';

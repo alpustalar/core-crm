@@ -4,7 +4,7 @@ import { FirebaseModule } from '@modules/identity/auth/firebase/firebase.module'
 import { PolicyModule } from '@modules/platform/policy/policy.module';
 import { MailModule } from '@modules/platform/mail/mail.module';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
-import { RedisModule } from '@common/redis/redis.module';
+import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 import { USER_EVENT_PUBLISHER } from '@modules/identity/user/domain/interfaces/user-event-publisher.interface';
 import { UserEventPublisher } from '@modules/identity/user/infrastructure/events/user-event-publisher.service';
 import { UserRepositoryModule } from '@modules/identity/user/infrastructure/persistence/prisma/repositories/user.repository.module';

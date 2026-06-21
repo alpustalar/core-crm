@@ -7,7 +7,7 @@ import {
 } from '@modules/identity/user/domain/repositories/user.repository';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUserByOrganizationIdResponse } from '@modules/identity/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-user-by-organization-id.response';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 
 @CommandHandler(SoftDeleteManyUserByOrganizationIdCommand)
 export class SoftDeleteManyUsersByOrganizationIdHandler

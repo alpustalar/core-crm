@@ -1,12 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { MessageStatus } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
-  MESSAGE_COMMAND_REPOSITORY,
-  MESSAGE_QUERY_REPOSITORY,
   IMessageCommandRepository,
   IMessageQueryRepository,
+  MESSAGE_COMMAND_REPOSITORY,
+  MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
@@ -37,14 +36,11 @@ export class MarkMessageStatusHandler
     const message = await this.messageQueryRepo.findByExternalId(
       command.externalId
     );
-    // Bilinmeyen mesaj / bizim göndermediğimiz olay → yok say.
+    // bilinmeyen mesaj - bizim göndermediğimiz olay ise --->>> yoksay
     if (!message) return;
 
     this.applyStatus(message, command);
-    message.recordPricing(
-      command.pricing?.category,
-      command.pricing?.billable
-    );
+    message.recordPricing(command.pricing?.category, command.pricing?.billable);
 
     await this.txManager.run(async () => {
       await this.messageCommandRepo.save(message);
@@ -66,25 +62,10 @@ export class MarkMessageStatusHandler
     message: Message,
     command: MarkMessageStatusCommand
   ): void {
-    switch (command.status) {
-      case MessageStatus.SENT:
-        // externalId zaten atanmış olmalı; yalnızca durum ilerletilir.
-        message.markSent(message.externalId ?? '');
-        break;
-      case MessageStatus.DELIVERED:
-        message.markDelivered();
-        break;
-      case MessageStatus.READ:
-        message.markRead();
-        break;
-      case MessageStatus.FAILED:
-        message.markFailed(
-          command.errorReason ?? undefined,
-          command.errorCode
-        );
-        break;
-      default:
-        break;
-    }
+    message.transitionStatus(command.status, {
+      errorReason: command.errorReason,
+      errorCode: command.errorCode,
+      externalId: command.externalId ?? message.externalId,
+    });
   }
 }

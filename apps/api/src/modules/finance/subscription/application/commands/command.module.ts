@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { IyzicoModule } from '@src/infrastructure/payment/providers/iyzico/iyzico.module';
 import { SubscribeToPlanHandler } from './subscribe-to-plan/subscribe-to-plan.handler';
 import { AddModuleHandler } from './add-module/add-module.handler';
 import { HandleSubscriptionCallbackHandler } from './handle-subscription-callback/handle-subscription-callback.handler';
