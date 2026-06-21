@@ -228,6 +228,26 @@ export class Conversation extends AggregateRoot implements IConversation {
     }
   }
 
+  /**
+   * AI asistanı yazışmayı klinik ekibine devreder (belirli bir kullanıcı atanmaz).
+   * Status OPEN → PENDING; böylece sonraki gelen mesajlarda AI susar (guard) ve
+   * yazışma insan kuyruğunda kalır.
+   */
+  public requestHumanHandoff(): void {
+    if (this._status === ConversationStatus.OPEN) {
+      this._status = ConversationStatus.PENDING;
+    }
+  }
+
+  /** AI otomatik yanıt verebilir mi? Yalnız OPEN yazışmalar (atanmamış/devredilmemiş). */
+  public isEligibleForAiReply(): boolean {
+    return (
+      this._status === ConversationStatus.OPEN &&
+      this._assignedUserId === null &&
+      !this._marketingOptOut
+    );
+  }
+
   public close(): void {
     this._status = ConversationStatus.CLOSED;
   }

@@ -9,4 +9,5 @@ export const QUEUES = {
   HEALTH_TOURISM: 'health-tourism-queue',
   E_DOCUMENT: 'e-document-queue',
   MESSAGING: 'messaging-queue',
+  MESSAGING_AI: 'messaging-ai-queue',
 } as const;

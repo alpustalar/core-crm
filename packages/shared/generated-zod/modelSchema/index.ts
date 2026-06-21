@@ -34,6 +34,7 @@ export * from './LanguageSchema';
 export * from './LeadSchema';
 export * from './MedicalFileSchema';
 export * from './ClinicWhatsappChannelSchema';
+export * from './ClinicAiAgentConfigSchema';
 export * from './ConversationSchema';
 export * from './MessageSchema';
 export * from './MetaAdAccountSchema';

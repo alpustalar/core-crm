@@ -29,6 +29,7 @@
     "seed": "ts-node -r tsconfig-paths/register src/infrastructure/persistence/prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "@bull-board/api": "^7.1.5",
     "@bull-board/express": "^7.1.5",
     "@bull-board/nestjs": "^7.1.5",

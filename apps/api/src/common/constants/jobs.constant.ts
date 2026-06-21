@@ -46,3 +46,17 @@ export const MESSAGING_SEND_MAX_ATTEMPTS = 5;
  */
 export const MESSAGING_SEND_RATE_MAX = 80;
 export const MESSAGING_SEND_RATE_DURATION_MS = 1000;
+
+export const MESSAGING_AI_JOBS = {
+  GENERATE_REPLY: 'messaging-ai-generate-reply',
+} as const;
+
+/** AI yanıt job'unun deneme sayısı (Anthropic geçici hataları için retry). */
+export const MESSAGING_AI_MAX_ATTEMPTS = 3;
+
+/**
+ * AI yanıt kuyruğu rate-limit'i (worker-global). Anthropic tier RPM'ini aşmamak ve
+ * yoğun anda 429 + gereksiz retry'ı önlemek için güvenli üst sınır.
+ */
+export const MESSAGING_AI_RATE_MAX = 10;
+export const MESSAGING_AI_RATE_DURATION_MS = 1000;

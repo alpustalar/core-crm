@@ -5,3 +5,4 @@ export * from './whatsapp-template-response.interface';
 export * from './whatsapp-usage-response.interface';
 export * from './whatsapp-health-response.interface';
 export * from './whatsapp-business-profile-response.interface';
+export * from './ai-agent-config-response.interface';

@@ -7,6 +7,7 @@ import { MarkMessageStatusHandler } from './mark-message-status/mark-message-sta
 import { MarkConversationReadHandler } from './mark-conversation-read/mark-conversation-read.handler';
 import { CloseConversationHandler } from './close-conversation/close-conversation.handler';
 import { AssignConversationHandler } from './assign-conversation/assign-conversation.handler';
+import { RequestConversationHandoffHandler } from './request-conversation-handoff/request-conversation-handoff.handler';
 import { ConversationRepositoryModule } from '@modules/messaging/conversation/infrastructure/persistence/prisma/repositories/conversation.repository.module';
 import { MessagingQueueModule } from '@modules/messaging/conversation/infrastructure/queue/messaging-queue.module';
 import { MetaMessageChannelModule } from '@modules/messaging/conversation/infrastructure/adapters/meta/meta-message-channel.module';
@@ -20,6 +21,7 @@ const CommandHandlers = [
   MarkConversationReadHandler,
   CloseConversationHandler,
   AssignConversationHandler,
+  RequestConversationHandoffHandler,
 ];
 
 @Module({

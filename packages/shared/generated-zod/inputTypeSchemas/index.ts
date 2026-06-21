@@ -35,6 +35,7 @@ export { LanguageScalarFieldEnumSchema } from './LanguageScalarFieldEnumSchema';
 export { LeadScalarFieldEnumSchema } from './LeadScalarFieldEnumSchema';
 export { MedicalFileScalarFieldEnumSchema } from './MedicalFileScalarFieldEnumSchema';
 export { ClinicWhatsappChannelScalarFieldEnumSchema } from './ClinicWhatsappChannelScalarFieldEnumSchema';
+export { ClinicAiAgentConfigScalarFieldEnumSchema } from './ClinicAiAgentConfigScalarFieldEnumSchema';
 export { ConversationScalarFieldEnumSchema } from './ConversationScalarFieldEnumSchema';
 export { MessageScalarFieldEnumSchema } from './MessageScalarFieldEnumSchema';
 export { MetaAdAccountScalarFieldEnumSchema } from './MetaAdAccountScalarFieldEnumSchema';
