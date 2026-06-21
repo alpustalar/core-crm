@@ -17,4 +17,4 @@ const QueryHandlers = [GetInstallmentInfoHandler];
   ],
   exports: [...QueryHandlers],
 })
-export class PaymentQueryModule {}
+export class VirtualPosQueryModule {}

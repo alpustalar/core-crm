@@ -8,10 +8,13 @@ import {
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import {
-  IIyzicoTransactionRepository,
-  IYZICO_TRANSACTION_REPOSITORY,
+  IIyzicoTransactionCommandRepository,
+  IIyzicoTransactionQueryRepository,
+  IYZICO_TRANSACTION_COMMAND_REPOSITORY,
+  IYZICO_TRANSACTION_QUERY_REPOSITORY,
   IyzicoTransactionWithInstallment,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+} from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
+import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -29,8 +32,17 @@ const makeTransaction = (
 ): IyzicoTransactionWithInstallment =>
   ({
     id: 'tx-1',
-    status,
+    installmentId: 'inst-1',
     conversationId: 'conv-1',
+    token: 'token-abc',
+    iyzicoPaymentId: null,
+    iyzicoPaymentTransactionId: null,
+    rawResponse: null,
+    status,
+    errorCode: null,
+    errorMessage: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
     installment: {
       id: 'inst-1',
       amount: { toString: () => '1000.00' },
@@ -50,7 +62,8 @@ const makeCommand = () =>
 describe('HandlePaymentCallbackHandler', () => {
   let handler: HandlePaymentCallbackHandler;
   let iyzicoProvider: jest.Mocked<IIyzicoProvider>;
-  let iyzicoRepo: jest.Mocked<IIyzicoTransactionRepository>;
+  let iyzicoQueryRepo: jest.Mocked<IIyzicoTransactionQueryRepository>;
+  let iyzicoCommandRepo: jest.Mocked<IIyzicoTransactionCommandRepository>;
   let commandBus: { execute: jest.Mock };
 
   beforeEach(async () => {
@@ -65,14 +78,15 @@ describe('HandlePaymentCallbackHandler', () => {
       callbackUrl: 'http://localhost/callback',
     };
 
-    const mockIyzicoRepo: jest.Mocked<IIyzicoTransactionRepository> = {
+    const mockIyzicoQueryRepo: jest.Mocked<IIyzicoTransactionQueryRepository> = {
       findTransactionByConversationId: jest.fn(),
       findByInstallmentId: jest.fn(),
-      createTransaction: jest.fn(),
-      markAsSuccess: jest.fn(),
-      markAsFailed: jest.fn(),
-      markAsRefunded: jest.fn(),
     };
+
+    const mockIyzicoCommandRepo: jest.Mocked<IIyzicoTransactionCommandRepository> =
+      {
+        save: jest.fn(async (e: IyzicoTransaction) => e),
+      };
 
     const mockCommandBus = { execute: jest.fn().mockResolvedValue(undefined) };
 
@@ -87,7 +101,14 @@ describe('HandlePaymentCallbackHandler', () => {
         HandlePaymentCallbackHandler,
         PaymentDomainService,
         { provide: IYZICO_PROVIDER, useValue: mockIyzicoProvider },
-        { provide: IYZICO_TRANSACTION_REPOSITORY, useValue: mockIyzicoRepo },
+        {
+          provide: IYZICO_TRANSACTION_QUERY_REPOSITORY,
+          useValue: mockIyzicoQueryRepo,
+        },
+        {
+          provide: IYZICO_TRANSACTION_COMMAND_REPOSITORY,
+          useValue: mockIyzicoCommandRepo,
+        },
         { provide: TransactionManager, useValue: mockTxManager },
         { provide: TSCommandBus, useValue: mockCommandBus },
         { provide: TSQueryBus, useValue: {} },
@@ -96,7 +117,8 @@ describe('HandlePaymentCallbackHandler', () => {
 
     handler = module.get(HandlePaymentCallbackHandler);
     iyzicoProvider = module.get(IYZICO_PROVIDER);
-    iyzicoRepo = module.get(IYZICO_TRANSACTION_REPOSITORY);
+    iyzicoQueryRepo = module.get(IYZICO_TRANSACTION_QUERY_REPOSITORY);
+    iyzicoCommandRepo = module.get(IYZICO_TRANSACTION_COMMAND_REPOSITORY);
     commandBus = module.get(TSCommandBus);
   });
 
@@ -113,7 +135,7 @@ describe('HandlePaymentCallbackHandler', () => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue({
         isSuccess: true,
       } as any);
-      iyzicoRepo.findTransactionByConversationId.mockResolvedValue(null);
+      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(null);
 
       await expect(handler.execute(makeCommand())).rejects.toThrow(
         NotFoundException
@@ -126,13 +148,13 @@ describe('HandlePaymentCallbackHandler', () => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue({
         isSuccess: true,
       } as any);
-      iyzicoRepo.findTransactionByConversationId.mockResolvedValue(
+      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(
         makeTransaction(IyzicoTransactionStatusSchema.enum.SUCCESS)
       );
 
       await handler.execute(makeCommand());
 
-      expect(iyzicoRepo.markAsSuccess).not.toHaveBeenCalled();
+      expect(iyzicoCommandRepo.save).not.toHaveBeenCalled();
       expect(commandBus.execute).not.toHaveBeenCalled();
     });
   });
@@ -149,28 +171,25 @@ describe('HandlePaymentCallbackHandler', () => {
 
     beforeEach(() => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue(sdkResult);
-      iyzicoRepo.findTransactionByConversationId.mockResolvedValue(
+      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(
         makeTransaction()
       );
-      iyzicoRepo.markAsSuccess.mockResolvedValue({} as any);
     });
 
-    it('marks iyzico transaction as success with SDK data', async () => {
+    it('saves iyzico transaction entity in SUCCESS state with SDK data', async () => {
       await handler.execute(makeCommand());
 
-      expect(iyzicoRepo.markAsSuccess).toHaveBeenCalledWith({
-        iyzicoTransactionId: 'tx-1',
-        iyzicoPaymentId: 'iyzico-pay-1',
-        iyzicoPaymentTransactionId: 'iyzico-tx-item-1',
-        rawResponse: sdkResult.rawResponse,
-      });
+      expect(iyzicoCommandRepo.save).toHaveBeenCalledTimes(1);
+      const saved = iyzicoCommandRepo.save.mock
+        .calls[0][0] as IyzicoTransaction;
+      expect(saved.status).toBe(IyzicoTransactionStatusSchema.enum.SUCCESS);
+      expect(saved.iyzicoPaymentId).toBe('iyzico-pay-1');
+      expect(saved.iyzicoPaymentTransactionId).toBe('iyzico-tx-item-1');
     });
 
     it('dispatches MarkInstallmentAsPaidCommand with details (event ownership payment modülünde)', async () => {
       await handler.execute(makeCommand());
 
-      // Event'i artık iyzico handler değil, payment command handler fırlatır.
-      // Bu handler yalnızca command'i details ile dispatch eder.
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.any(MarkInstallmentAsPaidCommand)
       );
@@ -181,12 +200,6 @@ describe('HandlePaymentCallbackHandler', () => {
         installmentId: 'inst-1',
         details: 'Ödeme Başarılı',
       });
-    });
-
-    it('does not call failure paths', async () => {
-      await handler.execute(makeCommand());
-
-      expect(iyzicoRepo.markAsFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -202,21 +215,20 @@ describe('HandlePaymentCallbackHandler', () => {
 
     beforeEach(() => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue(sdkResult);
-      iyzicoRepo.findTransactionByConversationId.mockResolvedValue(
+      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(
         makeTransaction()
       );
-      iyzicoRepo.markAsFailed.mockResolvedValue({} as any);
     });
 
-    it('marks iyzico transaction as failed with error details', async () => {
+    it('saves iyzico transaction entity in FAILURE state with error details', async () => {
       await handler.execute(makeCommand());
 
-      expect(iyzicoRepo.markAsFailed).toHaveBeenCalledWith({
-        iyzicoTransactionId: 'tx-1',
-        errorCode: '5007',
-        errorMessage: 'Yetersiz bakiye',
-        rawResponse: sdkResult.rawResponse,
-      });
+      expect(iyzicoCommandRepo.save).toHaveBeenCalledTimes(1);
+      const saved = iyzicoCommandRepo.save.mock
+        .calls[0][0] as IyzicoTransaction;
+      expect(saved.status).toBe(IyzicoTransactionStatusSchema.enum.FAILURE);
+      expect(saved.errorCode).toBe('5007');
+      expect(saved.errorMessage).toBe('Yetersiz bakiye');
     });
 
     it('dispatches MarkInstallmentAsFailedCommand with errorMessage as details', async () => {
@@ -229,12 +241,6 @@ describe('HandlePaymentCallbackHandler', () => {
         installmentId: 'inst-1',
         details: 'Yetersiz bakiye',
       });
-    });
-
-    it('does not call success paths', async () => {
-      await handler.execute(makeCommand());
-
-      expect(iyzicoRepo.markAsSuccess).not.toHaveBeenCalled();
     });
   });
 });

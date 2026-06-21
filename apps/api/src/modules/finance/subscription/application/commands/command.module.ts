@@ -6,6 +6,7 @@ import { BILLING_ADAPTER } from '@modules/finance/subscription/infrastructure/ad
 import { IyzicoBillingAdapter } from '@modules/finance/subscription/infrastructure/adapters/iyzico-billing.adapter';
 import { SubscriptionRepositoryModule } from '@modules/finance/subscription/infrastructure/persistence/prisma/repositories/subscription.repository.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
+import { PosModule } from '@modules/finance/pos/pos.module';
 
 const CommandHandlers = [
   SubscribeToPlanHandler,
@@ -14,7 +15,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [IyzicoModule, SubscriptionRepositoryModule, PrismaModule],
+  imports: [PosModule, SubscriptionRepositoryModule, PrismaModule],
   providers: [
     ...CommandHandlers,
     { provide: BILLING_ADAPTER, useClass: IyzicoBillingAdapter },

@@ -1,10 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { HandlePaymentCallbackCommand } from './handle-payment-callback.command';
 import { HandlePaymentCallbackCommandResponse } from './handle-payment-callback.response';
-import {
-  IIyzicoTransactionRepository,
-  IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import {
@@ -22,6 +18,13 @@ import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 import PaymentMethodSchema, {
   PaymentMethodType as PaymentMethod,
 } from '@input-type-schemas/PaymentMethodSchema';
+import {
+  IIyzicoTransactionCommandRepository,
+  IIyzicoTransactionQueryRepository,
+  IYZICO_TRANSACTION_COMMAND_REPOSITORY,
+  IYZICO_TRANSACTION_QUERY_REPOSITORY,
+} from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
+import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 
 @CommandHandler(HandlePaymentCallbackCommand)
 export class HandlePaymentCallbackHandler
@@ -36,8 +39,10 @@ export class HandlePaymentCallbackHandler
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_REPOSITORY)
-    private readonly iyzicoRepo: IIyzicoTransactionRepository,
+    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
+    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
+    @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
+    private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     private readonly txManager: TransactionManager,
     private readonly paymentDomainService: PaymentDomainService,
     private readonly commandBus: TSCommandBus
@@ -51,7 +56,9 @@ export class HandlePaymentCallbackHandler
 
     await this.txManager.outboxRun(async () => {
       const iyzicoTx =
-        await this.iyzicoRepo.findTransactionByConversationId(conversationId);
+        await this.iyzicoQueryRepo.findTransactionByConversationId(
+          conversationId
+        );
 
       if (!iyzicoTx) {
         throw new NotFoundException(
@@ -67,14 +74,15 @@ export class HandlePaymentCallbackHandler
 
       const installment = iyzicoTx.installment;
       const payment = installment.payment;
+      const transaction = new IyzicoTransaction(iyzicoTx);
 
       if (sdkResult.isSuccess) {
-        await this.iyzicoRepo.markAsSuccess({
-          iyzicoTransactionId: iyzicoTx.id,
+        transaction.markAsSuccess({
           iyzicoPaymentId: sdkResult.paymentId,
           iyzicoPaymentTransactionId: sdkResult.paymentTransactionId,
           rawResponse: sdkResult.rawResponse,
         });
+        await this.iyzicoCommandRepo.save(transaction);
 
         // Taksit COMPLETED + PaymentPaidEvent payment command handler'ında fırlatılır.
         await this.commandBus.execute(
@@ -91,12 +99,12 @@ export class HandlePaymentCallbackHandler
           method: installment.method,
         });
       } else {
-        await this.iyzicoRepo.markAsFailed({
-          iyzicoTransactionId: iyzicoTx.id,
+        transaction.markAsFailed({
           errorCode: sdkResult.errorCode,
           errorMessage: sdkResult.errorMessage,
           rawResponse: sdkResult.rawResponse,
         });
+        await this.iyzicoCommandRepo.save(transaction);
 
         // Taksit PENDING'e döner + PaymentFailedEvent payment command handler'ında fırlatılır.
         await this.commandBus.execute(

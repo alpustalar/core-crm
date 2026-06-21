@@ -1750,6 +1750,124 @@ ResolvePatientInput
 - URI-based versioning: `/api/v1/`
 - Default version: `1`
 
+## Exception Handling & Layer Discipline
+
+**KURAL — Katman izolasyonu:**
+
+- **Domain & Application katmanları (handler, service, use-case, entity):** NestJS'in yerleşik HTTP exception sınıfları (`BadRequestException`, `NotFoundException`, `ForbiddenException`, `InternalServerErrorException`, vb.) **BU KATMANLARDA ASLA KULLANILAMAZ**. Bu katmanlar HTTP protokolünden tamamen izole olmalıdır.
+- **Custom Domain Exceptions:** İş mantığı hataları için her zaman `DomainException` taban sınıfından türetilmiş, amaca özel, tip güvenli ve `errorCode` barındıran özel hata sınıfları yazılır. Konum: `modulename/domain/exceptions/`.
+- **`errorCode` merkezi sabitten gelir:** Hata kodları asla sınıf içine string literal olarak yazılmaz. Tüm kodlar `src/common/constants/error-codes.constant.ts` içindeki **`ERROR_CODES`** sabitinde merkezî olarak tanımlanır; exception sınıfı `ERROR_CODES.<MODULE>.<CODE>` üzerinden referans verir. Bu sayede kodlar tek yerden yönetilir, filter eşlemesi ile senkron kalır ve tip güvenliği (`ErrorCode` union) korunur.
+- **NestJS yerleşik exception'ları:** Yalnızca HTTP giriş/çıkış kapılarında (Controllers, Guards, Pipes, Interceptors) kullanılabilir. Domain exception'ı HTTP'ye çeviren eşleme, merkezi exception filter'da (`all-exceptions-filter`) yapılır.
+
+**Taban sınıf** (`src/domain/shared/domain.exception.ts`):
+
+```typescript
+export abstract class DomainException extends Error {
+  /** Makine-okunur, string tabanlı hata kodu (ör. 'PAYMENT.INSTALLMENT_NOT_FOUND'). */
+  public abstract readonly errorCode: string;
+
+  protected constructor(message: string) {
+    super(message);
+    this.name = new.target.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+```
+
+**Merkezi hata kodu sabiti** (`src/common/constants/error-codes.constant.ts`):
+
+```typescript
+export const ERROR_CODES = {
+  APPOINTMENT: {
+    NOT_FOUND: 'APPOINTMENT.NOT_FOUND',
+    ALREADY_BOOKED: 'APPOINTMENT.ALREADY_BOOKED',
+    INVALID_DATE: 'APPOINTMENT.INVALID_DATE',
+  },
+  PAYMENT: {
+    INSUFFICIENT_FUNDS: 'PAYMENT.INSUFFICIENT_FUNDS',
+    TIMEOUT: 'PAYMENT.TIMEOUT',
+  },
+} as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+```
+
+**Somut exception** (`modulename/domain/exceptions/`) — `errorCode` her zaman `ERROR_CODES`'tan referans verilir:
+
+```typescript
+// clinical/appointment/domain/exceptions/appointment.exceptions.ts
+import { DomainException } from '@src/domain/shared/domain.exception';
+import { ERROR_CODES } from '@common/constants/error-codes.constant';
+
+export class AppointmentNotFoundException extends DomainException {
+  public readonly errorCode = ERROR_CODES.APPOINTMENT.NOT_FOUND;
+
+  constructor(message = 'Randevu bulunamadı.') {
+    super(message);
+  }
+}
+```
+
+**Domain exception filter eşlemesi** (`all-exceptions-filter` — yalnızca burada HTTP'ye map'lenir):
+
+```typescript
+// errorCode → HTTP status eşlemesi (örnek) — anahtarlar ERROR_CODES'tan gelir
+const DOMAIN_ERROR_HTTP_MAP: Record<string, number> = {
+  [ERROR_CODES.APPOINTMENT.NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ERROR_CODES.PAYMENT.TIMEOUT]: HttpStatus.GATEWAY_TIMEOUT,
+};
+
+if (exception instanceof DomainException) {
+  const status =
+    DOMAIN_ERROR_HTTP_MAP[exception.errorCode] ?? HttpStatus.BAD_REQUEST;
+  return response.status(status).json({
+    errorCode: exception.errorCode,
+    message: exception.message,
+  });
+}
+```
+
+### 🛠️ Örnek Dönüşüm (Best Practice)
+
+❌ **YANLIŞ (Katman Bağımlı Yapı):**
+
+```typescript
+// src/modules/finance/pos/virtual/application/commands/iyzico/refund-payment/refund-payment.handler.ts
+import { BadRequestException } from '@nestjs/common';
+
+if (!completedInstallment) {
+  throw new BadRequestException('Tamamlanmış taksit bulunamadı.');
+}
+```
+
+✅ **DOĞRU (Katmandan Bağımsız, Tip Güvenli Domain Exception):**
+
+```typescript
+// 1) Önce kodu ERROR_CODES'a ekle (error-codes.constant.ts)
+//    PAYMENT: { ..., COMPLETED_INSTALLMENT_NOT_FOUND: 'PAYMENT.COMPLETED_INSTALLMENT_NOT_FOUND' }
+
+// 2) src/modules/finance/payment/domain/exceptions/completed-installment-not-found.exception.ts
+import { DomainException } from '@src/domain/shared/domain.exception';
+import { ERROR_CODES } from '@common/constants/error-codes.constant';
+
+export class CompletedInstallmentNotFoundException extends DomainException {
+  public readonly errorCode = ERROR_CODES.PAYMENT.COMPLETED_INSTALLMENT_NOT_FOUND;
+
+  constructor(paymentId: string) {
+    super(`Tamamlanmış taksit bulunamadı: paymentId=${paymentId}`);
+  }
+}
+
+// refund-payment.handler.ts (application katmanı — HTTP'den habersiz)
+import { CompletedInstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/completed-installment-not-found.exception';
+
+if (!completedInstallment) {
+  throw new CompletedInstallmentNotFoundException(paymentId);
+}
+```
+
+**Neden:** Handler/service'ler HTTP'den habersiz kalır → aynı use-case bir kuyruk işleyicisinden, CLI'dan veya başka bir bounded-context'ten çağrıldığında HTTP semantiği sızmaz. Hata kimliği `errorCode` ile sabittir; HTTP status eşlemesi tek bir yerde (filter) yönetilir.
+
 ## Important Notes
 
 ### Database Migrations

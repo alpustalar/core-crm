@@ -7,10 +7,7 @@ import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import {
-  IIyzicoTransactionRepository,
-  IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
+
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import {
   IPaymentEventPublisher,
@@ -23,6 +20,10 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
 import { MarkInstallmentAsCancelledCommand } from '@modules/finance/payment/application/commands/mark-installment-as-cancelled/mark-installment-as-cancelled.command';
 import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
+import {
+  IIyzicoTransactionQueryRepository,
+  IYZICO_TRANSACTION_QUERY_REPOSITORY,
+} from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 
 @CommandHandler(CancelPaymentCommand)
 export class CancelPaymentHandler
@@ -33,8 +34,8 @@ export class CancelPaymentHandler
     private readonly txManager: TransactionManager,
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_REPOSITORY)
-    private readonly iyzicoTransactionRepo: IIyzicoTransactionRepository,
+    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
+    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly paymentDomainService: PaymentDomainService,
@@ -66,7 +67,7 @@ export class CancelPaymentHandler
       throw new BadRequestException(`Tamamlanmış taksit bulunamadı.`);
     }
 
-    const iyzicoTx = await this.iyzicoTransactionRepo.findByInstallmentId(
+    const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
       completedInstallment.id
     );
     if (!iyzicoTx?.iyzicoPaymentId) {

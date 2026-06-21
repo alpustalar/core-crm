@@ -1,28 +1,30 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { RefundPaymentCommand } from './refund-payment.command';
-import { RefundPaymentCommandResponse } from './refund-payment.response';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import {
-  IIyzicoProvider,
-  IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import {
-  IIyzicoTransactionRepository,
-  IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
-import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
+import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
+import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
 import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
-import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
-import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
+import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
+import {
+  IIyzicoTransactionCommandRepository,
+  IIyzicoTransactionQueryRepository,
+  IYZICO_TRANSACTION_COMMAND_REPOSITORY,
+  IYZICO_TRANSACTION_QUERY_REPOSITORY,
+} from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
+import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import {
+  IIyzicoProvider,
+  IYZICO_PROVIDER,
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { randomUUID } from 'crypto';
+import { RefundPaymentCommand } from './refund-payment.command';
+import { RefundPaymentCommandResponse } from './refund-payment.response';
 
 @CommandHandler(RefundPaymentCommand)
 export class RefundPaymentHandler
@@ -32,8 +34,10 @@ export class RefundPaymentHandler
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_REPOSITORY)
-    private readonly iyzicoTransactionRepo: IIyzicoTransactionRepository,
+    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
+    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
+    @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
+    private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly paymentDomainService: PaymentDomainService,
@@ -63,7 +67,7 @@ export class RefundPaymentHandler
       throw new BadRequestException(`Tamamlanmış taksit bulunamadı.`);
     }
 
-    const iyzicoTx = await this.iyzicoTransactionRepo.findByInstallmentId(
+    const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
       completedInstallment.id
     );
     if (!iyzicoTx?.iyzicoPaymentTransactionId) {
@@ -91,10 +95,8 @@ export class RefundPaymentHandler
     });
 
     await this.txManager.outboxRun(async () => {
-      await this.iyzicoTransactionRepo.markAsRefunded({
-        iyzicoTransactionId: iyzicoTx.id,
-        rawResponse: sdkResult,
-      });
+      iyzicoTx.markAsRefunded({ rawResponse: sdkResult });
+      await this.iyzicoCommandRepo.save(iyzicoTx);
 
       await this.commandBus.execute(
         new MarkInstallmentAsRefundedCommand(completedInstallment.id)

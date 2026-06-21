@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
-import { PaymentCommandModule } from './application/commands/command.module';
-import { PaymentQueryModule } from './application/queries/query.module';
+import { VirtualPosCommandModule } from './application/commands/command.module';
+import { VirtualPosQueryModule } from './application/queries/query.module';
 import { PaymentPresentationModule } from './presentation/payment-presentation.module';
+import { PosInfrastructureModule } from '@src/infrastructure/payment/pos/pos.infrastructure.module';
 
 @Module({
   imports: [
-    PaymentCommandModule,
-    PaymentQueryModule,
+    VirtualPosCommandModule,
+    VirtualPosQueryModule,
+    PosInfrastructureModule,
     PaymentPresentationModule,
   ],
-  exports: [PaymentCommandModule, PaymentQueryModule],
+  exports: [VirtualPosCommandModule, VirtualPosQueryModule],
 })
 export class VirtualPosModule {}

@@ -1,30 +1,33 @@
-import { IyzicoTransaction, Payment, PaymentInstallment } from '@shared';
-import { CreateIyzicoTransactionInput } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/create-iyzico-transaction.input';
-import { MarkPaidInput } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/mark-paid.input';
-import { MarkFailedInput } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/mark-failed.input';
-import { MarkRefundedInput } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/mark-refunded.input';
+import {
+  IyzicoTransaction as IyzicoTransactionModel,
+  Payment,
+  PaymentInstallment,
+} from '@shared';
+import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 
-export const IYZICO_TRANSACTION_REPOSITORY = Symbol(
-  'IIyzicoTransactionRepository'
+export const IYZICO_TRANSACTION_COMMAND_REPOSITORY = Symbol(
+  'IIyzicoTransactionCommandRepository'
 );
 
-export type IyzicoTransactionWithInstallment = IyzicoTransaction & {
+export const IYZICO_TRANSACTION_QUERY_REPOSITORY = Symbol(
+  'IIyzicoTransactionQueryRepository'
+);
+
+/** Read-model: işlem + taksit + ödeme (callback akışında payment/muhasebe için). */
+export type IyzicoTransactionWithInstallment = IyzicoTransactionModel & {
   installment: PaymentInstallment & {
     payment: Payment;
   };
 };
 
-// TODO: bu repo ikiye ayrılacak. entity yazılacak. payment providers'tan pos modülüne geçecek. pos virtual kısmına
-
-export interface IIyzicoTransactionRepository {
+export interface IIyzicoTransactionQueryRepository {
   findTransactionByConversationId(
     conversationId: string
   ): Promise<IyzicoTransactionWithInstallment | null>;
   findByInstallmentId(installmentId: string): Promise<IyzicoTransaction | null>;
-  createTransaction(
-    input: CreateIyzicoTransactionInput
-  ): Promise<IyzicoTransaction>;
-  markAsSuccess(input: MarkPaidInput): Promise<IyzicoTransaction>;
-  markAsFailed(input: MarkFailedInput): Promise<IyzicoTransaction>;
-  markAsRefunded(input: MarkRefundedInput): Promise<IyzicoTransaction>;
+}
+
+export interface IIyzicoTransactionCommandRepository {
+  /** id unique → upsert tabanlı kayıt. Durum geçişleri entity metodlarında yapılır. */
+  save(entity: IyzicoTransaction): Promise<IyzicoTransaction>;
 }

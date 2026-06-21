@@ -21,7 +21,7 @@ import {
   fieldsToRecord,
   formatAmount,
   parsePacket,
-} from './protocol/pax.protocol';
+} from '@src/infrastructure/payment/pos/physical/providers/pax/domain/protocol/pax.protocol';
 import {
   PaxBatchCloseInput,
   PaxBatchCloseResult,
@@ -30,7 +30,7 @@ import {
   PaxResult,
   PaxSaleInput,
   PaxVoidInput,
-} from '@src/infrastructure/payment/pos/physical/providers/pax/pax.contracts';
+} from '@src/infrastructure/payment/pos/physical/providers/pax/domain/pax.contracts';
 
 /**
  * PAX POSLINK v1.28 — TCP socket tabanlı POS terminal servisi.

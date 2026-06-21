@@ -3,6 +3,6 @@ import { IyzicoModule } from '@src/infrastructure/payment/pos/virtual/providers/
 
 @Module({
   imports: [IyzicoModule],
-  providers: [],
+  exports: [IyzicoModule],
 })
-export class VirtualPosProviderModule {}
+export class PosVirtualInfrastructureModule {}

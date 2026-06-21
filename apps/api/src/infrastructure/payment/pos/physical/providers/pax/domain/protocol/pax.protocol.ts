@@ -1,4 +1,4 @@
-import { PAX_ETX, PAX_FS, PAX_STX, PAX_US } from '../pax.constants';
+import { PAX_ETX, PAX_FS, PAX_STX, PAX_US } from '../../pax.constants';
 
 /**
  * Tek bir alan; alt-parçaları olan alanlar (ör. tutar grubu) string[] olarak

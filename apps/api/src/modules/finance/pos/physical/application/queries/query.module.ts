@@ -9,4 +9,4 @@ export const POS_QUERY_HANDLERS = [FindPosDevicesHandler];
   providers: POS_QUERY_HANDLERS,
   exports: POS_QUERY_HANDLERS,
 })
-export class PosQueryModule {}
+export class PhysicalPosQueryModule {}

@@ -7,21 +7,22 @@ import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import {
-  IIyzicoTransactionRepository,
-  IYZICO_TRANSACTION_REPOSITORY,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico-transaction.repository.interface';
 import { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/payment-initialize.request';
 import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import {
+  IIyzicoTransactionCommandRepository,
+  IYZICO_TRANSACTION_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
+import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 
 @CommandHandler(InitCheckoutFormCommand)
 export class InitCheckoutFormHandler
@@ -32,8 +33,8 @@ export class InitCheckoutFormHandler
     private readonly commandBus: TSCommandBus,
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_REPOSITORY)
-    private readonly iyzicoTransactionRepo: IIyzicoTransactionRepository,
+    @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
+    private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly txManager: TransactionManager
@@ -111,15 +112,12 @@ export class InitCheckoutFormHandler
       const sdkResult =
         await this.iyzicoProvider.paymentInitialize(iyzicoRequest);
 
-      const iyzico = await this.iyzicoTransactionRepo.createTransaction({
+      const transaction = IyzicoTransaction.create({
         installmentId,
         conversationId,
         token: sdkResult.token,
       });
-
-      if (!iyzico) {
-        throw new BadRequestException(`Ödeme formu oluşturulamadı:`);
-      }
+      await this.iyzicoCommandRepo.save(transaction);
 
       this.paymentEventPublisher.paymentInitiated({
         paymentId,
