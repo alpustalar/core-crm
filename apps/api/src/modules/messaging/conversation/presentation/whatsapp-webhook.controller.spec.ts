@@ -72,9 +72,11 @@ describe('WhatsappWebhookController (public webhook)', () => {
   };
 
   describe('GET verify', () => {
-    it('doğru token → challenge sayısını döner', () => {
+    it('doğru token → challenge string\'ini birebir döner', () => {
       const { controller } = build(null);
-      expect(controller.verify('subscribe', '12345', VERIFY_TOKEN)).toBe(12345);
+      expect(controller.verify('subscribe', '12345', VERIFY_TOKEN)).toBe(
+        '12345'
+      );
     });
 
     it('yanlış token → ForbiddenException', () => {

@@ -70,12 +70,13 @@ export class WhatsappWebhookController {
     @Query('hub.mode') mode: string,
     @Query('hub.challenge') challenge: string,
     @Query('hub.verify_token') verifyToken: string
-  ): number {
+  ): string {
     const expectedToken = this.configService.getOrThrow<string>(
       ENV.WHATSAPP_WEBHOOK_VERIFY_TOKEN
     );
     if (mode === 'subscribe' && verifyToken === expectedToken) {
-      return parseInt(challenge, 10);
+      // Meta challenge'ı rastgele bir string'tir; birebir geri yansıtılmalı.
+      return challenge;
     }
     throw new ForbiddenException('Webhook doğrulama başarısız.');
   }

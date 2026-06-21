@@ -130,6 +130,8 @@ model Message {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([conversationId, createdAt])
-  @@index([externalId])
+  // externalId (WhatsApp wamid) genel benzersizdir; mükerrer webhook teslimine karşı
+  // DB-seviyesi idempotency. Outbound mesajlar atanana dek NULL (Postgres'te çoklu NULL serbest).
+  @@unique([externalId])
   @@map("messages")
 }
