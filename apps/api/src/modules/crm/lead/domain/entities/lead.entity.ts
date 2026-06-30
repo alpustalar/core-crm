@@ -1,8 +1,11 @@
 import { Lead as ILead, LeadStatusSchema } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { BadRequestException } from '@nestjs/common';
 import { LeadSourceType as LeadSource } from '@input-type-schemas/LeadSourceSchema';
 import { LeadStatusType as LeadStatus } from '@input-type-schemas/LeadStatusSchema';
+import {
+  InvalidLeadStatusTransitionException,
+  LeadAlreadyFinalizedException,
+} from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 
 export class Lead extends AggregateRoot implements ILead {
   constructor(data: ILead) {
@@ -113,8 +116,9 @@ export class Lead extends AggregateRoot implements ILead {
 
   public contact(): void {
     if (this._status !== LeadStatusSchema.enum.NEW) {
-      throw new BadRequestException(
-        'Yalnızca NEW statüsündeki leadler iletişime geçildi olarak işaretlenebilir.'
+      throw new InvalidLeadStatusTransitionException(
+        this._status,
+        LeadStatusSchema.enum.NEW
       );
     }
     this._status = LeadStatusSchema.enum.CONTACTED;
@@ -122,8 +126,8 @@ export class Lead extends AggregateRoot implements ILead {
 
   public qualify(): void {
     if (this._status !== LeadStatusSchema.enum.CONTACTED) {
-      throw new BadRequestException(
-        'Yalnızca CONTACTED statüsündeki leadler nitelikli olarak işaretlenebilir.'
+      throw new InvalidLeadStatusTransitionException(
+        LeadStatusSchema.enum.CONTACTED
       );
     }
     this._status = LeadStatusSchema.enum.QUALIFIED;
@@ -134,9 +138,7 @@ export class Lead extends AggregateRoot implements ILead {
       this._status === LeadStatusSchema.enum.CONVERTED ||
       this._status === LeadStatusSchema.enum.LOST
     ) {
-      throw new BadRequestException(
-        'Dönüştürülmüş veya kaybedilmiş leadler tekrar dönüştürülemez.'
-      );
+      throw new LeadAlreadyFinalizedException();
     }
     this._patientId = patientId ?? this._patientId;
     this._appointmentId = appointmentId ?? this._appointmentId;
@@ -149,9 +151,7 @@ export class Lead extends AggregateRoot implements ILead {
       this._status === LeadStatusSchema.enum.CONVERTED ||
       this._status === LeadStatusSchema.enum.LOST
     ) {
-      throw new BadRequestException(
-        'Bu lead zaten dönüştürülmüş veya kaybedilmiş.'
-      );
+      throw new LeadAlreadyFinalizedException();
     }
     this._status = LeadStatusSchema.enum.LOST;
     this._lostReason = reason ?? null;

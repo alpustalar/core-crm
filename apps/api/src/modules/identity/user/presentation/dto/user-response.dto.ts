@@ -1,8 +1,8 @@
 import { Expose, Type } from 'class-transformer';
 import { ProviderResponseDto } from '@modules/clinical/provider/presentation/dto/provider-response.dto';
-import { UserResponseGroups } from '@modules/identity/user/domain/constants';
 import { Role, UserResponse } from '@shared';
 import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
+import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
 
 export class RelationalDto {
   @Expose()

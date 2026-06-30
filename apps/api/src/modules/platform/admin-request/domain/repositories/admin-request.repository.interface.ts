@@ -1,5 +1,5 @@
 import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/admin-request.contracts';
 
 export const ADMIN_REQUEST_COMMAND_REPOSITORY = Symbol(

@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
+import { Supplier } from '@shared';
 
 export type FindSuppliersResponse = QueryResponse<Supplier[]>;

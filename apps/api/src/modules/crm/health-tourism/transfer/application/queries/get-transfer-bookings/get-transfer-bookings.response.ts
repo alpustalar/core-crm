@@ -1,8 +1,6 @@
-import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { HotelbedsTransferBooking } from '@shared';
 
-export interface GetTransferBookingsResponse {
-  data: {
-    items: HotelbedsTransferBooking[];
-    total: number;
-  };
-}
+export type GetTransferBookingsResponse = QueryResponse<
+  HotelbedsTransferBooking[]
+>;

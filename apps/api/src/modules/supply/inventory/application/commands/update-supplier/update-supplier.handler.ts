@@ -1,29 +1,20 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UpdateSupplierCommand } from './update-supplier.command';
 import {
   ISupplierCommandRepository,
-  ISupplierQueryRepository,
   SUPPLIER_COMMAND_REPOSITORY,
-  SUPPLIER_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { SupplierNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(UpdateSupplierCommand)
 export class UpdateSupplierHandler
   implements ICommandHandler<UpdateSupplierCommand, void>
 {
   constructor(
-    @Inject(SUPPLIER_QUERY_REPOSITORY)
-    private readonly supplierQueryRepo: ISupplierQueryRepository,
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
     private readonly supplierCommandRepo: ISupplierCommandRepository,
-    @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -31,9 +22,11 @@ export class UpdateSupplierHandler
     const { supplierId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const supplier = await this.supplierQueryRepo.findById(supplierId);
+    if (!supplierId) throw new SupplierNotFoundException(supplierId);
 
-    if (!supplier) throw new NotFoundException('Tedarikçi bulunamadı.');
+    const supplier = await this.supplierCommandRepo.findById(supplierId);
+
+    if (!supplier) throw new SupplierNotFoundException(supplierId);
 
     // TODO: supplier'ın organizationId'sine göre policy işlemi yapılacak. orgaizationPolicy'e actorCanAccessOrganzation gibi bi method yazılacak
 

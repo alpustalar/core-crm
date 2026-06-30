@@ -1,12 +1,14 @@
-import {
-  AccountingPeriod as IAccountingPeriod,
-  AccountingPeriodStatusSchema,
-} from '@shared';
+import { AccountingPeriod as IAccountingPeriod, AccountingPeriodStatusSchema, } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 
 import { AccountingPeriodStatusType as AccountingPeriodStatus } from '@input-type-schemas/AccountingPeriodStatusSchema';
 import { CreateAccountingPeriodProps } from '@modules/finance/accounting/periods/domain/periods.contracts';
+import {
+  InvalidPeriodLockException,
+  InvalidPeriodReopenException,
+  PeriodAlreadyClosedException,
+} from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 
 export class AccountingPeriod
   extends AggregateRoot
@@ -103,23 +105,29 @@ export class AccountingPeriod
 
   public lock(): void {
     if (!this.isOpen()) {
-      throw new Error('Yalnızca açık dönemler kilitlenebilir.');
+      throw new InvalidPeriodLockException();
     }
     this._status = AccountingPeriodStatusSchema.enum.LOCKED;
   }
 
   public reopen(): void {
     if (!this.isLocked()) {
-      throw new Error('Yalnızca kilitli dönemler yeniden açılabilir.');
+      throw new InvalidPeriodReopenException();
     }
     this._status = AccountingPeriodStatusSchema.enum.OPEN;
   }
 
   public close(): void {
     if (this.isClosed()) {
-      throw new Error('Dönem zaten kapatılmış.');
+      throw new PeriodAlreadyClosedException(this.id, this.year);
     }
     this._status = AccountingPeriodStatusSchema.enum.CLOSED;
+  }
+
+  public validateIsOpenOrLocked(): void {
+    if (this.isClosed()) {
+      throw new PeriodAlreadyClosedException(this.id, this.year);
+    }
   }
 
   public toPersistence(): IAccountingPeriod {

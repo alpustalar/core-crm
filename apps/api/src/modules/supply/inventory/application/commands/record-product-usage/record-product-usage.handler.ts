@@ -58,7 +58,7 @@ export class RecordProductUsageHandler
 
     if (!batch) {
       const available = await this.productBatchQueryRepo.findAvailableByProduct(
-        product.id,
+        product.id.value,
         clinicId
       );
       batch = available[0] ?? null;

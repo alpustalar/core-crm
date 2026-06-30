@@ -13,7 +13,7 @@ import { PatientBookAppointmentHandler } from './patient-book-appointment/patien
 import { AppointmentEventModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
-import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 
 const CommandHandlers = [
   StaffRescheduleHandler,
@@ -31,7 +31,7 @@ const CommandHandlers = [
 
 @Module({
   imports: [AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
-  providers: [...CommandHandlers, AppointmentChecker],
+  providers: [...CommandHandlers, AppointmentCheckerService],
   exports: [...CommandHandlers],
 })
 export class AppointmentCommandModule {}

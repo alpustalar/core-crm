@@ -1,3 +1,5 @@
-import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { HotelbedsTransferBooking } from '@shared';
 
-export type GetTransferBookingByIdResponse = HotelbedsTransferBooking | null;
+export type GetTransferBookingByIdResponse =
+  QueryResponse<HotelbedsTransferBooking>;

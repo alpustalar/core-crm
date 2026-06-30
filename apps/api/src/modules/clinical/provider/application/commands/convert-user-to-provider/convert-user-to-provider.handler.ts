@@ -1,10 +1,11 @@
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
+import { IPolicyFactory, POLICY_FACTORY, } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
-import { ConvertUserToProviderCommand } from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
-import { ConvertUserToProviderResponse } from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.response';
+  ConvertUserToProviderCommand
+} from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
+import {
+  ConvertUserToProviderResponse
+} from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.response';
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
@@ -37,12 +38,11 @@ export class ConvertUserToProviderHandler
     const { ctx, dto } = command;
     const { actor, source } = ctx;
 
-    if (!ExecutionPolicy.isSystemInitiated(source)) {
-      const { evaluator } = this.policyFactory.user(actor);
-      evaluator
-        .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
-        .orThrow(PROVIDER_EVENTS.CREATED);
-    }
+    this.policyFactory
+      .provider(actor)
+      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
+      .orThrow(PROVIDER_EVENTS.CREATED);
 
     const provider = Provider.create({
       id: crypto.randomUUID(),
@@ -53,7 +53,7 @@ export class ConvertUserToProviderHandler
       publicPhone: dto.publicPhone,
       publicEmail: dto.publicEmail,
       isActive: dto.isActive,
-      canAcceptExamination: dto.canAcceptExamination,
+      acceptsConsultation: dto.acceptsConsultation,
       operationMode: dto.operationMode,
     });
 

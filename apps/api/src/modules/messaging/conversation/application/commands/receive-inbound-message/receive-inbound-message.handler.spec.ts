@@ -1,4 +1,4 @@
-import { MessageDirection, MessageStatus } from '@prisma/client';
+import { MessageChannel, MessageDirection, MessageStatus } from '@prisma/client';
 import { ReceiveInboundMessageHandler } from './receive-inbound-message.handler';
 import { ReceiveInboundMessageCommand } from './receive-inbound-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
@@ -121,6 +121,45 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     // Hasta eşlemesi her gelen mesajda çözülür (AI/CRM bağlamı için).
     expect(t.queryBus.execute).toHaveBeenCalledTimes(1);
     expect(t.getSavedConversation()).toBe(existing);
+  });
+
+  it('Telegram (chatId): matchPhone yoksa hasta sorgusu yapılmaz, misafir kalır', async () => {
+    const t = build({ existingConversation: null, patient: { id: 'p-1' } });
+
+    await t.handler.execute(
+      new ReceiveInboundMessageCommand({
+        ...baseInput,
+        channel: MessageChannel.TELEGRAM,
+        contactPhone: '987654321', // chatId — telefon değil
+      })
+    );
+
+    // chatId telefon olmadığı için eşleme denenmez (yanlış eşleşmeyi önler).
+    expect(t.queryBus.execute).not.toHaveBeenCalled();
+    expect(t.getSavedConversation()!.patientId).toBeNull();
+  });
+
+  it('Telegram contact paylaşımı (matchPhone): var olan misafir konuşma hastaya bağlanır', async () => {
+    const existing = Conversation.start({
+      clinicId: 'clinic-1',
+      organizationId: 'org-1',
+      channel: MessageChannel.TELEGRAM,
+      contactPhone: '987654321',
+    });
+    const t = build({ existingConversation: existing, patient: { id: 'p-7' } });
+
+    await t.handler.execute(
+      new ReceiveInboundMessageCommand({
+        ...baseInput,
+        channel: MessageChannel.TELEGRAM,
+        contactPhone: '987654321',
+        matchPhone: '905550001122',
+        externalId: 'tg:987654321:5',
+      })
+    );
+
+    expect(t.queryBus.execute).toHaveBeenCalledTimes(1);
+    expect(t.getSavedConversation()!.patientId).toBe('p-7');
   });
 
   it('idempotency: aynı externalId tekrar gelirse yeni mesaj oluşturulmaz', async () => {

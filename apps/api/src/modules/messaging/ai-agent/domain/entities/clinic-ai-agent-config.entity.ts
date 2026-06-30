@@ -18,6 +18,7 @@ export class ClinicAiAgentConfig
     super();
     this._id = data.id;
     this._isEnabled = data.isEnabled;
+    this._provider = data.provider;
     this._model = data.model;
     this._systemPrompt = data.systemPrompt;
     this._apiKey = data.apiKey;
@@ -38,6 +39,11 @@ export class ClinicAiAgentConfig
   private _isEnabled: boolean;
   get isEnabled(): boolean {
     return this._isEnabled;
+  }
+
+  private _provider: IClinicAiAgentConfig['provider'];
+  get provider(): IClinicAiAgentConfig['provider'] {
+    return this._provider;
   }
 
   private _model: string;
@@ -99,6 +105,7 @@ export class ClinicAiAgentConfig
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       isEnabled: props.isEnabled ?? false,
+      provider: props.provider ?? 'ANTHROPIC',
       model: props.model ?? 'claude-haiku-4-5',
       systemPrompt: props.systemPrompt ?? null,
       apiKey: props.apiKey ?? null,
@@ -113,6 +120,7 @@ export class ClinicAiAgentConfig
   /** Yalnız sağlanan (undefined olmayan) alanları günceller; apiKey undefined → korunur. */
   public updateSettings(props: UpdateClinicAiAgentConfigProps): void {
     if (props.isEnabled !== undefined) this._isEnabled = props.isEnabled;
+    if (props.provider !== undefined) this._provider = props.provider;
     if (props.model !== undefined) this._model = props.model;
     if (props.systemPrompt !== undefined) {
       this._systemPrompt = props.systemPrompt;
@@ -141,6 +149,7 @@ export class ClinicAiAgentConfig
     return {
       id: this._id,
       isEnabled: this._isEnabled,
+      provider: this._provider,
       model: this._model,
       systemPrompt: this._systemPrompt,
       apiKey: this._apiKey,

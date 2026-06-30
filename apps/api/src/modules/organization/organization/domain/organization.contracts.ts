@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TimeZoneSchema } from '@shared';
 
 // ==========================================
 // 1. KURUM OLUŞTURMA SÖZLEŞMELERİ (PROPS)
@@ -12,7 +13,7 @@ export const CreateOrganizationPropsSchema = z.object({
   address: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
   district: z.string().nullable().optional(),
-  timezone: z.string().optional(), // Boş gelirse iş mantığında varsayılan değer atanabilir
+  timezone: TimeZoneSchema.optional(), // Boş gelirse iş mantığında varsayılan değer atanabilir
 });
 export type CreateOrganizationProps = z.infer<
   typeof CreateOrganizationPropsSchema

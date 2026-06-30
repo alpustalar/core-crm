@@ -1,3 +1,4 @@
-import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { Payment } from '@shared';
+import { QueryResponse } from '@shared/common/response/response.interface';
 
-export type GetPaymentByAppointmentIdResponse = Payment | null;
+export type GetPaymentByAppointmentIdResponse = QueryResponse<Payment | null>;

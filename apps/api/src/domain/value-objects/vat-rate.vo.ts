@@ -1,13 +1,26 @@
-import { BadRequestException } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
+import {
+  InvalidVatRateException,
+  VatRateMustNotBeZeroException,
+  VatRateNegativeException,
+} from '@src/domain/exceptions/vo/vat-rate.exceptions';
+
+interface IVatRateValidator {
+  hasTax: {
+    isValid: boolean;
+    isInvalid: boolean;
+    orThrow: (exception?: Error) => VatRate;
+  };
+}
 
 export class VatRate {
-  // Türkiye'deki yasal KDV oranları (2026 güncel mevzuat)
+  // 🇹🇷 Türkiye 2026 güncel yasal KDV oranları (%0, %1, %10, %20)
   private static readonly VALID_RATES = [0, 1, 10, 20];
   private readonly _value: Decimal;
 
   private constructor(value: Decimal) {
     this._value = value;
+    Object.freeze(this);
   }
 
   public get value(): Decimal {
@@ -15,49 +28,101 @@ export class VatRate {
   }
 
   public get asMultiplier(): Decimal {
-    // Örn: %20 için 0.20 döner, fatura matrah hesaplamalarında doğrudan kullanılır
+    // Örn: %20 için 0.20 döner (Matrah hesaplamalarında direkt çarpım için)
     return this._value.div(100);
   }
 
   public get asTaxMultiplier(): Decimal {
-    // Örn: %20 için 1.20 döner, brütleştirme işlemlerinde kullanılır
+    // Örn: %20 için 1.20 döner (Brütleştirme / KDV dahil tutar hesaplamalarında)
     return new Decimal(1).plus(this.asMultiplier);
   }
 
-  public static create(value: number | Decimal | null | undefined): VatRate {
-    // Eğer KDV belirtilmemişse varsayılan olarak %0 (Muaf/Dahil değil) kabul edebiliriz
-    if (value === null || value === undefined) {
-      return new VatRate(new Decimal(0));
+  public get validate(): IVatRateValidator {
+    // Sinsi 'this' kaybolmalarını önlemek için instance referansını sabitliyoruz
+    const self = this;
+    const isZeroRate = self.isZero();
+
+    return {
+      hasTax: {
+        isValid: !isZeroRate,
+        isInvalid: isZeroRate,
+        orThrow: (exception?: Error): VatRate => {
+          if (isZeroRate) {
+            throw exception ?? new VatRateMustNotBeZeroException();
+          }
+          return self;
+        },
+      },
+    };
+  }
+
+  /**
+   * 🎯 Güvenilir Kurucu: Persisted (DB) KDV oranından doğrudan VO üretir; yasal-oran
+   * doğrulaması atlanır. Sadece güvendiğin (persisted) veride kullan.
+   */
+  public static fromTrusted(value: number | string | Decimal): VatRate {
+    return new VatRate(value instanceof Decimal ? value : new Decimal(value));
+  }
+
+  /**
+   * 🎯 Akıllı Factory: Yeni "instance" ve "orThrow" standart ordu nizamımız
+   */
+  public static create(value: number | Decimal | null | undefined) {
+    // KDV belirtilmemişse varsayılan olarak %0 (KDV Muaf) nesnesini güvenle hazırlarız
+    const isBlank = value === null || value === undefined;
+    const finalValue = isBlank
+      ? new Decimal(0)
+      : value instanceof Decimal
+        ? value
+        : new Decimal(value);
+
+    let instance: VatRate | undefined;
+    let error: Error | undefined;
+
+    try {
+      // 1. Negatif değer barikatı
+      if (finalValue.isNeg()) {
+        throw new VatRateNegativeException();
+      }
+
+      // 2. Yasal oran kontrolü
+      const rateAsNumber = finalValue.toNumber();
+      if (!VatRate.VALID_RATES.includes(rateAsNumber)) {
+        throw new InvalidVatRateException(rateAsNumber);
+      }
+
+      instance = new VatRate(finalValue);
+    } catch (e: any) {
+      error = e;
     }
 
-    const decimalValue = value instanceof Decimal ? value : new Decimal(value);
+    return {
+      /**
+       * ➔ Opsiyonel Senaryo: Hata varsa undefined, yoksa VatRate nesnesi döner.
+       */
+      instance: error ? undefined : instance,
 
-    // Kural 1: Negatif değer kontrolü
-    if (decimalValue.isNeg()) {
-      throw new BadRequestException('KDV oranı negatif olamaz.');
-    }
-
-    // Kural 2: Yasal oran kontrolü (İsteğe bağlı ama finansal disiplin için çok güçlüdür)
-    const rateAsNumber = decimalValue.toNumber();
-    if (!this.VALID_RATES.includes(rateAsNumber)) {
-      throw new BadRequestException(
-        `Geçersiz KDV oranı: %${rateAsNumber}. Yasal oranlar: %0, %1, %10, %20`
-      );
-    }
-
-    return new VatRate(decimalValue);
+      /**
+       * ➔ Zorunlu Senaryo: Hatalı veya illegal bir oran geldiyse küt diye patlatır.
+       */
+      orThrow(exception?: Error): VatRate {
+        if (error || !instance) {
+          throw exception ?? error ?? new VatRateNegativeException();
+        }
+        return instance;
+      },
+    };
   }
 
   public isZero(): boolean {
     return this._value.isZero();
   }
 
-  public validateHasTaxOrThrow(errorMessage?: string): void {
-    if (this.isZero()) {
-      throw new BadRequestException(
-        errorMessage ||
-          'Bu işlem için KDV oranı %0 (muaf) olamaz, geçerli bir KDV oranı girilmelidir.'
-      );
-    }
+  public equals(other: VatRate): boolean {
+    return this._value.equals(other.value);
+  }
+
+  public toString(): string {
+    return `%${this._value.toString()}`;
   }
 }

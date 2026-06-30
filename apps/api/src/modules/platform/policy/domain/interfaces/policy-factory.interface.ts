@@ -3,7 +3,8 @@ import { AppointmentPolicy } from '@modules/clinical/appointment/application/pol
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
 import { OrganizationPolicy } from '@modules/organization/organization/application/policies/organization.policy';
 import { PolicyEvaluator } from '@modules/platform/policy/application/policy-evaluator';
-import { UserPolicy } from '@modules/identity/user/application/policies';
+import { UserPolicy } from '@modules/identity/user/application/policies/user.policy';
+import { ProviderPolicy } from '@modules/clinical/provider/application/policies/provider.policy';
 
 export const POLICY_FACTORY = Symbol('IPolicyFactory');
 export interface IPolicyFactory {
@@ -22,5 +23,9 @@ export interface IPolicyFactory {
   appointment(actor: ActorContext): {
     evaluator: PolicyEvaluator<AppointmentPolicy>;
     policy: AppointmentPolicy;
+  };
+  provider(actor: ActorContext): {
+    evaluator: PolicyEvaluator<ProviderPolicy>;
+    policy: ProviderPolicy;
   };
 }

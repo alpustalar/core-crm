@@ -15,6 +15,11 @@ export class TreatmentPackageCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<TreatmentPackage | null> {
+    const raw = await this.db.treatmentPackage.findUnique({ where: { id } });
+    return raw ? new TreatmentPackage(raw) : null;
+  }
+
   async save(treatmentPackage: TreatmentPackage): Promise<TreatmentPackage> {
     const data = treatmentPackage.toPersistence();
     const providerIds = treatmentPackage.providerIdsToSync;

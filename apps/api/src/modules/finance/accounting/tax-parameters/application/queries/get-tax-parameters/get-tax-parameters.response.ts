@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
+import { TaxParameter } from '@shared';
 
 export type GetTaxParametersResponse = QueryResponse<TaxParameter[]>;

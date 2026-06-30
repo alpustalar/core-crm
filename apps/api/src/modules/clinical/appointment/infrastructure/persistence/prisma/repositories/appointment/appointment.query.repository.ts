@@ -16,7 +16,7 @@ import {
   OccupiedSlot,
   PaginatedAppointments,
   ProviderDailyLoad,
-} from '@modules/clinical/appointment/domain/appointment.contracts';
+} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 
 @Injectable()
 export class AppointmentQueryRepository

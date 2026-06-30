@@ -23,6 +23,6 @@ export class GetChartOfAccountsHandler
       query.clinicId
     );
 
-    return { data: accounts };
+    return { data: accounts.map((account) => account.toPersistence()) };
   }
 }

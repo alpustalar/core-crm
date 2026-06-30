@@ -12,7 +12,8 @@ export const APPOINTMENT_EVENTS = {
   ACTION_REQUIRED: 'appointment.action-required',
   SCHEDULE: 'appointment.schedule',
   SCHEDULED: 'appointment.scheduled',
-  CANCELLATION_REQUESTED: 'appointment.cancellation-requested'
+  CANCELLATION_REQUESTED: 'appointment.cancellation-requested',
+  RESCHEDULE: 'appointment.reschedule',
 } as const;
 
 export type AppointmentEvent =

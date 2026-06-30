@@ -12,7 +12,7 @@ export class MetaCampaignMetric extends AggregateRoot {
   constructor(data: IMetaCampaignMetric) {
     super();
 
-    const currencyStr = Currency.create(data.currency).value;
+    const { value: currencyStr } = Currency.create(data.currency).orThrow();
 
     this._id = data.id;
     this._metaAdAccountId = data.metaAdAccountId;
@@ -20,8 +20,8 @@ export class MetaCampaignMetric extends AggregateRoot {
     this._campaignName = data.campaignName;
     this._date = data.date;
 
-    this._spend = Money.create(data.spend, currencyStr);
-    this._cpc = data.cpc ? Money.create(data.cpc, currencyStr) : null;
+    this._spend = Money.create(data.spend, currencyStr).orThrow();
+    this._cpc = Money.create(data.cpc, currencyStr).instance ?? null;
 
     this._clicks = data.clicks;
     this._impressions = data.impressions;

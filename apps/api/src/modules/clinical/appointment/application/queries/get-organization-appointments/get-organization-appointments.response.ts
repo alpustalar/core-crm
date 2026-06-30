@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
+import { Appointment } from '@shared';
 
 export type GetOrganizationAppointmentsQueryResponse = QueryResponse<
   Appointment[]

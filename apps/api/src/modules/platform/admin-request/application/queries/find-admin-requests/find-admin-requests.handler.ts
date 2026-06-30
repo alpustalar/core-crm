@@ -22,15 +22,15 @@ export class FindAdminRequestsHandler
   ): Promise<FindAdminRequestsResponse> {
     const { dto, pagination } = query;
 
-    const result = await this.adminRequestQueryRepo.findMany({
+    const { total, items } = await this.adminRequestQueryRepo.findMany({
       type: dto.type,
       status: dto.status,
       pagination,
     });
 
     return {
-      data: result,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      data: items.map((item) => item.toPersistence()),
+      meta: { pagination: buildPaginationMeta(pagination, total) },
     };
   }
 }

@@ -1,4 +1,4 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateLeadStatusCommand } from './update-lead-status.command';
 import {
@@ -17,6 +17,8 @@ import {
   LogType,
 } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
+import { LeadStatusSchema } from '@shared';
 
 @CommandHandler(UpdateLeadStatusCommand)
 export class UpdateLeadStatusHandler
@@ -38,13 +40,13 @@ export class UpdateLeadStatusHandler
 
     await this.txManager.run(async () => {
       const lead = await this.leadQueryRepo.findById(leadId);
-      if (!lead) throw new NotFoundException('Lead bulunamadı.');
+      if (!lead) throw new LeadNotFoundException();
 
       const previousStatus = lead.status;
 
-      if (dto.status === 'CONTACTED') {
+      if (dto.status === LeadStatusSchema.enum.CONTACTED) {
         lead.contact();
-      } else if (dto.status === 'QUALIFIED') {
+      } else if (dto.status === LeadStatusSchema.enum.QUALIFIED) {
         lead.qualify();
       }
 
@@ -61,7 +63,7 @@ export class UpdateLeadStatusHandler
         source: LogSource.WEB,
         action: LogAction.LEAD_STATUS_CHANGED,
         type: LogType.INFO,
-        details: `Lead durumu güncellendi: ${previousStatus} → ${saved.status}`,
+        details: `Lead durumu güncellendi: ${previousStatus} -> ${saved.status}`,
       });
     });
   }

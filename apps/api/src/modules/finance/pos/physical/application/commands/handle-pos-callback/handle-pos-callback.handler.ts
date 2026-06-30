@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
+import { PosTransactionNotFoundException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { HandlePosCallbackCommand } from './handle-pos-callback.command';
 import { HandlePosCallbackResponse } from './handle-pos-callback.response';
 import {
@@ -17,10 +18,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 @CommandHandler(HandlePosCallbackCommand)
-export class HandlePosCallbackHandler implements ICommandHandler<
-  HandlePosCallbackCommand,
-  HandlePosCallbackResponse
-> {
+export class HandlePosCallbackHandler
+  implements
+    ICommandHandler<HandlePosCallbackCommand, HandlePosCallbackResponse>
+{
   private readonly logger = new Logger(HandlePosCallbackHandler.name);
 
   constructor(
@@ -52,9 +53,7 @@ export class HandlePosCallbackHandler implements ICommandHandler<
           );
 
         if (!transaction) {
-          throw new NotFoundException(
-            `POS işlemi bulunamadı: externalRef=${input.externalRef}`
-          );
+          throw new PosTransactionNotFoundException(input.externalRef);
         }
 
         switch (posCallbackResult.status) {
@@ -73,17 +72,16 @@ export class HandlePosCallbackHandler implements ICommandHandler<
 
         await this.posTransactionCommandRepo.save(transaction);
 
-        // Ödeme tahsilat sonucunu payment modülüne yansıt (ledger payment listener üzerinden oluşur)
         if (transaction.paymentId) {
           if (posCallbackResult.status === PosCallbackStatuses.SUCCESS) {
             await this.posPaymentSync.markPaid({
               paymentId: transaction.paymentId,
-              clinicId: transaction.clinicId,
+              clinicId: transaction.clinicId.value,
             });
           } else if (posCallbackResult.status === PosCallbackStatuses.FAILED) {
             await this.posPaymentSync.markFailed({
               paymentId: transaction.paymentId,
-              clinicId: transaction.clinicId,
+              clinicId: transaction.clinicId.value,
             });
           }
         }
@@ -93,9 +91,9 @@ export class HandlePosCallbackHandler implements ICommandHandler<
     );
 
     this.logger.log(
-      `POS işlemi güncellendi: id=${posTransactionId} status=${status}`
+      `POS işlemi güncellendi: id=${posTransactionId.value} status=${status}`
     );
 
-    return { posTransactionId, status };
+    return { posTransactionId: posTransactionId.value, status };
   }
 }

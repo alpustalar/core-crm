@@ -36,7 +36,7 @@ export class FindHandler
       throw new NotFoundException('Organizasyon bulunamadı');
     }
     return {
-      data: organization,
+      data: organization.toPersistence(),
     };
   }
 }

@@ -1,0 +1,12 @@
+import { DomainException } from '@src/domain/exceptions/domain.exception';
+import { ERROR_CODES } from '@common/constants/error-codes.constant';
+import { HttpStatus } from '@nestjs/common';
+
+export class InvalidBarcodeException extends DomainException {
+  readonly errorCode = ERROR_CODES.BARCODE.INVALID;
+  public override readonly httpStatus = HttpStatus.UNPROCESSABLE_ENTITY;
+
+  constructor(message = 'Geçersiz barkod sağlandı.') {
+    super(message);
+  }
+}

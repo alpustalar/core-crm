@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConflictException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
@@ -9,6 +9,7 @@ import {
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
 import { AccountingPeriod } from '@modules/finance/accounting/periods/domain/entities/accounting-period.entity';
 import { OpenPeriodCommand } from './open-period.command';
+import { PeriodAlreadyExistsException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 
 /**
  * Bir clinic (defter) için ilgili yılın muhasebe dönemini açar.
@@ -30,11 +31,7 @@ export class OpenPeriodHandler
     const { clinicId, organizationId, year } = command;
 
     const existing = await this.periodQueryRepo.findByYear(clinicId, year);
-    if (existing) {
-      throw new ConflictException(
-        `${year} yılı için muhasebe dönemi zaten mevcut.`
-      );
-    }
+    if (existing) throw new PeriodAlreadyExistsException(year);
 
     const period = AccountingPeriod.create({ clinicId, organizationId, year });
 

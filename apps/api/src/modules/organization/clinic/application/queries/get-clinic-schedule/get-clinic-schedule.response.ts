@@ -1,10 +1,9 @@
-import {
-  IClinicAvailability,
-  IClinicException,
-} from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
 import { QueryResponse } from '@shared/common/response/response.interface';
+import { ClinicAvailability, ClinicException } from '@shared';
 
-export type GetClinicScheduleQueryResponse = QueryResponse<{
-  availabilities: IClinicAvailability[];
-  exceptions: IClinicException[];
-}>;
+type Schedule = {
+  availabilities: ClinicAvailability[];
+  exceptions: ClinicException[];
+};
+
+export type GetClinicScheduleQueryResponse = QueryResponse<Schedule>;

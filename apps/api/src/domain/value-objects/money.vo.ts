@@ -1,13 +1,39 @@
-import { BadRequestException } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { z } from 'zod';
 import {
   CurrencySchema,
   CurrencyType,
 } from '@input-type-schemas/CurrencySchema';
+import {
+  CurrencyMismatchException,
+  InsufficientFundsException,
+  InvalidAllocationCountException,
+  InvalidMoneyAmountException,
+} from '@src/domain/exceptions/vo/money.exceptions';
+
+// Derleyicinin (TSC) context'i kaçırmasını önleyen validator arayüzleri
+interface IMoneyPublicValidator {
+  greaterThanZero: {
+    isValid: boolean;
+    isInvalid: boolean;
+    orThrow: (message?: string) => Money;
+  };
+}
+
+interface IMoneyStaticValidator {
+  input: (
+    amount: any,
+    currency: any
+  ) => {
+    isValid: boolean;
+    isInvalid: boolean;
+    orThrow: (exception?: Error) => { amount: Decimal; currency: CurrencyType };
+  };
+}
 
 export class Money {
   static readonly PRECISION = 2;
+
   private static readonly schema = z
     .object({
       amount: z.custom<Decimal>((val) => val instanceof Decimal),
@@ -23,6 +49,37 @@ export class Money {
   private constructor(amount: Decimal, currency: CurrencyType) {
     this._amount = amount;
     this._currency = currency;
+    Object.freeze(this);
+  }
+
+  /**
+   * 🎯 2. Static Validate (Getter): Sınıf düzeyinde ham verinin şemaya uygunluğunu doğrular
+   * Örn: Money.validate.input(dto.amount, dto.currency).orThrow()
+   */
+  public static get validate(): IMoneyStaticValidator {
+    return {
+      input: (amount: any, currency: any) => {
+        const decimalAmount =
+          amount instanceof Decimal ? amount : new Decimal(amount);
+        const normalizedCurrency = currency?.trim().toUpperCase();
+
+        const result = Money.schema.safeParse({
+          amount: decimalAmount,
+          currency: normalizedCurrency,
+        });
+
+        return {
+          isValid: result.success,
+          isInvalid: !result.success,
+          orThrow: (exception?: Error) => {
+            if (!result.success) {
+              throw exception ?? new InvalidMoneyAmountException(result.error.message);
+            }
+            return result.data;
+          },
+        };
+      },
+    };
   }
 
   public get amount(): Decimal {
@@ -33,36 +90,81 @@ export class Money {
     return this._currency;
   }
 
-  public static create(
+  /**
+   * 🎯 1. Public Validate (Getter): Nesne oluştuktan sonraki iş kuralları barikatı
+   * Örn: price.validate.greaterThanZero.orThrow()
+   */
+  public get validate(): IMoneyPublicValidator {
+    const self = this;
+    const isGreaterThanZero =
+      self._amount.isPositive() && !self._amount.isZero();
+
+    return {
+      greaterThanZero: {
+        isValid: isGreaterThanZero,
+        isInvalid: !isGreaterThanZero,
+        orThrow: (message?: string): Money => {
+          if (!isGreaterThanZero) {
+            throw new InvalidMoneyAmountException(message);
+          }
+          return self;
+        },
+      },
+    };
+  }
+
+  /**
+   * 🎯 Güvenilir Kurucu: Persisted (DB) tutar + para biriminden doğrudan VO üretir;
+   * şema doğrulaması atlanır. Sadece güvendiğin (persisted) veride kullan.
+   */
+  public static fromTrusted(
     amount: number | string | Decimal,
-    currencyStr: CurrencyType
+    currency: CurrencyType
   ): Money {
-    const decimalAmount =
-      amount instanceof Decimal ? amount : new Decimal(amount);
-    const normalizedCurrency = currencyStr?.trim().toUpperCase();
-
-    const result = this.schema.safeParse({
-      amount: decimalAmount,
-      currency: normalizedCurrency,
-    });
-
-    if (!result.success) {
-      throw new BadRequestException(result.error.message);
-    }
-
-    return new Money(result.data.amount, result.data.currency);
+    return new Money(
+      amount instanceof Decimal ? amount : new Decimal(amount),
+      currency
+    );
   }
 
-  public isGreaterThanZero(): boolean {
-    return this._amount.isPositive() && !this._amount.isZero();
-  }
+  /**
+   * 🎯 Akıllı Factory: Projedeki yeni "instance" ve "orThrow" standart ordu nizamımız
+   */
+  public static create(
+    amount: number | string | Decimal | null | undefined,
+    currencyStr: CurrencyType
+  ) {
+    const isBlank = amount === null || amount === undefined || amount === '';
 
-  public validateGreaterThanZeroOrThrow(errorMessage?: string): void {
-    if (!this.isGreaterThanZero()) {
-      throw new BadRequestException(
-        errorMessage || 'Finansal işlem tutarı sıfırdan büyük olmak zorundadır.'
-      );
+    let instance: Money | undefined;
+    let error: Error | undefined;
+
+    if (!isBlank) {
+      try {
+        // İçerideki tüm şema doğrulamalarını statik validate metodumuz üzerinden yürütüyoruz
+        const validated = Money.validate.input(amount, currencyStr).orThrow();
+        instance = new Money(validated.amount, validated.currency);
+      } catch (e: any) {
+        error = e;
+      }
     }
+
+    return {
+      /**
+       * ➔ Opsiyonel Senaryo: Hatalı veya boşsa undefined döner, akışı kesmez.
+       */
+      instance: error ? undefined : instance,
+
+      /**
+       * ➔ Zorunlu Senaryo: Hatalı kur veya miktar sızmaya çalışırsa küt diye patlatır.
+       */
+      orThrow(exception?: Error): Money {
+        if (error || !instance) {
+          throw exception ?? error ?? new InvalidMoneyAmountException();
+        }
+        return instance;
+      },
+    };
   }
 
   public toApiFormat(): string {
@@ -77,9 +179,7 @@ export class Money {
 
   public allocate(count: number): Money[] {
     if (count <= 0) {
-      throw new BadRequestException(
-        'Paylaştırma sayısı 0 veya daha küçük olamaz.'
-      );
+      throw new InvalidAllocationCountException(count);
     }
     const total = this._amount;
     const each = total.div(count).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
@@ -96,6 +196,7 @@ export class Money {
 
     return results;
   }
+
   public format(locale: string = 'tr-TR'): string {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -118,9 +219,7 @@ export class Money {
     const result = this._amount.sub(other._amount);
 
     if (result.isNegative()) {
-      throw new BadRequestException(
-        'Yetersiz bakiye: İşlem sonucu negatif olamaz.'
-      );
+      throw new InsufficientFundsException();
     }
     return new Money(result, this._currency);
   }
@@ -143,9 +242,7 @@ export class Money {
 
   private checkCurrencyMatch(other: Money): void {
     if (this._currency !== other._currency) {
-      throw new BadRequestException(
-        `Para birimi uyuşmazlığı: ${this._currency} ile ${other._currency} işleme giremez.`
-      );
+      throw new CurrencyMismatchException(this.currency, other.currency);
     }
   }
 }

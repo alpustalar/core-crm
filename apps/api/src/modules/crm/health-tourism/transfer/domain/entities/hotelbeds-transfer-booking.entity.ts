@@ -6,6 +6,13 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { HotelbedsTransferBookingStatusType as HotelbedsTransferBookingStatus } from '@input-type-schemas/HotelbedsTransferBookingStatusSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { HotelbedsTransferAlreadyCancelledException } from '@modules/crm/health-tourism/transfer/domain/exceptions/hotelbeds-transfer.exceptions';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+import { Decimal } from 'decimal.js';
+import {
+  CreateTransferBookingProps,
+  UpdateTransferHolderProps,
+} from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
 
 export class HotelbedsTransferBooking extends AggregateRoot {
   constructor(data: IHotelbedsTransferBooking) {
@@ -19,7 +26,7 @@ export class HotelbedsTransferBooking extends AggregateRoot {
     this._holderEmail = data.holderEmail;
     this._holderPhone = data.holderPhone;
     this._transfers = data.transfers;
-    this._totalAmount = Money.create(data.totalAmount, data.currency);
+    this._totalAmount = Money.create(data.totalAmount, data.currency).orThrow();
     this._remarks = data.remarks;
     this._organizationId = data.organizationId;
     this._clinicId = data.clinicId;
@@ -29,6 +36,9 @@ export class HotelbedsTransferBooking extends AggregateRoot {
     this._updatedAt = data.updatedAt;
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Private Properties & Getters
+  // ────────────────────────────────────────────────────────────────────────────
   private _id: string;
   get id(): string {
     return this._id;
@@ -114,18 +124,98 @@ export class HotelbedsTransferBooking extends AggregateRoot {
     return this._updatedAt;
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Static Create Method (Factory)
+  // ────────────────────────────────────────────────────────────────────────────
+  public static create(
+    props: CreateTransferBookingProps
+  ): HotelbedsTransferBooking {
+    const currencyValue = Currency.create(props.currency).orThrow();
+
+    const amountValue =
+      props.totalAmount instanceof Decimal ||
+      typeof props.totalAmount === 'number'
+        ? Money.create(props.totalAmount, currencyValue.value).orThrow()
+        : props.totalAmount;
+
+    return new HotelbedsTransferBooking({
+      id: props.id ?? crypto.randomUUID(),
+      reference: props.reference,
+      clientReference: props.clientReference ?? null,
+      status: props.status,
+      holderName: props.holderName.trim(),
+      holderSurname: props.holderSurname.trim(),
+      holderEmail: props.holderEmail.toLowerCase().trim(),
+      holderPhone: props.holderPhone.trim(),
+      transfers: props.transfers,
+      totalAmount: amountValue.amount,
+      currency: currencyValue.value,
+      remarks: props.remarks ?? null,
+      organizationId: props.organizationId,
+      clinicId: props.clinicId ?? null,
+      patientId: props.patientId ?? null,
+      leadId: props.leadId ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // 🚀 Public Domain Methods (Zengin İş Kuralları)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Rezervasyonu yapan asıl yolcu/sorumlu (Holder) bilgilerini günceller.
+   */
+  public updateHolderDetails(props: UpdateTransferHolderProps): void {
+    if (this.isCancelled()) {
+      throw new Error(
+        'İptal edilmiş bir transfer rezervasyonunun bilgileri güncellenemez.'
+      );
+    }
+
+    this._holderName = props.holderName.trim();
+    this._holderSurname = props.holderSurname.trim();
+    this._holderEmail = props.holderEmail.toLowerCase().trim();
+    this._holderPhone = props.holderPhone.trim();
+
+    if (props.remarks !== undefined) {
+      this._remarks = props.remarks;
+    }
+
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Dış servisten (Hotelbeds) gelen senkronizasyonlarda durum ve transfer detaylarını günceller.
+   */
+  public syncFromProvider(
+    status: HotelbedsTransferBookingStatus,
+    transfers: JsonValue,
+    totalAmount: Money
+  ): void {
+    this._status = status;
+    this._transfers = transfers;
+    this._totalAmount = totalAmount;
+    this._updatedAt = new Date();
+  }
+
   public cancel(): void {
-    if (this._status === HotelbedsTransferBookingStatusSchema.enum.CANCELLED) {
-      throw new Error('Transfer rezervasyonu zaten iptal edilmiş.');
+    if (this.isCancelled()) {
+      throw new HotelbedsTransferAlreadyCancelledException();
     }
     this._status = HotelbedsTransferBookingStatusSchema.enum.CANCELLED;
+    this._updatedAt = new Date();
   }
 
   public isCancelled(): boolean {
     return this._status === HotelbedsTransferBookingStatusSchema.enum.CANCELLED;
   }
 
-  toPersistence(): IHotelbedsTransferBooking {
+  // ────────────────────────────────────────────────────────────────────────────
+  // Mapping to Persistence
+  // ────────────────────────────────────────────────────────────────────────────
+  public toPersistence(): IHotelbedsTransferBooking {
     return {
       id: this._id,
       reference: this._reference,
@@ -137,7 +227,7 @@ export class HotelbedsTransferBooking extends AggregateRoot {
       holderPhone: this._holderPhone,
       transfers: this._transfers,
       totalAmount: this._totalAmount.amount,
-      currency: this.totalAmount.currency,
+      currency: this._totalAmount.currency,
       remarks: this._remarks,
       organizationId: this._organizationId,
       clinicId: this._clinicId,

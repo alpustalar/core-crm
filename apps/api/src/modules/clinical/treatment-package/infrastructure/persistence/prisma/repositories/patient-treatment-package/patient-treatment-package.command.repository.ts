@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import {
-  CreatePatientPackageInput,
-  IPatientTreatmentPackageCommandRepository,
-} from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
+import { IPatientTreatmentPackageCommandRepository } from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
+import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
 
 @Injectable()
 export class PatientTreatmentPackageCommandRepository
@@ -15,11 +13,17 @@ export class PatientTreatmentPackageCommandRepository
     super(prisma);
   }
 
-  create(input: CreatePatientPackageInput) {
-    return this.db.patientTreatmentPackage.create({ data: input });
-  }
+  async save(
+    patientTreatmentPackage: PatientTreatmentPackage
+  ): Promise<PatientTreatmentPackage> {
+    const raw = patientTreatmentPackage.toPersistence();
+    await this.db.patientTreatmentPackage.upsert({
+      where: { id: raw.id },
+      create: raw,
+      update: raw,
+    });
+    patientTreatmentPackage.flushEvents();
 
-  update(id: string, data: Record<string, unknown>) {
-    return this.db.patientTreatmentPackage.update({ where: { id }, data });
+    return new PatientTreatmentPackage(raw);
   }
 }

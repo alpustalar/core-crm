@@ -1,11 +1,16 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindPatientByFirebaseUidQuery } from './find-patient-by-firebase-uid.query';
-import { Inject } from '@nestjs/common';
-import { FindPatientByFirebaseUidQueryResponse } from '@modules/crm/patient/application/queries/find-patient-by-firebase-uid/find-patient-by-firebase-uid.response';
 import {
   IPatientQueryRepository,
   PATIENT_QUERY_REPOSITORY,
 } from '@modules/crm/patient/domain/repositories/patient.repository.interface';
+import { Inject } from '@nestjs/common';
+import { FindPatientByFirebaseUidQueryResponse } from '@modules/crm/patient/application/queries/find-patient-by-firebase-uid/find-patient-by-firebase-uid.response';
+import {
+  PatientNotFoundException,
+  PatientNotRegisteredException,
+} from '@modules/crm/patient/domain/exceptions/patient.exceptions';
+import { isRegisteredPatient } from '@shared';
 
 @QueryHandler(FindPatientByFirebaseUidQuery)
 export class FindPatientByFirebaseUidHandler
@@ -17,17 +22,23 @@ export class FindPatientByFirebaseUidHandler
 {
   constructor(
     @Inject(PATIENT_QUERY_REPOSITORY)
-    private readonly patientRepo: IPatientQueryRepository
+    private readonly patientQueryRepository: IPatientQueryRepository
   ) {}
 
   async execute(
     query: FindPatientByFirebaseUidQuery
   ): Promise<FindPatientByFirebaseUidQueryResponse> {
-    const patient = await this.patientRepo.find(query.firebaseUid);
-    return {
-      data: patient,
-    };
-  }
+    const { patientFirebaseUid } = query;
+    const patient =
+      await this.patientQueryRepository.findByFirebaseUid(patientFirebaseUid);
 
-  // TODO: firebaseUid ile DBdeki id aynı olacak bu handler kaldırılacak
+    if (!patient) throw new PatientNotFoundException();
+
+    const data = patient.toPersistence();
+    if (!isRegisteredPatient(data)) {
+      throw new PatientNotRegisteredException();
+    }
+
+    return { data };
+  }
 }

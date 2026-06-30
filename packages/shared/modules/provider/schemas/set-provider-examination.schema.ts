@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
 export const SetProviderExaminationSchema = z.object({
-  canAcceptExamination: z.coerce.boolean(),
+  acceptsConsultation: z.coerce.boolean(),
 });

@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CancelTransferBookingCommand } from './cancel-transfer-booking.command';
 import {
   HOTELBEDS_TRANSFER_API_SERVICE,
@@ -12,6 +12,7 @@ import {
   IHotelbedsTransferBookingQueryRepository,
 } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { HotelbedsTransferNotFound } from '@modules/crm/health-tourism/transfer/domain/exceptions/hotelbeds-transfer.exceptions';
 
 @CommandHandler(CancelTransferBookingCommand)
 export class CancelTransferBookingHandler
@@ -27,18 +28,14 @@ export class CancelTransferBookingHandler
     @Inject(HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY)
     private readonly bookingCommandRepo: IHotelbedsTransferBookingCommandRepository,
 
-    private readonly txManager: TransactionManager,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CancelTransferBookingCommand): Promise<void> {
     const { dto } = command;
 
     const booking = await this.bookingQueryRepo.findByReference(dto.reference);
-    if (!booking) {
-      throw new NotFoundException(
-        `Transfer rezervasyonu bulunamadı: ${dto.reference}`,
-      );
-    }
+    if (!booking) throw new HotelbedsTransferNotFound();
 
     await this.transferApi.cancelBooking(dto.language, dto.reference);
 

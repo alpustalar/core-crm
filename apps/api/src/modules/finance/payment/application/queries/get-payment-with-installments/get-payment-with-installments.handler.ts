@@ -6,6 +6,8 @@ import {
   IPaymentQueryRepository,
   PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+import { paymentHasInstallments } from '@shared/modules/payment/interfaces/payment-with-installments.interface';
+import { QueryResponseNull } from '@common/constants';
 
 @QueryHandler(GetPaymentWithInstallmentsQuery)
 export class GetPaymentWithInstallmentsHandler
@@ -20,9 +22,30 @@ export class GetPaymentWithInstallmentsHandler
     private readonly paymentQueryRepo: IPaymentQueryRepository
   ) {}
 
-  execute(
+  async execute(
     query: GetPaymentWithInstallmentsQuery
   ): Promise<GetPaymentWithInstallmentsResponse> {
-    return this.paymentQueryRepo.findPaymentWithInstallments(query.paymentId);
+    const payment = await this.paymentQueryRepo.findPaymentWithInstallments(
+      query.paymentId
+    );
+
+    if (!payment) {
+      return QueryResponseNull;
+    }
+
+    const { installments } = payment;
+
+    const raw = payment.toPersistence();
+
+    const persistenceData = {
+      ...raw,
+      installments: [...installments],
+    };
+
+    const isWithInstallments = paymentHasInstallments(persistenceData);
+
+    return {
+      data: isWithInstallments ? persistenceData : null,
+    };
   }
 }

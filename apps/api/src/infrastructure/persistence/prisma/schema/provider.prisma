@@ -22,7 +22,7 @@ model Provider {
   hlrNo     String? @map("hlr_no")
 
   isActive             Boolean @default(true) @map("is_active")
-  canAcceptExamination Boolean @default(true)
+  acceptsConsultation Boolean @default(true)
 
   operationMode OperationMode @default(STATIC)
 

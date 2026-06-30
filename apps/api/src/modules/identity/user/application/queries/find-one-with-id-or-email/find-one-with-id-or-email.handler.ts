@@ -1,4 +1,4 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   IUserQueryRepository,
   USER_QUERY_REPOSITORY,
@@ -10,6 +10,7 @@ import {
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindOneWithIdOrEmailQuery } from '@modules/identity/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.query';
 import { FindOneWithIdOrEmailQueryResponse } from '@modules/identity/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.response';
+import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
 
 @QueryHandler(FindOneWithIdOrEmailQuery)
 export class FindOneWithIdOrEmailHandler
@@ -29,19 +30,17 @@ export class FindOneWithIdOrEmailHandler
     const { userIdOrEmail, ctx } = query;
     const user = await this.userRepo.findByIdOrEmail(userIdOrEmail);
 
-    if (!user) {
-      throw new NotFoundException('Kullanıcı bulunamadı');
-    }
+    if (!user) throw new UserNotFoundException();
 
     const { policy } = this.policyFactory.user(ctx.actor);
 
-    const serializationOptions = policy.getUserSerializeOptions(
-      user.id,
-      user?.clinicId
+    const serializationOptions = policy.getSerializeOptions(
+      user.id.value,
+      user?.clinicId?.value
     );
 
     return {
-      data: user,
+      data: user.toPersistence(),
       meta: {
         serializationOptions,
       },

@@ -28,6 +28,7 @@ export class GetClinicAiAgentConfigHandler
         id: config.id,
         clinicId: config.clinicId,
         isEnabled: config.isEnabled,
+        provider: config.provider,
         model: config.model,
         systemPrompt: config.systemPrompt,
         hasApiKey: config.apiKey !== null,

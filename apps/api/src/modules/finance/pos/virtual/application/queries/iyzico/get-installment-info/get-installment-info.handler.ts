@@ -3,7 +3,8 @@ import { GetInstallmentInfoQuery } from './get-installment-info.query';
 import { GetInstallmentInfoQueryResponse } from './get-installment-info.response';
 import { randomUUID } from 'crypto';
 import { IyzicoSdkStatus } from '@src/infrastructure/payment/pos/virtual/providers/iyzico';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { IyzicoInstallmentInfoFailedException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
 
 import Iyzipay from 'iyzipay';
 import {
@@ -36,9 +37,7 @@ export class GetInstallmentInfoHandler
     });
 
     if (sdkResult.status.toLowerCase() !== IyzicoSdkStatus.SUCCESS) {
-      throw new BadRequestException(
-        `Taksit bilgisi alınamadı: ${sdkResult.errorMessage}`
-      );
+      throw new IyzicoInstallmentInfoFailedException(sdkResult.errorMessage);
     }
 
     return {

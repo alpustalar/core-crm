@@ -1,4 +1,4 @@
-export type MessageChannelValue = 'WHATSAPP';
+export type MessageChannelValue = 'WHATSAPP' | 'TELEGRAM' | 'INSTAGRAM';
 export type ConversationStatusValue = 'OPEN' | 'PENDING' | 'CLOSED';
 
 export interface ConversationResponse {

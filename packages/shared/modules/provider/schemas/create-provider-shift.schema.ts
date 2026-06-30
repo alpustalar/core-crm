@@ -25,7 +25,7 @@ export const CreateProviderShiftItemSchema = z
 
 export const CreateProviderShiftSchema = z
   .object({
-    providerId: z.string().uuid(),
+    providerId: z.uuid(),
     shifts: z
       .array(CreateProviderShiftItemSchema)
       .min(1, { message: 'En az bir vardiya girişi gereklidir' })

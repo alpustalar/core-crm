@@ -6,6 +6,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { HotelbedsBookingStatusType as HotelbedsBookingStatus } from '@input-type-schemas/HotelbedsBookingStatusSchema';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { HotelbedsBookingAlreadyCancelledException } from '@modules/crm/health-tourism/hotel/domain/exceptions/hotelbeds-booking.exceptions';
 
 export class HotelbedsBooking extends AggregateRoot {
   constructor(data: IHotelbedsBooking) {
@@ -18,14 +19,13 @@ export class HotelbedsBooking extends AggregateRoot {
     this._checkIn = data.checkIn;
     this._checkOut = data.checkOut;
     this._status = data.status;
-    this._totalNet = Money.create(data.totalNet, data.currency);
+    this._totalNet = Money.create(data.totalNet, data.currency).orThrow();
     this._holderName = data.holderName;
     this._holderSurname = data.holderSurname;
     this._rooms = data.rooms;
     this._remarks = data.remarks;
-    this._serviceFee = data.serviceFee
-      ? Money.create(data.serviceFee, data.currency)
-      : null;
+    this._serviceFee =
+      Money.create(data.serviceFee, data.currency).instance ?? null;
     this._organizationId = data.organizationId;
     this._clinicId = data.clinicId;
     this._createdAt = data.createdAt;
@@ -124,8 +124,10 @@ export class HotelbedsBooking extends AggregateRoot {
 
   public cancel(): void {
     if (this._status === HotelbedsBookingStatusSchema.enum.CANCELLED) {
-      throw new Error('Rezervasyon zaten iptal edilmiş.');
+      throw new HotelbedsBookingAlreadyCancelledException(this._reference);
     }
+
+    // TODO: domain event pushlanacak
     this._status = HotelbedsBookingStatusSchema.enum.CANCELLED;
   }
 

@@ -1,5 +1,8 @@
 import { z } from 'zod';
+import { HotelbedsTransferBookingStatusSchema } from '@shared';
+import { Decimal } from 'decimal.js';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import { JsonValueSchema } from '@input-type-schemas/JsonValueSchema';
 
 // ==========================================
 // 1. SORGULAMA SÖZLEŞMELERİ (FILTERS)
@@ -13,34 +16,6 @@ export const FindTransferBookingsFilterSchema = z.object({
 });
 export type FindTransferBookingsFilter = z.infer<
   typeof FindTransferBookingsFilterSchema
->;
-
-// ==========================================
-// 2. REPO VE REZERVASYON SÖZLEŞMELERİ (PROPS)
-// ==========================================
-
-export const CreateTransferBookingPropsSchema = z.object({
-  id: z.uuid(),
-  reference: z.string().min(1, 'Referans kodu zorunludur'), // Tedarikçi rezervasyon kodu
-  clientReference: z.string().optional(),
-  holderName: z.string().min(1, 'Yolcu adı zorunludur'),
-  holderSurname: z.string().min(1, 'Yolcu soyadı zorunludur'),
-  holderEmail: z.email('Geçersiz e-posta formatı'),
-  holderPhone: z.string().min(1, 'Telefon numarası zorunludur'),
-
-  transfers: z.unknown(), // Ham API response/request objesi için unknown koruması
-
-  totalAmount: z.number().positive("Toplam tutar 0'dan büyük olmalıdır"),
-  currency: CurrencySchema,
-  remarks: z.string().optional(),
-
-  organizationId: z.uuid(),
-  clinicId: z.uuid().optional(),
-  patientId: z.uuid().optional(),
-  leadId: z.uuid().optional(),
-});
-export type CreateTransferBookingProps = z.infer<
-  typeof CreateTransferBookingPropsSchema
 >;
 
 // ==========================================
@@ -239,4 +214,46 @@ export const CancelTransferBookingResultSchema = z.object({
 });
 export type CancelTransferBookingResult = z.infer<
   typeof CancelTransferBookingResultSchema
+>;
+
+export const CreateTransferBookingPropsSchema = z.object({
+  id: z.uuid().optional(),
+  reference: z.string().min(1, 'Referans kodu zorunludur'),
+  clientReference: z.string().nullable().optional(),
+  status: HotelbedsTransferBookingStatusSchema,
+
+  // Holder (Rezervasyonu yapan kişi) Bilgileri
+  holderName: z.string().min(1, 'Ad zorunludur'),
+  holderSurname: z.string().min(1, 'Soyad zorunludur'),
+  holderEmail: z.email('Geçersiz e-posta formatı'),
+  holderPhone: z.string().min(10, 'Geçerli bir telefon numarası giriniz'),
+
+  // Transfer Detayları ve Finansal Veriler
+  transfers: JsonValueSchema,
+  totalAmount: z.union([z.number(), z.instanceof(Decimal)]), // Decimal veya Money desteği
+  currency: CurrencySchema, // ISO Currency Code
+
+  remarks: z.string().nullable().optional(),
+
+  // İç İlişkiler
+  organizationId: z.uuid('Kurum ID zorunludur'),
+  clinicId: z.uuid().nullable().optional(),
+  patientId: z.uuid().nullable().optional(),
+  leadId: z.uuid().nullable().optional(),
+});
+
+export type CreateTransferBookingProps = z.infer<
+  typeof CreateTransferBookingPropsSchema
+>;
+
+export const UpdateTransferHolderPropsSchema = z.object({
+  holderName: z.string().min(1, 'Ad zorunludur'),
+  holderSurname: z.string().min(1, 'Soyad zorunludur'),
+  holderEmail: z.email('Geçersiz e-posta formatı'),
+  holderPhone: z.string().min(10, 'Geçerli bir telefon numarası giriniz'),
+  remarks: z.string().nullable().optional(),
+});
+
+export type UpdateTransferHolderProps = z.infer<
+  typeof UpdateTransferHolderPropsSchema
 >;

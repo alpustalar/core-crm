@@ -1,17 +1,5 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-enum ExaminationType {
-  FIRST_VISIT // İlk muayene
-  FOLLOW_UP // Kontrol muayenesi
-  EMERGENCY // Acil
-}
-
-enum VisitType {
-  SCHEDULED // Randevulu
-  WALK_IN // Randevusuz
-  REFERRAL // Sevkli
-}
-
 enum ENabizSyncStatus {
   PENDING // Senkronizasyon kuyruğunda
   SYNCED // Başarıyla iletildi

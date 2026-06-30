@@ -12,12 +12,8 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import {
-  EnsurePartyForPatientCommand
-} from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
-import {
-  RecordFinancialEventCommand
-} from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
+import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
@@ -91,7 +87,7 @@ export class ReconcilePosTransactionsHandler
               if (entity.paymentId) {
                 await this.posPaymentSync.markPaid({
                   paymentId: entity.paymentId,
-                  clinicId: entity.clinicId,
+                  clinicId: entity.clinicId.value,
                 });
               }
               // Muhasebe köprüsü: PAX senkron akışı timeout/PENDING kaldığı için
@@ -99,10 +95,10 @@ export class ReconcilePosTransactionsHandler
               // aynı dedupeKey ile PAYMENT_RECEIVED'ı burada üretir (108 / 120).
               if (entity.patientId) {
                 await this.recordPosPaymentReceived({
-                  patientId: entity.patientId,
-                  clinicId: entity.clinicId,
-                  amount: entity.amount.toString(),
-                  posTransactionId: entity.id,
+                  patientId: entity.patientId.value,
+                  clinicId: entity.clinicId.value,
+                  amount: String(entity.amount.amount),
+                  posTransactionId: entity.id.value,
                 });
               }
             } else {
@@ -111,7 +107,7 @@ export class ReconcilePosTransactionsHandler
               if (entity.paymentId) {
                 await this.posPaymentSync.markFailed({
                   paymentId: entity.paymentId,
-                  clinicId: entity.clinicId,
+                  clinicId: entity.clinicId.value,
                 });
               }
             }

@@ -28,7 +28,7 @@ export class CreatePaymentPlanHandler
     const installmentsData = dto.installments.map((inst, idx) => ({
       id: crypto.randomUUID(),
       installmentNo: idx + 1,
-      money: Money.create(inst.amount, dto.currency),
+      money: Money.create(inst.amount, dto.currency).orThrow(),
       method: inst.method,
       dueDate: inst.dueDate,
       note: inst.note,
@@ -38,8 +38,11 @@ export class CreatePaymentPlanHandler
       .map((inst) => inst.money)
       .reduce((total, current) => total.add(current));
 
+    calculatedTotalMoney.validate.greaterThanZero.orThrow(
+      'Ödeme planı toplam tutarı sıfırdan büyük olmalıdır.'
+    );
+
     const payment = Payment.create({
-      id: crypto.randomUUID(),
       totalAmount: calculatedTotalMoney,
       clinicId: dto.clinicId,
       patientId: dto.patientId,
@@ -47,6 +50,7 @@ export class CreatePaymentPlanHandler
       providerId: dto.providerId,
       installments: installmentsData,
     });
+
     const savedPayment = await this.paymentCommandRepo.save(payment);
     return savedPayment.id;
   }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProviderIdentitySchema } from '@shared/modules/provider/schemas/provider-identity.schema';
 
 export const CreateProviderAvailabilityItemSchema = z
   .object({
@@ -24,8 +25,8 @@ export const CreateProviderAvailabilityItemSchema = z
   );
 
 export const CreateProviderAvailabilitySchema = z.object({
-  providerId: z.uuid(),
   availabilities: z
     .array(CreateProviderAvailabilityItemSchema)
     .min(1, { message: 'En az bir müsaitlik girişi gereklidir' }),
+  providerId: z.uuid(),
 });

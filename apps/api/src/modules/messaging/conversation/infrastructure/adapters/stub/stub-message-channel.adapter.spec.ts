@@ -1,4 +1,4 @@
-import { MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@prisma/client';
 import { StubMessageChannelAdapter } from './stub-message-channel.adapter';
 import {
   MessageChannelPort,
@@ -9,6 +9,7 @@ describe('StubMessageChannelAdapter (gerçek adapter takılana kadar fallback)',
   const adapter: MessageChannelPort = new StubMessageChannelAdapter();
 
   const request: SendMessageRequest = {
+    channel: MessageChannel.WHATSAPP,
     clinicId: 'clinic-1',
     toPhone: '+905550001122',
     type: MessageType.TEXT,

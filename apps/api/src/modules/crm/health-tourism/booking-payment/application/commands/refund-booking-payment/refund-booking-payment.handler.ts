@@ -1,0 +1,78 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject, Logger } from '@nestjs/common';
+import {
+  IPaymentLinkProvider,
+  IYZICO_PAYMENT_LINK,
+  STRIPE_PAYMENT_LINK,
+} from '@src/infrastructure/payment/links/payment-link.port';
+import {
+  BOOKING_PAYMENT_COMMAND_REPOSITORY,
+  BOOKING_PAYMENT_QUERY_REPOSITORY,
+  IBookingPaymentCommandRepository,
+  IBookingPaymentQueryRepository,
+} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
+import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
+
+@CommandHandler(RefundBookingPaymentCommand)
+export class RefundBookingPaymentHandler
+  implements ICommandHandler<RefundBookingPaymentCommand, void>
+{
+  private readonly logger = new Logger(RefundBookingPaymentHandler.name);
+
+  constructor(
+    @Inject(IYZICO_PAYMENT_LINK)
+    private readonly iyzicoLink: IPaymentLinkProvider,
+    @Inject(STRIPE_PAYMENT_LINK)
+    private readonly stripeLink: IPaymentLinkProvider,
+    @Inject(BOOKING_PAYMENT_QUERY_REPOSITORY)
+    private readonly queryRepo: IBookingPaymentQueryRepository,
+    @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
+    private readonly commandRepo: IBookingPaymentCommandRepository
+  ) {}
+
+  async execute(command: RefundBookingPaymentCommand): Promise<void> {
+    const { bookingId, reason } = command;
+
+    const bp = await this.queryRepo.findByBookingId(bookingId);
+    // B7 öncesi/ödemesiz rezervasyonda kayıt olmayabilir → iptal akışını bozmadan geç.
+    if (!bp) {
+      this.logger.warn(
+        `İade için ödeme kaydı bulunamadı (bookingId=${bookingId}); atlandı.`
+      );
+      return;
+    }
+
+    if (bp.status !== 'BOOKED') {
+      this.logger.warn(
+        `İade atlandı (bp=${bp.id}); durum BOOKED değil (mevcut: ${bp.status}).`
+      );
+      return;
+    }
+    if (!bp.paidProvider || !bp.paidProviderRef) {
+      this.logger.warn(`İade atlandı (bp=${bp.id}); ödeme referansı yok.`);
+      return;
+    }
+
+    // v1: tam satış tutarı iade (HotelBeds iptal cezası mahsubu sonraki iterasyon).
+    const adapter =
+      bp.paidProvider === 'IYZICO' ? this.iyzicoLink : this.stripeLink;
+    const amount =
+      bp.paidProvider === 'IYZICO'
+        ? bp.tryAmount.toNumber()
+        : bp.saleAmount.toNumber();
+    const currency = bp.paidProvider === 'IYZICO' ? 'TRY' : bp.saleCurrency;
+
+    await adapter.refund({
+      providerRef: bp.paidProviderRef,
+      amount,
+      currency,
+      reason,
+    });
+
+    bp.markRefunded(reason ?? 'Rezervasyon iptal edildi.');
+    await this.commandRepo.save(bp);
+    this.logger.log(
+      `İade tamamlandı (bp=${bp.id}, provider=${bp.paidProvider}, amount=${amount} ${currency}).`
+    );
+  }
+}

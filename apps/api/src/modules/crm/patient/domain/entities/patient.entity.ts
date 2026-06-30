@@ -5,27 +5,49 @@ import { BloodTypeType as BloodType } from '@input-type-schemas/BloodTypeSchema'
 import { PatientStatusType as PatientStatus } from '@input-type-schemas/PatientStatusSchema';
 import { PatientTypeType as PatientType } from '@input-type-schemas/PatientTypeSchema';
 import { Decimal } from 'decimal.js';
+import { InvalidPatientProfileException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
+import { CreatePatientProps } from '@modules/crm/patient/domain/patient.contracts';
+import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
+import { TckNo } from '@src/domain/value-objects/tck-no.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { Img } from '@src/domain/value-objects/img.vo';
 
 export class Patient extends AggregateRoot {
   constructor(data: IPatient) {
     super();
-    this._id = data.id;
-    this._organizationId = data.organizationId;
-    this._clinicId = data.clinicId;
-    this._sectorId = data.sectorId;
+    this._id = UUID.fromTrusted(data.id);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    if (data.clinicId) this._clinicId = UUID.fromTrusted(data.clinicId);
+    if (data.sectorId) this._sectorId = UUID.fromTrusted(data.sectorId);
+
     this._firstName = data.firstName;
     this._lastName = data.lastName;
-    this._tcNo = data.tcNo;
+
+    if (data.tcNo) this._tcNo = TckNo.fromTrusted(data.tcNo);
+
     this._birthDate = data.birthDate;
     this._gender = data.gender;
-    this._phone = data.phone;
-    this._alternativePhone = data.alternativePhone;
-    this._email = data.email;
+
+    if (data.phone) this._phone = Phone.fromTrusted(data.phone);
+    if (data.alternativePhone)
+      this._alternativePhone = Phone.fromTrusted(data.alternativePhone);
+    if (data.email) this._email = Email.fromTrusted(data.email);
+    if (data.firebaseUid)
+      this._firebaseUid = FirebaseUid.fromTrusted(data.firebaseUid);
+
     this._address = data.address;
     this._emergencyContact = data.emergencyContact;
     this._companionName = data.companionName;
-    this._companionPhone = data.companionPhone;
-    this._profilePhoto = data.profilePhoto;
+
+    if (data.companionPhone)
+      this._companionPhone = Phone.fromTrusted(data.companionPhone);
+    if (data.profilePhoto)
+      this._profilePhoto = Img.fromTrusted(data.profilePhoto);
+
     this._protocolNo = data.protocolNo;
     this._allergies = data.allergies;
     this._chronicDiseases = data.chronicDiseases;
@@ -40,23 +62,28 @@ export class Patient extends AggregateRoot {
     this._deletedAt = data.deletedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _firebaseUid: FirebaseUid | null;
+  get firebaseUid(): FirebaseUid | null {
+    return this._firebaseUid;
+  }
+
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
-  private _clinicId: string | null;
-  get clinicId(): string | null {
+  private _clinicId: UUID | null;
+  get clinicId(): UUID | null {
     return this._clinicId;
   }
 
-  private _sectorId: string | null;
-  get sectorId(): string | null {
+  private _sectorId: UUID | null;
+  get sectorId(): UUID | null {
     return this._sectorId;
   }
 
@@ -70,8 +97,8 @@ export class Patient extends AggregateRoot {
     return this._lastName;
   }
 
-  private _tcNo: string | null;
-  get tcNo(): string | null {
+  private _tcNo: TckNo | null;
+  get tcNo(): TckNo | null {
     return this._tcNo;
   }
 
@@ -85,20 +112,20 @@ export class Patient extends AggregateRoot {
     return this._gender;
   }
 
-  private _phone: string;
-  get phone(): string {
+  private _phone: Phone | null;
+  get phone(): Phone | null {
     return this._phone;
   }
 
-  private _alternativePhone: string | null;
+  private _alternativePhone: Phone | null;
 
-  get alternativePhone(): string | null {
+  get alternativePhone(): Phone | null {
     return this._alternativePhone;
   }
 
-  private _email: string | null;
+  private _email: Email | null;
 
-  get email(): string | null {
+  get email(): Email | null {
     return this._email;
   }
 
@@ -120,15 +147,15 @@ export class Patient extends AggregateRoot {
     return this._companionName;
   }
 
-  private _companionPhone: string | null;
+  private _companionPhone: Phone | null;
 
-  get companionPhone(): string | null {
+  get companionPhone(): Phone | null {
     return this._companionPhone;
   }
 
-  private _profilePhoto: string | null;
+  private _profilePhoto: Img | null;
 
-  get profilePhoto(): string | null {
+  get profilePhoto(): Img | null {
     return this._profilePhoto;
   }
 
@@ -204,58 +231,72 @@ export class Patient extends AggregateRoot {
     return this._deletedAt;
   }
 
-  // 🎯 BURSA DISIPLINI: Kılavuza tam uyumlu Giriş Tipleri (Props)
-  public static create(props: {
-    id: string;
-    organizationId: string;
-    phone: string;
-    firstName: string;
-    clinicId?: string | null;
-    sectorId?: string | null;
-    lastName?: string | null;
-    tcNo?: string | null;
-    birthDate?: Date | null;
-    gender?: Gender | null;
-    alternativePhone?: string | null;
-    email?: string | null;
-    address?: string | null;
-    emergencyContact?: string | null;
-    companionName?: string | null;
-    companionPhone?: string | null;
-    profilePhoto?: string | null;
-    protocolNo?: string | null;
-    allergies?: string | null;
-    chronicDiseases?: string | null;
-    bloodType?: BloodType | null;
-    patientType?: PatientType | null;
-    responsibleProviderId?: string | null;
-    checkupDate?: Date | null;
-    discountRate?: Decimal | null;
-  }): Patient {
-    if (!props.phone.trim() || !props.firstName.trim()) {
-      throw new Error(
-        '[Hasta Disiplini] Hasta adı ve telefon numarası boş bırakılamaz.'
-      );
+  public get check() {
+    return {
+      isActive: this.isActive(),
+      isInactive: this.isInactive(),
+      isArchived: this.isArchived(),
+      isBlackListed: this.isBlacklisted(),
+      isDeceased: this.isDeceased(),
+      isClinicInline: this.isClinicInline(),
+    };
+  }
+
+  // DOMAIN METHODS
+
+  public get validate() {
+    return {
+      hasPhone: this.hasPhone(),
+    };
+  }
+
+  public static create(props: CreatePatientProps): Patient {
+    if (!props.firstName.trim()) {
+      throw new InvalidPatientProfileException();
     }
 
+    const organizationId = UUID.create(props.organizationId).orThrow();
+    const clinicId = props.clinicId
+      ? UUID.create(props.clinicId).orThrow()
+      : null;
+    const sectorId = props.sectorId
+      ? UUID.create(props.sectorId).orThrow()
+      : null;
+    const phone = props.phone ? Phone.create(props.phone).orThrow() : null;
+    const alternativePhone = props.alternativePhone
+      ? Phone.create(props.alternativePhone).orThrow()
+      : null;
+    const companionPhone = props.companionPhone
+      ? Phone.create(props.companionPhone).orThrow()
+      : null;
+    const email = props.email ? Email.create(props.email).orThrow() : null;
+    const tcNo = props.tcNo ? TckNo.create(props.tcNo).orThrow() : null;
+    const firebaseUid = props.firebaseUid
+      ? FirebaseUid.create(props.firebaseUid).orThrow()
+      : null;
+    const profilePhoto = props.profilePhoto
+      ? Img.create(props.profilePhoto).orThrow()
+      : null;
+    const now = DateTimeManager.create();
+
     return new Patient({
-      id: props.id,
-      organizationId: props.organizationId,
-      phone: props.phone,
+      id: props.id ?? UUID.generate().value,
+      organizationId: organizationId.value,
+      clinicId: clinicId?.value ?? null,
+      sectorId: sectorId?.value ?? null,
+      phone: phone?.value ?? null,
       firstName: props.firstName,
-      clinicId: props.clinicId ?? null,
-      sectorId: props.sectorId ?? null,
       lastName: props.lastName ?? null,
-      tcNo: props.tcNo ?? null,
+      tcNo: tcNo?.value ?? null,
       birthDate: props.birthDate ?? null,
       gender: props.gender ?? null,
-      alternativePhone: props.alternativePhone ?? null,
-      email: props.email ?? null,
+      alternativePhone: alternativePhone?.value ?? null,
+      email: email?.value ?? null,
       address: props.address ?? null,
       emergencyContact: props.emergencyContact ?? null,
       companionName: props.companionName ?? null,
-      companionPhone: props.companionPhone ?? null,
-      profilePhoto: props.profilePhoto ?? null,
+      companionPhone: companionPhone?.value ?? null,
+      profilePhoto: profilePhoto?.value ?? null,
       protocolNo: props.protocolNo ?? null,
       allergies: props.allergies ?? null,
       chronicDiseases: props.chronicDiseases ?? null,
@@ -265,13 +306,16 @@ export class Patient extends AggregateRoot {
       checkupDate: props.checkupDate ?? null,
       discountRate: props.discountRate ?? null,
       status: PatientStatusSchema.enum.ACTIVE,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       deletedAt: null,
+      firebaseUid: firebaseUid?.value ?? null,
     });
   }
 
-  // DOMAIN METHODS
+  public linkFirebaseAccount(firebaseUid: string): void {
+    this._firebaseUid = FirebaseUid.create(firebaseUid).orThrow();
+  }
 
   public activate(): void {
     if (this._status === PatientStatusSchema.enum.ACTIVE) return;
@@ -297,29 +341,50 @@ export class Patient extends AggregateRoot {
     this._status = PatientStatusSchema.enum.DECEASED;
   }
 
+  // STATUS QUERIES
+
   public softDelete(): void {
     this._deletedAt = new Date();
   }
 
-  // STATUS QUERIES
+  public isActive(): Guard<boolean> {
+    const isValid = this._status === PatientStatusSchema.enum.ACTIVE;
+    return Guard.monitor(isValid, isValid, new Error());
+  }
 
-  public isActive(): boolean {
-    return this._status === PatientStatusSchema.enum.ACTIVE;
+  public isInactive() {
+    const isValid = this._status === PatientStatusSchema.enum.INACTIVE;
+    return Guard.monitor(isValid, isValid, new Error());
   }
-  public isInactive(): boolean {
-    return this._status === PatientStatusSchema.enum.INACTIVE;
+
+  public isArchived() {
+    const isValid = this._status === PatientStatusSchema.enum.ARCHIVED;
+    return Guard.monitor(isValid, isValid, new Error());
   }
-  public isArchived(): boolean {
-    return this._status === PatientStatusSchema.enum.ARCHIVED;
+
+  public isBlacklisted(): Guard<boolean> {
+    const isValid = this._status === PatientStatusSchema.enum.BLACKLISTED;
+    return Guard.monitor(isValid, isValid, new Error());
   }
-  public isBlacklisted(): boolean {
-    return this._status === PatientStatusSchema.enum.BLACKLISTED;
+
+  public isDeceased(): Guard<boolean> {
+    const isValid = this._status === PatientStatusSchema.enum.DECEASED;
+    return Guard.monitor(isValid, isValid, new Error());
   }
-  public isDeceased(): boolean {
-    return this._status === PatientStatusSchema.enum.DECEASED;
+
+  public isDeleted(): Guard<boolean> {
+    const isValid = this._deletedAt !== null;
+    return Guard.monitor(isValid, isValid, new Error());
   }
-  public isDeleted(): boolean {
-    return this._deletedAt !== null;
+
+  public isClinicInline(): Guard<boolean> {
+    const isFirebaseUser = !!this._firebaseUid?.value;
+    return Guard.monitor(!isFirebaseUser, !isFirebaseUser, new Error());
+  }
+
+  public hasPhone(): Guard<boolean> {
+    const isValid = this._phone !== null;
+    return Guard.monitor(isValid, isValid, new Error());
   }
 
   public fullName(): string {
@@ -330,23 +395,23 @@ export class Patient extends AggregateRoot {
 
   public toPersistence(): IPatient {
     return {
-      id: this._id,
-      organizationId: this._organizationId,
-      clinicId: this._clinicId,
-      sectorId: this._sectorId,
+      id: this._id.value,
+      organizationId: this._organizationId.value,
+      clinicId: this._clinicId?.value ?? null,
+      sectorId: this._sectorId?.value ?? null,
       firstName: this._firstName,
       lastName: this._lastName,
-      tcNo: this._tcNo,
+      tcNo: this._tcNo?.value ?? null,
       birthDate: this._birthDate,
       gender: this._gender,
-      phone: this._phone,
-      alternativePhone: this._alternativePhone,
-      email: this._email,
+      phone: this._phone?.value ?? null,
+      alternativePhone: this._alternativePhone?.value ?? null,
+      email: this._email?.value ?? null,
       address: this._address,
       emergencyContact: this._emergencyContact,
       companionName: this._companionName,
-      companionPhone: this._companionPhone,
-      profilePhoto: this._profilePhoto,
+      companionPhone: this._companionPhone?.value ?? null,
+      profilePhoto: this._profilePhoto?.value ?? null,
       protocolNo: this._protocolNo,
       allergies: this._allergies,
       chronicDiseases: this._chronicDiseases,
@@ -357,8 +422,9 @@ export class Patient extends AggregateRoot {
       checkupDate: this._checkupDate,
       discountRate: this._discountRate,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
       deletedAt: this._deletedAt,
+      firebaseUid: this._firebaseUid?.value ?? null,
     };
   }
 }

@@ -18,6 +18,7 @@ interface BuildParams {
   conversation: Conversation | null;
   config?: {
     isEnabled: boolean;
+    provider: 'ANTHROPIC' | 'GEMINI';
     model: string;
     systemPrompt: string | null;
     maxTokens: number | null;
@@ -31,6 +32,7 @@ interface BuildParams {
 describe('AiReplyProcessor (AI otomatik yanıt worker)', () => {
   const defaultConfig = () => ({
     isEnabled: true,
+    provider: 'ANTHROPIC' as const,
     model: 'claude-haiku-4-5',
     systemPrompt: null,
     maxTokens: null,

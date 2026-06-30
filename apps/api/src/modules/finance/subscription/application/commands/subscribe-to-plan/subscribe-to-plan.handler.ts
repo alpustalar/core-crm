@@ -59,7 +59,7 @@ export class SubscribeToPlanHandler
     if (!isFreeTrial && buyer) {
       const result = await this.billingAdapter.initializePayment({
         organizationId,
-        amount: Money.create(priceAtPurchase, command.currency),
+        amount: Money.create(priceAtPurchase, command.currency).orThrow(),
         label: `${planId} Plan`,
         buyer,
       });
@@ -76,7 +76,10 @@ export class SubscribeToPlanHandler
     await this.subscriptionCommandRepo.addItem({
       subscriptionId: subscription.id,
       planId,
-      priceAtPurchase: Money.create(priceAtPurchase, command.currency),
+      priceAtPurchase: Money.create(
+        priceAtPurchase,
+        command.currency
+      ).orThrow(),
       externalPriceId,
     });
 

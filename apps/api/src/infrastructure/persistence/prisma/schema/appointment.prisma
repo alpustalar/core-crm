@@ -6,6 +6,18 @@ enum AppointmentStatus {
   NOSHOW
 }
 
+enum ExaminationType {
+  FIRST_VISIT // İlk muayene
+  FOLLOW_UP // Kontrol muayenesi
+  EMERGENCY // Acil
+}
+
+enum VisitType {
+  SCHEDULED // Randevulu
+  WALK_IN // Randevusuz
+  REFERRAL // Sevkli
+}
+
 model Appointment {
   id String @id @default(uuid())
 
@@ -16,7 +28,7 @@ model Appointment {
   startTime DateTime @map("start_time")
   endTime   DateTime @map("end_time")
 
-  timezone String @default("Europe/Istanbul") @map("timezone")
+  timezone TimeZone @default(Europe_Istanbul)
 
   treatmentType String? @map("treatment_type")
   notes         String? @db.Text
@@ -32,6 +44,7 @@ model Appointment {
 
   examinationType ExaminationType? @map("examination_type")
   visitType       VisitType?       @map("visit_type")
+  isConsultation  Boolean          @map("is_consultation")
 
   externalSystem ExternalSystem? @map("external_system")
   externalId     String?         @unique @map("external_id")

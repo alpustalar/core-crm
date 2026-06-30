@@ -1,6 +1,6 @@
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
-import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
+
 import {
   IJournalQueryRepository,
   JOURNAL_QUERY_REPOSITORY,
@@ -14,6 +14,7 @@ import {
   GetTrialBalanceResponse,
   TrialBalanceLine,
 } from './get-trial-balance.response';
+import { Account } from '@shared';
 
 /** Prisma.Decimal → decimal.js dönüşümü bir kez yapılır; toLine ve sumTotals bu tip üzerinden çalışır. */
 interface NormalizedRow {
@@ -93,7 +94,7 @@ export class GetTrialBalanceHandler
     const balance = row.debit.minus(row.credit);
     return {
       accountId: row.accountId,
-      code: account?.code.value ?? '?',
+      code: account?.code ?? '?',
       name: account?.name ?? '(bilinmeyen hesap)',
       totalDebit: row.debit.toFixed(2),
       totalCredit: row.credit.toFixed(2),

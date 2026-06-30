@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
+import { JournalEntry } from '@shared';
 
 export type GetJournalEntriesResponse = QueryResponse<JournalEntry[]>;

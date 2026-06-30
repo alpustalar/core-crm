@@ -21,6 +21,6 @@ export class GetFinancialEventByIdHandler
     query: GetFinancialEventByIdQuery
   ): Promise<GetFinancialEventByIdResponse> {
     const event = await this.eventQueryRepo.findById(query.financialEventId);
-    return { data: event };
+    return { data: event?.toPersistence() ?? null };
   }
 }

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { GlobalStatusSchema } from '../inputTypeSchemas/GlobalStatusSchema'
+import { TimeZoneSchema } from '../inputTypeSchemas/TimeZoneSchema'
 
 /////////////////////////////////////////
 // ORGANIZATION SCHEMA
@@ -7,6 +8,7 @@ import { GlobalStatusSchema } from '../inputTypeSchemas/GlobalStatusSchema'
 
 export const OrganizationSchema = z.object({
   status: GlobalStatusSchema,
+  timezone: TimeZoneSchema,
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
@@ -15,7 +17,6 @@ export const OrganizationSchema = z.object({
   address: z.string().nullable(),
   city: z.string().nullable(),
   district: z.string().nullable(),
-  timezone: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),

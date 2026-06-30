@@ -26,9 +26,8 @@ export class FinanceLedgerEntity extends AggregateRoot {
     this._category = data.category;
     this._status = data.status;
 
-    // Zengin Nesneleri Ayağa Kaldırma (İlkel veritabanı tiplerinden kurtuluyoruz)
-    const netMoney = Money.create(data.amount, data.currency);
-    const taxMoney = Money.create(data.taxAmount, data.currency);
+    const netMoney = Money.create(data.amount, data.currency).orThrow();
+    const taxMoney = Money.create(data.taxAmount, data.currency).orThrow();
 
     this._taxSpecification = TaxSpecification.create(
       netMoney,

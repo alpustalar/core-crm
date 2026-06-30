@@ -2,10 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
-  IClinicAvailability,
-  IClinicAvailabilityQueryRepository,
-  IClinicException,
+  IClinicAvailabilityQueryRepository
 } from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
+import { ClinicAvailability } from '@modules/organization/clinic/domain/entities/clinic-availability.entity';
 
 @Injectable()
 export class ClinicAvailabilityQueryRepository
@@ -16,75 +15,22 @@ export class ClinicAvailabilityQueryRepository
     super(prisma);
   }
 
-  findByClinicAndDay(
+  async findByClinicAndDay(
     clinicId: string,
     dayOfWeek: number
-  ): Promise<IClinicAvailability | null> {
-    return this.db.clinicAvailability.findUnique({
+  ): Promise<ClinicAvailability | null> {
+    const raw = await this.db.clinicAvailability.findUnique({
       where: { clinicId_dayOfWeek: { clinicId, dayOfWeek } },
     });
+    return raw ? new ClinicAvailability(raw) : null;
   }
 
-  findExceptionByClinicAndDate(
-    clinicId: string,
-    date: Date
-  ): Promise<IClinicException | null> {
-    const normalizedDate = new Date(date);
-    normalizedDate.setUTCHours(0, 0, 0, 0);
-
-    return this.db.clinicException.findUnique({
-      where: {
-        clinicId_date: {
-          clinicId,
-          date: normalizedDate,
-        },
-      },
-    });
-  }
-
-  findAllByClinicId(clinicId: string): Promise<IClinicAvailability[]> {
-    return this.db.clinicAvailability.findMany({
+  async findAllByClinicId(clinicId: string): Promise<ClinicAvailability[]> {
+    const raw = await this.db.clinicAvailability.findMany({
       where: { clinicId },
       orderBy: { dayOfWeek: 'asc' },
     });
-  }
 
-  findExceptionsByDateRange(
-    clinicId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<IClinicException[]> {
-    const normalizedStart = new Date(startDate);
-    normalizedStart.setUTCHours(0, 0, 0, 0);
-    const normalizedEnd = new Date(endDate);
-    normalizedEnd.setUTCHours(0, 0, 0, 0);
-
-    return this.db.clinicException.findMany({
-      where: {
-        clinicId,
-        date: { gte: normalizedStart, lte: normalizedEnd },
-      },
-    });
-  }
-
-  async findClosedExceptionByDate(
-    clinicId: string,
-    date: Date
-  ): Promise<Partial<IClinicException> | null> {
-    const startOfDay = new Date(date);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-
-    return this.db.clinicException.findFirst({
-      where: {
-        clinicId,
-        date: startOfDay,
-        isClosed: true,
-      },
-      select: {
-        isClosed: true,
-        reason: true,
-        date: true,
-      },
-    });
+    return raw.map((r) => new ClinicAvailability(r));
   }
 }

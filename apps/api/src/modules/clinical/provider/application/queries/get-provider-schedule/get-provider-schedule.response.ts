@@ -1,11 +1,11 @@
-import { ProviderException, ProviderShift } from '@shared';
-import { ProviderAvailabilityWithCanAcceptExamination } from '@modules/clinical/provider/domain/provider.contracts';
+import { ProviderAvailabilityWithAcceptsConsultation } from '@modules/clinical/provider/domain/contracts/provider.contracts';
 import { QueryResponse } from '@shared/common/response/response.interface';
 import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
+import { ProviderException, ProviderShift } from '@shared';
 
 export type ProviderStaticScheduleData = {
   operationMode: typeof OperationModeSchema.enum.STATIC;
-  availabilities: ProviderAvailabilityWithCanAcceptExamination[];
+  availabilities: ProviderAvailabilityWithAcceptsConsultation[];
   exceptions: ProviderException[];
 };
 

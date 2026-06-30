@@ -16,7 +16,6 @@ export class IyzicoTransactionCommandRepository
 
   async save(entity: IyzicoTransaction): Promise<IyzicoTransaction> {
     const data = entity.toPersistence();
-    // Prisma nullable Json: JS null yerine Prisma.JsonNull beklenir.
     const rawResponse =
       data.rawResponse === null
         ? Prisma.JsonNull

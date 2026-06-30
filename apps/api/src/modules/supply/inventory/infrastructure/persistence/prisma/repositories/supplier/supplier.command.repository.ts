@@ -3,7 +3,6 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ISupplierCommandRepository } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class SupplierCommandRepository
@@ -12,6 +11,11 @@ export class SupplierCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findById(id: string): Promise<Supplier | null> {
+    const raw = await this.db.supplier.findUnique({ where: { id } });
+    return raw ? new Supplier(raw) : null;
   }
 
   async save(supplier: Supplier): Promise<Supplier> {
@@ -25,24 +29,5 @@ export class SupplierCommandRepository
 
     supplier.flushEvents();
     return new Supplier(raw);
-  }
-
-  async saveMany(suppliers: Supplier[]): Promise<void> {
-    const prismaQueries = suppliers.map((supplier) => {
-      const data = supplier.toPersistence();
-      return this.db.supplier.upsert({
-        where: { id: supplier.id },
-        create: data,
-        update: data,
-      });
-    });
-
-    if (txStorage.getStore()?.tx) {
-      await Promise.all(prismaQueries);
-    } else {
-      await this.prisma.$transaction(prismaQueries);
-    }
-
-    suppliers.forEach((supplier) => supplier.flushEvents());
   }
 }

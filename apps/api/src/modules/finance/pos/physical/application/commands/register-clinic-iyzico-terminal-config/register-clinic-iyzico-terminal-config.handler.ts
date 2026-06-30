@@ -1,0 +1,72 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
+import { RegisterClinicIyzicoTerminalConfigCommand } from './register-clinic-iyzico-terminal-config.command';
+import {
+  CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY,
+  CLINIC_IYZICO_TERMINAL_CONFIG_QUERY_REPOSITORY,
+  IClinicIyzicoTerminalConfigCommandRepository,
+  IClinicIyzicoTerminalConfigQueryRepository,
+} from '@modules/finance/pos/physical/domain/repositories/clinic-iyzico-terminal-config.repository';
+import { ClinicIyzicoTerminalConfig } from '@modules/finance/pos/physical/domain/entities/clinic-iyzico-terminal-config.entity';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { CLINIC_EVENTS } from '@src/domain/constants/events';
+
+@CommandHandler(RegisterClinicIyzicoTerminalConfigCommand)
+export class RegisterClinicIyzicoTerminalConfigHandler implements ICommandHandler<
+  RegisterClinicIyzicoTerminalConfigCommand,
+  string
+> {
+  constructor(
+    @Inject(CLINIC_IYZICO_TERMINAL_CONFIG_QUERY_REPOSITORY)
+    private readonly configQueryRepo: IClinicIyzicoTerminalConfigQueryRepository,
+    @Inject(CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY)
+    private readonly configCommandRepo: IClinicIyzicoTerminalConfigCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager
+  ) {}
+
+  async execute(
+    command: RegisterClinicIyzicoTerminalConfigCommand
+  ): Promise<string> {
+    const { input, ctx } = command;
+    const { actor } = ctx;
+
+    const { evaluator } = this.policyFactory.clinic(actor);
+    evaluator
+      .check(
+        (p) => p.actorCanManageTargetClinic(input.clinicId),
+        'Bu kliniğin POS kimlik bilgilerini yönetme yetkiniz yok.'
+      )
+      .orThrow(CLINIC_EVENTS.REGISTER_SUBMERCHANT);
+
+    const existing = await this.configQueryRepo.findByClinicId(input.clinicId);
+
+    return this.txManager.run(async () => {
+      if (existing) {
+        existing.updateCredentials({
+          clientId: input.clientId,
+          clientSecret: input.clientSecret,
+          username: input.username,
+          password: input.password,
+        });
+        const saved = await this.configCommandRepo.save(existing);
+        return saved.id;
+      }
+
+      const config = ClinicIyzicoTerminalConfig.create({
+        clinicId: input.clinicId,
+        clientId: input.clientId,
+        clientSecret: input.clientSecret,
+        username: input.username,
+        password: input.password,
+      });
+      const saved = await this.configCommandRepo.save(config);
+      return saved.id;
+    });
+  }
+}

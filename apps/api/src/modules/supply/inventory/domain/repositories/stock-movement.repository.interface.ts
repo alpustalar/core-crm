@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
 import { StockMovement } from '../entities/stock-movement.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const STOCK_MOVEMENT_COMMAND_REPOSITORY = Symbol(
   'IStockMovementCommandRepository'

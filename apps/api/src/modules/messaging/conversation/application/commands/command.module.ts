@@ -10,7 +10,7 @@ import { AssignConversationHandler } from './assign-conversation/assign-conversa
 import { RequestConversationHandoffHandler } from './request-conversation-handoff/request-conversation-handoff.handler';
 import { ConversationRepositoryModule } from '@modules/messaging/conversation/infrastructure/persistence/prisma/repositories/conversation.repository.module';
 import { MessagingQueueModule } from '@modules/messaging/conversation/infrastructure/queue/messaging-queue.module';
-import { MetaMessageChannelModule } from '@modules/messaging/conversation/infrastructure/adapters/meta/meta-message-channel.module';
+import { ChannelRouterModule } from '@modules/messaging/conversation/infrastructure/adapters/router/channel-router.module';
 import { PatientQueryModule } from '@modules/crm/patient/application/queries/query.module';
 
 const CommandHandlers = [
@@ -29,7 +29,7 @@ const CommandHandlers = [
     CqrsModule,
     ConversationRepositoryModule,
     MessagingQueueModule,
-    MetaMessageChannelModule,
+    ChannelRouterModule,
     PatientQueryModule,
   ],
   providers: [...CommandHandlers],

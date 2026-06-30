@@ -12,6 +12,7 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPaymentByAppointmentIdQuery } from '@modules/finance/payment/application/queries/get-payment-by-appointment-id/get-payment-by-appointment-id.query';
 import { InvoiceTriggers } from '@modules/finance/invoice/domain/constants/invoice-triggers';
+import { Money } from '@src/domain/value-objects/money.vo';
 
 @Injectable()
 export class AppointmentCompletedInvoiceListener {
@@ -30,7 +31,7 @@ export class AppointmentCompletedInvoiceListener {
 
     try {
       // Tutar, randevuya bağlı ödemeden çözülür (bounded context — QueryBus).
-      const payment = await this.queryBus.execute(
+      const { data: payment } = await this.queryBus.execute(
         new GetPaymentByAppointmentIdQuery(event.appointmentId)
       );
       // Ödeme yoksa faturalanacak tutar yok → atla (sıfır tutarlı fatura kesilmez).
@@ -42,7 +43,7 @@ export class AppointmentCompletedInvoiceListener {
           patientId: event.patientId,
           appointmentId: event.appointmentId,
           paymentId: payment.id,
-          totalAmount: payment.totalAmount,
+          totalAmount: Money.fromTrusted(payment.totalAmount, payment.currency),
           trigger: InvoiceTriggers.APPOINTMENT,
           action: LogAction.INVOICE_ISSUED,
           type: LogType.INFO,

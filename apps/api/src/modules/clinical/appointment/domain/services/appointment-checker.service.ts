@@ -5,27 +5,27 @@ import {
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import { CheckConflictProps } from '@modules/clinical/appointment/domain/appointment.contracts';
+import { CheckConflictProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 
 @Injectable()
-export class AppointmentChecker {
+export class AppointmentCheckerService {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentQueryRepo: IAppointmentQueryRepository
   ) {}
 
-  async noConflictOrThrow({
+  async assertNoConflict({
     providerId,
     startTime,
     endTime,
     duration,
     ignoreAppointmentId,
   }: CheckConflictProps) {
-    const resolvedEndTime = Appointment.calculateEndTimeOrThrow(
+    const resolvedEndTime = Appointment.calculateEndTime(
       startTime,
       endTime,
       duration
-    );
+    ).orThrow();
 
     const conflict = await this.appointmentQueryRepo.findConflictingAppointment(
       {

@@ -1,6 +1,6 @@
 import { TaxParameterKey } from '@prisma/client';
 import { TaxParameter } from '../entities/tax-parameter.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const TAX_PARAMETER_COMMAND_REPOSITORY = Symbol(
   'ITaxParameterCommandRepository'
@@ -10,7 +10,9 @@ export const TAX_PARAMETER_QUERY_REPOSITORY = Symbol(
 );
 
 export interface ITaxParameterCommandRepository
-  extends IBaseCommandRepository<TaxParameter> {}
+  extends IBaseCommandRepository<TaxParameter> {
+  saveMany(taxParameters: TaxParameter[]): Promise<void>;
+}
 
 export interface ITaxParameterQueryRepository {
   /** Belirli tarihte (clinicId, key) için yürürlükteki oran satırı. */

@@ -10,13 +10,13 @@ import {
   IncomeStatementCalculator,
   IncomeStatementSection,
 } from '@modules/finance/accounting/posting/domain/reporting/income-statement.calculator';
-import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import { GetIncomeStatementQuery } from './get-income-statement.query';
 import {
   GetIncomeStatementResponse,
   IncomeStatementReportSection,
 } from './get-income-statement.response';
+import { Account } from '@shared';
 
 @QueryHandler(GetIncomeStatementQuery)
 export class GetIncomeStatementHandler
@@ -50,7 +50,7 @@ export class GetIncomeStatementHandler
       const account = accountById.get(row.accountId);
 
       return {
-        code: account?.code.value ?? '?',
+        code: account?.code ?? '?',
         name: account?.name ?? '(bilinmeyen hesap)',
         debit: row.totalDebit,
         credit: row.totalCredit,

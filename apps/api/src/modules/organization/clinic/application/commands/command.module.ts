@@ -4,8 +4,7 @@ import { Module } from '@nestjs/common';
 import { CreateClinicHandler } from './create-clinic/create-clinic.handler';
 import { SoftDeleteClinicHandler } from './soft-delete-clinic/soft-delete-clinic.handler';
 import { ClinicEventModule } from '@modules/organization/clinic/infrastructure/events/clinic-event.module';
-import { PolicyModule } from '@modules/platform/policy/policy.module';
-import { ClinicRepositoryModule } from '@modules/organization/clinic/infrastructure/persistence/prisma/repositories/clinic/clinic.repository.module';
+import { ClinicRepositoriesModule } from '@modules/organization/clinic/infrastructure/persistence/prisma/repositories/repositories.module';
 
 const CommandHandlers = [
   UpdateClinicHandler,
@@ -15,7 +14,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [ClinicEventModule, PolicyModule, ClinicRepositoryModule],
+  imports: [ClinicEventModule, ClinicRepositoriesModule],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })

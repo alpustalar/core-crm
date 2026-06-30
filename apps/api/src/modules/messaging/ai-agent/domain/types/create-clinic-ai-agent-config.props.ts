@@ -1,8 +1,11 @@
+import { AiProviderType } from '@input-type-schemas/AiProviderSchema';
+
 export interface CreateClinicAiAgentConfigProps {
   id?: string;
   clinicId: string;
   organizationId: string;
   isEnabled?: boolean;
+  provider?: AiProviderType;
   model?: string;
   systemPrompt?: string | null;
   /** Şifreli saklanır (TokenCipherService); null → platform anahtarı kullanılır. */
@@ -13,6 +16,7 @@ export interface CreateClinicAiAgentConfigProps {
 
 export interface UpdateClinicAiAgentConfigProps {
   isEnabled?: boolean;
+  provider?: AiProviderType;
   model?: string;
   systemPrompt?: string | null;
   /** Şifreli; `undefined` → mevcut anahtar korunur. */

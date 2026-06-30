@@ -7,13 +7,13 @@ import {
   JOURNAL_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
-import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import { GetJournalReportQuery } from './get-journal-report.query';
 import {
   GetJournalReportResponse,
   JournalReportEntry,
 } from './get-journal-report.response';
+import { Account } from '@shared';
 
 @QueryHandler(GetJournalReportQuery)
 export class GetJournalReportHandler
@@ -63,7 +63,7 @@ export class GetJournalReportHandler
         const account = accountById.get(line.accountId);
         return {
           accountId: line.accountId,
-          code: account?.code.value ?? '?',
+          code: account?.code ?? '?',
           name: account?.name ?? '(bilinmeyen hesap)',
           partyId: line.partyId,
           debit: line.debit.toFixed(2),

@@ -1,7 +1,8 @@
-/* eslint-disable */
 import { HotelbedsHotel as IHotelbedsHotel } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
+import { Coordinates } from '@src/domain/value-objects/coordinates.vo';
+import { CreateHotelbedsHotelProps } from '@modules/crm/health-tourism/hotel/domain/contracts/hotelbeds-hotel.contracts';
 
 export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
   constructor(data: IHotelbedsHotel) {
@@ -20,8 +21,15 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
     this._lastSyncedAt = data.lastSyncedAt;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
+
+    // 🚀 Constructor içinde ham veriden VO üretiyoruz (Gözden kaçan atama eklendi)
+    this._coordinates =
+      Coordinates.create(data.latitude, data.longitude).instance ?? null;
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Private Properties & Getters
+  // ────────────────────────────────────────────────────────────────────────────
   private _id: string;
   get id(): string {
     return this._id;
@@ -59,12 +67,18 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
 
   private _latitude: number | null;
   get latitude(): number | null {
-    return this._latitude;
+    return this._coordinates?.longitude ?? null;
   }
 
   private _longitude: number | null;
   get longitude(): number | null {
-    return this._longitude;
+    return this._coordinates?.longitude ?? null;
+  }
+
+  // 🚀 Zenginleştirilmiş İş Kuralları İçin VO Getteri
+  private _coordinates: Coordinates | null;
+  get coordinates(): Coordinates | null {
+    return this._coordinates;
   }
 
   private _images: JsonValue | null;
@@ -92,7 +106,57 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
     return this._updatedAt;
   }
 
-  toPersistence(): IHotelbedsHotel {
+  // ────────────────────────────────────────────────────────────────────────────
+  //  Static Create Method (Factory)
+  // ────────────────────────────────────────────────────────────────────────────
+  public static create(props: CreateHotelbedsHotelProps): HotelbedsHotel {
+    const coordinates = Coordinates.create(
+      props.latitude,
+      props.longitude
+    ).instance;
+
+    return new HotelbedsHotel({
+      id: props.id ?? crypto.randomUUID(),
+      name: props.name,
+      categoryCode: props.categoryCode,
+      categoryName: props.categoryName ?? null,
+      destinationCode: props.destinationCode,
+      destinationName: props.destinationName ?? null,
+      address: props.address ?? null,
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
+      images: props.images ?? null,
+      phones: props.phones ?? null,
+      lastSyncedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // 🎯 Domain Davranışları (Zengin İş Kuralları)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Otelin verilen başka bir lokasyona (Örn: Havalimanı veya merkeze) olan mesafesini metre cinsinden söyler.
+   */
+  public distanceTo(target: Coordinates): number | null {
+    if (!this._coordinates) return null;
+    return this._coordinates.distanceTo(target);
+  }
+
+  /**
+   * Otel koordinatlarını manuel veya senkronizasyon esnasında günceller.
+   */
+  public updateCoordinates(coordinates: Coordinates): void {
+    this._coordinates = coordinates;
+    this._updatedAt = new Date();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Mapping to Persistence
+  // ────────────────────────────────────────────────────────────────────────────
+  public toPersistence(): IHotelbedsHotel {
     return {
       id: this._id,
       name: this._name,

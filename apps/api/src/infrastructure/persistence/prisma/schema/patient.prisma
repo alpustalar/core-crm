@@ -31,7 +31,8 @@ model PatientGroup {
 }
 
 model Patient {
-  id String @id @default(uuid())
+  id          String  @id @default(uuid())
+  firebaseUid String? @unique
 
   organizationId String  @map("organization_id")
   clinicId       String? @map("clinic_id")
@@ -43,7 +44,7 @@ model Patient {
   birthDate DateTime? @map("birth_date")
   gender    Gender?
 
-  phone            String
+  phone            String?
   alternativePhone String? @map("alternative_phone")
   email            String?
   address          String? @db.Text
@@ -85,8 +86,8 @@ model Patient {
   invoices            Invoice[]
   posTransactions     PosTransaction[]
 
-  @@unique([phone, organizationId])
-  @@index([email, clinicId])
+  @@unique([organizationId, phone])
+  @@index([clinicId, email])
   @@index([firstName, lastName, deletedAt])
   @@index([clinicId])
   @@index([organizationId])

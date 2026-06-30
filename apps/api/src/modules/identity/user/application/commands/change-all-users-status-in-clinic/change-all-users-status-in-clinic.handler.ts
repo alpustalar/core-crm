@@ -35,16 +35,17 @@ export class ChangeAllUsersStatusInClinicHandler
   ): Promise<ChangeAllUsersStatusInClinicResponse> {
     const { status, clinicId } = command;
 
-    const users = await this.userQueryRepo.findAllByClinicId(clinicId);
-
-    if (users.length === 0) return;
-
-    users.forEach((u) => u.changeStatus(status));
-
-    await this.txManager.run(async () => {
-      await this.userCommandRepo.saveMany(users);
+    const { items } = await this.txManager.run(async () => {
+      await this.userCommandRepo.changeStatus(status, clinicId);
+      return await this.userQueryRepo.findAllByStatusWithClinicId(
+        status,
+        clinicId
+      );
     });
 
-    await this.redis.deleteManyActorContexts(users.map((u) => u.id));
+    if (items && items.length > 0) {
+      const userIds = items.map((u) => u.id);
+      await this.redis.deleteManyActorContexts(userIds.map((id) => id.value));
+    }
   }
 }

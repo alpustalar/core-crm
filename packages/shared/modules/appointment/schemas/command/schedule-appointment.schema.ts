@@ -11,12 +11,10 @@ export const ScheduleAppointmentSchema = z
       .optional(),
     patientPhone: z
       .string()
-      .min(7, { message: "Geçerli bir telefon numarası giriniz." })
-      .optional(),
+      .min(7, { message: "Geçerli bir telefon numarası giriniz." }),
     patientEmail: z
-      .string()
       .email({ message: "Geçerli bir e-posta adresi giriniz." })
-      .optional(),
+      .optional().nullable(),
     providerId: z.uuid({ message: "Geçerli bir doktor seçilmelidir." }),
     treatmentId: z.uuid({ message: "Geçerli bir tedavi seçilmelidir." }).optional(),
     startTime: z.coerce.date().refine((val) => !isNaN(val.getTime()), {
@@ -33,6 +31,7 @@ export const ScheduleAppointmentSchema = z
       .min(1, { message: "Randevu süresi en az 1 dakika olmalıdır." })
       .optional(),
     notes: z.string().optional(),
+    isConsultation: z.boolean()
   })
   .superRefine((data, ctx) => {
     if (!data.patientId && !data.patientName) {

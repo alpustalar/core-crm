@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
+import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { PaxBatchCloseCommand } from './pax-batch-close.command';
 import type { PaxBatchCloseResponse } from './pax-batch-close.response';
 import {
@@ -9,9 +10,10 @@ import {
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 
 @CommandHandler(PaxBatchCloseCommand)
-export class PaxBatchCloseHandler
-  implements ICommandHandler<PaxBatchCloseCommand, PaxBatchCloseResponse>
-{
+export class PaxBatchCloseHandler implements ICommandHandler<
+  PaxBatchCloseCommand,
+  PaxBatchCloseResponse
+> {
   private readonly logger = new Logger(PaxBatchCloseHandler.name);
 
   constructor(
@@ -25,16 +27,11 @@ export class PaxBatchCloseHandler
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
     if (!device || !device.isActive) {
-      throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
+      throw new PosDeviceNotFoundException();
     }
 
     const result = await this.paxService.batchClose({
-      device: {
-        host: device.host,
-        port: device.port,
-        terminalId: device.terminalId,
-        merchantId: device.merchantId,
-      },
+      device: device.getPaxConnection(),
     });
 
     this.logger.log(

@@ -5,3 +5,5 @@ export { SendTemplateMessageDto } from './send-template-message.dto';
 export { AssignConversationDto } from './assign-conversation.dto';
 export { UpdateWhatsappBusinessProfileDto } from './update-whatsapp-business-profile.dto';
 export { ConfigureAiAgentDto } from './configure-ai-agent.dto';
+export { ConnectTelegramBotChannelDto } from './connect-telegram-bot-channel.dto';
+export { ConnectInstagramChannelDto } from './connect-instagram-channel.dto';

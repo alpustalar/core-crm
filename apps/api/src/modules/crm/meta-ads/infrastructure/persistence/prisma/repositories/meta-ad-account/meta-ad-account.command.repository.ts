@@ -30,15 +30,19 @@ export class MetaAdAccountCommandRepository
     return new MetaAdAccount(raw);
   }
 
-  async save(entity: MetaAdAccount): Promise<MetaAdAccount> {
-    const data = entity.toPersistence();
+  async findById(id: string): Promise<MetaAdAccount | null> {
+    const raw = await this.db.metaAdAccount.findUnique({ where: { id } });
+    return raw ? new MetaAdAccount(raw) : null;
+  }
 
+  async save(entity: MetaAdAccount) {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
     const raw = await this.db.metaAdAccount.upsert({
-      where: { id: entity.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
-
     entity.flushEvents();
     return new MetaAdAccount(raw);
   }

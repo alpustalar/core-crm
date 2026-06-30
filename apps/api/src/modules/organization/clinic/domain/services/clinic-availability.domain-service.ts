@@ -3,7 +3,7 @@ import {
   IClinicAvailabilityDomainService,
   ValidateClinicAvailabilityInput,
 } from '@modules/organization/clinic/domain/interfaces/clinic-availability.domain-service.interface';
-import { DateTimeManager } from '@common/utils/date-time.manager';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class ClinicAvailabilityDomainService

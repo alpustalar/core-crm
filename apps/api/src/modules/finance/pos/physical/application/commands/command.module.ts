@@ -7,11 +7,20 @@ import { PaxSaleHandler } from './pax-sale/pax-sale.handler';
 import { PaxVoidHandler } from './pax-void/pax-void.handler';
 import { PaxRefundHandler } from './pax-refund/pax-refund.handler';
 import { PaxBatchCloseHandler } from './pax-batch-close/pax-batch-close.handler';
+import { IyzicoTerminalSaleHandler } from './iyzico-terminal-sale/iyzico-terminal-sale.handler';
+import { IyzicoTerminalRefundHandler } from './iyzico-terminal-refund/iyzico-terminal-refund.handler';
+import { IyzicoTerminalVoidHandler } from './iyzico-terminal-void/iyzico-terminal-void.handler';
+import { IyzicoTerminalEodHandler } from './iyzico-terminal-eod/iyzico-terminal-eod.handler';
+import { RegisterClinicIyzicoTerminalConfigHandler } from './register-clinic-iyzico-terminal-config/register-clinic-iyzico-terminal-config.handler';
 import { PosDeviceRepositoryModule } from '@modules/finance/pos/physical/infrastructure/persistence/prisma/repositories/pos-device/pos-device.repository.module';
 import { PosTransactionRepositoryModule } from '@modules/finance/pos/physical/infrastructure/persistence/prisma/repositories/pos-transaction/pos-transaction.repository.module';
+import { ClinicIyzicoTerminalConfigRepositoryModule } from '@modules/finance/pos/physical/infrastructure/persistence/prisma/repositories/clinic-iyzico-terminal-config/clinic-iyzico-terminal-config.repository.module';
 import { PaxModule } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.module';
+import { IyzicoTerminalModule } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';
+import { PolicyModule } from '@modules/platform/policy/policy.module';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
+import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { PosInfrastructureModule } from '@src/infrastructure/payment/pos/pos.infrastructure.module';
 
 export const POS_COMMAND_HANDLERS = [
@@ -23,17 +32,29 @@ export const POS_COMMAND_HANDLERS = [
   PaxVoidHandler,
   PaxRefundHandler,
   PaxBatchCloseHandler,
+  IyzicoTerminalSaleHandler,
+  IyzicoTerminalRefundHandler,
+  IyzicoTerminalVoidHandler,
+  IyzicoTerminalEodHandler,
+  RegisterClinicIyzicoTerminalConfigHandler,
 ];
 
 @Module({
   imports: [
     PosDeviceRepositoryModule,
     PosTransactionRepositoryModule,
+    ClinicIyzicoTerminalConfigRepositoryModule,
     PaxModule,
+    IyzicoTerminalModule,
     PaymentModule,
+    PolicyModule,
     PosInfrastructureModule,
   ],
-  providers: [...POS_COMMAND_HANDLERS, PosPaymentSyncService],
+  providers: [
+    ...POS_COMMAND_HANDLERS,
+    PosPaymentSyncService,
+    ResolveIyzicoTerminalCredentialsService,
+  ],
   exports: POS_COMMAND_HANDLERS,
 })
 export class PhysicalPosCommandModule {}

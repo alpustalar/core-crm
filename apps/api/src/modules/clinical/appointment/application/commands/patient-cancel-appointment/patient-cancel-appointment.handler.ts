@@ -1,12 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { PatientCancelAppointmentCommand } from './patient-cancel-appointment.command';
 import { PatientCancelAppointmentResponse } from './patient-cancel-appointment.response';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
-  APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentCommandRepository,
-  IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import {
   APPOINTMENT_EVENT_PUBLISHER,
@@ -19,7 +17,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 
 @CommandHandler(PatientCancelAppointmentCommand)
 export class PatientCancelAppointmentHandler
@@ -30,8 +28,6 @@ export class PatientCancelAppointmentHandler
     >
 {
   constructor(
-    @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(APPOINTMENT_EVENT_PUBLISHER)
@@ -48,19 +44,18 @@ export class PatientCancelAppointmentHandler
     const { appointmentId, cancelReason } = dto;
     const { actor, source } = ctx;
 
-    const appointment = await this.appointmentQueryRepo.findById(appointmentId);
-    if (!appointment) {
-      throw new NotFoundException('Randevu bulunamadı.');
-    }
+    const appointment =
+      await this.appointmentCommandRepo.findById(appointmentId);
+    if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
       .appointment(actor)
-      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .evaluator.systemBypass(source)
       .check(
         (p) =>
           p.canCancelOwnBooking({
-            patientId: appointment.patientId,
-            patientEmail: appointment.patientEmail,
+            patientId: appointment.patientId?.value ?? null,
+            patientEmail: appointment.patientEmail?.value ?? null,
           }),
         'Bu randevuyu iptal etme yetkiniz yok.'
       )
@@ -72,9 +67,9 @@ export class PatientCancelAppointmentHandler
     if (isWithinTwoHours) {
       return this.transactionManager.run(async () => {
         this.eventPublisher.cancellationRequested({
-          appointmentId: appointment.id,
-          clinicId: appointment.clinicId,
-          patientId: appointment.patientId,
+          appointmentId: appointment.id.value,
+          clinicId: appointment.clinicId.value,
+          patientId: appointment.patientId?.value ?? null,
           patientName: appointment.patientName,
           startTime: appointment.startTime,
           cancelReason,

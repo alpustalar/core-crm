@@ -12,7 +12,8 @@ import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CreateClinicCommand } from './create-clinic.command';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
-import { CreateClinicProps } from '@modules/organization/clinic/domain/clinic.contracts';
+import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { TimeZoneSchema } from '@shared';
 
 @CommandHandler(CreateClinicCommand)
 export class CreateClinicHandler
@@ -35,6 +36,7 @@ export class CreateClinicHandler
       ...dto,
       organizationId,
       id: internalRelations?.clinicId,
+      timezone: TimeZoneSchema.enum.Europe_Istanbul,
     };
 
     const { evaluator } = this.policyFactory.organization(actor);
@@ -54,6 +56,6 @@ export class CreateClinicHandler
   private async persistClinic(props: CreateClinicProps, actorId?: string) {
     const clinic = Clinic.create(props, actorId);
     const saved = await this.clinicCommandRepo.save(clinic);
-    return saved.id;
+    return saved.id.value;
   }
 }

@@ -9,6 +9,9 @@ import PosTransactionStatusSchema, {
 } from '@input-type-schemas/PosTransactionStatusSchema';
 import { JsonValueType } from '@input-type-schemas/JsonValueSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 
 /**
  * Fiziksel POS işlemini temsil eden domain entity.
@@ -22,13 +25,13 @@ import { Money } from '@src/domain/value-objects/money.vo';
 export class PosTransaction extends AggregateRoot {
   constructor(data: IPosTransaction) {
     super();
-    this._id = data.id;
+    this._id = UUID.create(data.id).orThrow();
     this._posDeviceId = data.posDeviceId;
-    this._clinicId = data.clinicId;
-    this._patientId = data.patientId;
-    this._appointmentId = data.appointmentId;
+    this._clinicId = UUID.create(data.clinicId).orThrow();
+    this._patientId = FirebaseUid.create(data.patientId).instance ?? null;
+    this._appointmentId = UUID.create(data.appointmentId).instance ?? null;
     this._paymentId = data.paymentId;
-    this._amount = Money.create(data.amount, data.currency);
+    this._amount = Money.create(data.amount, data.currency).orThrow();
     this._status = data.status;
     this._externalRef = data.externalRef;
     this._rawRequest = data.rawRequest;
@@ -39,8 +42,8 @@ export class PosTransaction extends AggregateRoot {
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -49,18 +52,18 @@ export class PosTransaction extends AggregateRoot {
     return this._posDeviceId;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _patientId: string | null;
-  get patientId(): string | null {
+  private _patientId: FirebaseUid | null;
+  get patientId(): FirebaseUid | null {
     return this._patientId;
   }
 
-  private _appointmentId: string | null;
-  get appointmentId(): string | null {
+  private _appointmentId: UUID | null;
+  get appointmentId(): UUID | null {
     return this._appointmentId;
   }
 
@@ -114,6 +117,31 @@ export class PosTransaction extends AggregateRoot {
     return this._updatedAt;
   }
 
+  public static create(props: CreatePosTransactionProps): PosTransaction {
+    const now = new Date();
+
+    const money = Money.create(props.amount, props.currency).orThrow();
+
+    return new PosTransaction({
+      id: props.id ?? crypto.randomUUID(),
+      posDeviceId: props.posDeviceId,
+      clinicId: props.clinicId,
+      patientId: props.patientId ?? null,
+      appointmentId: props.appointmentId ?? null,
+      paymentId: props.paymentId ?? null,
+      amount: money.amount,
+      currency: money.currency,
+      status: PosTransactionStatusSchema.enum.PENDING,
+      externalRef: props.externalRef ?? null,
+      rawRequest: props.rawRequest,
+      rawResponse: null,
+      initiatedAt: now,
+      completedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
   public isPending(): boolean {
     return this._status === PosTransactionStatusSchema.enum.PENDING;
   }
@@ -140,8 +168,8 @@ export class PosTransaction extends AggregateRoot {
     this._completedAt = new Date();
     this.addDomainEvent(
       new PosTransactionSucceededEvent({
-        posTransactionId: this._id,
-        clinicId: this._clinicId,
+        posTransactionId: this._id.value,
+        clinicId: this._clinicId.value,
         paymentId: this._paymentId,
         externalRef: this._externalRef,
         amount: this._amount.amount,
@@ -159,8 +187,8 @@ export class PosTransaction extends AggregateRoot {
     this._completedAt = new Date();
     this.addDomainEvent(
       new PosTransactionFailedEvent({
-        posTransactionId: this._id,
-        clinicId: this._clinicId,
+        posTransactionId: this._id.value,
+        clinicId: this._clinicId.value,
         paymentId: this._paymentId,
       })
     );
@@ -175,8 +203,8 @@ export class PosTransaction extends AggregateRoot {
     this._completedAt = new Date();
     this.addDomainEvent(
       new PosTransactionCancelledEvent({
-        posTransactionId: this._id,
-        clinicId: this._clinicId,
+        posTransactionId: this._id.value,
+        clinicId: this._clinicId.value,
         paymentId: this._paymentId,
       })
     );
@@ -188,19 +216,19 @@ export class PosTransaction extends AggregateRoot {
     this._completedAt = new Date();
     this.addDomainEvent(
       new PosTransactionTimeoutEvent({
-        posTransactionId: this._id,
-        clinicId: this._clinicId,
+        posTransactionId: this._id.value,
+        clinicId: this._clinicId.value,
       })
     );
   }
 
   public toPersistence(): IPosTransaction {
     return {
-      id: this._id,
+      id: this._id.value,
       posDeviceId: this._posDeviceId,
-      clinicId: this._clinicId,
-      patientId: this._patientId,
-      appointmentId: this._appointmentId,
+      clinicId: this._clinicId.value,
+      patientId: this._patientId?.value ?? null,
+      appointmentId: this._appointmentId?.value ?? null,
       paymentId: this._paymentId,
       amount: this._amount.amount,
       currency: this._amount.currency,

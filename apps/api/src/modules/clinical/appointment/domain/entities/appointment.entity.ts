@@ -6,8 +6,6 @@ import {
 import { ExaminationTypeType as ExaminationType } from '@input-type-schemas/ExaminationTypeSchema';
 import { ExternalSystemType as ExternalSystem } from '@input-type-schemas/ExternalSystemSchema';
 import { VisitTypeType as VisitType } from '@input-type-schemas/VisitTypeSchema';
-import { randomUUID } from 'crypto';
-import { DateTimeManager } from '@common/utils';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   AppointmentCompletedEvent,
@@ -15,18 +13,27 @@ import {
 } from '@modules/clinical/appointment/domain/events/complete-appointment.event';
 import { AppointmentScheduledEvent } from '@modules/clinical/appointment/domain/events/schedule-appointment.event';
 import { AppointmentBookedEvent } from '@modules/clinical/appointment/domain/events/book-appointment.event';
-import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/appointment.contracts';
+import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { TimeZone } from '@src/domain/value-objects/timezone.vo';
+import { AppointmentCancellationNotAllowedException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Guard } from '@common/domain/guards';
 
-export class Appointment extends AggregateRoot implements IAppointment {
+export class Appointment extends AggregateRoot {
   constructor(data: IAppointment) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._patientName = data.patientName;
-    this._patientPhone = data.patientPhone;
-    this._patientEmail = data.patientEmail;
-    this._startTime = data.startTime;
-    this._endTime = data.endTime;
-    this._timezone = data.timezone;
+    this._patientPhone = Phone.fromTrusted(data.patientPhone);
+    this._patientEmail = data.patientEmail
+      ? Email.fromTrusted(data.patientEmail)
+      : null;
+    this._timeRange = DateRange.fromTrusted(data.startTime, data.endTime);
+    this._timezone = TimeZone.fromTrusted(data.timezone);
     this._treatmentType = data.treatmentType;
     this._notes = data.notes;
     this._status = data.status;
@@ -36,23 +43,78 @@ export class Appointment extends AggregateRoot implements IAppointment {
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._externalSystem = data.externalSystem;
-    this._externalId = data.externalId;
-    this._treatmentId = data.treatmentId;
-    this._clinicId = data.clinicId;
-    this._providerId = data.providerId;
-    this._patientId = data.patientId;
+    this._externalId = data.externalId ?? null;
+    this._treatmentId = data.treatmentId
+      ? UUID.fromTrusted(data.treatmentId)
+      : null;
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._providerId = UUID.fromTrusted(data.providerId);
+    this._patientId = data.patientId ? UUID.fromTrusted(data.patientId) : null;
     this._examinationType = data.examinationType;
     this._visitType = data.visitType;
-    this._resourceId = data.resourceId;
+    this._resourceId = data.resourceId ? data.resourceId : null;
     this._isDeleted = data.isDeleted;
     this._deletedAt = data.deletedAt;
   }
 
-  private _id: string;
+  /**
+   * Randevu süreçlerine ait tüm iş kurallarını (Business Invariants) denetleyen merkezi motor.
+   */
+  public static get validate() {
+    return {
+      creation: (start: Date) => {
+        const now = DateTimeManager.create();
+        const isInvalid = DateTimeManager.isBefore(start, now);
 
-  // GETTER
-  get id(): string {
+        return {
+          isValid: !isInvalid,
+          isInvalid,
+          orThrow: () => {
+            if (isInvalid)
+              throw new Error('Geçmiş bir tarihe randevu oluşturulamaz.');
+          },
+        };
+      },
+
+      patientReschedule: (currentStartTime: Date, newStartTime: Date) => {
+        const now = DateTimeManager.create();
+        const hoursLeft = DateTimeManager.diffInHours(currentStartTime, now);
+
+        const isTooLate = hoursLeft < 6;
+        const isNewTimeInPast =
+          DateTimeManager.isBefore(newStartTime, now) ||
+          DateTimeManager.isSame(newStartTime, now);
+
+        return {
+          isValid: !isTooLate && !isNewTimeInPast,
+          isTooLate,
+          isNewTimeInPast,
+          orThrow: () => {
+            if (isTooLate) {
+              throw new Error(
+                'Randevunuza 6 saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.'
+              );
+            }
+            if (isNewTimeInPast) {
+              throw new Error(
+                '[Appointment] Geçmiş bir tarihe randevu yeniden zamanlanamaz.'
+              );
+            }
+          },
+        };
+      },
+    };
+  }
+
+  private _id: UUID;
+
+  get id(): UUID {
     return this._id;
+  }
+
+  private _isConsultation: boolean;
+  get isConsultation(): boolean {
+    return this._isConsultation;
   }
 
   private _patientName: string;
@@ -61,33 +123,39 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return this._patientName;
   }
 
-  private _patientPhone: string;
+  private _patientPhone: Phone;
 
-  get patientPhone(): string {
+  get patientPhone(): Phone {
     return this._patientPhone;
   }
 
-  private _patientEmail: string | null;
+  private _patientEmail: Email | null;
 
-  get patientEmail(): string | null {
+  get patientEmail(): Email | null {
     return this._patientEmail;
   }
 
   private _startTime: Date;
 
   get startTime(): Date {
-    return this._startTime;
+    return this._timeRange.startDate;
   }
 
   private _endTime: Date;
 
   get endTime(): Date {
-    return this._endTime;
+    return this._timeRange.endDate;
   }
 
-  private _timezone: string;
+  private _timeRange: DateRange;
 
-  get timezone(): string {
+  get timeRange(): DateRange {
+    return this._timeRange;
+  }
+
+  private _timezone: TimeZone;
+
+  get timezone(): TimeZone {
     return this._timezone;
   }
 
@@ -151,27 +219,27 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return this._externalId;
   }
 
-  private _treatmentId: string | null;
+  private _treatmentId: UUID | null;
 
-  get treatmentId(): string | null {
+  get treatmentId(): UUID | null {
     return this._treatmentId;
   }
 
-  private _clinicId: string;
+  private _clinicId: UUID;
 
-  get clinicId(): string {
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _providerId: string;
+  private _providerId: UUID;
 
-  get providerId(): string {
+  get providerId(): UUID {
     return this._providerId;
   }
 
-  private _patientId: string | null;
+  private _patientId: UUID | null;
 
-  get patientId(): string | null {
+  get patientId(): UUID | null {
     return this._patientId;
   }
 
@@ -201,20 +269,20 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   private _deletedAt: Date | null;
 
+  // DOMAIN BUSINESS METHODS
+
   get deletedAt(): Date | null {
     return this._deletedAt;
   }
-
-  // DOMAIN BUSINESS METHODS
 
   public static schedule(props: CreateAppointmentProps): Appointment {
     const appointment = Appointment.create(props);
     appointment.addDomainEvent(
       new AppointmentScheduledEvent({
-        appointmentId: appointment.id,
-        clinicId: appointment.clinicId,
-        providerId: appointment.providerId,
-        patientId: appointment.patientId,
+        appointmentId: appointment.id.value,
+        clinicId: appointment.clinicId.value,
+        providerId: appointment.providerId.value,
+        patientId: appointment.patientId?.value ?? null,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
       })
@@ -226,65 +294,71 @@ export class Appointment extends AggregateRoot implements IAppointment {
     const appointment = Appointment.create(props);
     appointment.addDomainEvent(
       new AppointmentBookedEvent({
-        appointmentId: appointment.id,
-        clinicId: appointment.clinicId,
-        providerId: appointment.providerId,
-        patientId: appointment.patientId,
+        appointmentId: appointment.id.value,
+        clinicId: appointment.clinicId.value,
+        providerId: appointment.providerId.value,
+        patientId: appointment.patientId?.value ?? null,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
       })
     );
     return appointment;
+
+    // TODO: domain event eklenecek.
   }
 
-  public static calculateEndTimeOrThrow(
+  public static calculateEndTime(
     start: Date,
     endTime?: Date,
     duration?: number
-  ): Date {
+  ) {
+    let returnTime: Date | undefined;
     if (endTime) {
-      const parsedEndTime = new Date(endTime);
-      if (parsedEndTime <= new Date(start)) {
-        throw new Error(
-          'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
-        );
-      }
-      return parsedEndTime;
+      returnTime = DateTimeManager.create(endTime);
     }
 
     if (duration && duration > 0) {
-      return DateTimeManager.addMinutes(start, duration);
+      returnTime = DateTimeManager.addMinutes(start, duration);
     }
 
-    throw new Error(
-      'Randevu süresi (duration) veya bitiş zamanı (endTime) belirlenemedi.'
+    return Guard.monitor(
+      returnTime,
+      !!returnTime,
+      new Error('Randevu süresi veya bitiş zamanı belirlenemedi.')
     );
   }
 
   private static create(props: CreateAppointmentProps): Appointment {
-    const now = new Date();
-    const endTime = Appointment.calculateEndTimeOrThrow(
+    this.validate.creation(props.startTime).orThrow();
+
+    const endTime = this.calculateEndTime(
       props.startTime,
       props.endTime,
       props.duration
-    );
+    ).orThrow();
 
-    if (props.startTime < now) {
-      throw new Error('Geçmiş bir tarihe randevu oluşturulamaz.');
-    }
+    const now = DateTimeManager.create();
+
+    const dateRange = DateRange.create(props.startTime, endTime).orThrow();
+
+    const timezone = TimeZone.create(props.timezone).orThrow().value;
 
     return new Appointment({
-      id: props.id ?? randomUUID(),
+      id: UUID.create(props.id).instance?.value ?? UUID.generate().value,
       patientName: props.patientName,
-      patientPhone: props.patientPhone,
-      patientEmail: props.patientEmail ?? null,
+      patientPhone: Phone.create(props.patientPhone).orThrow().value,
+      patientEmail: props.patientEmail
+        ? Email.create(props.patientEmail).orThrow().value
+        : null,
       patientId: props.patientId ?? null,
-      providerId: props.providerId,
-      clinicId: props.clinicId,
-      treatmentId: props.treatmentId ?? null,
-      startTime: props.startTime,
-      endTime,
-      timezone: props.timezone ?? 'Europe/Istanbul',
+      providerId: UUID.create(props.providerId).orThrow().value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      treatmentId: props.treatmentId
+        ? UUID.create(props.clinicId).orThrow().value
+        : null,
+      startTime: dateRange.startDate,
+      endTime: dateRange.endDate,
+      timezone,
       notes: props.notes ?? null,
       treatmentType: props.treatmentType ?? null,
       externalSystem: props.externalSystem ?? null,
@@ -300,6 +374,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
       updatedAt: now,
       isDeleted: false,
       deletedAt: null,
+      isConsultation: props.isConsultation,
     });
   }
 
@@ -317,6 +392,8 @@ export class Appointment extends AggregateRoot implements IAppointment {
       );
     }
     this._applyCancellation(canceledBy, reason);
+
+    // TODO: domain event pushlanılacak. sağlık turizmi içinde ise payment işlemleri yapılacak
   }
 
   /**
@@ -331,9 +408,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
     }
 
     if (!this._canBeCancelled()) {
-      throw new Error(
-        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
-      );
+      throw new AppointmentCancellationNotAllowedException();
     }
     this._applyCancellation(patientId, reason);
   }
@@ -350,15 +425,15 @@ export class Appointment extends AggregateRoot implements IAppointment {
       );
     }
     this._status = AppointmentStatusSchema.enum.COMPLETED;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
 
     this.addDomainEvent(
       new AppointmentCompletedEvent({
         ...eventPayload,
-        appointmentId: this._id,
-        clinicId: this._clinicId,
-        patientId: this._patientId,
-        providerId: this._providerId,
+        appointmentId: this._id.value,
+        clinicId: this._clinicId.value,
+        patientId: this._patientId?.value ?? null,
+        providerId: this._providerId.value,
       })
     );
   }
@@ -384,7 +459,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
     // Personel yaptığı için randevu direkt onaylı kalmaya devam edebilir
     this._status = AppointmentStatusSchema.enum.CONFIRMED;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   /**
@@ -400,23 +475,11 @@ export class Appointment extends AggregateRoot implements IAppointment {
     notes?: string,
     treatmentId?: string | null
   ): void {
-    const now = new Date();
-
-    const hoursLeft = DateTimeManager.diffInHours(this._startTime, now);
-
-    if (hoursLeft < 6) {
-      throw new Error(
-        'Randevunuza 6 saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.'
-      );
-    }
-
-    if (startTime <= now) {
-      throw new Error('Geçmiş bir tarihe randevu yeniden zamanlanamaz.');
-    }
+    Appointment.validate.patientReschedule(this.startTime, startTime).orThrow();
 
     this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
     this._status = AppointmentStatusSchema.enum.PENDING;
-    this._updatedAt = now;
+    this._updatedAt = DateTimeManager.create();
   }
 
   public isPending(): boolean {
@@ -435,6 +498,8 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   public isCompleted(): boolean {
     return this._status === AppointmentStatusSchema.enum.COMPLETED;
+
+    // TODO: event fırlatılacak. complete olduktan sonra ödeme geri alınamaz olarak işaretlenecek. payment işlemler hep queue ile kullanılacak
   }
 
   public isNoShow(): boolean {
@@ -442,11 +507,11 @@ export class Appointment extends AggregateRoot implements IAppointment {
   }
 
   public isInThePast(): boolean {
-    return this._endTime < new Date();
+    return this._endTime < DateTimeManager.create();
   }
 
   public isInTheFuture(): boolean {
-    return this._startTime > new Date();
+    return this._startTime > DateTimeManager.create();
   }
 
   public canBeRescheduled(): boolean {
@@ -460,13 +525,13 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   public toPersistence(): IAppointment {
     return {
-      id: this._id,
+      id: this._id.value,
       patientName: this._patientName,
-      patientPhone: this._patientPhone,
-      patientEmail: this._patientEmail,
+      patientPhone: this._patientPhone.value,
+      patientEmail: this._patientEmail?.value ?? null,
       startTime: this._startTime,
       endTime: this._endTime,
-      timezone: this._timezone,
+      timezone: this._timezone.value,
       treatmentType: this._treatmentType,
       notes: this._notes,
       status: this._status,
@@ -476,16 +541,17 @@ export class Appointment extends AggregateRoot implements IAppointment {
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
       externalSystem: this._externalSystem,
-      externalId: this._externalId,
-      treatmentId: this._treatmentId,
-      clinicId: this._clinicId,
-      providerId: this._providerId,
-      patientId: this._patientId,
+      externalId: this._externalId ?? null,
+      treatmentId: this._treatmentId?.value ?? null,
+      clinicId: this._clinicId.value,
+      providerId: this._providerId.value,
+      patientId: this._patientId?.value ?? null,
       examinationType: this._examinationType,
       visitType: this._visitType,
-      resourceId: this._resourceId,
+      resourceId: this._resourceId ?? null,
       isDeleted: this._isDeleted,
       deletedAt: this._deletedAt,
+      isConsultation: this._isConsultation,
     };
   }
 
@@ -505,23 +571,17 @@ export class Appointment extends AggregateRoot implements IAppointment {
       );
     }
 
-    if (new Date(endTime) <= new Date(startTime)) {
-      throw new Error(
-        'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
-      );
-    }
-
-    this._startTime = startTime;
-    this._endTime = endTime;
-    this._providerId = providerId;
+    this._timeRange = DateRange.create(startTime, endTime).orThrow();
+    this._providerId = UUID.create(providerId).orThrow();
 
     if (notes !== undefined) this._notes = notes;
-    if (treatmentId !== undefined) this._treatmentId = treatmentId;
+    if (treatmentId)
+      this._treatmentId = UUID.create(treatmentId).instance ?? null;
   }
 
   private _applyCancellation(canceledBy: string, reason?: string): void {
     this._status = AppointmentStatusSchema.enum.CANCELLED;
-    this._canceledAt = new Date();
+    this._canceledAt = DateTimeManager.create();
     this._canceledBy = canceledBy;
     if (reason) {
       this._cancelReason = reason;

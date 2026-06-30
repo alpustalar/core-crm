@@ -84,7 +84,7 @@ export class PosPaymentSyncService {
     paymentId: string,
     statuses: InstallmentStatusType[]
   ): Promise<string | null> {
-    const payment = await this.queryBus.execute(
+    const { data: payment } = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
     if (!payment) return null;

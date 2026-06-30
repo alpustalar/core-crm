@@ -24,11 +24,11 @@ export class FindManyByOrganizationIdHandler
     query: FindManyByOrganizationIdQuery
   ): Promise<FindManyByOrganizationIdQueryResponse> {
     const { organizationId } = query;
-    const clinicsRaw =
+    const clinics =
       await this.clinicQueryRepo.findManyByOrganizationId(organizationId);
 
     return {
-      data: clinicsRaw,
+      data: clinics.map((clinic) => clinic.toPersistence()),
     };
   }
 }

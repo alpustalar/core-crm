@@ -1,7 +1,10 @@
 import { CancelAppointmentDto } from '@shared/modules/appointment/dto/commands/cancel-appointment.dto';
 import { IGetContext } from '@common/decorators/get-context.decorator';
+import { ICommand } from '@nestjs/cqrs';
+import { PatientCancelAppointmentResponse } from '@modules/clinical/appointment/application/commands/patient-cancel-appointment/patient-cancel-appointment.response';
 
-export class PatientCancelAppointmentCommand {
+export class PatientCancelAppointmentCommand implements ICommand {
+  readonly __responseType!: PatientCancelAppointmentResponse;
   constructor(
     public readonly dto: CancelAppointmentDto,
     public readonly ctx: IGetContext

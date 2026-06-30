@@ -41,7 +41,7 @@ export class CreateProductHandler
         supplierId: dto.supplierId,
       });
       const saved = await this.productCommandRepo.save(product);
-      return saved.id;
+      return saved.id.value;
     });
   }
 }

@@ -38,7 +38,9 @@ export class SearchTransferAvailabilityHandler
     if (cached) {
       return {
         data: cached as TransferAvailabilityItem[],
-        fromCache: true,
+        meta: {
+          fromCache: true,
+        },
       };
     }
 
@@ -60,6 +62,6 @@ export class SearchTransferAvailabilityHandler
 
     await this.redis.setTransferAvailability(paramsHash, items);
 
-    return { data: items, fromCache: false };
+    return { data: items, meta: { fromCache: false } };
   }
 }

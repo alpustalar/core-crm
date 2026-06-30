@@ -1,5 +1,5 @@
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   IProviderCommandRepository,
@@ -12,6 +12,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { SetProviderExaminationCommand } from './set-provider-examination.command';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 
 @CommandHandler(SetProviderExaminationCommand)
 export class SetProviderExaminationHandler
@@ -30,14 +31,14 @@ export class SetProviderExaminationHandler
     const { providerId, dto, ctx } = command;
 
     const provider = await this.providerQueryRepo.findById(providerId);
-    if (!provider) throw new NotFoundException('Provider bulunamadı.');
+    if (!provider) throw new ProviderNotFoundException();
 
     const { evaluator } = this.policyFactory.user(ctx.actor);
     evaluator
       .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
       .orThrow(PROVIDER_EVENTS.EXAMINATION_SET);
 
-    provider.setExaminationCapability(dto.canAcceptExamination);
+    provider.setConsultationAcceptance(dto.acceptsConsultation);
     await this.providerCommandRepo.save(provider);
   }
 }

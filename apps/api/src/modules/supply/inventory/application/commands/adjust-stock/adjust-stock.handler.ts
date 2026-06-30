@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { AdjustStockCommand } from './adjust-stock.command';
 import {
   IProductQueryRepository,
@@ -21,6 +21,7 @@ import {
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
+import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(AdjustStockCommand)
 export class AdjustStockHandler
@@ -51,11 +52,11 @@ export class AdjustStockHandler
     );
 
     const product = await this.productQueryRepo.findById(dto.productId);
-    if (!product) throw new NotFoundException('Ürün bulunamadı.');
+    if (!product) throw new ProductNotFoundException();
 
     const availableBatches =
       await this.productBatchQueryRepo.findAvailableByProduct(
-        product.id,
+        product.id.value,
         clinicId
       );
 

@@ -1,7 +1,7 @@
 import { Pagination } from '@shared';
 import { Appointment as AppointmentEntity } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import {
   AppointmentWithDetails,
   ConflictingAppointment,
@@ -12,7 +12,7 @@ import {
   OccupiedSlot,
   PaginatedAppointments,
   ProviderDailyLoad,
-} from '@modules/clinical/appointment/domain/appointment.contracts';
+} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { BatchPayload } from '@common/interfaces/batcy-payload.type';
 
 export const APPOINTMENT_COMMAND_REPOSITORY = Symbol(

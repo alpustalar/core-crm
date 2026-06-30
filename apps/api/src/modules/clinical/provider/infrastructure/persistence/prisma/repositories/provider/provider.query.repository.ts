@@ -3,11 +3,16 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import {
-  IProviderQueryRepository,
-  PaginatedProviders,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+import { IProviderQueryRepository } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
+import { Paginated } from '@common/interfaces/paginated.type';
+import { normalizeArray } from '@common/utils/normalize-array';
+import { ProviderDirectoryEntry } from '@modules/clinical/provider/domain/contracts/provider.contracts';
+
+/** Uzmanlık/unvan adı çözümünde tercih edilen dil; yoksa ilk çeviriye düşülür. */
+const PREFERRED_LANG_CODE = 'TR';
+
+type TranslationRow = { name: string; language: { code: string } };
 
 @Injectable()
 export class ProviderQueryRepository
@@ -25,14 +30,36 @@ export class ProviderQueryRepository
     return raw ? new Provider(raw) : null;
   }
 
-  async findAllByClinicId(
+  async findManyByClinicIds(
     pagination: Pagination,
-    clinicId: string
-  ): Promise<PaginatedProviders> {
+    clinicIds: string[] | string
+  ): Promise<Paginated<Provider>> {
     const result = await paginate({
       delegate: this.db.provider,
       pagination,
-      where: { clinicId },
+      where: {
+        clinicId: {
+          in: normalizeArray(clinicIds),
+        },
+      },
+    });
+
+    return {
+      items: result.items.map((r) => new Provider(r)),
+      total: result.total,
+    };
+  }
+
+  async findManyByOrganizationId(
+    pagination: Pagination,
+    organizationIds: string[] | string
+  ): Promise<Paginated<Provider>> {
+    const result = await paginate({
+      delegate: this.db.provider,
+      pagination,
+      where: {
+        clinic: { organizationId: { in: normalizeArray(organizationIds) } },
+      },
     });
     return {
       items: result.items.map((r) => new Provider(r)),
@@ -40,18 +67,47 @@ export class ProviderQueryRepository
     };
   }
 
-  async findAllByOrganizationIds(
-    pagination: Pagination,
-    organizationIds: string[]
-  ): Promise<PaginatedProviders> {
-    const result = await paginate({
-      delegate: this.db.provider,
-      pagination,
-      where: { clinic: { organizationId: { in: organizationIds } } },
+  /**
+   * Read-model: kliniğin aktif provider'ları + uzmanlık/unvan adları (çeviriden çözülmüş).
+   * Sınırlı/bounded bir iç projeksiyon (AI uzman eşleştirme) olduğu için sayfalama yoktur;
+   * tek sorguda user + specialty/title çevirileri include edilir.
+   */
+  async findDirectoryByClinicId(
+    clinicId: string
+  ): Promise<ProviderDirectoryEntry[]> {
+    const rows = await this.db.provider.findMany({
+      where: { clinicId, isActive: true, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: { select: { displayName: true } },
+        specialty: {
+          include: {
+            translations: { include: { language: { select: { code: true } } } },
+          },
+        },
+        title: {
+          include: {
+            translations: { include: { language: { select: { code: true } } } },
+          },
+        },
+      },
     });
-    return {
-      items: result.items.map((r) => new Provider(r)),
-      total: result.total,
-    };
+
+    return rows.map((r) => ({
+      providerId: r.id,
+      name: r.user?.displayName ?? 'Doktor',
+      specialty: this.resolveTranslation(r.specialty?.translations),
+      title: this.resolveTranslation(r.title?.translations),
+      isActive: r.isActive,
+    }));
+  }
+
+  /** Çeviri listesinden tercih edilen dili (yoksa ilkini) seçip adını döner. */
+  private resolveTranslation(translations?: TranslationRow[]): string | null {
+    if (!translations || translations.length === 0) return null;
+    const preferred = translations.find(
+      (t) => t.language.code === PREFERRED_LANG_CODE
+    );
+    return (preferred ?? translations[0]).name;
   }
 }

@@ -56,7 +56,7 @@ export class GetClinicAppointmentsHandler
     );
 
     return {
-      data: paginatedAppointments.items,
+      data: paginatedAppointments.items.map((item) => item.toPersistence()),
       meta: {
         pagination: buildPaginationMeta(
           pagination,

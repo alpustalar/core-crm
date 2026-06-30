@@ -18,6 +18,7 @@ import { Message } from '@modules/messaging/conversation/domain/entities/message
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
 import { SendMessageCommand } from './send-message.command';
 import { MessageTypeSchema } from '@shared/generated-zod';
+import { MessageChannel } from '@prisma/client';
 
 @CommandHandler(SendMessageCommand)
 export class SendMessageHandler
@@ -43,9 +44,11 @@ export class SendMessageHandler
     }
 
     // WhatsApp 24s servis penceresi: pencere kapalıyken serbest (TEXT/MEDIA) mesaj
-    // gönderilemez, yalnızca onaylı şablon (TEMPLATE/HSM) gönderilebilir.
+    // gönderilemez, yalnızca onaylı şablon (TEMPLATE/HSM) gönderilebilir. Bu kısıt
+    // WhatsApp'a özgüdür; Telegram'da serbest metin her zaman gönderilebilir.
     const type = input.type ?? MessageTypeSchema.enum.TEXT;
     if (
+      conversation.channel === MessageChannel.WHATSAPP &&
       type !== MessageTypeSchema.enum.TEMPLATE &&
       !conversation.isWithinServiceWindow()
     ) {

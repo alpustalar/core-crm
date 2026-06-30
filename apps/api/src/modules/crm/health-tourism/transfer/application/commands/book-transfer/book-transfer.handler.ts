@@ -13,6 +13,9 @@ import {
 } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
+import { HotelbedsTransferBookingStatusSchema } from '@shared';
+import { JsonValueType } from '@input-type-schemas/JsonValueSchema';
 
 @CommandHandler(BookTransferCommand)
 export class BookTransferHandler
@@ -48,26 +51,26 @@ export class BookTransferHandler
       remark: dto.remark,
     });
 
-    const bookingId = randomUUID();
+    const transferBooking = HotelbedsTransferBooking.create({
+      reference: result.reference,
+      clientReference,
+      status: HotelbedsTransferBookingStatusSchema.parse(result.status),
+      holderName: dto.holderName,
+      holderSurname: dto.holderSurname,
+      holderEmail: dto.holderEmail,
+      holderPhone: dto.holderPhone,
+      transfers: result.transfers as JsonValueType,
+      totalAmount: result.totalAmount,
+      currency: Currency.create(result.currency).orThrow().value,
+      remarks: dto.remark,
+      organizationId: actor.organizationId!,
+      clinicId: dto.clinicId ?? actor.clinicId ?? undefined,
+      patientId: dto.patientId,
+      leadId: dto.leadId,
+    });
 
     const booking = await this.txManager.run(async () => {
-      return this.bookingCommandRepo.create({
-        id: bookingId,
-        reference: result.reference,
-        clientReference,
-        holderName: dto.holderName,
-        holderSurname: dto.holderSurname,
-        holderEmail: dto.holderEmail,
-        holderPhone: dto.holderPhone,
-        transfers: result.transfers,
-        totalAmount: result.totalAmount,
-        currency: Currency.create(result.currency).value,
-        remarks: dto.remark,
-        organizationId: actor.organizationId!,
-        clinicId: dto.clinicId ?? actor.clinicId ?? undefined,
-        patientId: dto.patientId,
-        leadId: dto.leadId,
-      });
+      return this.bookingCommandRepo.save(transferBooking);
     });
 
     return booking.id;

@@ -20,9 +20,9 @@ export class PurchaseInvoice extends AggregateRoot {
     this._invoiceDate = data.invoiceDate;
     this._lineAccountCode = data.lineAccountCode;
     this._vatRate = data.vatRate;
-    this._netTotal = Money.create(data.netTotal, currency);
-    this._vatTotal = Money.create(data.vatTotal, currency);
-    this._grandTotal = Money.create(data.grandTotal, currency);
+    this._netTotal = Money.create(data.netTotal, currency).orThrow();
+    this._vatTotal = Money.create(data.vatTotal, currency).orThrow();
+    this._grandTotal = Money.create(data.grandTotal, currency).orThrow();
     this._status = data.status;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;

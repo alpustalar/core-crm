@@ -7,6 +7,7 @@ import {
 import { FindAllProvidersQuery } from './find-all-providers.query';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import { FindAllProvidersQueryResponse } from '@modules/clinical/provider/application/queries/find-all-providers/find-all-providers.response';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(FindAllProvidersQuery)
 export class FindAllProvidersHandler
@@ -29,7 +30,7 @@ export class FindAllProvidersHandler
     if (actor.ownedOrganizations?.length) {
       const organizationIds = actor.ownedOrganizations.map((org) => org.id);
       const { items, total } =
-        await this.providerQueryRepo.findAllByOrganizationIds(
+        await this.providerQueryRepo.findManyByOrganizationId(
           pagination,
           organizationIds
         );
@@ -43,7 +44,7 @@ export class FindAllProvidersHandler
       const clinicIds = actor.managedClinics.map((clinic) => clinic.id);
       const results = await Promise.all(
         clinicIds.map((id) =>
-          this.providerQueryRepo.findAllByClinicId(
+          this.providerQueryRepo.findManyByClinicIds(
             { ...pagination, page: 1, limit: 999999 },
             id
           )
@@ -62,10 +63,10 @@ export class FindAllProvidersHandler
     }
 
     if (!actor.clinicId) {
-      throw new Error('Clinic ID bulunamadı');
+      throw new ClinicNotAssignedException();
     }
 
-    const { items, total } = await this.providerQueryRepo.findAllByClinicId(
+    const { items, total } = await this.providerQueryRepo.findManyByClinicIds(
       pagination,
       actor.clinicId
     );

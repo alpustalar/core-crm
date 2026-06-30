@@ -1,5 +1,5 @@
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import {
   CreateMetaLeadData,
   FindMetaLeadsFilter,

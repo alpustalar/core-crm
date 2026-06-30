@@ -6,6 +6,7 @@ import { GetAppointmentDetailHandler } from './get-appointment-detail/get-appoin
 import { GetClinicAppointmentsHandler } from './get-clinic-appointments/get-clinic-appointments.handler';
 import { Module } from '@nestjs/common';
 import { GetActionRequiredHandler } from './get-action-required/get-action-required.handler';
+import { GetProviderOpenSlotsHandler } from './get-provider-open-slots/get-provider-open-slots.handler';
 import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
 
 const QueryHandlers = [
@@ -16,6 +17,7 @@ const QueryHandlers = [
   GetAppointmentDetailHandler,
   GetClinicAppointmentsHandler,
   GetActionRequiredHandler,
+  GetProviderOpenSlotsHandler,
 ];
 
 @Module({

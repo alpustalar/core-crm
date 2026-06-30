@@ -1,6 +1,6 @@
+import { QueryResponse } from '@shared/common/response/response.interface';
 import { PatientTreatmentPackage } from '@shared';
 
-export interface FindPatientPackagesResponse {
-  items: PatientTreatmentPackage[];
-  total: number;
-}
+export type FindPatientPackagesResponse = QueryResponse<
+  PatientTreatmentPackage[]
+>;

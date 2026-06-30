@@ -112,6 +112,8 @@ export class AiReplyProcessor extends WorkerHost {
       clinicId: conversation.clinicId,
       organizationId: conversation.organizationId,
       conversationId: conversation.id,
+      channel: conversation.channel,
+      provider: config.provider,
       model: config.model,
       systemPrompt: config.systemPrompt,
       apiKey: config.apiKey,
@@ -120,6 +122,7 @@ export class AiReplyProcessor extends WorkerHost {
       contactName: conversation.contactName,
       contactPhone: conversation.contactPhone,
       patientId: conversation.patientId,
+      leadId: conversation.leadId,
     });
 
     const ctx = ExecutionContextFactory.createInternal();

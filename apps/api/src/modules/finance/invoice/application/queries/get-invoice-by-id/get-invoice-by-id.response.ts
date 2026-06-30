@@ -1,6 +1,7 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import { InvoiceStatusType as InvoiceStatus } from '@input-type-schemas/InvoiceStatusSchema';
+import { Decimal } from 'decimal.js';
 
 export interface InvoiceView {
   id: string;
@@ -9,7 +10,7 @@ export interface InvoiceView {
   netTotal: string;
   vatTotal: string;
   grandTotal: string;
-  vatRate: number;
+  vatRate: Decimal;
   currency: CurrencyType;
   issuedAt: Date | null;
   status: InvoiceStatus;

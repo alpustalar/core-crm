@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CreateTreatmentPackageCommand } from './create-treatment-package.command';
 import type { CreateTreatmentPackageResponse } from './create-treatment-package.response';
 import {
@@ -9,6 +9,7 @@ import {
 import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @CommandHandler(CreateTreatmentPackageCommand)
 export class CreateTreatmentPackageHandler
@@ -30,9 +31,7 @@ export class CreateTreatmentPackageHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    if (!actor.clinicId) {
-      throw new BadRequestException('Actor için klinik tanımlanmamış.');
-    }
+    if (!actor.clinicId) throw new ClinicNotAssignedException();
 
     const pkg = TreatmentPackage.create({
       clinicId: actor.clinicId,
@@ -40,7 +39,7 @@ export class CreateTreatmentPackageHandler
       examinationCount: dto.examinationCount,
       controlCount: dto.controlCount,
       validityDays: dto.validityDays,
-      price: Money.create(dto.price, dto.currency),
+      price: Money.create(dto.price, dto.currency).orThrow(),
       providerIds: dto.providerIds,
       items: dto.items,
     });

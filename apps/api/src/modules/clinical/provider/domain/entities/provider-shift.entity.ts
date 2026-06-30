@@ -1,0 +1,215 @@
+import { ProviderShift as IProviderShift } from '@model-schema/ProviderShiftSchema';
+import { AggregateRoot } from '@common/domain/aggregate-root';
+import { DayMinuteRange } from '@src/domain/value-objects/day-minute-range.vo';
+import { CreateShiftProps } from '@modules/clinical/provider/domain/contracts/provider-shift.contracts';
+import {
+  AppointmentOutOfShiftException,
+  AppointmentOverlapsWithBreakException,
+  InvalidProviderBreakConfigurationException,
+  ProviderBreakOutOfRangeException,
+} from '@modules/clinical/provider/domain/exceptions/provider-shift.exceptions';
+
+export class ProviderShift extends AggregateRoot {
+  constructor(data: IProviderShift) {
+    super();
+    this._id = data.id;
+    this._providerId = data.providerId;
+    this._date = data.date;
+
+    this._shiftRange = DayMinuteRange.fromNumbers(
+      data.startMinute,
+      data.endMinute
+    );
+
+    this._breakRange =
+      data.breakStartMinute !== null && data.breakEndMinute !== null
+        ? DayMinuteRange.fromNumbers(data.breakStartMinute, data.breakEndMinute)
+        : null;
+
+    this.validate.breakConfiguration().orThrow();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Private Properties & Getters
+  // ────────────────────────────────────────────────────────────────────────────
+  private _id: string;
+  get id(): string {
+    return this._id;
+  }
+
+  private _providerId: string;
+  get providerId(): string {
+    return this._providerId;
+  }
+
+  private _date: Date;
+  get date(): Date {
+    return this._date;
+  }
+
+  private _shiftRange: DayMinuteRange;
+  get shiftRange(): DayMinuteRange {
+    return this._shiftRange;
+  }
+
+  private _breakRange: DayMinuteRange | null;
+  get breakRange(): DayMinuteRange | null {
+    return this._breakRange;
+  }
+
+  // Şema ve dış katman uyumluluğu (Legacy/Prisma mapping) için ham dakikalar
+  get startMinute(): number {
+    return this._shiftRange.start.toNumber();
+  }
+  get endMinute(): number {
+    return this._shiftRange.end.toNumber();
+  }
+  get breakStartMinute(): number | null {
+    return this._breakRange?.start.toNumber() ?? null;
+  }
+  get breakEndMinute(): number | null {
+    return this._breakRange?.end.toNumber() ?? null;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Static Factory
+
+  public get validate() {
+    return {
+      /**
+       *  Randevu Alınabilirlik Kontrolü
+       *
+       */
+      canBook: (requestedRange: DayMinuteRange) => {
+        // 1. Kural: Vardiya saatleri içinde mi?
+        const isWithinShift = requestedRange.isCompletelyWithin(
+          this._shiftRange
+        );
+
+        // 2. Kural: Mola saatleriyle çakışıyor mu?
+        const overlapsWithBreak = !!(
+          this._breakRange && requestedRange.overlapsWith(this._breakRange)
+        );
+
+        const isValid = isWithinShift && !overlapsWithBreak;
+
+        return {
+          isValid,
+          isInvalid: !isValid,
+          orThrow: (): this => {
+            if (!isWithinShift) {
+              throw new AppointmentOutOfShiftException(
+                this._shiftRange.start.toNumber(),
+                this._shiftRange.end.toNumber()
+              );
+            }
+            if (overlapsWithBreak) {
+              throw new AppointmentOverlapsWithBreakException();
+            }
+            return this;
+          },
+        };
+      },
+
+      /**
+       * Mola ve Vardiya Yapılandırma Kontrolü (Entity içi veya save öncesi için)
+       *
+       */
+      breakConfiguration: () => {
+        // 1. Eksik kurgu var mı? (Biri var biri yoksa patlar)
+        const isConfigIncomplete =
+          !!this.breakStartMinute !== !!this.breakEndMinute;
+
+        // 2. Mola vardiyanın tamamen içinde mi?
+        const isBreakWithinShift = this._breakRange
+          ? this._breakRange.isCompletelyWithin(this._shiftRange)
+          : true;
+
+        const isValid = !isConfigIncomplete && isBreakWithinShift;
+
+        return {
+          isValid,
+          isInvalid: !isValid,
+          orThrow: (): this => {
+            if (isConfigIncomplete) {
+              throw new InvalidProviderBreakConfigurationException();
+            }
+            if (!isBreakWithinShift && this._breakRange) {
+              throw new ProviderBreakOutOfRangeException(
+                this._breakRange.start.toString(),
+                this._breakRange.end.toString(),
+                this._shiftRange.start.toString(),
+                this._shiftRange.end.toString()
+              );
+            }
+            return this;
+          },
+        };
+      },
+    };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Domain Logic & Validations
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // ────────────────────────────────────────────────────────────────────────────
+  public static create(props: CreateShiftProps): ProviderShift {
+    return new ProviderShift({
+      id: props.id ?? crypto.randomUUID(),
+      providerId: props.providerId,
+      date: props.date,
+      startMinute: props.startMinute,
+      endMinute: props.endMinute,
+      breakStartMinute: props.breakStartMinute ?? null,
+      breakEndMinute: props.breakEndMinute ?? null,
+    });
+  }
+
+  /**
+   * 🎯 Domain Kuralı: Talep edilen randevu aralığının bu vardiyada rezerve edilip edilemeyeceğini döner.
+   */
+  public canBook(requestedRange: DayMinuteRange): boolean {
+    // Randevu hekimin çalışma saatleri içinde mi?
+    const isWithinHours = requestedRange.isCompletelyWithin(this._shiftRange);
+    if (!isWithinHours) return false;
+
+    // Randevu hekimin molasıyla çakışıyor mu?
+    const hitsBreak = this._breakRange
+      ? requestedRange.overlapsWith(this._breakRange)
+      : false;
+    if (hitsBreak) return false;
+
+    return true;
+  }
+
+  /**
+   * 🎯 Domain Kuralı: Vardiya saatlerini günceller.
+   */
+  public updateHours(
+    newRange: DayMinuteRange,
+    newBreakRange: DayMinuteRange | null
+  ): void {
+    this._shiftRange = newRange;
+    this._breakRange = newBreakRange;
+    this.validate.breakConfiguration().orThrow();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Mapping to Persistence
+
+  // --- Domain Entity / Value Object İçindeki Metot ---
+
+  // ────────────────────────────────────────────────────────────────────────────
+  public toPersistence(): IProviderShift {
+    return {
+      id: this._id,
+      providerId: this._providerId,
+      date: this._date,
+      startMinute: this.startMinute,
+      endMinute: this.endMinute,
+      breakStartMinute: this.breakStartMinute,
+      breakEndMinute: this.breakEndMinute,
+    };
+  }
+}

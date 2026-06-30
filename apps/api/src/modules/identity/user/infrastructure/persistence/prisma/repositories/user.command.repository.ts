@@ -4,8 +4,11 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
-import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
+import {
+  GlobalStatusSchema,
+  GlobalStatusType,
+} from '@input-type-schemas/GlobalStatusSchema';
+import { normalizeArray } from '@common/utils/normalize-array';
 
 @Injectable()
 export class UserCommandRepository
@@ -16,52 +19,65 @@ export class UserCommandRepository
     super(prisma);
   }
 
-  async saveMany(users: User[]): Promise<void> {
-    const prismaQueries = users.map((u) => {
-      const data = u.toPersistence();
-      return this.db.user.upsert({
-        where: { id: u.id },
-        create: data,
-        update: data,
-      });
+  async findById(id: string): Promise<User | null> {
+    const raw = await this.db.user.findUnique({
+      where: { id },
+      include: {
+        role: { select: { id: true, priority: true } },
+        workingClinic: { select: { id: true } },
+        managedClinics: { select: { id: true } },
+        ownedOrganizations: { select: { id: true } },
+        providerProfile: { select: { id: true } },
+      },
     });
 
-    if (txStorage.getStore()?.tx) {
-      await Promise.all(prismaQueries);
-    } else {
-      await this.prisma.$transaction(prismaQueries);
-    }
+    if (!raw) return null;
 
-    users.forEach((u) => u.flushEvents());
+    const { managedClinics, ownedOrganizations, providerProfile, ...rest } =
+      raw;
+    return new User({
+      ...rest,
+      managedClinicIds: managedClinics.map((c) => c.id),
+      ownedOrganizationIds: ownedOrganizations.map((o) => o.id),
+      providerProfileId: providerProfile?.id ?? null,
+    });
   }
 
   async save(entity: User): Promise<User> {
-    const data = entity.toPersistence();
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
     const raw = await this.db.user.upsert({
-      where: { id: entity.id },
+      where: { id },
       create: {
-        ...(data as Prisma.UserUncheckedCreateInput),
+        ...(create as Prisma.UserUncheckedCreateInput),
         ...(entity.managedClinicIds?.length && {
           managedClinics: {
-            connect: entity.managedClinicIds.map((id) => ({ id })),
+            connect: entity.managedClinicIds.map((id) => ({ id: id.value })),
           },
         }),
         ...(entity.ownedOrganizationIds?.length && {
           ownedOrganizations: {
-            connect: entity.ownedOrganizationIds.map((id) => ({ id })),
+            connect: entity.ownedOrganizationIds.map((id) => ({
+              id: id.value,
+            })),
           },
         }),
       },
-      update: data,
+      update,
     });
     entity.flushEvents();
     return new User({
       ...raw,
       role: entity.role,
       workingClinic: entity.workingClinic,
-      managedClinicIds: entity.managedClinicIds ?? [],
-      ownedOrganizationIds: entity.ownedOrganizationIds ?? [],
-      providerProfileId: entity.providerProfileId,
+      managedClinicIds: entity.managedClinicIds
+        ? entity.managedClinicIds.map((id) => id.value)
+        : [],
+
+      ownedOrganizationIds: entity.ownedOrganizationIds
+        ? entity.ownedOrganizationIds.map((id) => id.value)
+        : [],
+      providerProfileId: entity.providerProfileId?.value ?? null,
     });
   }
 
@@ -72,21 +88,54 @@ export class UserCommandRepository
     });
   }
 
-  async softDeleteAllByOrganizationId(
-    organizationId: string
+  async changeStatus(
+    status: GlobalStatusType,
+    clinicId: string
   ): Promise<{ ids: string[]; deletedCount: number }> {
-    const where = {
-      workingClinic: { is: { organizationId } },
-    } as Prisma.UserWhereInput;
     const affected = await this.db.user.findMany({
-      where,
+      where: { workingClinic: { is: { id: clinicId } } },
       select: { id: true },
     });
     const ids = affected.map((u) => u.id);
-    const { count: deletedCount } = await this.db.user.updateMany({
-      where,
-      data: { status: GlobalStatusSchema.enum.DELETED, deletedAt: new Date() },
+
+    const batchPayload = await this.db.user.updateMany({
+      where: { clinicId },
+      data: { status },
     });
+
+    return { ids, deletedCount: batchPayload.count };
+  }
+
+  async softDeleteAllByClinicIds(
+    clinicId: string[] | string
+  ): Promise<{ ids: string[]; deletedCount: number }> {
+    const normalizedClinicId = normalizeArray(clinicId);
+
+    const affected = await this.db.user.findMany({
+      where: {
+        workingClinic: {
+          id: { in: normalizedClinicId },
+        },
+      },
+      select: { id: true },
+    });
+
+    const ids = affected.map((u) => u.id);
+
+    if (ids.length === 0) {
+      return { ids: [], deletedCount: 0 };
+    }
+
+    const { count: deletedCount } = await this.db.user.updateMany({
+      where: {
+        id: { in: ids },
+      },
+      data: {
+        status: GlobalStatusSchema.enum.DELETED,
+        deletedAt: new Date(),
+      },
+    });
+
     return { ids, deletedCount };
   }
 }

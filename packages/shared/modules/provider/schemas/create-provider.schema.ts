@@ -11,6 +11,6 @@ export const CreateProviderSchema = z.object({
   publicPhone: z.string().optional(),
   publicEmail: z.email({ message: "Geçersiz e-posta formatı" }).optional(),
   isActive: z.coerce.boolean().default(true),
-  canAcceptExamination: z.coerce.boolean().default(true),
+  acceptsConsultation: z.coerce.boolean().default(true),
   operationMode: OperationModeSchema.default("STATIC"),
 });

@@ -4,7 +4,6 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { EnsurePartyCommand } from '@modules/finance/party/application/commands/ensure-party/ensure-party.command';
-import { TckNo } from '@src/domain/value-objects/tck-no.vo';
 import {
   EnsurePartyForPatientCommand,
   EnsurePartyForPatientResult,
@@ -45,7 +44,7 @@ export class EnsurePartyForPatientHandler
           name:
             [patient.firstName, patient.lastName].filter(Boolean).join(' ') ||
             'İsimsiz Hasta',
-          nationalId: TckNo.tryParse(patient.tcNo),
+          nationalId: patient.tcNo,
           email: patient.email,
           phone: patient.phone,
         },

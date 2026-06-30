@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
+import { FinanceLedger } from '@shared';
 
-export type GetLedgerByClinicIdQueryResponse = QueryResponse<FinanceLedgerEntity[]>;
+export type GetLedgerByClinicIdQueryResponse = QueryResponse<FinanceLedger[]>;

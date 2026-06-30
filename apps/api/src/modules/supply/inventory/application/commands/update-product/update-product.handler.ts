@@ -50,12 +50,15 @@ export class UpdateProductHandler
       brand: dto.brand,
       description: dto.description,
       unit: dto.unit,
-      vatRate: dto.vatRate ? VatRate.create(dto.vatRate) : undefined,
-      criticalStockQty:
-        dto.criticalStockQty != null
-          ? Quantity.create(dto.criticalStockQty, 'Kritik stok miktarı')
-          : undefined,
-      reorderQty: dto.reorderQty ? Quantity.create(dto.reorderQty) : undefined,
+      vatRate: VatRate.create(dto.vatRate)?.instance,
+      criticalStockQty: dto.criticalStockQty
+        ? Quantity.create(dto.criticalStockQty, 'Kritik stok miktarı').orThrow()
+        : undefined,
+
+      reorderQty: dto.reorderQty
+        ? Quantity.create(dto.reorderQty).orThrow()
+        : undefined,
+
       categoryId: dto.categoryId,
       supplierId: dto.supplierId,
     });

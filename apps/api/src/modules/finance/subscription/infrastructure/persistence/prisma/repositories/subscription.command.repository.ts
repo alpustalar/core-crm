@@ -20,6 +20,10 @@ export class SubscriptionCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<Subscription | null> {
+    const raw = await this.db.subscription.findUnique({ where: { id } });
+    return raw ? new Subscription(raw) : null;
+  }
   async create(data: CreateSubscriptionData): Promise<Subscription> {
     const raw = await this.db.subscription.create({
       data: {
@@ -54,11 +58,10 @@ export class SubscriptionCommandRepository
   async save(entity: Subscription): Promise<Subscription> {
     const data = entity.toPersistence();
     const raw = await this.db.subscription.upsert({
-      where: { id: entity.id },
+      where: { id: data.id },
       create: data,
       update: data,
     });
-
     entity.flushEvents();
     return new Subscription(raw);
   }

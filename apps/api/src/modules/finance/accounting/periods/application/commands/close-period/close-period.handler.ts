@@ -1,15 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConflictException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { GenerateYearEndClosingCommand } from '@modules/finance/accounting/posting/application/commands/generate-year-end-closing/generate-year-end-closing.command';
 import {
   ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
-  ACCOUNTING_PERIOD_QUERY_REPOSITORY,
   IAccountingPeriodCommandRepository,
-  IAccountingPeriodQueryRepository,
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
 import { ClosePeriodCommand } from './close-period.command';
+import { PeriodNotFoundException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 
 @CommandHandler(ClosePeriodCommand)
 export class ClosePeriodHandler
@@ -18,22 +17,17 @@ export class ClosePeriodHandler
   constructor(
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
     private readonly periodCommandRepo: IAccountingPeriodCommandRepository,
-    @Inject(ACCOUNTING_PERIOD_QUERY_REPOSITORY)
-    private readonly periodQueryRepo: IAccountingPeriodQueryRepository,
     private readonly commandBus: TSCommandBus,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: ClosePeriodCommand): Promise<void> {
-    const period = await this.periodQueryRepo.findById(command.periodId);
-    if (!period) {
-      throw new NotFoundException(`Dönem bulunamadı: ${command.periodId}`);
-    }
-    if (period.isClosed()) {
-      throw new ConflictException(`Dönem ${period.year} zaten kapatılmış.`);
-    }
+    const period = await this.periodCommandRepo.findById(command.periodId);
+    if (!period) throw new PeriodNotFoundException();
 
-    // Kapanış fişleri (dönem hâlâ postable) + dönem CLOSED atomik (kritik finansal).
+    period.validateIsOpenOrLocked();
+
+    // Kapanış fişleri (dönem hâlâ postable) + dönem CLOSED atomik
     await this.txManager.outboxRun(async () => {
       await this.commandBus.execute(
         new GenerateYearEndClosingCommand(

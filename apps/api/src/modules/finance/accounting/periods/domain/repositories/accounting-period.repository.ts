@@ -1,4 +1,5 @@
 import { AccountingPeriod } from '../entities/accounting-period.entity';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const ACCOUNTING_PERIOD_COMMAND_REPOSITORY = Symbol(
   'IAccountingPeriodCommandRepository'
@@ -7,9 +8,8 @@ export const ACCOUNTING_PERIOD_QUERY_REPOSITORY = Symbol(
   'IAccountingPeriodQueryRepository'
 );
 
-export interface IAccountingPeriodCommandRepository {
-  save(period: AccountingPeriod): Promise<AccountingPeriod>;
-}
+export type IAccountingPeriodCommandRepository =
+  IBaseCommandRepository<AccountingPeriod>;
 
 export interface IAccountingPeriodQueryRepository {
   findById(id: string): Promise<AccountingPeriod | null>;

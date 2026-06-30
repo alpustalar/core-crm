@@ -1,4 +1,4 @@
-import { Clinic as ClinicEntity } from '@modules/organization/clinic/domain/entities/clinic.entity';
+import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
 import { IClinicCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
@@ -8,11 +8,16 @@ import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 
 @Injectable()
 export class ClinicCommandRepository
-  extends BaseCommandRepository<ClinicEntity>
+  extends BaseCommandRepository<Clinic>
   implements IClinicCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findById(id: string): Promise<Clinic | null> {
+    const raw = await this.db.clinic.findUnique({ where: { id } });
+    return raw ? new Clinic(raw) : null;
   }
 
   async softDeleteManyClinicWithAnOrganizationId(
@@ -28,7 +33,7 @@ export class ClinicCommandRepository
     return { deletedCount };
   }
 
-  async save(entity: ClinicEntity): Promise<ClinicEntity> {
+  async save(entity: Clinic): Promise<Clinic> {
     const data = entity.toPersistence();
     const raw = await this.db.clinic.upsert({
       where: { id: data.id },
@@ -36,10 +41,10 @@ export class ClinicCommandRepository
       update: data,
     });
     entity.flushEvents();
-    return new ClinicEntity(raw);
+    return new Clinic(raw);
   }
 
-  async saveMany(entities: ClinicEntity[]): Promise<void> {
+  async saveMany(entities: Clinic[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const data = entity.toPersistence();
       return this.db.clinic.upsert({

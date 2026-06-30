@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
 import { Product } from '../entities/product.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { StockLevel } from '@modules/supply/inventory/domain/supply.contracts';
 
 export const PRODUCT_COMMAND_REPOSITORY = Symbol('IProductCommandRepository');

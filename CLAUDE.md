@@ -155,10 +155,10 @@ Each command/query is self-contained in its own folder with:
 
 **Altın Kural**: Command'ler asla zengin domain modeli veya entity listesi döndürmez. Sadece o command'in yaşam döngüsünü tamamlamak için gereken **minimum metadata** döner (ID, version, status, entegrasyon ref no). Veri listelemek veya detay göstermek için her zaman Query kullanılır.
 
-**Query response** (`*.response.ts`):
+**Query response** (`*.response.ts`) — `T` her zaman plain model / read-model'dir, **domain entity DEĞİL**:
 ```typescript
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
+import { Lead } from '@shared'; // generated plain model — domain entity DEĞİL
 
 export type GetLeadByIdResponse = QueryResponse<Lead | null>;
 ```
@@ -171,6 +171,32 @@ export class GetLeadByIdQuery implements IQuery {
     public readonly leadId: string,
     public readonly ctx: IGetContext,
   ) {}
+}
+```
+
+**Query Handler dönüş tipi — KURAL: Handler ASLA entity döndürmez**:
+
+Sorumluluk ayrımı nettir: **repository `find*` metodları domain entity döndürür** (iş kuralları, getter'lar, VO'lar için); **query handler'ı bu entity'yi dışarı sızdırmaz**. Handler, response'a koymadan önce entity'yi mutlaka plain / serileştirilebilir bir shape'e çevirir:
+
+| Senaryo | Handler dönüşü |
+|---|---|
+| **Tek kayıt** | `entity.toPersistence()` → `@shared` generated plain model |
+| **Liste** | `items.map((e) => e.toPersistence())` |
+| **Projeksiyon / okuma modeli** | `domain/<module>.contracts.ts`'teki `Filter` / `Response` read-model tipi |
+
+**Gerekçe**: Entity domain katmanına aittir; private alanları, Value Object'leri (`UUID`, `Phone`, `Money`) ve davranış metotları HTTP/serileştirme sınırının ötesine taşınmaz. Bu yüzden `QueryResponse<T>` içindeki `T` **hiçbir zaman bir entity değildir** — daima plain model veya read-model'dir. Repository entity döner ki handler domain mantığını çalıştırabilsin; handler düz veriye map'leyip öyle döner.
+
+```typescript
+// ❌ Yanlış — handler entity'yi response'a sızdırıyor
+async execute(query: GetLeadByIdQuery): Promise<GetLeadByIdResponse> {
+  const lead = await this.leadQueryRepo.findById(query.leadId); // Lead entity
+  return { data: lead }; // entity HTTP sınırını geçiyor
+}
+
+// ✓ Doğru — entity plain shape'e map'lenip dönülüyor
+async execute(query: GetLeadByIdQuery): Promise<GetLeadByIdResponse> {
+  const lead = await this.leadQueryRepo.findById(query.leadId); // Lead entity
+  return { data: lead ? lead.toPersistence() : null };
 }
 ```
 
@@ -1754,21 +1780,39 @@ ResolvePatientInput
 
 **KURAL — Katman izolasyonu:**
 
-- **Domain & Application katmanları (handler, service, use-case, entity):** NestJS'in yerleşik HTTP exception sınıfları (`BadRequestException`, `NotFoundException`, `ForbiddenException`, `InternalServerErrorException`, vb.) **BU KATMANLARDA ASLA KULLANILAMAZ**. Bu katmanlar HTTP protokolünden tamamen izole olmalıdır.
-- **Custom Domain Exceptions:** İş mantığı hataları için her zaman `DomainException` taban sınıfından türetilmiş, amaca özel, tip güvenli ve `errorCode` barındıran özel hata sınıfları yazılır. Konum: `modulename/domain/exceptions/`.
-- **`errorCode` merkezi sabitten gelir:** Hata kodları asla sınıf içine string literal olarak yazılmaz. Tüm kodlar `src/common/constants/error-codes.constant.ts` içindeki **`ERROR_CODES`** sabitinde merkezî olarak tanımlanır; exception sınıfı `ERROR_CODES.<MODULE>.<CODE>` üzerinden referans verir. Bu sayede kodlar tek yerden yönetilir, filter eşlemesi ile senkron kalır ve tip güvenliği (`ErrorCode` union) korunur.
-- **NestJS yerleşik exception'ları:** Yalnızca HTTP giriş/çıkış kapılarında (Controllers, Guards, Pipes, Interceptors) kullanılabilir. Domain exception'ı HTTP'ye çeviren eşleme, merkezi exception filter'da (`all-exceptions-filter`) yapılır.
+- **Domain & Application Katmanları (Handlers, Services, Use Cases, Entities):** NestJS'in yerleşik HTTP exception sınıfları (`BadRequestException`, `NotFoundException`, `InternalServerErrorException`, vb.) **BU KATMANLARDA ASLA KULLANILAMAZ**. Bu katmanlar HTTP protokolünden ve web framework bağımlılıklarından tamamen izole olmalıdır.
+- **Custom Domain Exceptions:** İş mantığı hataları için her zaman `DomainException<T>` taban sınıfından türetilmiş, amaca özel, tip güvenli hata sınıfları yazılmalıdır. Konum: `modulename/domain/exceptions/`.
+- **`errorCode` merkezi sabitten gelir:** Hata kodları asla sınıf içine string literal olarak yazılmaz; tümü `src/common/constants/error-codes.constant.ts` içindeki **`ERROR_CODES`** sabitinde tanımlanır ve `ERROR_CODES.<MODULE>.<CODE>` üzerinden referans verilir (tip güvenli `ErrorCode` union).
+- **Polimorfik HTTP Eşleşmesi:** Her özel hata sınıfı, ihtiyaç duyduğu HTTP durum kodunu `public override readonly httpStatus` alanı ile **kendisi** belirler. Belirtilmezse varsayılan olarak `400 Bad Request` kabul edilir. (Merkezi `errorCode → status` lookup map'i artık kullanılmaz; her exception kendi statüsünü taşır.)
+- **Jenerik Metadata (Payload) Desteği:** Frontend'in hata anında akıllı kararlar alabilmesi (örneğin doluluk saatlerini listelemesi, validasyon detaylarını görmesi) için exception sınıfları strongly-typed jenerik `meta` objesi taşıyabilir.
+- **Meta arayüzleri `@shared`'te tanımlanır (iki-uçlu tip güvenliği):** `meta` payload tipi exception dosyasında **local** tanımlanmaz; `@shared/modules/<module>/interfaces` altında tanımlanıp hem backend exception'ı (`extends DomainException<SlotConflictMeta>`) hem frontend (`response.meta as SlotConflictMeta`) tarafından import edilir. Local tanım yalnızca backend'i tipler; payload'ın asıl tüketicisi frontend olduğu için tip sözleşmesi tek kaynaktan (`@shared`) gelmelidir.
+- **NestJS Yerleşik Exception'ları:** Sadece HTTP giriş/çıkış kapılarında (Controllers, Guards, Pipes) kullanılabilir. Tüm domain hataları merkezi `AllExceptionsFilter` tarafından yakalanıp standardize edilerek frontend'e fırlatılır.
 
-**Taban sınıf** (`src/domain/shared/domain.exception.ts`):
+**Taban sınıf** (`src/domain/shared/domain.exception.ts`) — polimorfik `httpStatus` + jenerik `meta`:
+
+> Notlar: (1) `errorCode` tipi `ErrorCode` union'ıdır → ERROR_CODES'ta tanımlı olmayan bir kod yazmak **derleme hatası** verir (kural derleyici tarafından zorlanır). (2) `TMeta extends Record<string, unknown>` (`any` değil) — tüketen tarafı narrow'lamaya zorlar. (3) `TMeta` için varsayılan tip parametresi (`Record<string, never>`) sayesinde meta taşımayan exception'lar `extends DomainException` olarak (tip argümanı yazmadan) yazılabilir. (4) `HttpStatus` yalnızca sayısal bir enum (runtime framework bağımlılığı değil); status kodlarını tip-güvenli tutmak için domain'de kullanımına izin verilir.
 
 ```typescript
-export abstract class DomainException extends Error {
-  /** Makine-okunur, string tabanlı hata kodu (ör. 'PAYMENT.INSTALLMENT_NOT_FOUND'). */
-  public abstract readonly errorCode: string;
+import { HttpStatus } from '@nestjs/common';
+import type { ErrorCode } from '@common/constants/error-codes.constant';
 
-  protected constructor(message: string) {
+export abstract class DomainException<
+  TMeta extends Record<string, unknown> = Record<string, never>,
+> extends Error {
+  /** Makine-okunur hata kodu — `ErrorCode` union'ı; ERROR_CODES dışı bir kod derleme hatasıdır. */
+  public abstract readonly errorCode: ErrorCode;
+
+  /** Alt sınıf override etmezse varsayılan 400. */
+  public readonly httpStatus: HttpStatus = HttpStatus.BAD_REQUEST;
+
+  /** Frontend'in akıllı karar almasını sağlayan strongly-typed metadata. */
+  public readonly meta?: TMeta;
+
+  protected constructor(message: string, meta?: TMeta) {
     super(message);
+    this.meta = meta;
     this.name = new.target.name;
+    // TS down-level (extends Error) prototip zinciri düzeltmesi — instanceof güvenliği.
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
@@ -1782,6 +1826,7 @@ export const ERROR_CODES = {
     NOT_FOUND: 'APPOINTMENT.NOT_FOUND',
     ALREADY_BOOKED: 'APPOINTMENT.ALREADY_BOOKED',
     INVALID_DATE: 'APPOINTMENT.INVALID_DATE',
+    SLOT_CONFLICT: 'APPOINTMENT.SLOT_CONFLICT',
   },
   PAYMENT: {
     INSUFFICIENT_FUNDS: 'PAYMENT.INSUFFICIENT_FUNDS',
@@ -1792,7 +1837,9 @@ export const ERROR_CODES = {
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 ```
 
-**Somut exception** (`modulename/domain/exceptions/`) — `errorCode` her zaman `ERROR_CODES`'tan referans verilir:
+### 🛠️ Örnek Mimari Uygulama (Best Practice)
+
+**1) Basit exception** — meta yok, statü override edilmiyor (varsayılan `400`):
 
 ```typescript
 // clinical/appointment/domain/exceptions/appointment.exceptions.ts
@@ -1808,65 +1855,58 @@ export class AppointmentNotFoundException extends DomainException {
 }
 ```
 
-**Domain exception filter eşlemesi** (`all-exceptions-filter` — yalnızca burada HTTP'ye map'lenir):
+**2) Polimorfik statü + tip-güvenli payload** — kendi `httpStatus`'unu ve `meta`'sını taşır:
 
 ```typescript
-// errorCode → HTTP status eşlemesi (örnek) — anahtarlar ERROR_CODES'tan gelir
-const DOMAIN_ERROR_HTTP_MAP: Record<string, number> = {
-  [ERROR_CODES.APPOINTMENT.NOT_FOUND]: HttpStatus.NOT_FOUND,
-  [ERROR_CODES.PAYMENT.TIMEOUT]: HttpStatus.GATEWAY_TIMEOUT,
-};
+// 1) Meta sözleşmesi @shared'te — backend ve frontend aynı tipi import eder
+// packages/shared/modules/appointment/interfaces/slot-conflict-meta.interface.ts
+export interface SlotConflictMeta {
+  conflictingSlots: string[];
+  suggestedNextAvailableSlot: string;
+}
 
+// 2) clinical/appointment/domain/exceptions/appointment.exceptions.ts
+import { DomainException } from '@src/domain/shared/domain.exception';
+import { HttpStatus } from '@nestjs/common';
+import { ERROR_CODES } from '@common/constants/error-codes.constant';
+import type { SlotConflictMeta } from '@shared/modules/appointment/interfaces';
+
+export class AppointmentSlotConflictException extends DomainException<SlotConflictMeta> {
+  public readonly errorCode = ERROR_CODES.APPOINTMENT.SLOT_CONFLICT;
+  public override readonly httpStatus = HttpStatus.CONFLICT; // 409
+
+  constructor(meta: SlotConflictMeta, message = 'Seçilen randevu saatleri dolu.') {
+    super(message, meta);
+  }
+}
+```
+
+**3) Handler içinde kullanım** (`application` katmanı — HTTP'den habersiz):
+
+```typescript
+// ❌ YANLIŞ — HTTP bağımlılığı domain/application'a sızıyor
+throw new ConflictException('Saatler dolu');
+
+// ✓ DOĞRU — saf domain hatası + tip-güvenli payload
+throw new AppointmentSlotConflictException({
+  conflictingSlots: ['10:00', '11:00'],
+  suggestedNextAvailableSlot: '13:00',
+});
+```
+
+**4) Merkezi filter** (`all-exceptions-filter`) — statü ve payload exception'ın kendisinden okunur:
+
+```typescript
 if (exception instanceof DomainException) {
-  const status =
-    DOMAIN_ERROR_HTTP_MAP[exception.errorCode] ?? HttpStatus.BAD_REQUEST;
-  return response.status(status).json({
+  return response.status(exception.httpStatus).json({
     errorCode: exception.errorCode,
     message: exception.message,
+    meta: exception.meta ?? null, // frontend strongly-typed payload'ı tüketir
   });
 }
 ```
 
-### 🛠️ Örnek Dönüşüm (Best Practice)
-
-❌ **YANLIŞ (Katman Bağımlı Yapı):**
-
-```typescript
-// src/modules/finance/pos/virtual/application/commands/iyzico/refund-payment/refund-payment.handler.ts
-import { BadRequestException } from '@nestjs/common';
-
-if (!completedInstallment) {
-  throw new BadRequestException('Tamamlanmış taksit bulunamadı.');
-}
-```
-
-✅ **DOĞRU (Katmandan Bağımsız, Tip Güvenli Domain Exception):**
-
-```typescript
-// 1) Önce kodu ERROR_CODES'a ekle (error-codes.constant.ts)
-//    PAYMENT: { ..., COMPLETED_INSTALLMENT_NOT_FOUND: 'PAYMENT.COMPLETED_INSTALLMENT_NOT_FOUND' }
-
-// 2) src/modules/finance/payment/domain/exceptions/completed-installment-not-found.exception.ts
-import { DomainException } from '@src/domain/shared/domain.exception';
-import { ERROR_CODES } from '@common/constants/error-codes.constant';
-
-export class CompletedInstallmentNotFoundException extends DomainException {
-  public readonly errorCode = ERROR_CODES.PAYMENT.COMPLETED_INSTALLMENT_NOT_FOUND;
-
-  constructor(paymentId: string) {
-    super(`Tamamlanmış taksit bulunamadı: paymentId=${paymentId}`);
-  }
-}
-
-// refund-payment.handler.ts (application katmanı — HTTP'den habersiz)
-import { CompletedInstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/completed-installment-not-found.exception';
-
-if (!completedInstallment) {
-  throw new CompletedInstallmentNotFoundException(paymentId);
-}
-```
-
-**Neden:** Handler/service'ler HTTP'den habersiz kalır → aynı use-case bir kuyruk işleyicisinden, CLI'dan veya başka bir bounded-context'ten çağrıldığında HTTP semantiği sızmaz. Hata kimliği `errorCode` ile sabittir; HTTP status eşlemesi tek bir yerde (filter) yönetilir.
+**Neden:** Handler/service'ler HTTP'den habersiz kalır → aynı use-case bir kuyruk işleyicisinden, CLI'dan veya başka bir bounded-context'ten çağrıldığında HTTP semantiği sızmaz. Hata kimliği `errorCode` ile sabittir, HTTP statüsü her exception'ın `httpStatus` alanında polimorfik olarak yaşar (merkezi map bakımı gerekmez) ve frontend, tip-güvenli `meta` payload'ı ile hata anında akıllı kararlar (alternatif slot önerme, validasyon detayı gösterme) alabilir.
 
 ## Important Notes
 

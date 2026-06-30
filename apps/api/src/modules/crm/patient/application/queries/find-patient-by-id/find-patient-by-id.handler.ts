@@ -4,8 +4,9 @@ import {
   IPatientQueryRepository,
   PATIENT_QUERY_REPOSITORY,
 } from '@modules/crm/patient/domain/repositories/patient.repository.interface';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { FindPatientByIdQueryResponse } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.response';
+import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
 
 @QueryHandler(FindPatientByIdQuery)
 export class FindPatientByIdHandler
@@ -22,11 +23,10 @@ export class FindPatientByIdHandler
     const { patientId } = query;
     const patient = await this.patientQueryRepository.find(patientId);
 
-    if (!patient) {
-      throw new NotFoundException('Misafir bulunamadı');
-    }
+    if (!patient) throw new PatientNotFoundException();
+
     return {
-      data: patient,
+      data: patient.toPersistence(),
     };
   }
 }

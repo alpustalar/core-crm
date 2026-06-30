@@ -8,11 +8,14 @@ export type PaginationMeta = {
   limit: number;
   totalPages: number;
 };
+
+export type Meta = {
+  serializationOptions?: SerializationOptions;
+  pagination?: PaginationMeta;
+  [key: string]: any;
+};
+
 export interface QueryResponse<T> {
   data: T;
-  meta?: {
-    serializationOptions?: SerializationOptions;
-    pagination?: PaginationMeta;
-    [key: string]: any;
-  };
+  meta?: Meta
 }

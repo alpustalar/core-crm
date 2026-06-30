@@ -14,44 +14,26 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { InvoiceNumber } from '@modules/finance/invoice/domain/value-objects/invoice-number.vo';
 import { Decimal } from 'decimal.js';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
+import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
-
-export interface IssueInvoiceEntityProps {
-  invoiceNumber: string;
-  providerRef: string;
-  issuedAt: Date;
-  rawResponse?: unknown;
-  source?: LogSource;
-  actorId?: string;
-}
-
-export interface FailInvoiceEntityProps {
-  reason: string;
-  source?: LogSource;
-  actorId?: string;
-}
-
-export interface ApplyEDocumentResultProps {
-  documentType: EDocumentType;
-  uuid: string | null;
-  status: EDocumentStatus;
-  invoiceNumber?: string | null;
-}
+  ApplyEDocumentResultProps,
+  FailInvoiceEntityProps,
+  IssueInvoiceEntityProps,
+} from '@modules/finance/invoice/domain/invoice.contracts';
 
 export class Invoice extends AggregateRoot {
   constructor(data: IInvoice) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._patientId = data.patientId;
-    this._appointmentId = data.appointmentId;
-    this._paymentId = data.paymentId;
-    this._currency = Currency.create(data.currency);
-    this._vatRate = data.vatRate;
+    this._id = UUID.create(data.id).orThrow();
+    this._clinicId = UUID.create(data.clinicId).orThrow();
+    this._patientId = UUID.create(data.patientId).orThrow();
+    this._appointmentId = UUID.create(data.appointmentId).instance ?? null;
+    this._paymentId = UUID.create(data.paymentId).instance ?? null;
+    this._currency = Currency.create(data.currency).orThrow();
+    this._vatRate = VatRate.create(data.vatRate).orThrow();
     this._status = data.status;
     this._invoiceNumber = data.invoiceNumber
       ? InvoiceNumber.create(data.invoiceNumber)
@@ -59,40 +41,40 @@ export class Invoice extends AggregateRoot {
     this._issuedAt = data.issuedAt;
     this._providerRef = data.providerRef;
     this._documentType = data.documentType;
-    this._einvoiceUuid = data.einvoiceUuid;
+    this._einvoiceUuid = UUID.create(data.einvoiceUuid).instance ?? null;
     this._einvoiceStatus = data.einvoiceStatus;
     this._rawResponse = data.rawResponse;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._isDeleted = data.isDeleted;
     this._taxSpecification = TaxSpecification.create(
-      Money.create(data.netTotal, data.currency),
+      Money.create(data.netTotal, data.currency).orThrow(),
       data.vatRate,
-      Money.create(data.vatTotal, data.currency)
+      Money.create(data.vatTotal, data.currency).orThrow()
     );
   }
 
-  private _id: string;
+  private _id: UUID;
 
-  get id(): string {
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
+  private _clinicId: UUID;
 
-  get clinicId(): string {
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _patientId: string;
+  private _patientId: UUID;
 
-  get patientId(): string {
+  get patientId(): UUID {
     return this._patientId;
   }
 
-  private _appointmentId: string | null;
+  private _appointmentId: UUID | null;
 
-  get appointmentId(): string | null {
+  get appointmentId(): UUID | null {
     return this._appointmentId;
   }
 
@@ -106,9 +88,9 @@ export class Invoice extends AggregateRoot {
     return this._taxSpecification;
   }
 
-  private _paymentId: string | null;
+  private _paymentId: UUID | null;
 
-  get paymentId(): string | null {
+  get paymentId(): UUID | null {
     return this._paymentId;
   }
 
@@ -118,9 +100,9 @@ export class Invoice extends AggregateRoot {
     return this._currency;
   }
 
-  private _vatRate: number;
+  private _vatRate: VatRate;
 
-  get vatRate(): number {
+  get vatRate(): VatRate {
     return this._vatRate;
   }
 
@@ -149,8 +131,8 @@ export class Invoice extends AggregateRoot {
     return this._documentType;
   }
 
-  private _einvoiceUuid: string | null;
-  get einvoiceUuid(): string | null {
+  private _einvoiceUuid: UUID | null;
+  get einvoiceUuid(): UUID | null {
     return this._einvoiceUuid;
   }
 
@@ -209,11 +191,11 @@ export class Invoice extends AggregateRoot {
     }
     this.addDomainEvent(
       new InvoiceIssuedEvent({
-        invoiceId: this._id,
-        clinicId: this._clinicId,
-        patientId: this._patientId,
-        appointmentId: this._appointmentId,
-        paymentId: this._paymentId,
+        invoiceId: this._id.value,
+        clinicId: this._clinicId.value,
+        patientId: this._patientId.value,
+        appointmentId: this._appointmentId?.value ?? null,
+        paymentId: this._paymentId?.value ?? null,
         invoiceNumber: props.invoiceNumber,
         action: LogAction.INVOICE_ISSUED,
         type: LogType.INFO,
@@ -230,7 +212,7 @@ export class Invoice extends AggregateRoot {
    */
   public applyEDocumentResult(props: ApplyEDocumentResultProps): void {
     this._documentType = props.documentType;
-    this._einvoiceUuid = props.uuid;
+    this._einvoiceUuid = UUID.create(props.uuid).instance ?? null;
     this._einvoiceStatus = props.status;
     if (props.invoiceNumber) {
       this._invoiceNumber = InvoiceNumber.create(props.invoiceNumber);
@@ -245,11 +227,11 @@ export class Invoice extends AggregateRoot {
     this._status = InvoiceStatusSchema.enum.FAILED;
     this.addDomainEvent(
       new InvoiceFailedEvent({
-        invoiceId: this._id,
-        clinicId: this._clinicId,
-        patientId: this._patientId,
-        appointmentId: this._appointmentId,
-        paymentId: this._paymentId,
+        invoiceId: this._id.value,
+        clinicId: this._clinicId.value,
+        patientId: this._patientId.value,
+        appointmentId: this._appointmentId?.value ?? null,
+        paymentId: this._paymentId?.value ?? null,
         reason: props.reason,
         action: LogAction.INVOICE_FAILED,
         type: LogType.ERROR,
@@ -261,11 +243,11 @@ export class Invoice extends AggregateRoot {
 
   public toPersistence(): IInvoice {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      patientId: this._patientId,
-      appointmentId: this._appointmentId,
-      paymentId: this._paymentId,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      patientId: this._patientId.value,
+      appointmentId: this._appointmentId?.value ?? null,
+      paymentId: this._paymentId?.value ?? null,
 
       amount: this._taxSpecification.grossAmount.amount,
       currency: this._taxSpecification.netAmount.currency,
@@ -278,11 +260,11 @@ export class Invoice extends AggregateRoot {
       issuedAt: this._issuedAt,
       providerRef: this._providerRef,
       documentType: this._documentType,
-      einvoiceUuid: this._einvoiceUuid,
+      einvoiceUuid: this._einvoiceUuid?.value ?? null,
       einvoiceStatus: this._einvoiceStatus,
       rawResponse: this._rawResponse,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
       isDeleted: this._isDeleted,
     };
   }

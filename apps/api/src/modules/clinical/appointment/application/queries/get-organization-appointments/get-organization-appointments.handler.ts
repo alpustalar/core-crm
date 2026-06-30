@@ -12,6 +12,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(GetOrganizationAppointmentsQuery)
 export class GetOrganizationAppointmentsHandler
@@ -34,6 +35,8 @@ export class GetOrganizationAppointmentsHandler
     const { dto, ctx } = query;
     const { actor } = ctx;
 
+    if (!actor.organizationId) throw new ClinicNotAssignedException();
+
     this.policyFactory
       .organization(actor)
       .evaluator.check(
@@ -42,15 +45,15 @@ export class GetOrganizationAppointmentsHandler
       )
       .orThrow(APPOINTMENT_EVENTS.LIST_ORGANIZATION);
 
-    const { organizationId, ...rest } = dto;
+    const { organizationId, ...restDto } = dto;
 
     const { items, total } = await this.appointmentRepo.findByOrganizationId({
       organizationId,
-      ...rest,
+      ...restDto,
     });
 
     return {
-      data: items,
+      data: items.map((item) => item.toPersistence()),
       meta: {
         pagination: buildPaginationMeta(dto.pagination, total),
       },

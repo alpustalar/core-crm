@@ -71,7 +71,7 @@ export class UpdateUserByStaffHandler
         'Hedef kullanıcıdan daha yüksek bir yetkiye sahip olmalısınız'
       )
       .check(
-        (p) => p.isTargetInActorsManagedClinic(targetUser.clinicId),
+        (p) => p.isTargetInActorsManagedClinic(targetUser.clinicId?.value),
         'Hedef kullanıcı ile aynı klinikte (yönetici olarak) olmalısınız'
       )
       .orThrow(USER_EVENTS.UPDATE_BY_STAFF);

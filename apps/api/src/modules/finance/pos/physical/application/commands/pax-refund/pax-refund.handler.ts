@@ -1,10 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject, Logger } from '@nestjs/common';
 import {
-  BadRequestException,
-  Inject,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+  OriginalPosTransactionNotFoundException,
+  PosDeviceNotFoundException,
+  PosTransactionMissingExternalRefException,
+  PosTransactionNotRefundableException,
+  RefundAmountExceedsOriginalException,
+} from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { PaxRefundCommand } from './pax-refund.command';
 import type { PaxRefundResponse } from './pax-refund.response';
 import {
@@ -27,9 +29,10 @@ import { PosPaymentSyncService } from '@modules/finance/pos/physical/application
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 
 @CommandHandler(PaxRefundCommand)
-export class PaxRefundHandler
-  implements ICommandHandler<PaxRefundCommand, PaxRefundResponse>
-{
+export class PaxRefundHandler implements ICommandHandler<
+  PaxRefundCommand,
+  PaxRefundResponse
+> {
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
@@ -51,32 +54,26 @@ export class PaxRefundHandler
       input.originalPosTransactionId
     );
     if (!originalTx) {
-      throw new NotFoundException('Orijinal POS işlemi bulunamadı.');
+      throw new OriginalPosTransactionNotFoundException();
     }
     if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
-      throw new BadRequestException(
-        'Yalnızca başarılı işlemler iade edilebilir.'
-      );
+      throw new PosTransactionNotRefundableException();
     }
     if (!originalTx.externalRef) {
-      throw new BadRequestException(
-        'Orijinal işlemin PAX referansı (HostRefNum) bulunamadı.'
-      );
+      throw new PosTransactionMissingExternalRefException();
     }
 
     const refundAmount = input.amount ?? Number(originalTx.amount);
 
     if (refundAmount > Number(originalTx.amount)) {
-      throw new BadRequestException(
-        'İade tutarı orijinal işlem tutarını aşamaz.'
-      );
+      throw new RefundAmountExceedsOriginalException();
     }
 
     const device = await this.posDeviceQueryRepo.findById(
       originalTx.posDeviceId
     );
     if (!device || !device.isActive) {
-      throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
+      throw new PosDeviceNotFoundException();
     }
 
     // Faz 1 — PENDING iade kaydı atomik olarak oluşturulur (TCP öncesi)
@@ -98,12 +95,7 @@ export class PaxRefundHandler
     // Faz 2 — PAX TCP çağrısı (transaction dışında)
     try {
       const result = await this.paxService.refund({
-        device: {
-          host: device.host,
-          port: device.port,
-          terminalId: device.terminalId,
-          merchantId: device.merchantId,
-        },
+        device: device.getPaxConnection(),
         amountInMinorUnits: Math.round(refundAmount * 100),
         ecReferenceNumber: refundTransactionId,
         originalReferenceNumber: originalTx.externalRef,

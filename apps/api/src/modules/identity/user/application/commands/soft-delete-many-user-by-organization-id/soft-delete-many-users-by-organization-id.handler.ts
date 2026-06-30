@@ -8,6 +8,8 @@ import {
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUserByOrganizationIdResponse } from '@modules/identity/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-user-by-organization-id.response';
 import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { FindManyByOrganizationIdQuery } from '@modules/organization/clinic/application/queries/find-many-by-organization-id/find-many-by-organization-id.query';
 
 @CommandHandler(SoftDeleteManyUserByOrganizationIdCommand)
 export class SoftDeleteManyUsersByOrganizationIdHandler
@@ -20,7 +22,8 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userRepo: IUserCommandRepository,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   @InternalOnly()
@@ -28,8 +31,13 @@ export class SoftDeleteManyUsersByOrganizationIdHandler
     command: SoftDeleteManyUserByOrganizationIdCommand
   ): Promise<SoftDeleteManyUserByOrganizationIdResponse> {
     const { organizationId } = command;
-    const { ids } =
-      await this.userRepo.softDeleteAllByOrganizationId(organizationId);
+
+    const { data: clinics } = await this.queryBus.execute(
+      new FindManyByOrganizationIdQuery(organizationId)
+    );
+    const clinicIds = clinics.map((clinic) => clinic.id);
+
+    const { ids } = await this.userRepo.softDeleteAllByClinicIds(clinicIds);
     await Promise.all(ids.map((id) => this.redis.deleteActorContext(id)));
   }
 }

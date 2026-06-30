@@ -1,5 +1,8 @@
 import { ClinicGovernmentSpecs as IClinicGovernmentSpecs } from '@shared/generated-zod';
-import { ClinicLegalTypeType as ClinicLegalType } from '@input-type-schemas/ClinicLegalTypeSchema';
+import {
+  ClinicLegalTypeSchema,
+  ClinicLegalTypeType as ClinicLegalType,
+} from '@input-type-schemas/ClinicLegalTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { Vkn } from '@src/domain/value-objects/vkn.vo';
 import {
@@ -15,11 +18,12 @@ import {
 export class ClinicGovernmentSpecs extends AggregateRoot {
   constructor(data: IClinicGovernmentSpecs) {
     super();
+
     this._id = data.id;
     this._healthFacilityCode = data.healthFacilityCode;
     this._ussPassword = data.ussPassword;
     this._companyTaxNumber = data.companyTaxNumber
-      ? new Vkn(data.companyTaxNumber)
+      ? Vkn.create(data?.companyTaxNumber).orThrow()
       : null;
     this._legalType = data.legalType;
     this._clinicId = data.clinicId;
@@ -77,7 +81,7 @@ export class ClinicGovernmentSpecs extends AggregateRoot {
       healthFacilityCode: props.healthFacilityCode,
       ussPassword: props.ussPassword ?? null,
       companyTaxNumber: props.companyTaxNumber ?? null,
-      legalType: props.legalType ?? 'KURUM',
+      legalType: props.legalType ?? ClinicLegalTypeSchema.enum.KURUM,
       createdAt: now,
       updatedAt: now,
     });
@@ -90,7 +94,7 @@ export class ClinicGovernmentSpecs extends AggregateRoot {
     if (props.ussPassword !== undefined) this._ussPassword = props.ussPassword;
     if (props.companyTaxNumber !== undefined) {
       this._companyTaxNumber = props.companyTaxNumber
-        ? new Vkn(props.companyTaxNumber)
+        ? Vkn.create(props.companyTaxNumber).orThrow()
         : null;
     }
     if (props.legalType !== undefined) this._legalType = props.legalType;

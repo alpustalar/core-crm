@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
+import { AiProviderSchema } from '../inputTypeSchemas/AiProviderSchema'
 
 /////////////////////////////////////////
 // CLINIC AI AGENT CONFIG SCHEMA
@@ -11,6 +12,7 @@ import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
  * anahtarı + model tutar. Anahtar yoksa platform fallback (ENV.ANTHROPIC_API_KEY) kullanılır.
  */
 export const ClinicAiAgentConfigSchema = z.object({
+  provider: AiProviderSchema,
   id: z.uuid(),
   isEnabled: z.boolean(),
   model: z.string(),

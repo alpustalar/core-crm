@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { AssignPackageToPatientCommand } from './assign-package-to-patient.command';
 import type { AssignPackageToPatientResponse } from './assign-package-to-patient.response';
 import {
@@ -11,9 +11,12 @@ import {
   PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { DateTimeManager } from '@common/utils/date-time.manager';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { TreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
+import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
 
 @CommandHandler(AssignPackageToPatientCommand)
 export class AssignPackageToPatientHandler
@@ -38,42 +41,45 @@ export class AssignPackageToPatientHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    if (!actor.clinicId)
-      throw new BadRequestException('Actor için klinik tanımlanmamış.');
+    if (!actor.clinicId) throw new ClinicNotAssignedException();
 
     const pkg = await this.treatmentPackageQueryRepo.findById(dto.packageId);
-
-    if (!pkg) throw new NotFoundException('Tedavi paketi bulunamadı');
+    if (!pkg) throw new TreatmentPackageNotFoundException();
 
     const endDate = DateTimeManager.addDays(dto.startDate, pkg.validityDays);
     const paymentId = crypto.randomUUID();
+
     return this.txManager.run(async () => {
       await this.commandBus.execute(
         new CreatePaymentCommand(
           {
             clinicId: actor.clinicId!,
             patientId: dto.patientId,
-            amount: Number(pkg.price),
+            amount: Number(pkg.price.amount),
             providerId: dto.providerId,
-            currency: 'TRY',
+            currency: pkg.price.currency,
             method: dto.method,
           },
           { paymentId }
         )
       );
 
-      const record = await this.patientPackageCommandRepo.create({
+      const patientTreatmentPkg = PatientTreatmentPackage.create({
         patientId: dto.patientId,
         packageId: dto.packageId,
         providerId: dto.providerId,
-        clinicId: actor.clinicId!,
         startDate: dto.startDate,
         endDate,
         notes: dto.notes,
-        paymentId,
+        paymentId: paymentId,
       });
 
-      return { id: record.id, paymentId: record.paymentId! };
+      await this.patientPackageCommandRepo.save(patientTreatmentPkg);
+
+      return {
+        id: patientTreatmentPkg.id.value,
+        paymentId,
+      };
     });
   }
 }

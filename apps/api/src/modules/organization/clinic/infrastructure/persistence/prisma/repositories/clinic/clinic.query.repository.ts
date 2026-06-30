@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { Clinic as ClinicEntity } from '@modules/organization/clinic/domain/entities/clinic.entity';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
-import { ClinicDetails } from '@modules/organization/clinic/domain/clinic.contracts';
+import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
 
 @Injectable()
 export class ClinicQueryRepository

@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { InitiatePosTransactionCommand } from './initiate-pos-transaction.command';
 import { InitiatePosTransactionResponse } from './initiate-pos-transaction.response';
 import {
@@ -22,13 +23,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 
 @CommandHandler(InitiatePosTransactionCommand)
-export class InitiatePosTransactionHandler
-  implements
-    ICommandHandler<
-      InitiatePosTransactionCommand,
-      InitiatePosTransactionResponse
-    >
-{
+export class InitiatePosTransactionHandler implements ICommandHandler<
+  InitiatePosTransactionCommand,
+  InitiatePosTransactionResponse
+> {
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
@@ -47,7 +45,7 @@ export class InitiatePosTransactionHandler
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
     if (!device || !device.isActive) {
-      throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
+      throw new PosDeviceNotFoundException();
     }
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
@@ -92,10 +90,11 @@ export class InitiatePosTransactionHandler
     );
 
     // Faz 2 — sağlayıcı TCP/HTTP çağrısı (transaction dışında)
+    const { terminalId, merchantId } = device.getPaxConnection();
     const result = await this.posProvider.initiate({
       posTransactionId,
-      terminalId: device.terminalId,
-      merchantId: device.merchantId,
+      terminalId,
+      merchantId,
       amount: input.amount,
       currency: input.currency ?? CurrencySchema.enum.TRY,
     });

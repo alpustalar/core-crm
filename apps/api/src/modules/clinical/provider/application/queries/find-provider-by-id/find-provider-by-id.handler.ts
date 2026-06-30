@@ -35,7 +35,7 @@ export class FindProviderByIdHandler
 
     const serializationOptions = this.policyFactory
       .user(actor)
-      .policy.getUserSerializeOptions(provider.id, provider.clinicId);
+      .policy.getSerializeOptions(provider.id, provider.clinicId);
 
     return { data: provider, meta: serializationOptions };
   }

@@ -1,38 +1,34 @@
 import {
-  ProviderAvailability,
-  ProviderException,
-  ProviderShift,
-} from '@shared';
-import {
   CreateProviderAvailabilityData,
-  CreateProviderShiftData,
-  ProviderAvailabilityWithCanAcceptExamination,
-} from '@modules/clinical/provider/domain/provider.contracts';
+  ProviderAvailabilityWithAcceptsConsultation,
+} from '@modules/clinical/provider/domain/contracts/provider.contracts';
+import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const PROVIDER_AVAILABILITY_REPOSITORY = Symbol(
   'IProviderAvailabilityRepository'
 );
 
-export interface IProviderAvailabilityRepository {
-  create(data: CreateProviderAvailabilityData): Promise<ProviderAvailability>;
+export const PROVIDER_AVAILABILITY_QUERY_REPOSITORY = Symbol(
+  'IProviderAvailabilityQueryRepository'
+);
+
+export const PROVIDER_AVAILABILITY_COMMAND_REPOSITORY = Symbol(
+  'IProviderAvailabilityCommandRepository'
+);
+
+export interface IProviderAvailabilityCommandRepository
+  extends IBaseCommandRepository<ProviderAvailability> {
   createMany(data: CreateProviderAvailabilityData[]): Promise<void>;
+  deleteByProviderId(providerId: string): Promise<{ deletedCount: number }>;
+}
+
+export interface IProviderAvailabilityQueryRepository {
   findByProviderId(
     providerId: string
-  ): Promise<ProviderAvailabilityWithCanAcceptExamination[]>;
+  ): Promise<ProviderAvailabilityWithAcceptsConsultation[]>;
   findByProviderAndDay(
     providerId: string,
     dayOfWeek: number
   ): Promise<ProviderAvailability | null>;
-  deleteByProviderId(providerId: string): Promise<{ deletedCount: number }>;
-  findExceptionsByDateRange(
-    providerId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<ProviderException[]>;
-  findShiftsByDateRange(
-    providerId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<ProviderShift[]>;
-  upsertManyShifts(data: CreateProviderShiftData[]): Promise<void>;
 }

@@ -2,25 +2,22 @@ import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { MarkNoShowCommand } from './mark-no-show.command';
 import { MarkNoShowCommandResponse } from './mark-no-show.response';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
-  APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentCommandRepository,
-  IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 
 @CommandHandler(MarkNoShowCommand)
 export class MarkNoShowHandler
   implements ICommandHandler<MarkNoShowCommand, MarkNoShowCommandResponse>
 {
   constructor(
-    @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -33,20 +30,19 @@ export class MarkNoShowHandler
     const { appointmentId, ctx } = command;
     const { actor } = ctx;
 
-    const appointment = await this.appointmentQueryRepo.findById(appointmentId);
-    if (!appointment) {
-      throw new NotFoundException('Randevu bulunamadı.');
-    }
-
-    appointment.markAsNoShow();
+    const appointment =
+      await this.appointmentCommandRepo.findById(appointmentId);
+    if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
       .appointment(actor)
       .evaluator.check(
-        (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
+        (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuya erişim yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.NO_SHOW);
+
+    appointment.markAsNoShow();
 
     await this.appointmentCommandRepo.save(appointment);
   }

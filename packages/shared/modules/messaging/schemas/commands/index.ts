@@ -5,3 +5,5 @@ export { SendTemplateMessageSchema } from './send-template-message.schema';
 export { AssignConversationSchema } from './assign-conversation.schema';
 export { UpdateWhatsappBusinessProfileSchema } from './update-whatsapp-business-profile.schema';
 export { ConfigureAiAgentSchema } from './configure-ai-agent.schema';
+export { ConnectTelegramBotChannelSchema } from './connect-telegram-bot-channel.schema';
+export { ConnectInstagramChannelSchema } from './connect-instagram-channel.schema';

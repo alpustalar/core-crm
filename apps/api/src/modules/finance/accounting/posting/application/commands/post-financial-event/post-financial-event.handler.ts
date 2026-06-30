@@ -18,6 +18,7 @@ import { AccountResolver } from '@modules/finance/accounting/posting/domain/post
 import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
 import { PostFinancialEventCommand } from './post-financial-event.command';
 import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
+import { AccountingPeriodStatusSchema } from '@shared';
 
 @CommandHandler(PostFinancialEventCommand)
 export class PostFinancialEventHandler
@@ -67,7 +68,7 @@ export class PostFinancialEventHandler
         `${event.occurredAt.toISOString()} tarihi için muhasebe dönemi yok.`
       );
     }
-    if (!period.canPost()) {
+    if (period.status !== AccountingPeriodStatusSchema.enum.OPEN) {
       throw new Error(`Dönem ${period.year} kapalı/kilitli; fiş atılamaz.`);
     }
 
@@ -84,13 +85,11 @@ export class PostFinancialEventHandler
     const lines: CreateJournalEntryLineProps[] = draft.lines.map((line) => {
       const account = resolver.resolve(line.accountCode);
       if (!account.isPostable) {
-        throw new Error(
-          `Yaprak olmayan hesaba fiş atılamaz: ${account.code.value}`
-        );
+        throw new Error(`Yaprak olmayan hesaba fiş atılamaz: ${account.code}`);
       }
       if (account.requiresParty && !line.partyId) {
         throw new Error(
-          `${account.code.value} hesabında alt defter (party) zorunludur.`
+          `${account.code} hesabında alt defter (party) zorunludur.`
         );
       }
       return {

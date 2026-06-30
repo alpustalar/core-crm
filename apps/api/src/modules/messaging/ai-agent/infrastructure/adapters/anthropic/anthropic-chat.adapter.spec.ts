@@ -19,6 +19,8 @@ describe('AnthropicChatAdapter (tool-use döngüsü)', () => {
     clinicId: 'clinic-1',
     organizationId: 'org-1',
     conversationId: 'conv-1',
+    channel: 'WHATSAPP',
+    provider: 'ANTHROPIC',
     model: 'claude-haiku-4-5',
     systemPrompt: null,
     apiKey: 'sk-clinic',
@@ -27,6 +29,7 @@ describe('AnthropicChatAdapter (tool-use döngüsü)', () => {
     contactName: 'Ali',
     contactPhone: '+905550001122',
     patientId: null,
+    leadId: null,
     ...over,
   });
 

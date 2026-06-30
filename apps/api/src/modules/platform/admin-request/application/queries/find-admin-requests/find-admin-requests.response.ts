@@ -1,7 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
+import { AdminRequest } from '@shared';
 
-export type FindAdminRequestsResponse = QueryResponse<{
-  items: AdminRequest[];
-  total: number;
-}>;
+export type FindAdminRequestsResponse = QueryResponse<AdminRequest[]>;

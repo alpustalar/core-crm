@@ -1,7 +1,7 @@
 import { ActorContext } from '@common/interfaces';
-import { UserResponseGroups } from '@modules/identity/user/domain/constants';
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
 import { User } from '@modules/identity/user/domain/entities/user.entity';
+import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
 
 export type HasPriority = {
   priority: number;
@@ -127,7 +127,7 @@ export class UserPolicy extends ClinicPolicy {
    * kullanıcı geri dönüş grupları
    */
 
-  getUserSerializeOptions(
+  getSerializeOptions(
     targetUserId: string,
     targetUserClinicId: string | null | undefined
   ) {

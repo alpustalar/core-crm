@@ -1,3 +1,5 @@
+import { MessageChannelType } from '@input-type-schemas/MessageChannelSchema';
+
 export const AI_TOOL_EXECUTOR = Symbol('AiToolExecutor');
 
 /**
@@ -33,9 +35,14 @@ export interface AiToolContext {
   clinicId: string;
   organizationId: string;
   conversationId: string;
+  /** Yazışmanın kanalı. contactPhone'un anlamını belirler: WHATSAPP'ta doğrulanmış
+   *  telefon, TELEGRAM'da chatId, INSTAGRAM'da IGSID. */
+  channel: MessageChannelType;
   contactName: string | null;
   contactPhone: string;
   patientId: string | null;
+  /** Hasta kaydı yoksa (misafir) yazışmaya bağlı lead; otel/transfer rezervasyonu buna bağlanır. */
+  leadId: string | null;
 }
 
 /**

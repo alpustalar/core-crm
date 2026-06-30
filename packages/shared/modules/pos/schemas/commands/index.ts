@@ -2,3 +2,8 @@ export { PaxSaleSchema } from './pax-sale.schema';
 export { PaxVoidSchema } from './pax-void.schema';
 export { PaxRefundSchema } from './pax-refund.schema';
 export { PaxBatchCloseSchema } from './pax-batch-close.schema';
+export { IyzicoTerminalSaleSchema } from './iyzico-terminal-sale.schema';
+export { IyzicoTerminalRefundSchema } from './iyzico-terminal-refund.schema';
+export { IyzicoTerminalVoidSchema } from './iyzico-terminal-void.schema';
+export { IyzicoTerminalEodSchema } from './iyzico-terminal-eod.schema';
+export { RegisterClinicIyzicoTerminalConfigSchema } from './register-clinic-iyzico-terminal-config.schema';

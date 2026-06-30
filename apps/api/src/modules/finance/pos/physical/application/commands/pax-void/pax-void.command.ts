@@ -4,6 +4,6 @@ import type { PaxVoid } from '@shared/modules/pos/types/commands';
 export class PaxVoidCommand {
   constructor(
     public readonly input: PaxVoid,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

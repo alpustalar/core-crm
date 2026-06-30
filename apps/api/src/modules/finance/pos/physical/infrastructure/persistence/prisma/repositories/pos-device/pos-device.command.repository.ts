@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PosDevice } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosDeviceCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 
 @Injectable()
 export class PosDeviceCommandRepository
@@ -14,12 +13,19 @@ export class PosDeviceCommandRepository
     super(prisma);
   }
 
-  create(data: CreatePosDeviceData): Promise<PosDevice> {
-    return this.db.posDevice.create({ data });
+  async save(entity: PosDevice): Promise<PosDevice> {
+    const data = entity.toPersistence();
+    const raw = await this.db.posDevice.upsert({
+      where: { id: data.id },
+      create: data,
+      update: data,
+    });
+    entity.flushEvents();
+    return new PosDevice(raw);
   }
 
-  deactivate(id: string): Promise<PosDevice> {
-    return this.db.posDevice.update({
+  async deactivate(id: string): Promise<void> {
+    await this.db.posDevice.update({
       where: { id },
       data: { isActive: false },
     });

@@ -6,6 +6,7 @@ import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
+import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 
 @CommandHandler(RegisterPosDeviceCommand)
 export class RegisterPosDeviceHandler
@@ -21,23 +22,31 @@ export class RegisterPosDeviceHandler
     command: RegisterPosDeviceCommand
   ): Promise<RegisterPosDeviceResponse> {
     const { input } = command;
-    const id = crypto.randomUUID();
 
-    const device = await this.posDeviceCommandRepo.create({
-      id,
+    const device = PosDevice.create({
       clinicId: input.clinicId,
       label: input.label,
+      provider: input.provider,
       terminalId: input.terminalId,
       merchantId: input.merchantId,
       host: input.host,
       port: input.port,
+      deviceUniqueId: input.deviceUniqueId,
     });
 
+    if (device.isPax()) {
+      device.getPaxConnection();
+    } else {
+      device.getIyzicoDeviceUniqueId();
+    }
+
+    const saved = await this.posDeviceCommandRepo.save(device);
+
     return {
-      id: device.id,
-      clinicId: device.clinicId,
-      label: device.label,
-      terminalId: device.terminalId,
+      id: saved.id,
+      clinicId: saved.clinicId,
+      label: saved.label,
+      terminalId: saved.terminalId,
     };
   }
 }

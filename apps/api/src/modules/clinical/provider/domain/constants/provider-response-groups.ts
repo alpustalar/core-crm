@@ -1,8 +1,8 @@
-export const UserResponseGroups = {
-  DATA_OWNER: 'DATA_OWNER', // Verinin sahibi (Kullanıcının kendisi)
-  INTERNAL: 'INTERNAL', // Aynı klinik/organizasyon içi erişim
-  ADMIN: 'ADMIN',
+import { ResponseGroups } from '@common/constants/response-groups.constant';
+
+export const ProviderResponseGroups = {
+  ...ResponseGroups,
 } as const;
 
-export type UserResponseGroupsType =
-  (typeof UserResponseGroups)[keyof typeof UserResponseGroups];
+export type ProviderResponseGroup =
+  (typeof ProviderResponseGroups)[keyof typeof ProviderResponseGroups];

@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
-import { FindPatientByContactFilter } from '@modules/crm/patient/domain/repositories/patient.repository.interface';
+
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
+import { FindPatientByContactFilter } from '@modules/crm/patient/domain/patient.contracts';
 
 @Injectable()
 export class PatientQueryRepository extends BaseRepository {
@@ -11,9 +12,9 @@ export class PatientQueryRepository extends BaseRepository {
   }
 
   async findByContact(
-    props: FindPatientByContactFilter
+    filter: FindPatientByContactFilter
   ): Promise<Patient | null> {
-    const { organizationId, phone, email } = props;
+    const { organizationId, phone, email } = filter;
     if (!phone && !email) return null;
 
     const orConditions: Record<string, unknown>[] = [];

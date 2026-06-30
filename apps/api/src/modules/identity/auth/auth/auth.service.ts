@@ -115,6 +115,7 @@ export class AuthService {
       roleId: user.roleId ?? undefined,
       role: user.role ?? undefined,
       clinicId: user.clinicId ?? undefined,
+      providerId: user.providerProfile?.id ?? undefined,
     };
 
     return actor;

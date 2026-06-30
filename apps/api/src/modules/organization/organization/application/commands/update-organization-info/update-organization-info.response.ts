@@ -1,3 +1,1 @@
-export type UpdateOrganizationInfoCommandResponse = {
-  id: string;
-};
+export type UpdateOrganizationInfoCommandResponse = string;

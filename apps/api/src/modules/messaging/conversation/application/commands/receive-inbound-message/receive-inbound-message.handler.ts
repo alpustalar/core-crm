@@ -47,14 +47,16 @@ export class ReceiveInboundMessageHandler
     );
     if (existingMessage) return existingMessage.id;
 
-    const { data: patient } = await this.queryBus.execute(
-      new FindPatientByContactQuery(input.clinicId, input.contactPhone)
-    );
-    const patientId = patient?.id ?? null;
+    const patientId = await this.resolvePatientId(input);
 
     return this.txManager.outboxRun(async () => {
       // resolveConversation ctx içinde çalışıp mükerrerliği engellemeli
       const conversation = await this.resolveConversation(command, patientId);
+
+      // Mevcut (misafir) yazışma sonradan tanınırsa hastaya bağla — yalnız boşken doldur.
+      if (patientId && !conversation.patientId) {
+        conversation.linkContact({ patientId });
+      }
 
       const message = Message.createInbound({
         conversationId: conversation.id,
@@ -85,6 +87,33 @@ export class ReceiveInboundMessageHandler
     });
   }
 
+  /**
+   * Hasta eşlemesini kanal-farkındalı + güvenli çözer. WhatsApp'ta contactPhone telefondur;
+   * Telegram'da contactPhone chatId olduğundan yalnız contact paylaşımıyla gelen matchPhone
+   * kullanılır. Eşleşme bulunamazsa (query handler throw edebilir) misafir olarak null döner.
+   */
+  private async resolvePatientId(
+    input: ReceiveInboundMessageCommand['input']
+  ): Promise<string | null> {
+    const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
+    const phone =
+      input.matchPhone ??
+      (channel === MessageChannelSchema.enum.WHATSAPP
+        ? input.contactPhone
+        : null);
+    if (!phone) return null;
+
+    try {
+      const { data: patient } = await this.queryBus.execute(
+        new FindPatientByContactQuery(input.clinicId, phone)
+      );
+      return patient?.id ?? null;
+    } catch {
+      // Hasta bulunamadı → misafir olarak devam (eşleme bloklamaz).
+      return null;
+    }
+  }
+
   // var olan yazışmayı bul yoksa kilit altında yeni yazışma başlat
 
   private async resolveConversation(
@@ -93,9 +122,11 @@ export class ReceiveInboundMessageHandler
   ): Promise<Conversation> {
     const { input } = command;
 
+    const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
+
     const existing = await this.conversationQueryRepo.findByContact({
       clinicId: input.clinicId,
-      channel: MessageChannelSchema.enum.WHATSAPP,
+      channel,
       contactPhone: input.contactPhone,
     });
 
@@ -104,7 +135,7 @@ export class ReceiveInboundMessageHandler
     return Conversation.start({
       clinicId: input.clinicId,
       organizationId: input.organizationId,
-      channel: MessageChannelSchema.enum.WHATSAPP,
+      channel,
       contactPhone: input.contactPhone,
       contactName: input.contactName,
       patientId: patientId,

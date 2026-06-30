@@ -2,7 +2,9 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
+import {
+  FindPeriodByDateQuery
+} from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
 import {
   IJournalCommandRepository,
   IJournalQueryRepository,
@@ -10,6 +12,7 @@ import {
   JOURNAL_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
+import { AccountingPeriodStatusSchema } from '@shared';
 
 @CommandHandler(ReverseJournalEntryCommand)
 export class ReverseJournalEntryHandler
@@ -42,7 +45,7 @@ export class ReverseJournalEntryHandler
         `${entryDate.toISOString()} tarihi için muhasebe dönemi yok.`
       );
     }
-    if (!period.canPost()) {
+    if (period.status !== AccountingPeriodStatusSchema.enum.OPEN) {
       throw new BadRequestException(
         `Dönem ${period.year} kapalı/kilitli; storno atılamaz.`
       );

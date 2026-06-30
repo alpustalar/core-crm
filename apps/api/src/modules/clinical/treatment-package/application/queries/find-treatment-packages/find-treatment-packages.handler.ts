@@ -1,12 +1,12 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { FindTreatmentPackagesQuery } from './find-treatment-packages.query';
 import type { FindTreatmentPackagesResponse } from './find-treatment-packages.response';
 import {
   ITreatmentPackageQueryRepository,
   TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
-import { PaginationSchema } from '@shared';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(FindTreatmentPackagesQuery)
 export class FindTreatmentPackagesHandler
@@ -24,17 +24,11 @@ export class FindTreatmentPackagesHandler
     const { dto, ctx } = query;
     const { actor } = ctx;
 
-    if (!actor.clinicId)
-      throw new BadRequestException('Actor için klinik tanımlanmamış.');
-
-    const pagination = PaginationSchema.parse({
-      page: dto.page,
-      limit: dto.limit,
-    });
+    if (!actor.clinicId) throw new ClinicNotAssignedException();
 
     return this.treatmentPackageQueryRepo.findMany(
       actor.clinicId,
-      pagination,
+      dto.pagination,
       dto.isActive
     );
   }

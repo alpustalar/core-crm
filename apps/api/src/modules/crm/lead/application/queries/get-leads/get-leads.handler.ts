@@ -29,7 +29,7 @@ export class GetLeadsHandler
     });
 
     return {
-      data: result.items,
+      data: result.items.map((item) => item.toPersistence()),
       meta: { pagination: buildPaginationMeta(pagination, result.total) },
     };
   }

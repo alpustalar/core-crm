@@ -14,26 +14,31 @@ export class PatientCommandRepository
     super(prisma);
   }
 
-  async save(patient: Patient): Promise<Patient> {
-    const data = patient.toPersistence();
+  async findById(id: string): Promise<Patient | null> {
+    const raw = await this.db.patient.findUnique({ where: { id } });
+    return raw ? new Patient(raw) : null;
+  }
 
+  async save(entity: Patient) {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
     const raw = await this.db.patient.upsert({
-      where: { id: patient.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
-
-    patient.flushEvents();
+    entity.flushEvents();
     return new Patient(raw);
   }
 
   async saveMany(patients: Patient[]): Promise<void> {
     const prismaQueries = patients.map((patient) => {
-      const data = patient.toPersistence();
+      const create = patient.toPersistence();
+      const { id, ...update } = create;
       return this.db.patient.upsert({
-        where: { id: patient.id },
-        create: data,
-        update: data,
+        where: { id },
+        create,
+        update,
       });
     });
 

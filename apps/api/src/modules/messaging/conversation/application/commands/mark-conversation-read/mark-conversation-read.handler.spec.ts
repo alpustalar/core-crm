@@ -8,6 +8,7 @@ import {
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports/message-channel.port';
+import { MessageChannel } from '@prisma/client';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 describe('MarkConversationReadHandler', () => {
@@ -78,7 +79,11 @@ describe('MarkConversationReadHandler', () => {
       new MarkConversationReadCommand('clinic-1', 'conv-1', ctx)
     );
 
-    expect(channel.markRead).toHaveBeenCalledWith('clinic-1', 'wamid.in.1');
+    expect(channel.markRead).toHaveBeenCalledWith(
+      MessageChannel.WHATSAPP,
+      'clinic-1',
+      'wamid.in.1'
+    );
     expect(getSaved()!.unreadCount).toBe(0);
     expect(getSaved()!.agentReadAt).toBeInstanceOf(Date);
   });

@@ -1,4 +1,4 @@
-import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
+import { Account } from '@shared';
 
 /**
  * Hesap kodunu (ör. '120', '600.04') Account entity'sine çözer.
@@ -9,7 +9,7 @@ export class AccountResolver {
 
   constructor(accounts: Account[]) {
     for (const account of accounts) {
-      this.byCode.set(account.code.value, account);
+      this.byCode.set(account.code, account);
     }
   }
 

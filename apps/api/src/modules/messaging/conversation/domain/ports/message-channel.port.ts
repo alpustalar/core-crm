@@ -1,4 +1,4 @@
-import { MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@prisma/client';
 
 export const MESSAGE_CHANNEL_PORT = Symbol('MessageChannelPort');
 
@@ -19,9 +19,11 @@ export interface SendMessageTemplate {
 }
 
 export interface SendMessageRequest {
+  /** Hangi kanaldan gönderileceği — router doğru adapter'ı bu alana göre seçer. */
+  channel: MessageChannel;
   /** Hangi kliniğin kanalından gönderileceği (credential routing). */
   clinicId: string;
-  /** Alıcı E.164 telefon numarası. */
+  /** Alıcı kanal-özgü kontak kimliği: WhatsApp E.164 telefon, Telegram chatId. */
   toPhone: string;
   type: MessageType;
   body?: string | null;
@@ -45,8 +47,13 @@ export interface SendMessageResult {
 export interface MessageChannelPort {
   send(request: SendMessageRequest): Promise<SendMessageResult>;
   /**
-   * Gelen bir mesajı kanalda "okundu" işaretler (mavi tik). En güncel inbound mesaj
-   * id'si verilir; en iyi-çaba (best-effort) — başarısızlık çağıranı bloklamaz.
+   * Gelen bir mesajı kanalda "okundu" işaretler (mavi tik). Kanal yönlendirmesi için
+   * `channel` verilir; en güncel inbound mesaj id'si ile en iyi-çaba (best-effort) çalışır
+   * — başarısızlık çağıranı bloklamaz. (Telegram Bot API'de read-receipt yoktur → no-op.)
    */
-  markRead(clinicId: string, externalMessageId: string): Promise<void>;
+  markRead(
+    channel: MessageChannel,
+    clinicId: string,
+    externalMessageId: string
+  ): Promise<void>;
 }

@@ -38,22 +38,22 @@ export type HotelRoomOption = z.infer<typeof HotelRoomOptionSchema>;
 
 // --- CREATE BOOKING ---
 export const CreateHotelbedsBookingSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   reference: z.string(),
   hotelCode: z.string(),
   checkIn: z.date(),
   checkOut: z.date(),
   totalNet: z.number(),
-  currency: CurrencySchema, // Input şemasından gelen orijinal currency tanımı
+  currency: CurrencySchema,
   holderName: z.string(),
   holderSurname: z.string(),
-  rooms: z.unknown(), // Orijinal interface'deki unknown alanı koruyoruz
-  patientId: z.string().uuid().optional(),
-  leadId: z.string().uuid().optional(),
+  rooms: z.unknown(),
+  patientId: z.uuid().optional(),
+  leadId: z.uuid().optional(),
   remarks: z.string().optional(),
   serviceFee: z.number().optional(),
-  organizationId: z.string().uuid(),
-  clinicId: z.string().uuid().optional(),
+  organizationId: z.uuid(),
+  clinicId: z.uuid().optional(),
 });
 export type CreateHotelbedsBookingData = z.infer<
   typeof CreateHotelbedsBookingSchema
@@ -61,10 +61,11 @@ export type CreateHotelbedsBookingData = z.infer<
 
 // --- FILTERS ---
 export const FindHotelBookingsFilterSchema = z.object({
-  organizationId: z.string().uuid(),
-  patientId: z.string().uuid().optional(),
-  leadId: z.string().uuid().optional(),
+  organizationId: z.uuid(),
+  patientId: z.uuid().optional(),
+  leadId: z.uuid().optional(),
 });
+
 export type FindHotelBookingsFilter = z.infer<
   typeof FindHotelBookingsFilterSchema
 >;

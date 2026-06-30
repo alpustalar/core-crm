@@ -33,7 +33,7 @@ export class GetCashFlowHandler
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
     const accountIds = accounts
-      .filter((a) => a.isPostable && a.code.value.startsWith(CASH_CODE_PREFIX))
+      .filter((a) => a.isPostable && a.code.startsWith(CASH_CODE_PREFIX))
       .map((a) => a.id);
 
     const cashFlow = await this.journalQueryRepo.cashFlow({
@@ -50,7 +50,9 @@ export class GetCashFlowHandler
         clinicId,
         dateFrom: dateFrom ?? null,
         dateTo: dateTo ?? null,
-        openingBalance: new Decimal(cashFlow.openingBalance.toString()).toFixed(2),
+        openingBalance: new Decimal(cashFlow.openingBalance.toString()).toFixed(
+          2
+        ),
         closingBalance: closingBalance.toFixed(2),
         months,
         totals,

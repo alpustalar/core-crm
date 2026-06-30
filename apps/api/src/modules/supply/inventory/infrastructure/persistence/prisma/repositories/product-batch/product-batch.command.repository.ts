@@ -14,6 +14,11 @@ export class ProductBatchCommandRepository
     super(prisma);
   }
 
+  async findById(id: string) {
+    const raw = await this.db.productBatch.findUnique({ where: { id } });
+    return raw ? new ProductBatch(raw) : null;
+  }
+
   async save(batch: ProductBatch): Promise<ProductBatch> {
     const data = batch.toPersistence();
     const raw = await this.db.productBatch.upsert({

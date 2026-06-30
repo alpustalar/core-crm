@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { MarkInstallmentAsPaidCommand } from './mark-installment-as-paid.command';
 import {
   IPaymentCommandRepository,
@@ -34,8 +35,7 @@ export class MarkInstallmentAsPaidHandler
     await this.txManager.outboxRun(async () => {
       const payment =
         await this.paymentQueryRepo.findByInstallmentId(installmentId);
-      if (!payment)
-        throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
+      if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       payment.completeInstallment(installmentId);
       await this.paymentCommandRepo.save(payment);
@@ -44,9 +44,9 @@ export class MarkInstallmentAsPaidHandler
       // TODO: event domain event olarak completeInstallment içinde fırlatılacak
       this.paymentEventPublisher.paymentPaid({
         installmentId,
-        paymentId: payment.id,
-        appointmentId: payment.appointmentId,
-        clinicId: payment.clinicId,
+        paymentId: payment.id.value,
+        appointmentId: payment.appointmentId?.value ?? null,
+        clinicId: payment.clinicId.value,
         action: LogAction.PAYMENT_SUCCESS,
         type: LogType.INFO,
         details: details ?? 'Ödeme tahsil edildi',

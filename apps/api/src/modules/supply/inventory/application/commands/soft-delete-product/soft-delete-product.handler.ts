@@ -1,14 +1,18 @@
-import { IPolicyFactory, POLICY_FACTORY, } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import {
   IProductCommandRepository,
   IProductQueryRepository,
   PRODUCT_COMMAND_REPOSITORY,
   PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { SoftDeleteProductCommand } from './soft-delete-product.command';
+import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(SoftDeleteProductCommand)
 export class SoftDeleteProductHandler
@@ -26,15 +30,16 @@ export class SoftDeleteProductHandler
 
   async execute(command: SoftDeleteProductCommand): Promise<void> {
     const { productId, ctx } = command;
-    const { actor } = ctx;
+    const { actor, source } = ctx;
 
     const product = await this.productQueryRepo.findById(productId);
-    if (!product) throw new NotFoundException('Ürün bulunamadı.');
+    if (!product) throw new ProductNotFoundException();
 
     this.policyFactory
       .organization(actor)
-      .evaluator.check(
-        (p) => p.isOwnOrganization(product.organizationId),
+      .evaluator.systemBypass(source)
+      .check(
+        (p) => p.isOwnOrganization(product.organizationId.value),
         'Ürün silme yetkiniz yok.'
       )
       .orThrow();

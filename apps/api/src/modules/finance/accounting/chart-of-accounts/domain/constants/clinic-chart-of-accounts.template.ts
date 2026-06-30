@@ -1,6 +1,7 @@
 import { AccountSideSchema, AccountTypeSchema } from '@shared';
 import { AccountSideType as AccountSide } from '@input-type-schemas/AccountSideSchema';
 import { AccountTypeType as AccountType } from '@input-type-schemas/AccountTypeSchema';
+import { ACCOUNTING_RULES } from '@modules/finance/shared/domain/constants/accounting-rules.constant';
 
 /**
  * Bir tenant (organization) açılışında kopyalanacak klinik TDHP şablonu.
@@ -28,7 +29,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
   [
     // ─────────────────────────── 1 — Dönen Varlıklar ───────────────────────────
     {
-      code: '100',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.CASH_100,
       name: 'Kasa',
       parentCode: null,
       type: ASSET,
@@ -44,7 +45,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '102',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.BANKS_102,
       name: 'Bankalar',
       parentCode: null,
       type: ASSET,
@@ -60,7 +61,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '108',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.POS_108,
       name: 'Diğer Hazır Değerler (POS)',
       parentCode: null,
       type: ASSET,
@@ -125,7 +126,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '191',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.VAT_INDUCED_191,
       name: 'İndirilecek KDV',
       parentCode: null,
       type: ASSET,
@@ -275,7 +276,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '391',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.VAT_CALCULATED_391,
       name: 'Hesaplanan KDV',
       parentCode: null,
       type: LIABILITY,
@@ -309,7 +310,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '590',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.NET_PROFIT_590,
       name: 'Dönem Net Kârı',
       parentCode: null,
       type: EQUITY,
@@ -317,7 +318,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '591',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.NET_LOSS_591,
       name: 'Dönem Net Zararı (-)',
       parentCode: null,
       type: EQUITY,
@@ -463,7 +464,7 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
-      code: '690',
+      code: ACCOUNTING_RULES.TARGET_ACCOUNTS.POOL_690,
       name: 'Dönem Kârı veya Zararı',
       parentCode: null,
       type: REVENUE,

@@ -7,8 +7,13 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { BadRequestException } from '@nestjs/common';
+import {
+  InstallmentTotalMismatchException,
+  InvalidInstallmentPlanException,
+} from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { CreatePaymentProps } from '@modules/finance/payment/domain/payment.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 
 export type PaymentWithInstallmentsData = IPayment & {
   installments: PaymentInstallment[];
@@ -17,45 +22,45 @@ export type PaymentWithInstallmentsData = IPayment & {
 export class Payment extends AggregateRoot {
   constructor(data: PaymentWithInstallmentsData) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._patientId = data.patientId;
-    this._appointmentId = data.appointmentId;
-    this._providerId = data.providerId;
-    this._totalAmount = Money.create(data.totalAmount, data.currency);
+    this._id = UUID.create(data.id).orThrow();
+    this._clinicId = UUID.create(data.clinicId).orThrow();
+    this._patientId = FirebaseUid.create(data.patientId).orThrow();
+    this._appointmentId = UUID.create(data.appointmentId).instance ?? null;
+    this._providerId = UUID.create(data.providerId).instance ?? null;
+    this._totalAmount = Money.create(data.totalAmount, data.currency).orThrow();
     this._status = data.status;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._installments = [...data.installments];
   }
 
-  private _id: string;
+  private _id: UUID;
 
-  get id(): string {
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
+  private _clinicId: UUID;
 
-  get clinicId(): string {
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _patientId: string;
+  private _patientId: FirebaseUid;
 
-  get patientId(): string {
+  get patientId(): FirebaseUid {
     return this._patientId;
   }
 
-  private _appointmentId: string | null;
+  private _appointmentId: UUID | null;
 
-  get appointmentId(): string | null {
+  get appointmentId(): UUID | null {
     return this._appointmentId;
   }
 
-  private _providerId: string | null;
+  private _providerId: UUID | null;
 
-  get providerId(): string | null {
+  get providerId(): UUID | null {
     return this._providerId;
   }
 
@@ -99,9 +104,7 @@ export class Payment extends AggregateRoot {
     const now = new Date();
 
     if (!props.installments || props.installments.length === 0) {
-      throw new BadRequestException(
-        'Ödeme oluşturulabilmesi için en az bir taksit planı girilmelidir.'
-      );
+      throw new InvalidInstallmentPlanException();
     }
 
     const totalInstallmentMoney = props.installments
@@ -109,18 +112,21 @@ export class Payment extends AggregateRoot {
       .reduce((total, current) => total.add(current));
 
     if (!props.totalAmount.equals(totalInstallmentMoney)) {
-      throw new BadRequestException(
+      throw new InstallmentTotalMismatchException(
         `Finansal Tutarsızlık: Taksitlerin toplamı (${totalInstallmentMoney.toApiFormat()} ${totalInstallmentMoney.currency}), ` +
           `ana ödeme tutarı (${props.totalAmount.toApiFormat()} ${props.totalAmount.currency}) ile eşleşmiyor!`
       );
     }
 
+    const paymentId =
+      UUID.create(props.id).instance?.value ?? UUID.generate().value;
+
     return new Payment({
-      id: props.id,
-      clinicId: props.clinicId,
-      patientId: props.patientId,
-      appointmentId: props.appointmentId ?? null,
-      providerId: props.providerId ?? null,
+      id: paymentId,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      patientId: FirebaseUid.create(props.patientId).orThrow().value,
+      appointmentId: UUID.create(props.clinicId).instance?.value ?? null,
+      providerId: UUID.create(props.providerId).instance?.value ?? null,
       totalAmount: props.totalAmount.amount,
       currency: props.totalAmount.currency,
       status: PaymentStatusSchema.enum.PENDING,
@@ -129,7 +135,7 @@ export class Payment extends AggregateRoot {
       installments: props.installments.map((inst) => {
         return {
           id: inst.id,
-          paymentId: props.id,
+          paymentId,
           installmentNo: inst.installmentNo,
           amount: inst.money.amount,
           currency: inst.money.currency,
@@ -240,11 +246,11 @@ export class Payment extends AggregateRoot {
 
   toPersistence(): IPayment {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      patientId: this._patientId,
-      appointmentId: this._appointmentId,
-      providerId: this._providerId,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      patientId: this._patientId.value,
+      appointmentId: this._appointmentId?.value ?? null,
+      providerId: this._providerId?.value ?? null,
 
       totalAmount: this._totalAmount.amount,
       currency: this._totalAmount.currency,

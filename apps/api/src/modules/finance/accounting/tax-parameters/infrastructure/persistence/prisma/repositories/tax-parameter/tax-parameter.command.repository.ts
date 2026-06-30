@@ -14,12 +14,18 @@ export class TaxParameterCommandRepository
     super(prisma);
   }
 
-  async save(entity: TaxParameter): Promise<TaxParameter> {
-    const data = entity.toPersistence();
+  async findById(id: string): Promise<TaxParameter | null> {
+    const raw = await this.db.taxParameter.findUnique({ where: { id } });
+    return raw ? new TaxParameter(raw) : null;
+  }
+
+  async save(entity: TaxParameter) {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
     const raw = await this.db.taxParameter.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
     entity.flushEvents();
     return new TaxParameter(raw);

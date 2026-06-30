@@ -1,5 +1,4 @@
-import { PosDevice } from '@prisma/client';
-import { CreatePosDeviceData } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 
 export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
   'IPosDeviceCommandRepository'
@@ -7,8 +6,8 @@ export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
 export const POS_DEVICE_QUERY_REPOSITORY = Symbol('IPosDeviceQueryRepository');
 
 export interface IPosDeviceCommandRepository {
-  create(data: CreatePosDeviceData): Promise<PosDevice>;
-  deactivate(id: string): Promise<PosDevice>;
+  save(entity: PosDevice): Promise<PosDevice>;
+  deactivate(id: string): Promise<void>;
   softDelete(id: string): Promise<void>;
 }
 

@@ -2,7 +2,7 @@ import { Module as IModule } from '@shared';
 
 import { Subscription } from '@modules/finance/subscription/domain/entities/subscription.entity';
 import { SubscriptionItem } from '@modules/finance/subscription/domain/entities/subscription-item.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { SubStatusType as SubStatus } from '@input-type-schemas/SubStatusSchema';
 import {
   AddItemData,

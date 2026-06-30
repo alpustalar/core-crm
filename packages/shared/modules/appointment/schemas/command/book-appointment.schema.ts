@@ -47,6 +47,7 @@ export const BookAppointmentSchema = z
     notes: z.string().optional(),
     externalId: z.string().optional(),
     externalSystem: z.enum(['WHATSAPP', 'N8N', 'GOOGLE_CALENDAR']).optional(),
+    isConsultation: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (!data.endTime && !data.duration) {

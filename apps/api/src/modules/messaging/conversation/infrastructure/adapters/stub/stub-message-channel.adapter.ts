@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { MessageChannel } from '@prisma/client';
 import {
   MessageChannelPort,
   SendMessageRequest,
@@ -23,9 +24,13 @@ export class StubMessageChannelAdapter implements MessageChannelPort {
     return Promise.resolve({ externalId });
   }
 
-  markRead(clinicId: string, externalMessageId: string): Promise<void> {
+  markRead(
+    channel: MessageChannel,
+    clinicId: string,
+    externalMessageId: string
+  ): Promise<void> {
     this.logger.log(
-      `Stub kanal — okundu işareti GÖNDERİLMEDİ. clinicId=${clinicId}, messageId=${externalMessageId}`
+      `Stub kanal — okundu işareti GÖNDERİLMEDİ. channel=${channel}, clinicId=${clinicId}, messageId=${externalMessageId}`
     );
     return Promise.resolve();
   }

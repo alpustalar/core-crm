@@ -27,5 +27,7 @@ export class SoftDeleteAppointmentsByOrganizationIdHandler
     const { organizationId } = command;
 
     await this.appointmentRepo.softDeleteAllByOrganizationId(organizationId);
+
+    // TODO: burda event tetiklenecek. organization Id ile appointmentlar bulunur işlem başarılı olursa appointment idleri fırlatılır. processorde de appointmenti olan patientlara mail mesaj vs bi şeyler yollanır. redisle ilgili işlemler varsa onlar halledilir.
   }
 }

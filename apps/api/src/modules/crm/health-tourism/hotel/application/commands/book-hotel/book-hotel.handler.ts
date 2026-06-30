@@ -40,6 +40,8 @@ export class BookHotelHandler
 
     const bookingId = randomUUID();
 
+    // TODO: entity'de static create methodu oluşturulacak. save ile kayıt yapılır. create methodunda domain event pushlanıcak
+
     const booking = await this.txManager.run(async () => {
       return this.bookingCommandRepo.create({
         id: bookingId,
@@ -48,7 +50,7 @@ export class BookHotelHandler
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
         totalNet: result.totalNet,
-        currency: Currency.create(result.currency).value,
+        currency: Currency.create(result.currency).orThrow().value,
         holderName: dto.holderName,
         holderSurname: dto.holderSurname,
         rooms: result.rooms,

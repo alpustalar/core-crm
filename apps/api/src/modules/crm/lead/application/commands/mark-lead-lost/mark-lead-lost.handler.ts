@@ -1,4 +1,4 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { MarkLeadLostCommand } from './mark-lead-lost.command';
 import {
@@ -17,6 +17,7 @@ import {
   LogType,
 } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 
 @CommandHandler(MarkLeadLostCommand)
 export class MarkLeadLostHandler
@@ -38,7 +39,7 @@ export class MarkLeadLostHandler
 
     await this.txManager.run(async () => {
       const lead = await this.leadQueryRepo.findById(leadId);
-      if (!lead) throw new NotFoundException('Lead bulunamadı.');
+      if (!lead) throw new LeadNotFoundException();
 
       lead.markLost(dto.lostReason);
       const saved = await this.leadCommandRepo.save(lead);

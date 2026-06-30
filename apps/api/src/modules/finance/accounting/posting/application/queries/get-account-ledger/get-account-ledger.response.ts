@@ -1,6 +1,7 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
 import { AccountCode } from '@modules/finance/accounting/chart-of-accounts/domain/value-objects/account-code.vo';
 import { AccountSideType } from '@input-type-schemas/AccountSideSchema';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 export interface LedgerAccountHeader {
   id: string;
@@ -23,6 +24,7 @@ export interface LedgerMovement {
 
 export interface AccountLedgerReport {
   clinicId: string;
+  currency: CurrencyType; // raporun fonksiyonel (defter) para birimi — tüm tutarlar bu cinsten
   account: LedgerAccountHeader;
   dateFrom: Date | null;
   dateTo: Date | null;

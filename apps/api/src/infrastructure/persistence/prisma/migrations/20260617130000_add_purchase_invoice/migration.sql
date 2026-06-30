@@ -11,7 +11,9 @@ CREATE TABLE "purchase_invoices" (
     "net_total" DECIMAL(12,2) NOT NULL,
     "vat_total" DECIMAL(12,2) NOT NULL,
     "grand_total" DECIMAL(12,2) NOT NULL,
-    "currency" "Currency" NOT NULL DEFAULT 'TRY',
+    -- NOT: "Currency" enum tipi henüz oluşturulmadı (170914_currency_enum_common_schema'da yaratılıyor).
+    -- Bu kolon TEXT olarak oluşturulur; 212226_currency migration'ı onu "Currency" enum'a çevirir.
+    "currency" TEXT NOT NULL DEFAULT 'TRY',
     "status" TEXT NOT NULL DEFAULT 'RECORDED',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,

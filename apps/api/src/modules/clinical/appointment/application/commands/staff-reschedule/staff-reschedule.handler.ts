@@ -1,14 +1,18 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { StaffRescheduleCommand } from './staff-reschedule.command';
 import { StaffRescheduleCommandResponse } from './staff-reschedule.response';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
-  APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentCommandRepository,
-  IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
+import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(StaffRescheduleCommand)
 export class StaffRescheduleHandler
@@ -18,8 +22,8 @@ export class StaffRescheduleHandler
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
-    @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -28,36 +32,27 @@ export class StaffRescheduleHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    const {
-      appointmentId,
-      providerId: dtoProviderId,
-      startTime: startTimeDto,
-      endTime: dtoEndTime,
-      duration,
-      notes,
-      treatmentId,
-    } = dto;
+    const { appointmentId, startTime, duration, notes, treatmentId } = dto;
 
-    const startTime = new Date(startTimeDto);
-
-    const endTime = Appointment.calculateEndTimeOrThrow(
+    const endTime = Appointment.calculateEndTime(
       startTime,
-      dtoEndTime,
+      dto.endTime,
       duration
-    );
+    ).orThrow();
 
-    const appointment = await this.appointmentQueryRepo.findById(appointmentId);
-    if (!appointment) {
-      throw new NotFoundException('Randevu bulunamadı.');
-    }
+    const appointment =
+      await this.appointmentCommandRepo.findById(appointmentId);
+    if (!appointment) throw new AppointmentNotFoundException();
 
-    if (appointment.clinicId !== actor.clinicId) {
-      throw new ForbiddenException(
+    this.policyFactory
+      .appointment(actor)
+      .evaluator.check(
+        (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuyu yeniden zamanlamak için yetkiniz yok.'
-      );
-    }
+      )
+      .orThrow(APPOINTMENT_EVENTS.RESCHEDULE);
 
-    const effectiveProviderId = dtoProviderId ?? appointment.providerId;
+    const effectiveProviderId = dto.providerId ?? appointment.providerId.value;
 
     appointment.reschedule(
       startTime,

@@ -20,9 +20,15 @@ export class GetPaymentByAppointmentIdHandler
     private readonly paymentQueryRepo: IPaymentQueryRepository
   ) {}
 
-  execute(
+  async execute(
     query: GetPaymentByAppointmentIdQuery
   ): Promise<GetPaymentByAppointmentIdResponse> {
-    return this.paymentQueryRepo.findByAppointmentId(query.appointmentId);
+    const payment = await this.paymentQueryRepo.findByAppointmentId(
+      query.appointmentId
+    );
+
+    return {
+      data: payment ? payment.toPersistence() : null,
+    };
   }
 }

@@ -1,7 +1,4 @@
-import { ClinicAvailability, ClinicException } from '@shared';
-
-export type IClinicAvailability = ClinicAvailability;
-export type IClinicException = ClinicException;
+import { ClinicAvailability } from '@modules/organization/clinic/domain/entities/clinic-availability.entity';
 
 export const CLINIC_AVAILABILITY_QUERY_REPOSITORY = Symbol(
   'IClinicAvailabilityQueryRepository'
@@ -11,23 +8,7 @@ export interface IClinicAvailabilityQueryRepository {
   findByClinicAndDay(
     clinicId: string,
     dayOfWeek: number
-  ): Promise<IClinicAvailability | null>;
+  ): Promise<ClinicAvailability | null>;
 
-  findAllByClinicId(clinicId: string): Promise<IClinicAvailability[]>;
-
-  findExceptionByClinicAndDate(
-    clinicId: string,
-    date: Date
-  ): Promise<IClinicException | null>;
-
-  findExceptionsByDateRange(
-    clinicId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<IClinicException[]>;
-
-  findClosedExceptionByDate(
-    clinicId: string,
-    date: Date
-  ): Promise<Partial<IClinicException> | null>;
+  findAllByClinicId(clinicId: string): Promise<ClinicAvailability[]>;
 }

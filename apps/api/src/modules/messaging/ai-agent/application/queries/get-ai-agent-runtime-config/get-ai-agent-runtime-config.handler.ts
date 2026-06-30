@@ -31,6 +31,7 @@ export class GetAiAgentRuntimeConfigHandler
     return {
       data: {
         isEnabled: config.isEnabled,
+        provider: config.provider,
         model: config.model,
         systemPrompt: config.systemPrompt,
         maxTokens: config.maxTokens,

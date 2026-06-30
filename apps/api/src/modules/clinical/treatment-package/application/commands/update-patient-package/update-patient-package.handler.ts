@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UpdatePatientPackageCommand } from './update-patient-package.command';
 import type { UpdatePatientPackageResponse } from './update-patient-package.response';
 import {
@@ -8,17 +8,18 @@ import {
   PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
   PATIENT_TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
+import { PatientTreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
 
 @CommandHandler(UpdatePatientPackageCommand)
-export class UpdatePatientPackageHandler implements ICommandHandler<
-  UpdatePatientPackageCommand,
-  UpdatePatientPackageResponse
-> {
+export class UpdatePatientPackageHandler
+  implements
+    ICommandHandler<UpdatePatientPackageCommand, UpdatePatientPackageResponse>
+{
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly patientPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
     @Inject(PATIENT_TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly patientPackageQueryRepo: IPatientTreatmentPackageQueryRepository
+    private readonly patientTreatmentPackageQueryRepo: IPatientTreatmentPackageQueryRepository
   ) {}
 
   async execute(
@@ -26,15 +27,16 @@ export class UpdatePatientPackageHandler implements ICommandHandler<
   ): Promise<UpdatePatientPackageResponse> {
     const { patientPackageId, dto } = command;
 
-    const existing =
-      await this.patientPackageQueryRepo.findById(patientPackageId);
-    if (!existing) throw new NotFoundException('Hasta paketi bulunamadı');
+    const patientTreatmentPackage =
+      await this.patientTreatmentPackageQueryRepo.findById(patientPackageId);
 
-    const updated = await this.patientPackageCommandRepo.update(
-      patientPackageId,
-      dto
-    );
+    if (!patientTreatmentPackage)
+      throw new PatientTreatmentPackageNotFoundException();
 
-    return updated.id;
+    patientTreatmentPackage.update(dto);
+
+    await this.patientPackageCommandRepo.save(patientTreatmentPackage);
+
+    return patientTreatmentPackage.id.value;
   }
 }

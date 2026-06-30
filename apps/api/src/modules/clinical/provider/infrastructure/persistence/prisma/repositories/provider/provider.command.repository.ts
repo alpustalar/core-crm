@@ -14,15 +14,19 @@ export class ProviderCommandRepository
     super(prisma);
   }
 
-  async save(entity: Provider): Promise<Provider> {
-    const data = entity.toPersistence();
+  async findById(id: string): Promise<Provider | null> {
+    const raw = await this.db.provider.findUnique({ where: { id } });
+    return raw ? new Provider(raw) : null;
+  }
 
+  async save(entity: Provider) {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
     const raw = await this.db.provider.upsert({
-      where: { id: entity.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
-
     entity.flushEvents();
     return new Provider(raw);
   }
@@ -45,5 +49,4 @@ export class ProviderCommandRepository
 
     providers.forEach((provider) => provider.flushEvents());
   }
-
 }

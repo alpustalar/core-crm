@@ -6,6 +6,8 @@ import { z } from 'zod';
  */
 export const ConfigureAiAgentSchema = z.object({
   isEnabled: z.boolean().optional(),
+  // Sağlayıcı seçimi: ANTHROPIC (Claude) veya GEMINI (ucuz alternatif).
+  provider: z.enum(['ANTHROPIC', 'GEMINI']).optional(),
   model: z.string().min(1).optional(),
   systemPrompt: z.string().optional(),
   apiKey: z.string().min(1).optional(),

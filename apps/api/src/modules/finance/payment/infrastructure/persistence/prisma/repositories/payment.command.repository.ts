@@ -14,13 +14,23 @@ export class PaymentCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<Payment | null> {
+    const raw = await this.db.payment.findUnique({
+      where: { id },
+      include: { installments: { orderBy: { installmentNo: 'asc' } } },
+    });
+    return raw ? new Payment(raw) : null;
+  }
+
   async save(entity: Payment): Promise<Payment> {
-    const data = entity.toPersistence();
+    const create = entity.toPersistence();
+
+    const { id, ...update } = create;
 
     const paymentOp = this.db.payment.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
     const installmentOps = entity.installments.map((inst) =>
       this.db.paymentInstallment.upsert({

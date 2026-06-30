@@ -6,6 +6,10 @@ import {
   IClinicAvailabilityQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
 import { GetClinicScheduleQueryResponse } from '@modules/organization/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.response';
+import {
+  CLINIC_EXCEPTION_QUERY_REPOSITORY,
+  IClinicExceptionQueryRepository,
+} from '@modules/organization/clinic/domain/repositories/clinix-exception.repository.interface';
 
 @QueryHandler(GetClinicScheduleQuery)
 export class GetClinicScheduleHandler
@@ -14,7 +18,9 @@ export class GetClinicScheduleHandler
 {
   constructor(
     @Inject(CLINIC_AVAILABILITY_QUERY_REPOSITORY)
-    private readonly clinicAvailabilityRepo: IClinicAvailabilityQueryRepository
+    private readonly clinicAvailabilityQueryRepo: IClinicAvailabilityQueryRepository,
+    @Inject(CLINIC_EXCEPTION_QUERY_REPOSITORY)
+    private readonly clinicExceptionQueryRepo: IClinicExceptionQueryRepository
   ) {}
 
   async execute(
@@ -23,8 +29,8 @@ export class GetClinicScheduleHandler
     const { clinicId, startDate, endDate } = query;
 
     const [availabilities, exceptions] = await Promise.all([
-      this.clinicAvailabilityRepo.findAllByClinicId(clinicId),
-      this.clinicAvailabilityRepo.findExceptionsByDateRange(
+      this.clinicAvailabilityQueryRepo.findAllByClinicId(clinicId),
+      this.clinicExceptionQueryRepo.findExceptionsByDateRange(
         clinicId,
         startDate,
         endDate

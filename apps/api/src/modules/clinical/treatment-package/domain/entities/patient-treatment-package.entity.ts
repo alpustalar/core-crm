@@ -8,20 +8,33 @@ import {
   TreatmentPackage,
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import {
+  CreatePatientTreatmentPackageProps,
+  UpdatePatientTreatmentPackageProps,
+} from '@modules/clinical/treatment-package/domain/contracts/patient-treatment-package.contracts';
+import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import {
+  InvalidTreatmentPackageBulkUpdateException,
+  InvalidTreatmentPackageCancelException,
+  InvalidTreatmentPackageCompletionException,
+  InvalidTreatmentPackageResumeException,
+  InvalidTreatmentPackageStatusException,
+} from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
-export class PatientTreatmentPackage
-  extends AggregateRoot
-  implements IPatientTreatmentPackage
-{
+export class PatientTreatmentPackage extends AggregateRoot {
   constructor(data: IPatientTreatmentPackage) {
     super();
-    this._id = data.id;
+
+    this._id = UUID.fromTrusted(data.id);
     this._patientId = data.patientId;
-    this._packageId = data.packageId;
-    this._providerId = data.providerId;
+    this._packageId = UUID.fromTrusted(data.packageId);
+    this._providerId = UUID.fromTrusted(data.providerId);
     this._paymentId = data.paymentId ?? null;
-    this._startDate = data.startDate;
-    this._endDate = data.endDate;
+
+    this._dateRange = DateRange.create(data.startDate, data.endDate).orThrow();
+
     this._notes = data.notes ?? null;
     this._status = data.status;
     this._usedExaminationCount = data.usedExaminationCount;
@@ -30,8 +43,8 @@ export class PatientTreatmentPackage
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -40,29 +53,19 @@ export class PatientTreatmentPackage
     return this._patientId;
   }
 
-  private _packageId: string;
-  get packageId(): string {
+  private _packageId: UUID;
+  get packageId(): UUID {
     return this._packageId;
   }
 
-  private _providerId: string;
-  get providerId(): string {
+  private _providerId: UUID;
+  get providerId(): UUID {
     return this._providerId;
   }
 
   private _paymentId: string | null;
   get paymentId(): string | null {
     return this._paymentId;
-  }
-
-  private _startDate: Date;
-  get startDate(): Date {
-    return this._startDate;
-  }
-
-  private _endDate: Date;
-  get endDate(): Date {
-    return this._endDate;
   }
 
   private _notes: string | null;
@@ -100,6 +103,11 @@ export class PatientTreatmentPackage
     return this._patient;
   }
 
+  private _dateRange: DateRange;
+  get dateRange(): DateRange {
+    return this._dateRange;
+  }
+
   private _package: TreatmentPackage | null;
   get package(): TreatmentPackage | null {
     return this._package;
@@ -120,40 +128,79 @@ export class PatientTreatmentPackage
   }
 
   get isExpired(): boolean {
-    return this._endDate < new Date();
+    return this._dateRange.endDate < new Date();
   }
 
-  static create(props: IPatientTreatmentPackage): PatientTreatmentPackage {
-    if (props.endDate <= props.startDate) {
-      throw new Error(
-        'Paket bitiş tarihi, başlangıç tarihinden önce veya başlangıç tarihine eşit olamaz.'
-      );
-    }
+  static create(
+    props: CreatePatientTreatmentPackageProps
+  ): PatientTreatmentPackage {
+    const now = DateTimeManager.create();
 
-    const now = new Date();
+    const dateRange = DateRange.create(
+      props.startDate,
+      props.endDate
+    ).orThrow();
+
+    const id = UUID.create(props.id).orThrow() ?? UUID.generate();
 
     return new PatientTreatmentPackage({
-      id: props.id,
+      id: id.value,
       patientId: props.patientId,
-      packageId: props.packageId,
-      providerId: props.providerId,
+      packageId: UUID.create(props.packageId).orThrow().value,
+      providerId: UUID.create(props.providerId).orThrow().value,
       paymentId: props.paymentId ?? null,
-      startDate: props.startDate,
-      endDate: props.endDate,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
       notes: props.notes ?? null,
-
       status: PatientPackageStatusSchema.enum.ACTIVE,
       usedExaminationCount: 0,
       usedControlCount: 0,
-
       createdAt: now,
       updatedAt: now,
     });
   }
 
+  update(props: UpdatePatientTreatmentPackageProps): void {
+    if (props.status && props.status !== this._status) {
+      if (
+        this._status === PatientPackageStatusSchema.enum.COMPLETED ||
+        this._status === PatientPackageStatusSchema.enum.CANCELLED
+      ) {
+        throw new InvalidTreatmentPackageBulkUpdateException(
+          this.status,
+          props.status,
+          this.id.value
+        );
+      }
+      this._status = props.status;
+    }
+
+    if (props.providerId !== undefined) {
+      this._providerId = UUID.create(props.providerId).orThrow();
+    }
+
+    if (props.notes !== undefined) {
+      this._notes = props.notes;
+    }
+
+    if (props.startDate !== undefined || props.endDate !== undefined) {
+      const finalStartDate = props.startDate ?? this._dateRange.startDate;
+      const finalEndDate = props.endDate ?? this._dateRange.endDate;
+
+      this._dateRange = DateRange.create(
+        finalStartDate,
+        finalEndDate
+      ).orThrow();
+    }
+
+    this._updatedAt = DateTimeManager.create();
+  }
   complete(): void {
     if (this._status !== PatientPackageStatusSchema.enum.ACTIVE) {
-      throw new Error('Yalnızca aktif paketler tamamlanabilir.');
+      throw new InvalidTreatmentPackageCompletionException(
+        this.status,
+        this.id.value
+      );
     }
     this._status = PatientPackageStatusSchema.enum.COMPLETED;
   }
@@ -163,8 +210,9 @@ export class PatientTreatmentPackage
       this._status === PatientPackageStatusSchema.enum.COMPLETED ||
       this._status === PatientPackageStatusSchema.enum.CANCELLED
     ) {
-      throw new Error(
-        'Tamamlanan veya zaten iptal edilmiş paketler iptal edilemez.'
+      throw new InvalidTreatmentPackageCancelException(
+        this.status,
+        this.id.value
       );
     }
     this._status = PatientPackageStatusSchema.enum.CANCELLED;
@@ -172,15 +220,19 @@ export class PatientTreatmentPackage
 
   suspend(): void {
     if (this._status !== PatientPackageStatusSchema.enum.ACTIVE) {
-      throw new Error('Yalnızca aktif paketler askıya alınabilir.');
+      throw new InvalidTreatmentPackageStatusException(
+        this.status,
+        this.id.value
+      );
     }
     this._status = PatientPackageStatusSchema.enum.SUSPENDED;
   }
 
   resume(): void {
     if (this._status !== PatientPackageStatusSchema.enum.SUSPENDED) {
-      throw new Error(
-        'Yalnızca askıya alınmış paketler yeniden aktive edilebilir.'
+      throw new InvalidTreatmentPackageResumeException(
+        this.status,
+        this.id.value
       );
     }
     this._status = PatientPackageStatusSchema.enum.ACTIVE;
@@ -196,19 +248,19 @@ export class PatientTreatmentPackage
 
   toPersistence(): IPatientTreatmentPackage {
     return {
-      id: this._id,
+      id: this._id.value,
       patientId: this._patientId,
-      packageId: this._packageId,
-      providerId: this._providerId,
+      packageId: this._packageId.value,
+      providerId: this._providerId.value,
       paymentId: this._paymentId,
-      startDate: this._startDate,
-      endDate: this._endDate,
+      startDate: this.dateRange.startDate,
+      endDate: this.dateRange.endDate,
       notes: this._notes,
       status: this._status,
       usedExaminationCount: this._usedExaminationCount,
       usedControlCount: this._usedControlCount,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

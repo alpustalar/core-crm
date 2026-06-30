@@ -14,8 +14,13 @@ import {
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
   IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {
+  CompletedInstallmentNotFoundException,
+  PaymentNotFoundException,
+} from '@modules/finance/payment/domain/exceptions/payment.exceptions';
+import { IyzicoPaymentRecordNotFoundException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   IIyzicoProvider,
@@ -51,28 +56,26 @@ export class RefundPaymentHandler
   ): Promise<RefundPaymentCommandResponse> {
     const { paymentId, ip } = command;
 
-    const payment = await this.queryBus.execute(
+    const { data: payment } = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
-    if (!payment) {
-      throw new NotFoundException(`Ödeme bulunamadı: paymentId=${paymentId}`);
-    }
+    if (!payment) throw new PaymentNotFoundException(paymentId);
 
-    this.paymentDomainService.validateRefundEligibilityOrThrow(payment);
+    this.paymentDomainService.validate.refundEligibility(payment).orThrow();
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
     );
     if (!completedInstallment) {
-      throw new BadRequestException(`Tamamlanmış taksit bulunamadı.`);
+      throw new CompletedInstallmentNotFoundException();
     }
 
     const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
       completedInstallment.id
     );
     if (!iyzicoTx?.iyzicoPaymentTransactionId) {
-      throw new BadRequestException(
-        `Bu ödeme için iyzico işlem transaction kaydı bulunamadı.`
+      throw new IyzicoPaymentRecordNotFoundException(
+        'Bu ödeme için iyzico işlem transaction kaydı bulunamadı.'
       );
     }
 
@@ -87,12 +90,14 @@ export class RefundPaymentHandler
       currency: 'TRY',
     });
 
-    this.paymentDomainService.checkIyzicoSdkStatusOrThrow({
-      paymentId,
-      conversationId,
-      sdkErrorMessage: sdkResult.errorMessage,
-      status: sdkResult.status,
-    });
+    this.paymentDomainService.check
+      .iyzicoSdkStatus({
+        paymentId,
+        conversationId,
+        sdkErrorMessage: sdkResult.errorMessage,
+        status: sdkResult.status,
+      })
+      .orThrow();
 
     await this.txManager.outboxRun(async () => {
       iyzicoTx.markAsRefunded({ rawResponse: sdkResult });
@@ -104,7 +109,7 @@ export class RefundPaymentHandler
 
       // TODO: entity oluşturulacak. event entity içinde addDomainEvent ile pushlanacak save ile flush edilecek
       this.paymentEventPublisher.paymentRefund({
-        installmentId: completedInstallment.id,
+        installmentId: completedInstallment?.id,
         paymentId: payment.id,
         appointmentId: payment.appointmentId ?? null,
         clinicId: payment.clinicId,

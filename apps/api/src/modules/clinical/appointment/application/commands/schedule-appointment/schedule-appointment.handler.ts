@@ -2,7 +2,7 @@ import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ScheduleAppointmentCommand } from './schedule-appointment.command';
 import { ScheduleAppointmentCommandResponse } from './schedule-appointment.response';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
@@ -14,14 +14,16 @@ import { ExecutionContextFactory } from '@src/domain/common/execution/execution-
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { TimeZoneSchema } from '@shared';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
 interface ResolvePatientProps {
-  patientId?: string;
-  dtoPatientName?: string;
-  dtoPatientPhone?: string;
-  dtoPatientEmail?: string;
+  patientId?: string | null;
+  dtoPatientName?: string | null;
+  dtoPatientPhone: string;
+  dtoPatientEmail?: string | null;
 }
 
 @CommandHandler(ScheduleAppointmentCommand)
@@ -49,9 +51,7 @@ export class ScheduleAppointmentHandler
     const { ctx, dto } = command;
     const { actor } = ctx;
 
-    if (!actor.clinicId) {
-      throw new BadRequestException('Actor için klinik tanımlanmamış.');
-    }
+    if (!actor.clinicId) throw new ClinicNotAssignedException();
 
     this.policyFactory
       .appointment(actor)
@@ -82,10 +82,14 @@ export class ScheduleAppointmentHandler
         dtoPatientEmail,
       });
 
+    if (!patientPhone) {
+      throw new Error('Patient phone is required');
+    }
+
     const appointment = Appointment.schedule({
       patientName,
       patientPhone,
-      patientEmail,
+      patientEmail: patientEmail ?? null,
       patientId,
       providerId,
       clinicId: actor.clinicId,
@@ -94,11 +98,13 @@ export class ScheduleAppointmentHandler
       endTime: dtoEndTime,
       duration: duration ?? DEFAULT_DURATION_MINUTES,
       notes,
+      timezone: TimeZoneSchema.enum.Europe_Istanbul,
+      isConsultation: dto.isConsultation,
     });
 
     return this.transactionManager.run(async () => {
       const saved = await this.appointmentRepo.save(appointment);
-      return saved.id;
+      return saved.id.value;
     });
   }
 
@@ -124,7 +130,7 @@ export class ScheduleAppointmentHandler
 
     return {
       patientName: dtoPatientName!,
-      patientPhone: dtoPatientPhone!,
+      patientPhone: dtoPatientPhone,
       patientEmail: dtoPatientEmail,
     };
   }

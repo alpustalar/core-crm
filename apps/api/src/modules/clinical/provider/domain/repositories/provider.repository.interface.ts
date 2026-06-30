@@ -1,23 +1,24 @@
 import { Pagination } from '@shared';
 import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
+import { Paginated } from '@common/interfaces/paginated.type';
+import { ProviderDirectoryEntry } from '@modules/clinical/provider/domain/contracts/provider.contracts';
 
 export const PROVIDER_COMMAND_REPOSITORY = Symbol('IProviderCommandRepository');
 export const PROVIDER_QUERY_REPOSITORY = Symbol('IProviderQueryRepository');
 
-export type PaginatedProviders = { items: Provider[]; total: number };
-
-export interface IProviderCommandRepository
-  extends IBaseCommandRepository<Provider> {}
+export type IProviderCommandRepository = IBaseCommandRepository<Provider>;
 
 export interface IProviderQueryRepository {
   findById(providerId: string): Promise<Provider | null>;
-  findAllByClinicId(
+  findManyByClinicIds(
     pagination: Pagination,
-    clinicId: string
-  ): Promise<PaginatedProviders>;
-  findAllByOrganizationIds(
+    clinicIds: string[] | string
+  ): Promise<Paginated<Provider>>;
+  findManyByOrganizationId(
     pagination: Pagination,
-    organizationIds: string[]
-  ): Promise<PaginatedProviders>;
+    organizationIds: string[] | string
+  ): Promise<Paginated<Provider>>;
+  /** Read-model: kliniğin aktif provider'ları + uzmanlık/unvan adları (çeviriden çözülmüş). */
+  findDirectoryByClinicId(clinicId: string): Promise<ProviderDirectoryEntry[]>;
 }

@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
+import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { PaxSaleCommand } from './pax-sale.command';
 import type { PaxSaleResponse } from './pax-sale.response';
 import {
@@ -27,9 +28,10 @@ import { RecordFinancialEventCommand } from '@modules/finance/accounting/financi
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 
 @CommandHandler(PaxSaleCommand)
-export class PaxSaleHandler
-  implements ICommandHandler<PaxSaleCommand, PaxSaleResponse>
-{
+export class PaxSaleHandler implements ICommandHandler<
+  PaxSaleCommand,
+  PaxSaleResponse
+> {
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
@@ -48,7 +50,7 @@ export class PaxSaleHandler
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
     if (!device || !device.isActive) {
-      throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
+      throw new PosDeviceNotFoundException();
     }
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
@@ -95,12 +97,7 @@ export class PaxSaleHandler
     // Faz 2 — PAX TCP çağrısı (transaction dışında; bloke edici, ~90s)
     try {
       const result = await this.paxService.sale({
-        device: {
-          host: device.host,
-          port: device.port,
-          terminalId: device.terminalId,
-          merchantId: device.merchantId,
-        },
+        device: device.getPaxConnection(),
         amountInMinorUnits: Math.round(input.amount * 100),
         ecReferenceNumber: posTransactionId,
       });

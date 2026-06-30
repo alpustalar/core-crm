@@ -194,6 +194,9 @@ Co-located kalıcı `.spec` testleri:
 - `conversation.entity.spec.ts` — `isEligibleForAiReply` + `requestHumanHandoff`.
 - `ai-reply.processor.spec.ts` — guard'lar (config yok/disabled/atanmış/opt-out/pencere kapalı/yazışma yok) + happy path (SendMessage) + handoff.
 - `anthropic-chat.adapter.spec.ts` — anahtar yoksa no-op, düz metin, tool-use döngüsü (handoff yansıması).
+- `whatsapp-ai-pipeline.integration.spec.ts` — **uçtan uca entegrasyon**: inbound webhook command → `MessageReceivedEvent` (outboxRun) → `AiReplyListener` → MESSAGING_AI → `AiReplyProcessor` → `SendMessageCommand` → MESSAGING → `MessageDeliveryProcessor` → kanal portu. Gerçek handler/listener/processor zinciri çalışır; yalnız sınırlar taklit edilir: TransactionManager (gerçek ALS `txStorage` + `EventEmitter2` ile event yayar), BullMQ kuyrukları (`.add()` processor'ı inline çağırır), Anthropic (`IAiChatPort`) ve Meta (`MessageChannelPort`) mock + in-memory repo'lar. Senaryolar: happy path (AI metni Meta'ya teslim + outbound SENT), pasif config (hiç yanıt yok), insana devir (outbound yok + yazışma PENDING).
+
+> Olay→kuyruk zinciri async olduğundan (event emit + worker), entegrasyon testi etkiyi `waitFor(...)` ile yoklayarak bekler — bu, prod'daki gerçek async akışı yansıtır.
 
 Çalıştırma: `pnpm jest src/modules/messaging`.
 

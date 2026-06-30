@@ -40,17 +40,39 @@ export class MetaLeadCommandRepository
     return new MetaLead(raw);
   }
 
-  async save(entity: MetaLead): Promise<MetaLead> {
-    const persistence = entity.toPersistence();
+  async findById(id: string): Promise<MetaLead | null> {
+    const raw = await this.db.metaLead.findUnique({ where: { id } });
+    return raw ? new MetaLead(raw) : null;
+  }
 
-    const rawDataValue = persistence.rawData ?? Prisma.JsonNull;
+  async save(entity: MetaLead) {
+    const data = entity.toPersistence();
+
+    const create = {
+      id: data.id,
+      metaAdAccountId: data.metaAdAccountId,
+      metaLeadId: data.metaLeadId,
+      formId: data.formId ?? null,
+      campaignId: data.campaignId ?? null,
+      campaignName: data.campaignName ?? null,
+      adsetId: data.adsetId ?? null,
+      adId: data.adId ?? null,
+      name: data.name ?? null,
+      phone: data.phone ?? null,
+      email: data.email ?? null,
+      rawData:
+        data.rawData != null
+          ? (data.rawData as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+    };
+
+    const { id, ...update } = create;
 
     const raw = await this.db.metaLead.upsert({
-      where: { id: entity.id },
-      create: { ...persistence, rawData: rawDataValue },
-      update: { ...persistence, rawData: rawDataValue },
+      where: { id },
+      create,
+      update,
     });
-
     entity.flushEvents();
     return new MetaLead(raw);
   }

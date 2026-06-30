@@ -13,21 +13,28 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { IGetContext } from '@common/decorators';
-import { GetTaxRateQuery } from '@modules/finance/accounting/tax-parameters/application/queries/get-tax-rate/get-tax-rate.query';
-import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
-import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
-import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
-import { QueueEDocumentCommand } from '@modules/finance/e-document/application/commands/queue-e-document/queue-e-document.command';
-import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
 import {
-  FinancialEventTypeSchema,
-  PartyRoleSchema,
-  PartyTypeSchema,
-  TaxParameterKeySchema,
-} from '@shared';
+  GetTaxRateQuery
+} from '@modules/finance/accounting/tax-parameters/application/queries/get-tax-rate/get-tax-rate.query';
+import {
+  GetClinicGovernmentSpecsQuery
+} from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  EnsurePartyForPatientCommand
+} from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
+import {
+  RecordFinancialEventCommand
+} from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import {
+  QueueEDocumentCommand
+} from '@modules/finance/e-document/application/commands/queue-e-document/queue-e-document.command';
+import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
+import { FinancialEventTypeSchema, PartyRoleSchema, PartyTypeSchema, TaxParameterKeySchema, } from '@shared';
 import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
 import { InvoiceStatusSchema } from '@input-type-schemas/InvoiceStatusSchema';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(IssueInvoiceCommand)
 export class IssueInvoiceHandler
@@ -51,16 +58,16 @@ export class IssueInvoiceHandler
     const existingInvoice = await this.resolveExisting(input);
     if (existingInvoice) {
       this.logger.log(
-        `Fatura zaten mevcut, atlanıyor. invoiceId=${existingInvoice.id}`
+        `Fatura zaten mevcut, atlanıyor. invoiceId=${existingInvoice.id.value}`
       );
       return {
-        invoiceId: existingInvoice.id,
+        invoiceId: existingInvoice.id.value,
         invoiceNumber: existingInvoice.invoiceNumber,
         status: existingInvoice.status,
       };
     }
 
-    const invoiceId = crypto.randomUUID();
+    const invoiceId = UUID.generate().value;
     // KDV oranı parametriktir: açıkça verilmemişse şubenin geçerli sağlık KDV'sini çöz.
     const vatRate =
       input.vatRate ?? (await this.resolveVatRate(input.clinicId));
@@ -79,7 +86,8 @@ export class IssueInvoiceHandler
         appointmentId: input.appointmentId,
         paymentId: input.paymentId,
         amount: input.totalAmount.amount.toNumber(),
-        currency: input.totalAmount.currency ?? 'TRY',
+        currency:
+          input.totalAmount.currency ?? Currency.generate(Currency.enum.TRY),
         vatRate,
         netTotal: taxSpec.netAmount.amount,
         vatTotal: taxSpec.taxAmount.amount,

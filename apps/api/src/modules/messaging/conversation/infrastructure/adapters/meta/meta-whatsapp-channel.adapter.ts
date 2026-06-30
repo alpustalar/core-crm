@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@prisma/client';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetWhatsappChannelCredentialsQuery } from '@modules/messaging/channel-config/application/queries/get-whatsapp-channel-credentials/get-whatsapp-channel-credentials.query';
 import { WhatsappChannelCredentials } from '@modules/messaging/channel-config/application/queries/get-whatsapp-channel-credentials/get-whatsapp-channel-credentials.response';
@@ -53,6 +53,7 @@ export class MetaWhatsappChannelAdapter implements MessageChannelPort {
   }
 
   async markRead(
+    _channel: MessageChannel,
     clinicId: string,
     externalMessageId: string
   ): Promise<void> {

@@ -15,6 +15,11 @@ export class AppointmentCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<Appointment | null> {
+    const raw = await this.db.appointment.findUnique({ where: { id } });
+    return raw ? new Appointment(raw) : null;
+  }
+
   async softDeleteAllAppointmentsByClinicId(
     clinicId: string
   ): Promise<BatchPayload> {

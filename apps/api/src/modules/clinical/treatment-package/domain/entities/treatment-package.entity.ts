@@ -16,7 +16,11 @@ import {
   CreateTreatmentPackageProps,
   TreatmentPackageItemProps,
   UpdateTreatmentPackageProps,
-} from '@modules/clinical/treatment-package/domain/treatment-package.contracts';
+} from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+import {
+  TreatmentPackageAlreadyDeletedException,
+  TreatmentPackageNameEmptyException,
+} from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 
 export class TreatmentPackage extends AggregateRoot {
   constructor(
@@ -32,7 +36,7 @@ export class TreatmentPackage extends AggregateRoot {
     this._examinationCount = data.examinationCount;
     this._controlCount = data.controlCount;
     this._validityDays = data.validityDays;
-    this._price = Money.create(data.price, data.currency);
+    this._price = Money.create(data.price, data.currency).orThrow();
     this._isActive = data.isActive;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -117,21 +121,19 @@ export class TreatmentPackage extends AggregateRoot {
     return this._examinationCount + this._controlCount;
   }
 
-  /**
-   * Domain kurallarına uygun yeni bir Tedavi Paketi (Aggregate) oluşturur.
-   */
   public static create(props: CreateTreatmentPackageProps): TreatmentPackage {
     if (!props.name || props.name.trim().length === 0) {
-      throw new Error('Tedavi paketi ismi boş olamaz.');
+      throw new TreatmentPackageNameEmptyException();
     }
-    props.price.validateGreaterThanZeroOrThrow(
-      'Tedavi paket fiyatı negatif olamaz'
+    props.price.validate.greaterThanZero.orThrow(
+      'Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'
     );
 
     const now = new Date();
+    const generatedId = randomUUID();
 
     const entity = new TreatmentPackage({
-      id: randomUUID(),
+      id: generatedId,
       clinicId: props.clinicId,
       name: props.name.trim(),
       examinationCount: props.examinationCount,
@@ -161,12 +163,12 @@ export class TreatmentPackage extends AggregateRoot {
 
   public update(props: UpdateTreatmentPackageProps): void {
     if (this._deletedAt) {
-      throw new Error('Silinmiş tedavi paketi güncellenemez.');
+      throw new TreatmentPackageAlreadyDeletedException();
     }
 
     if (props.name !== undefined) {
       if (props.name.trim().length === 0) {
-        throw new Error('Tedavi paketi ismi boş olamaz.');
+        throw new TreatmentPackageNameEmptyException();
       }
       this._name = props.name.trim();
     }
@@ -177,7 +179,7 @@ export class TreatmentPackage extends AggregateRoot {
     if (props.validityDays !== undefined)
       this._validityDays = props.validityDays;
     if (props.price !== undefined) {
-      props.price.validateGreaterThanZeroOrThrow(
+      props.price.validate.greaterThanZero.orThrow(
         'Tedavi paket fiyatı negatif olamaz'
       );
       this._price = props.price;

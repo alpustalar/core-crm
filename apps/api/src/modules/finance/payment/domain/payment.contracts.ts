@@ -90,7 +90,7 @@ export type InstallmentOption = z.infer<typeof InstallmentOptionSchema>;
 // ==========================================
 
 export const CreatePaymentPropsSchema = z.object({
-  id: z.uuid(),
+  id: z.uuid().optional(),
   clinicId: z.uuid(),
   patientId: z.uuid(),
   appointmentId: z.uuid().nullable().optional(),

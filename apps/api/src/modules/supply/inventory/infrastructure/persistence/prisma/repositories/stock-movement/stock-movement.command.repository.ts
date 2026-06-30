@@ -3,7 +3,6 @@ import { IStockMovementCommandRepository } from '@modules/supply/inventory/domai
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class StockMovementCommandRepository
@@ -12,6 +11,11 @@ export class StockMovementCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findById(id: string): Promise<StockMovement | null> {
+    const raw = await this.db.stockMovement.findUnique({ where: { id } });
+    return raw ? new StockMovement(raw) : null;
   }
 
   async save(entity: StockMovement): Promise<StockMovement> {
@@ -23,24 +27,5 @@ export class StockMovementCommandRepository
     });
     entity.flushEvents();
     return new StockMovement(raw);
-  }
-
-  async saveMany(entities: StockMovement[]): Promise<void> {
-    const queries = entities.map((entity) => {
-      const data = entity.toPersistence();
-      return this.db.stockMovement.upsert({
-        where: { id: data.id },
-        create: data,
-        update: data,
-      });
-    });
-
-    if (txStorage.getStore()?.tx) {
-      await Promise.all(queries);
-    } else {
-      await this.prisma.$transaction(queries);
-    }
-
-    entities.forEach((e) => e.flushEvents());
   }
 }

@@ -22,6 +22,7 @@ export type ActorContext = {
   patientId?: string;
   organizationId?: string;
   ip?: string;
+  providerId?: string;
 };
 
 export type PatientActorContext = {

@@ -1,11 +1,11 @@
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 import {
-  IProviderAvailabilityRepository,
-  PROVIDER_AVAILABILITY_REPOSITORY,
+  IProviderAvailabilityCommandRepository,
+  PROVIDER_AVAILABILITY_COMMAND_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
 import {
   IPolicyFactory,
@@ -16,8 +16,10 @@ import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-import { ValidateTimeWithinClinicHoursOrThrowQuery } from '@modules/organization/clinic/application/queries/validate-time-within-clinic-hours/validate-time-within-clinic-hours.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { DateTimeManager } from '@common/utils';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+import { AssertTimeWithinClinicHoursQuery } from '@modules/organization/clinic/application/queries/assert-time-within-clinic-hours/assert-time-within-clinic-hours.query';
 
 @CommandHandler(CreateProviderAvailabilityCommand)
 export class CreateProviderAvailabilityHandler
@@ -26,49 +28,44 @@ export class CreateProviderAvailabilityHandler
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
     private readonly providerQueryRepo: IProviderQueryRepository,
-    @Inject(PROVIDER_AVAILABILITY_REPOSITORY)
-    private readonly providerAvailabilityRepo: IProviderAvailabilityRepository,
+    @Inject(PROVIDER_AVAILABILITY_COMMAND_REPOSITORY)
+    private readonly providerAvailabilityCommandRepo: IProviderAvailabilityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager,
     private readonly queryBus: TSQueryBus
   ) {}
 
-  async execute(command: CreateProviderAvailabilityCommand) {
+  async execute(command: CreateProviderAvailabilityCommand): Promise<void> {
     const {
-      ctx: { actor },
-      dto: { providerId, availabilities },
+      ctx: { actor, source },
+      dto,
     } = command;
 
-    const { evaluator } = this.policyFactory.user(actor);
+    const provider = await this.providerQueryRepo.findById(dto.providerId);
 
-    evaluator
-      .check((p) => p.isTargetInActorsSameClinic(actor.clinicId))
+    if (!provider) throw new ProviderNotFoundException();
+
+    provider.validate.isStaticMode.orThrow();
+
+    await this.queryBus.execute(
+      new AssertTimeWithinClinicHoursQuery(
+        provider.clinicId,
+        dto.availabilities
+      )
+    );
+
+    this.policyFactory
+      .provider(actor)
+      .evaluator.systemBypass(source)
+      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId))
       .orThrow(PROVIDER_EVENTS.AVAILABILITY_CREATED);
 
     await this.transactionManager.run(async () => {
-      const provider = await this.providerQueryRepo.findById(providerId);
-
-      if (!provider) {
-        throw new BadRequestException('Uzman bulunamadı.');
-      }
-
-      if (!provider.isStaticMode()) {
-        throw new BadRequestException(
-          'Statik müsaitlik yalnızca STATIC modundaki uzmanlar için tanımlanabilir.'
-        );
-      }
-
-      const { clinicId } = provider;
-
-      await this.queryBus.execute(
-        new ValidateTimeWithinClinicHoursOrThrowQuery(clinicId, availabilities)
-      );
-
-      await this.providerAvailabilityRepo.createMany(
-        availabilities.map((item) => ({
-          providerId,
-          dayOfWeek: item.date.getDay(),
+      await this.providerAvailabilityCommandRepo.createMany(
+        dto.availabilities.map((item) => ({
+          providerId: dto.providerId,
+          dayOfWeek: DateTimeManager.getDayOfWeek(item.date),
           startMinute: item.startMinute,
           endMinute: item.endMinute,
           breakStartMinute: item.breakStartMinute,

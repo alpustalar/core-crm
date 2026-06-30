@@ -1,8 +1,8 @@
 import { z } from 'zod';
+import { PaginationSchema } from '@shared/common/pagination/pagination.schema';
 
 export const GetHotelBookingsSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
-  patientId: z.string().uuid().optional(),
-  leadId: z.string().uuid().optional(),
+  pagination: PaginationSchema,
+  patientId: z.uuid().optional(),
+  leadId: z.uuid().optional(),
 });

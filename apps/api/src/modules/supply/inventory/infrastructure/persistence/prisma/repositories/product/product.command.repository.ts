@@ -14,13 +14,19 @@ export class ProductCommandRepository
     super(prisma);
   }
 
+  async findById(id: string) {
+    const raw = await this.db.product.findUnique({ where: { id } });
+    return raw ? new Product(raw) : null;
+  }
+
   async save(product: Product): Promise<Product> {
-    const data = product.toPersistence();
+    const create = product.toPersistence();
+    const { id, ...update } = create;
 
     const raw = await this.db.product.upsert({
-      where: { id: product.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
 
     product.flushEvents();
@@ -29,11 +35,12 @@ export class ProductCommandRepository
 
   async saveMany(products: Product[]): Promise<void> {
     const prismaQueries = products.map((product) => {
-      const data = product.toPersistence();
+      const create = product.toPersistence();
+      const { id, ...update } = create;
       return this.db.product.upsert({
-        where: { id: product.id },
-        create: data,
-        update: data,
+        where: { id },
+        create,
+        update,
       });
     });
 

@@ -1,5 +1,5 @@
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { CreateMetaAdAccountData } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
 
 export const META_AD_ACCOUNT_COMMAND_REPOSITORY = Symbol(

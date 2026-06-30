@@ -1,4 +1,3 @@
-import { QueryResponse } from '@shared';
-import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
+import { Patient, QueryResponse } from '@shared';
 
 export type FindPatientByIdQueryResponse = QueryResponse<Patient | null>;

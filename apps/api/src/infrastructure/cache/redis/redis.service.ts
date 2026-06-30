@@ -18,7 +18,7 @@ export class RedisService {
       REDIS_KEYS.META_ADS.OAUTH_STATE(state),
       payload,
       'EX',
-      600,
+      600
     );
   }
 
@@ -37,7 +37,7 @@ export class RedisService {
       REDIS_KEYS.AUTH.ACTOR_CACHE(userId),
       JSON.stringify(actor),
       'EX',
-      ACTOR_CACHE_TTL_SECONDS,
+      ACTOR_CACHE_TTL_SECONDS
     );
   }
 
@@ -64,7 +64,7 @@ export class RedisService {
       REDIS_KEYS.AUTH.TOKEN_BLOCKLIST(hash),
       '1',
       'EX',
-      ttlSeconds,
+      ttlSeconds
     );
   }
 
@@ -78,20 +78,64 @@ export class RedisService {
 
   async setTransferAvailability(
     paramsHash: string,
-    data: unknown,
+    data: unknown
   ): Promise<void> {
     await this.redis.set(
       REDIS_KEYS.TRANSFER.AVAILABILITY(paramsHash),
       JSON.stringify(data),
       'EX',
-      300,
+      300
     );
   }
 
   async getTransferAvailability(paramsHash: string): Promise<unknown | null> {
     const raw = await this.redis.get(
-      REDIS_KEYS.TRANSFER.AVAILABILITY(paramsHash),
+      REDIS_KEYS.TRANSFER.AVAILABILITY(paramsHash)
     );
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  /**
+   * AI asistanı için HotelBeds rateKey + rezervasyon bağlamını kısa bir optionId altında
+   * saklar (varsayılan 15 dk). LLM uzun opak rateKey'i taşımaz; book aşamasında çözülür.
+   */
+  async setHotelRateOption(
+    token: string,
+    data: unknown,
+    ttlSeconds = 900
+  ): Promise<void> {
+    await this.redis.set(
+      REDIS_KEYS.HOTEL.RATE_OPTION(token),
+      JSON.stringify(data),
+      'EX',
+      ttlSeconds
+    );
+  }
+
+  async getHotelRateOption(token: string): Promise<unknown | null> {
+    const raw = await this.redis.get(REDIS_KEYS.HOTEL.RATE_OPTION(token));
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  /**
+   * AI asistanı için HotelBeds transfer rateKey + bağlamını kısa bir optionId altında
+   * saklar (varsayılan 15 dk). book_transfer aşamasında optionId ile çözülür.
+   */
+  async setTransferRateOption(
+    token: string,
+    data: unknown,
+    ttlSeconds = 900
+  ): Promise<void> {
+    await this.redis.set(
+      REDIS_KEYS.TRANSFER.RATE_OPTION(token),
+      JSON.stringify(data),
+      'EX',
+      ttlSeconds
+    );
+  }
+
+  async getTransferRateOption(token: string): Promise<unknown | null> {
+    const raw = await this.redis.get(REDIS_KEYS.TRANSFER.RATE_OPTION(token));
     return raw ? JSON.parse(raw) : null;
   }
 }

@@ -2,7 +2,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { HandlePaymentCallbackCommand } from './handle-payment-callback.command';
 import { HandlePaymentCallbackCommandResponse } from './handle-payment-callback.response';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
+import { IyzicoTransactionNotFoundException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
@@ -61,9 +62,7 @@ export class HandlePaymentCallbackHandler
         );
 
       if (!iyzicoTx) {
-        throw new NotFoundException(
-          `Ödeme kaydı bulunamadı: conversationId=${conversationId}`
-        );
+        throw new IyzicoTransactionNotFoundException(conversationId);
       }
 
       if (

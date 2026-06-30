@@ -26,13 +26,14 @@ export class PatientController {
       idToken: dto.idToken,
       organizationId: dto.organizationId,
       firstName: dto.firstName,
+      clinicId: dto.clinicId,
     });
     return this.commandBus.execute(
       new PatientBookAppointmentCommand(dto, {
         patientId: patient.id,
         patientName: patient.firstName,
         patientPhone: patient.phone,
-        patientEmail: patient.email,
+        patientEmail: patient.email ?? null,
       })
     );
   }

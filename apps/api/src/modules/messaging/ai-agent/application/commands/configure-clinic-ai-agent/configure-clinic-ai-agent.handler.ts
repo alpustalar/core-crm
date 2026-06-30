@@ -43,6 +43,7 @@ export class ConfigureClinicAiAgentHandler
 
     config.updateSettings({
       isEnabled: input.isEnabled,
+      provider: input.provider,
       model: input.model,
       systemPrompt: input.systemPrompt,
       apiKey: encryptedApiKey,

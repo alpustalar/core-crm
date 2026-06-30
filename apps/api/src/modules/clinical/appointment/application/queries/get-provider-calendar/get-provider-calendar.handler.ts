@@ -3,7 +3,7 @@ import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetProviderCalendarQuery } from './get-provider-calendar.query';
 import { GetProviderCalendarQueryResponse } from './get-provider-calendar.response';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
@@ -13,6 +13,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(GetProviderCalendarQuery)
 export class GetProviderCalendarHandler
@@ -33,17 +34,21 @@ export class GetProviderCalendarHandler
     const { actor } = ctx;
 
     {
-      if (!actor.clinicId) {
-        throw new BadRequestException('Actor için klinik tanımlanmamış.');
-      }
+      if (!actor.clinicId) throw new ClinicNotAssignedException();
 
-      this.policyFactory
-        .appointment(actor)
-        .evaluator.check(
+      const { evaluator, policy } = this.policyFactory.appointment(actor);
+
+      evaluator
+        .check(
           (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
           'Bu kliniğe ait randevulara erişim yetkiniz yok.'
         )
         .orThrow(APPOINTMENT_EVENTS.PROVIDER_CALENDAR);
+
+      const serializationOptions = policy.getSerializationOptions({
+        providerId: dto.providerId,
+        clinicId: actor.clinicId,
+      });
 
       const { items, total } = await this.appointmentRepo.findProviderCalendar({
         pagination,
@@ -53,9 +58,10 @@ export class GetProviderCalendarHandler
       });
 
       return {
-        data: items,
+        data: items.map((item) => item.toPersistence()),
         meta: {
           pagination: buildPaginationMeta(pagination, total),
+          serializationOptions,
         },
       };
     }

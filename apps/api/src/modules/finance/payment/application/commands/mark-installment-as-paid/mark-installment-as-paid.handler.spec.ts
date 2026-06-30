@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { MarkInstallmentAsPaidHandler } from './mark-installment-as-paid.handler';
 import { MarkInstallmentAsPaidCommand } from './mark-installment-as-paid.command';
@@ -64,12 +64,12 @@ describe('MarkInstallmentAsPaidHandler', () => {
     );
   });
 
-  it('taksit yoksa NotFoundException atar ve event fırlatmaz', async () => {
+  it('taksit yoksa InstallmentNotFoundException atar ve event fırlatmaz', async () => {
     const { handler, publisher } = make(null);
 
     await expect(
       handler.execute(new MarkInstallmentAsPaidCommand('missing'))
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(InstallmentNotFoundException);
     expect(publisher.paymentPaid).not.toHaveBeenCalled();
   });
 });

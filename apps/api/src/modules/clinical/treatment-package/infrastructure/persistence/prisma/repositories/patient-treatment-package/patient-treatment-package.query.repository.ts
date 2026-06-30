@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PatientTreatmentPackage } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPatientTreatmentPackageQueryRepository } from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
+import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
 
 const providerInclude = {
   include: { user: { select: { displayName: true } } },
@@ -19,8 +19,8 @@ export class PatientTreatmentPackageQueryRepository
     super(prisma);
   }
 
-  findById(id: string) {
-    return this.db.patientTreatmentPackage.findUnique({
+  async findById(id: string) {
+    const result = await this.db.patientTreatmentPackage.findUnique({
       where: { id },
       include: {
         package: {
@@ -31,7 +31,9 @@ export class PatientTreatmentPackageQueryRepository
         provider: providerInclude,
         payment: { select: { id: true, status: true } },
       },
-    }) as Promise<PatientTreatmentPackage | null>;
+    });
+
+    return result ? new PatientTreatmentPackage(result) : null;
   }
 
   async findManyByPatient(
@@ -39,15 +41,13 @@ export class PatientTreatmentPackageQueryRepository
     pagination: Pagination,
     status?: string
   ) {
-    const where = {
-      patientId,
-      ...(status && { status }),
-    };
-
     const result = await paginate({
-      delegate: this.db.patientTreatmentPackage as never,
+      delegate: this.db.patientTreatmentPackage,
       pagination,
-      where,
+      where: {
+        patientId,
+        ...(status && { status }),
+      },
       include: {
         package: true,
         provider: providerInclude,
@@ -55,6 +55,6 @@ export class PatientTreatmentPackageQueryRepository
       },
     });
 
-    return result as { items: PatientTreatmentPackage[]; total: number };
+    return this.mapPagination(result, (i) => new PatientTreatmentPackage(i));
   }
 }

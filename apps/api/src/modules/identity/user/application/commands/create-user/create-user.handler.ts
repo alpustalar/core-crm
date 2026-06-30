@@ -24,7 +24,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateProviderDto, CreateUserDto } from '@shared';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { USER_EVENTS } from '@src/domain/constants/events';
@@ -52,11 +51,13 @@ export class CreateUserHandler
       ctx: { actor, source },
       internalRelations,
     } = command;
+
     const clinicId = actor.clinicId ?? dto.clinicId;
 
-    if (!ExecutionPolicy.isSystemInitiated(source) && dto.roleId && clinicId) {
+    if (dto.roleId && clinicId) {
       const { evaluator } = this.policyFactory.user(actor);
       evaluator
+        .systemBypass(source)
         .check(
           (p) => p.isTargetInActorsManagedClinic(clinicId),
           'Yetki ihlali: Bu işlem için gerekli izinlere sahip değilsiniz.'
@@ -86,10 +87,14 @@ export class CreateUserHandler
       });
 
       if (dto.providerProfile && clinicId) {
-        await this.createProviderProfile(userId, clinicId, dto.providerProfile);
+        await this.createProviderProfile(
+          userId.value,
+          clinicId,
+          dto.providerProfile
+        );
       }
 
-      return userId;
+      return userId.value;
     } catch (e) {
       this.rollback(actor, e, firebaseUid);
     }
@@ -135,7 +140,7 @@ export class CreateUserHandler
           publicPhone,
           publicEmail,
           isActive,
-          canAcceptExamination: profileDto.canAcceptExamination,
+          acceptsConsultation: profileDto.acceptsConsultation,
           operationMode: profileDto.operationMode,
         }
       )

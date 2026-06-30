@@ -13,7 +13,7 @@ export const ProviderSchema = z.object({
   diplomaNo: z.string().nullable(),
   hlrNo: z.string().nullable(),
   isActive: z.boolean(),
-  canAcceptExamination: z.boolean(),
+  acceptsConsultation: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),

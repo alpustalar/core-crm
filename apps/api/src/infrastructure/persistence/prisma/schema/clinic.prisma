@@ -6,37 +6,43 @@ model Clinic {
   sectorId String @map("sector_id")
   sector   Sector @relation(fields: [sectorId], references: [id])
 
-  phone    String?
-  email    String?
-  address  String? @db.Text
-  city     String?
-  district String?
+  phone     String?
+  email     String?
+  address   String? @db.Text
+  city      String?
+  district  String?
+  latitude  Float?
+  longitude Float?
 
   consultationSlotDuration Int @default(15)
 
   status   GlobalStatus @default(ACTIVE)
-  timezone String       @default("Europe/Istanbul")
+  timezone TimeZone     @default(Europe_Istanbul)
 
   logo String?
 
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  managers          User[]                 @relation("clinic_managers")
-  staffs            User[]                 @relation("clinic_staff")
-  treatments        Treatment[]
-  treatmentPackages TreatmentPackage[]
-  providers         Provider[]
-  appointments      Appointment[]
-  patients          Patient[]
-  medicalFiles      MedicalFile[]
-  resources         Resource[]
-  patientGroups     PatientGroup[]
-  portalSettings    ClinicPortalSettings?
-  paymentGateway    ClinicPaymentGateway?
-  governmentSpecs   ClinicGovernmentSpecs?
-  whatsappChannel   ClinicWhatsappChannel?
-  aiAgentConfig     ClinicAiAgentConfig?
+  managers             User[]                      @relation("clinic_managers")
+  staffs               User[]                      @relation("clinic_staff")
+  treatments           Treatment[]
+  treatmentPackages    TreatmentPackage[]
+  providers            Provider[]
+  appointments         Appointment[]
+  patients             Patient[]
+  medicalFiles         MedicalFile[]
+  resources            Resource[]
+  patientGroups        PatientGroup[]
+  portalSettings       ClinicPortalSettings?
+  paymentGateway       ClinicPaymentGateway?
+  iyzicoTerminalConfig ClinicIyzicoTerminalConfig?
+  governmentSpecs      ClinicGovernmentSpecs?
+  whatsappChannel      ClinicWhatsappChannel?
+  aiAgentConfig        ClinicAiAgentConfig?
+  telegramChannels     ClinicTelegramChannel[]
+  instagramChannel     ClinicInstagramChannel?
+  healthTourismConfig  ClinicHealthTourismConfig?
 
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")

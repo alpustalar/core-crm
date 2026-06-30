@@ -55,7 +55,7 @@ export class MarkConversationReadHandler
       await this.messageQueryRepo.findLatestInboundExternalId(conversationId);
     if (externalId) {
       await this.channel
-        .markRead(clinicId, externalId)
+        .markRead(conversation.channel, clinicId, externalId)
         .catch((err) =>
           this.logger.warn(
             `Okundu işareti gönderilemedi: ${

@@ -6,7 +6,7 @@ import {
   IPatientTreatmentPackageQueryRepository,
   PATIENT_TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
-import { PaginationSchema } from '@shared';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindPatientPackagesQuery)
 export class FindPatientPackagesHandler
@@ -23,15 +23,20 @@ export class FindPatientPackagesHandler
   ): Promise<FindPatientPackagesResponse> {
     const { dto } = query;
 
-    const pagination = PaginationSchema.parse({
-      page: dto.page,
-      limit: dto.limit,
-    });
+    const { items: patientTreatmentPackages, total } =
+      await this.patientPackageQueryRepo.findManyByPatient(
+        dto.patientId ?? '',
+        dto.pagination,
+        dto.status
+      );
 
-    return this.patientPackageQueryRepo.findManyByPatient(
-      dto.patientId ?? '',
-      pagination,
-      dto.status
-    );
+    return {
+      data: patientTreatmentPackages.map((patientTreatmentPackage) =>
+        patientTreatmentPackage.toPersistence()
+      ),
+      meta: {
+        pagination: buildPaginationMeta(dto.pagination, total),
+      },
+    };
   }
 }

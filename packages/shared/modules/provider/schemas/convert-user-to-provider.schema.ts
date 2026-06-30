@@ -10,5 +10,5 @@ export const ConvertUserToProviderSchema = z.object({
   isActive: z.coerce.boolean().default(true),
   clinicId: z.uuid({ message: "Geçersiz Klinik ID formatı" }),
   operationMode: OperationModeSchema,
-  canAcceptExamination: z.coerce.boolean().default(true)
+  acceptsConsultation: z.coerce.boolean().default(true)
 });

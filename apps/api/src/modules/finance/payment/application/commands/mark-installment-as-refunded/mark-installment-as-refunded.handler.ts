@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { MarkInstallmentAsRefundedCommand } from './mark-installment-as-refunded.command';
 import {
   IPaymentCommandRepository,
@@ -34,8 +35,7 @@ export class MarkInstallmentAsRefundedHandler
     await this.txManager.outboxRun(async () => {
       const payment =
         await this.paymentQueryRepo.findByInstallmentId(installmentId);
-      if (!payment)
-        throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
+      if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       payment.refundInstallment(installmentId);
       await this.paymentCommandRepo.save(payment);
@@ -44,9 +44,9 @@ export class MarkInstallmentAsRefundedHandler
       // TODO: event entity içinde fırlat refundInstallment içinde domain event olarak pushla
       this.paymentEventPublisher.paymentRefund({
         installmentId,
-        paymentId: payment.id,
-        appointmentId: payment.appointmentId,
-        clinicId: payment.clinicId,
+        paymentId: payment.id.value,
+        appointmentId: payment.appointmentId?.value ?? null,
+        clinicId: payment.clinicId.value,
         action: LogAction.PAYMENT_REFUNDED,
         type: LogType.INFO,
         details: details ?? 'Ödeme iade edildi',

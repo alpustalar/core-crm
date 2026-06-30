@@ -1,5 +1,5 @@
 import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const ORGANIZATION_COMMAND_REPOSITORY = Symbol(
   'IOrganizationCommandRepository'

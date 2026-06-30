@@ -5,12 +5,14 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { AppointmentChecker } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { ClinicCanBookOrThrowQuery } from '@modules/organization/clinic/application/queries/clinic-can-book-or-throw/clinic-can-book-or-throw.query';
-import { ProviderCanBookOrThrowQuery } from '@modules/clinical/provider/application/queries/provider-can-book-or-throw/provider-can-book-or-throw.query';
+
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { TimeZoneSchema } from '@shared';
+import { AssertClinicCanBookQuery } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
+import { AssertProviderCanBookQuery } from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
 
 @CommandHandler(PatientBookAppointmentCommand)
 export class PatientBookAppointmentHandler
@@ -18,8 +20,8 @@ export class PatientBookAppointmentHandler
 {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentRepo: IAppointmentCommandRepository,
-    private readonly appointmentChecker: AppointmentChecker,
+    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentChecker: AppointmentCheckerService,
     private readonly queryBus: TSQueryBus,
     private readonly transactionManager: TransactionManager
   ) {}
@@ -34,24 +36,30 @@ export class PatientBookAppointmentHandler
       endTime: dtoEndTime,
       treatmentId,
       notes,
+      isConsultation,
     } = dto;
 
-    const endTime = Appointment.calculateEndTimeOrThrow(
+    const endTime = Appointment.calculateEndTime(
       startTime,
       dtoEndTime,
       duration
-    );
+    ).orThrow();
 
     await Promise.all([
       this.queryBus.execute(
-        new ClinicCanBookOrThrowQuery(clinicId, startTime, endTime)
+        new AssertClinicCanBookQuery(clinicId, startTime, endTime)
       ),
       this.queryBus.execute(
-        new ProviderCanBookOrThrowQuery(providerId, startTime, endTime)
+        new AssertProviderCanBookQuery(
+          providerId,
+          startTime,
+          endTime,
+          isConsultation
+        )
       ),
     ]);
 
-    await this.appointmentChecker.noConflictOrThrow({
+    await this.appointmentChecker.assertNoConflict({
       providerId,
       startTime,
       endTime,
@@ -68,11 +76,13 @@ export class PatientBookAppointmentHandler
       startTime,
       endTime,
       notes,
+      timezone: dto.timezone ?? TimeZoneSchema.enum.Europe_Istanbul,
+      isConsultation,
     });
 
     return this.transactionManager.run(async () => {
-      const saved = await this.appointmentRepo.save(appointment);
-      return saved.id;
+      const saved = await this.appointmentCommandRepo.save(appointment);
+      return saved.id.value;
     });
   }
 }

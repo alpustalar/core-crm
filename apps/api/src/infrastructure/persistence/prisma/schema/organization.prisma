@@ -10,7 +10,7 @@ model Organization {
   district String?
 
   status   GlobalStatus @default(ACTIVE)
-  timezone String       @default("Europe/Istanbul")
+  timezone TimeZone     @default(Europe_Istanbul)
 
   clinics            Clinic[]
   patients           Patient[]

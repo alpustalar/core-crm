@@ -1,9 +1,9 @@
-// domain/contracts/user.contracts.ts
 import { z } from 'zod';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { RoleWithCapabilities } from '@common/interfaces';
 import { PaginationSchema } from '@shared';
-import { MapPaginationResult } from '@src/infrastructure/persistence/prisma/base.repository';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
+import { Paginated } from '@common/interfaces/paginated.type';
 
 // ==========================================
 // 1. SORGULAMA VE PASAPORT SÖZLEŞMELERİ (RESPONSES & DATA)
@@ -18,7 +18,7 @@ export const AuthUserResponseSchema = z
   .object({
     id: z.uuid(),
     displayName: z.string().min(1),
-    email: z.string().email('Geçersiz e-posta formatı'),
+    email: z.email('Geçersiz e-posta formatı'),
     emailVerified: z.boolean(),
     status: GlobalStatusSchema,
 
@@ -79,6 +79,8 @@ export const CreateUserPropsSchema = z.object({
   clinicId: z.uuid().optional(),
   ownedOrganizationIds: z.array(z.uuid()).optional(),
   managedClinicIds: z.array(z.uuid()).optional(),
+  providerProfileId: z.uuid().optional(),
+  phone: z.string().optional(),
 });
 export type CreateUserProps = z.infer<typeof CreateUserPropsSchema>;
 
@@ -134,17 +136,19 @@ export const UserSummarySchema = z.object({
   ),
 });
 
-// 1. Aşama: Orijinal tipi doğrudan Zod şemasından infer ediyoruz (Uyuşmazlığı engeller)
 export type UserSummary = z.infer<typeof UserSummarySchema>;
 
-export type PaginatedUsers = MapPaginationResult<UserSummary>;
+export type PaginatedUserSummary = Paginated<UserSummary>;
 
 export const PaginatedUsersSchema = z.object({
-  // Altyapı katmanındaki MapPaginationResult yapısının (data/items, meta vb.)
-  // gerçek alan adlarına göre burayı esnetebilir veya doğrudan eşleştirebilirsin:
   items: z.array(UserSummarySchema),
   total: z.number(),
   page: z.number(),
   limit: z.number(),
   totalPages: z.number(),
-}) as z.ZodType<PaginatedUsers>;
+}) as z.ZodType<PaginatedUserSummary>;
+
+export const UserResponseGroups = ResponseGroups;
+
+export type UserResponseGroup =
+  (typeof UserResponseGroups)[keyof typeof UserResponseGroups];

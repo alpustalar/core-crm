@@ -26,7 +26,7 @@ export class CreateLedgerEntyHandler
 
     const entry = FinanceLedgerEntity.create({
       ...dto,
-      money: Money.create(dto.amount, dto.currency),
+      money: Money.create(dto.amount, dto.currency).orThrow(),
     });
 
     await this.financeLedgerCommandRepo.save(entry);

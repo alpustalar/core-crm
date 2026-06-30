@@ -2,3 +2,8 @@ export type { PaxSale } from './pax-sale.type';
 export type { PaxVoid } from './pax-void.type';
 export type { PaxRefund } from './pax-refund.type';
 export type { PaxBatchClose } from './pax-batch-close.type';
+export type { IyzicoTerminalSale } from './iyzico-terminal-sale.type';
+export type { IyzicoTerminalRefund } from './iyzico-terminal-refund.type';
+export type { IyzicoTerminalVoid } from './iyzico-terminal-void.type';
+export type { IyzicoTerminalEod } from './iyzico-terminal-eod.type';
+export type { RegisterClinicIyzicoTerminalConfig } from './register-clinic-iyzico-terminal-config.type';

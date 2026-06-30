@@ -4,7 +4,7 @@ import {
   TreatmentPackageDeletedEvent,
   TreatmentPackageUpdatedEvent,
 } from '@modules/clinical/treatment-package/domain/events';
-import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package/domain/treatment-package.contracts';
+import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
 import { Money } from '@src/domain/value-objects/money.vo';
 
 describe('TreatmentPackage entity', () => {
@@ -37,7 +37,9 @@ describe('TreatmentPackage entity', () => {
       const events = pkg.getDomainEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(TreatmentPackageCreatedEvent);
-      expect((events[0] as TreatmentPackageCreatedEvent).packageId).toBe(pkg.id);
+      expect((events[0] as TreatmentPackageCreatedEvent).packageId).toBe(
+        pkg.id
+      );
       expect((events[0] as TreatmentPackageCreatedEvent).clinicId).toBe(
         'clinic-1'
       );
@@ -130,28 +132,6 @@ describe('TreatmentPackage entity', () => {
 
       expect(pkg.deletedAt).toBe(firstDeletedAt); // değişmedi
       expect(pkg.getDomainEvents()).toHaveLength(0); // yeni event yok
-    });
-  });
-
-  describe('toPersistence', () => {
-    it('scalar Prisma şeklini döner (ilişki içermez)', () => {
-      const pkg = TreatmentPackage.create(baseProps);
-      const raw = pkg.toPersistence();
-
-      expect(raw).toEqual(
-        expect.objectContaining({
-          id: pkg.id,
-          clinicId: 'clinic-1',
-          name: 'Saç Ekimi Paketi',
-          examinationCount: 2,
-          controlCount: 3,
-          validityDays: 365,
-          isActive: true,
-          deletedAt: null,
-        })
-      );
-      expect(raw).not.toHaveProperty('providers');
-      expect(raw).not.toHaveProperty('items');
     });
   });
 });

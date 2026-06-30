@@ -6,6 +6,8 @@ import {
   HOTELBEDS_BOOKING_QUERY_REPOSITORY,
   IHotelbedsBookingQueryRepository,
 } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
 
 @QueryHandler(GetHotelBookingsQuery)
 export class GetHotelBookingsHandler
@@ -22,23 +24,28 @@ export class GetHotelBookingsHandler
     const { dto, ctx } = query;
     const { actor } = ctx;
 
-    const result = await this.bookingQueryRepo.findMany(
-      {
-        organizationId: actor.organizationId!,
-        patientId: dto.patientId,
-        leadId: dto.leadId,
-      },
-      {
-        limit: dto.limit,
-        page: dto.page,
-        take: dto.limit,
-        skip: (dto.page - 1) * dto.limit,
-        orderBy: 'desc',
-        orderByColumn: 'createdAt',
-        searchOperator: 'AND',
-      }
-    );
+    if (!actor.organizationId) throw new OrganizationNotAssignedException();
 
-    return { data: result };
+    const { total, items: hotelBookings } =
+      await this.bookingQueryRepo.findMany(
+        {
+          organizationId: actor.organizationId,
+          patientId: dto.patientId,
+          leadId: dto.leadId,
+        },
+        {
+          ...dto.pagination,
+          orderBy: 'desc',
+          orderByColumn: 'createdAt',
+          searchOperator: 'AND',
+        }
+      );
+
+    return {
+      data: hotelBookings.map((booking) => booking.toPersistence()),
+      meta: {
+        pagination: buildPaginationMeta(dto.pagination, total),
+      },
+    };
   }
 }

@@ -2,3 +2,8 @@ export { PaxSaleDto } from './pax-sale.dto';
 export { PaxVoidDto } from './pax-void.dto';
 export { PaxRefundDto } from './pax-refund.dto';
 export { PaxBatchCloseDto } from './pax-batch-close.dto';
+export { IyzicoTerminalSaleDto } from './iyzico-terminal-sale.dto';
+export { IyzicoTerminalRefundDto } from './iyzico-terminal-refund.dto';
+export { IyzicoTerminalVoidDto } from './iyzico-terminal-void.dto';
+export { IyzicoTerminalEodDto } from './iyzico-terminal-eod.dto';
+export { RegisterClinicIyzicoTerminalConfigDto } from './register-clinic-iyzico-terminal-config.dto';

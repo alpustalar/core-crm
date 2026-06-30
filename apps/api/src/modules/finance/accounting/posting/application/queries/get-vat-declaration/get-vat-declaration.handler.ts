@@ -39,10 +39,10 @@ export class GetVatDeclarationHandler
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
     const outputAccountIds = accounts
-      .filter((a) => a.isPostable && a.code.value.startsWith(OUTPUT_VAT_PREFIX))
+      .filter((a) => a.isPostable && a.code.startsWith(OUTPUT_VAT_PREFIX))
       .map((a) => a.id);
     const inputAccountIds = accounts
-      .filter((a) => a.isPostable && a.code.value.startsWith(INPUT_VAT_PREFIX))
+      .filter((a) => a.isPostable && a.code.startsWith(INPUT_VAT_PREFIX))
       .map((a) => a.id);
 
     const declaration = await this.journalQueryRepo.vatDeclaration({
@@ -56,7 +56,9 @@ export class GetVatDeclarationHandler
     const { months, outputVat, inputVat } = this.aggregate(declaration);
     const netVat = outputVat.minus(inputVat);
     const payableVat = netVat.greaterThan(0) ? netVat : new Decimal(0);
-    const carryForwardVat = netVat.lessThan(0) ? netVat.negated() : new Decimal(0);
+    const carryForwardVat = netVat.lessThan(0)
+      ? netVat.negated()
+      : new Decimal(0);
 
     return {
       data: {

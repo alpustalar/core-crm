@@ -12,19 +12,11 @@ import {
   AiToolContext,
   IAiToolExecutor,
 } from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-
-/** Yanıt başına maksimum çıktı token'ı (config override yoksa). */
-const DEFAULT_MAX_TOKENS = 1024;
-/** Sonsuz araç döngüsüne karşı tur limiti. */
-const MAX_TOOL_ITERATIONS = 6;
-
-/** Persona tanımlanmadıysa kullanılan güvenli varsayılan sistem prompt'u. */
-const DEFAULT_SYSTEM_PROMPT = [
-  'Sen bir sağlık kliniğinin WhatsApp asistanısın. Hastalara nazik, kısa ve net Türkçe yanıt ver.',
-  'Yalnızca araçlardan (hizmetler, müsaitlik, randevu) gelen doğrulanmış bilgiyi paylaş; fiyat veya müsaitlik uydurma.',
-  'Randevu oluşturmadan önce hastadan doktor, tarih/saat ve süre için açık onay al.',
-  'Tıbbi tavsiye verme; emin olmadığın veya hastanın bir yetkiliyle görüşmek istediği durumlarda insana devret.',
-].join(' ');
+import {
+  buildSystemPrompt,
+  DEFAULT_MAX_TOKENS,
+  MAX_TOOL_ITERATIONS,
+} from '../ai-chat.constants';
 
 /**
  * Anthropic Claude tabanlı AI sohbet adapter'ı. Klinik config'inden (yoksa platform
@@ -58,9 +50,11 @@ export class AnthropicChatAdapter implements IAiChatPort {
       clinicId: request.clinicId,
       organizationId: request.organizationId,
       conversationId: request.conversationId,
+      channel: request.channel,
       contactName: request.contactName,
       contactPhone: request.contactPhone,
       patientId: request.patientId,
+      leadId: request.leadId,
     };
 
     const tools: Anthropic.Tool[] = this.toolExecutor
@@ -74,7 +68,7 @@ export class AnthropicChatAdapter implements IAiChatPort {
     const system: Anthropic.TextBlockParam[] = [
       {
         type: 'text',
-        text: request.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT,
+        text: buildSystemPrompt(request.systemPrompt),
         cache_control: { type: 'ephemeral' },
       },
     ];

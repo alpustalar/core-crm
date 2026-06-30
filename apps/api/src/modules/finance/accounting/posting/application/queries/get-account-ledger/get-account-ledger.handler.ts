@@ -1,19 +1,24 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
-import Decimal from 'decimal.js';
+import { Inject } from '@nestjs/common';
+import { AccountSideSchema } from '@input-type-schemas/AccountSideSchema';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
   IJournalQueryRepository,
   JOURNAL_QUERY_REPOSITORY,
-  LedgerMovementRow,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
+import { GetClinicCurrencyQuery } from '@modules/organization/clinic/application/queries/get-clinic-currency/get-clinic-currency.query';
+import { AccountCode } from '@modules/finance/accounting/chart-of-accounts/domain/value-objects/account-code.vo';
+import { AccountNotFoundInChartException } from '@modules/finance/accounting/chart-of-accounts/domain/exceptions/chart-of-accounts.exceptions';
+import {
+  AccountLedgerCalculator,
+  LedgerLine,
+} from '@modules/finance/accounting/posting/domain/reporting/account-ledger.calculator';
 import { GetAccountLedgerQuery } from './get-account-ledger.query';
 import {
   GetAccountLedgerResponse,
   LedgerMovement,
 } from './get-account-ledger.response';
-import { AccountCode } from '@modules/finance/accounting/chart-of-accounts/domain/value-objects/account-code.vo';
 
 @QueryHandler(GetAccountLedgerQuery)
 export class GetAccountLedgerHandler
@@ -30,64 +35,57 @@ export class GetAccountLedgerHandler
   ): Promise<GetAccountLedgerResponse> {
     const { clinicId, accountCode, ctx, dateFrom, dateTo } = query;
 
-    // Hesabı şubenin planından çöz (kod → id/ad/yön) — bounded context (QueryBus).
+    // Hesap şubenin planından çözülür (kod → id/ad/yön)
     const { data: accounts } = await this.queryBus.execute(
       new GetChartOfAccountsQuery(clinicId, ctx)
     );
     const targetAccountCode = AccountCode.create(accountCode);
-    const account = accounts.find((a) => a.code.equals(targetAccountCode));
+    const account = accounts.find((a) =>
+      AccountCode.create(a.code).equals(targetAccountCode)
+    );
     if (!account) {
-      throw new NotFoundException(
-        `Hesap planında kod bulunamadı: ${accountCode}`
-      );
+      throw new AccountNotFoundInChartException(accountCode);
     }
 
-    const { openingBalance, movements } =
-      await this.journalQueryRepo.accountLedger({
-        clinicId,
-        accountId: account.id,
-        dateFrom,
-        dateTo,
-      });
+    // Defter para birimi — rapor tek fonksiyonel para cinsinden ifade edilir.
+    const { data: currency } = await this.queryBus.execute(
+      new GetClinicCurrencyQuery(clinicId)
+    );
 
-    let running = new Decimal(openingBalance.toString());
-    let totalDebit = new Decimal(0);
-    let totalCredit = new Decimal(0);
-    const isDebitNormal = account.isDebitNormal();
+    const ledger = await this.journalQueryRepo.accountLedger({
+      clinicId,
+      accountId: account.id,
+      dateFrom,
+      dateTo,
+    });
 
-    const mapped: LedgerMovement[] = [];
-    for (const row of movements) {
-      const debit = new Decimal(row.debit.toString());
-      const credit = new Decimal(row.credit.toString());
-      running = isDebitNormal
-        ? running.plus(debit).minus(credit)
-        : running.plus(credit).minus(debit);
-      totalDebit = totalDebit.plus(debit);
-      totalCredit = totalCredit.plus(credit);
-      mapped.push(this.toMovement(row, running));
-    }
+    // Yürüyen bakiye + borç/alacak toplamları
+    const isDebitNormal = account.normalSide === AccountSideSchema.enum.DEBIT;
+    const { lines, totalDebit, totalCredit, closingBalance } =
+      AccountLedgerCalculator.compute(ledger, isDebitNormal);
 
     return {
       data: {
         clinicId,
+        currency,
         account: {
           id: account.id,
-          code: account.code,
+          code: targetAccountCode,
           name: account.name,
           normalSide: account.normalSide,
         },
         dateFrom: dateFrom ?? null,
         dateTo: dateTo ?? null,
-        openingBalance: openingBalance.toFixed(2),
-        movements: mapped,
+        openingBalance: ledger.openingBalance.toFixed(2),
+        movements: lines.map((line) => this.toMovement(line)),
         totalDebit: totalDebit.toFixed(2),
         totalCredit: totalCredit.toFixed(2),
-        closingBalance: running.toFixed(2),
+        closingBalance: closingBalance.toFixed(2),
       },
     };
   }
 
-  private toMovement(row: LedgerMovementRow, running: Decimal): LedgerMovement {
+  private toMovement({ row, runningBalance }: LedgerLine): LedgerMovement {
     return {
       entryId: row.entryId,
       entryNo: row.entryNo !== null ? row.entryNo.toString() : null,
@@ -96,7 +94,7 @@ export class GetAccountLedgerHandler
       lineDesc: row.lineDesc,
       debit: row.debit.toFixed(2),
       credit: row.credit.toFixed(2),
-      runningBalance: running.toFixed(2),
+      runningBalance: runningBalance.toFixed(2),
     };
   }
 }

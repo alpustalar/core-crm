@@ -16,7 +16,7 @@ export class JournalLine {
     this._amount = JournalEntryLineAmount.create(
       data.debit,
       data.credit,
-      Currency.create(data.currency)
+      Currency.create(data.currency).orThrow()
     );
 
     this._lineDesc = data.lineDesc;
@@ -69,10 +69,12 @@ export class JournalLine {
     props: CreateJournalEntryLineProps
   ): JournalLine {
     // hatalı giriş (negatif sayı, XOR ihlali vb.) anında exception fırlatır.
+
     const amount = JournalEntryLineAmount.create(
       new Decimal(props.debit ?? 0),
       new Decimal(props.credit ?? 0),
-      props.currency ? Currency.create(props.currency) : Currency.create('TRY')
+      Currency.create(props.currency).instance ??
+        Currency.generate(Currency.enum.TRY)
     );
 
     return new JournalLine({

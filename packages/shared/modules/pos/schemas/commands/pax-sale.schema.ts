@@ -8,5 +8,5 @@ export const PaxSaleSchema = z.object({
   appointmentId: z.uuid().optional(),
   paymentId: z.uuid().optional(),
   amount: z.number().positive(),
-  currency: CurrencySchema
+  currency: CurrencySchema,
 });

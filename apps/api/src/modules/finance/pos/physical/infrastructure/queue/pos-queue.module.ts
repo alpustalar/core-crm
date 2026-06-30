@@ -5,9 +5,7 @@ import { PosReconcileProcessor } from './processors/pos-reconcile.processor';
 import { PosReconcileProducer } from './producers/pos-reconcile.producer';
 
 @Module({
-  imports: [
-    BullModule.registerQueue({ name: QUEUES.POS }),
-  ],
+  imports: [BullModule.registerQueue({ name: QUEUES.POS })],
   providers: [PosReconcileProducer, PosReconcileProcessor],
 })
 export class PosQueueModule {}

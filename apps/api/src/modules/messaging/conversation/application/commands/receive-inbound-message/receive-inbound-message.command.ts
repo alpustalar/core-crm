@@ -1,12 +1,22 @@
-import { MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@prisma/client';
 import { InboundMessagePayload } from '@modules/messaging/conversation/domain/types/create-message.props';
 
 export interface ReceiveInboundMessageInput {
+  /** Hangi kanaldan geldiği; verilmezse WHATSAPP varsayılır (geriye dönük uyumluluk). */
+  channel?: MessageChannel;
   clinicId: string;
   organizationId: string;
+  /** Kanal-özgü kontak kimliği: WhatsApp E.164 telefon, Telegram chatId. */
   contactPhone: string;
+  /**
+   * Hasta eşlemesi için kullanılacak GERÇEK telefon. WhatsApp'ta contactPhone zaten
+   * telefondur (verilmezse o kullanılır). Telegram'da contactPhone chatId olduğundan
+   * eşleme yapılamaz; yalnızca kullanıcı numarasını paylaştığında (request_contact)
+   * bu alan dolar ve hasta o telefonla eşlenir.
+   */
+  matchPhone?: string | null;
   contactName?: string | null;
-  /** WhatsApp mesaj id'si — idempotency anahtarı. */
+  /** Kanal sağlayıcısının mesaj id'si — idempotency anahtarı. */
   externalId: string;
   type?: MessageType;
   body?: string | null;

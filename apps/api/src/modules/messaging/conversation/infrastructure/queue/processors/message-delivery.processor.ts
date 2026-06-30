@@ -92,6 +92,7 @@ export class MessageDeliveryProcessor extends WorkerHost {
 
     try {
       const result = await this.channel.send({
+        channel: conversation.channel,
         clinicId: conversation.clinicId,
         toPhone: conversation.contactPhone,
         type: message.type,

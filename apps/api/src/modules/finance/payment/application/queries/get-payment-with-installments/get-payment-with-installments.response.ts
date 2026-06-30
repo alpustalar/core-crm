@@ -1,3 +1,5 @@
-import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { QueryResponse } from '@shared/common/response/response.interface';
+import { PaymentWithInstallment } from '@shared/modules/payment/interfaces/payment-with-installments.interface';
 
-export type GetPaymentWithInstallmentsResponse = Payment | null;
+export type GetPaymentWithInstallmentsResponse =
+  QueryResponse<PaymentWithInstallment | null>;

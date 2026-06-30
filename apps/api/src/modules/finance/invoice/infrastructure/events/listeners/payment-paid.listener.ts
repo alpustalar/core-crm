@@ -27,7 +27,7 @@ export class PaymentPaidInvoiceListener {
   async handle(event: PaymentPaidEvent): Promise<void> {
     try {
       // Cari + tutar payment modülünden çözülür (bounded context — QueryBus).
-      const payment = await this.queryBus.execute(
+      const { data: payment } = await this.queryBus.execute(
         new GetPaymentWithInstallmentsQuery(event.paymentId)
       );
       if (!payment) {
@@ -43,11 +43,9 @@ export class PaymentPaidInvoiceListener {
       );
       const amount = installment
         ? installment.amount.toNumber()
-        : payment.totalAmount.amount.toNumber();
+        : payment.totalAmount.toNumber();
 
-      const currency = installment
-        ? installment.currency
-        : payment.totalAmount.currency;
+      const currency = installment ? installment.currency : payment.currency;
 
       await this.commandBus.execute(
         new IssueInvoiceCommand({
@@ -55,7 +53,7 @@ export class PaymentPaidInvoiceListener {
           patientId: payment.patientId,
           appointmentId: event.appointmentId,
           paymentId: event.paymentId,
-          totalAmount: Money.create(amount, currency),
+          totalAmount: Money.create(amount, currency).orThrow(),
           trigger: InvoiceTriggers.PAYMENT,
           action: LogAction.INVOICE_ISSUED,
           type: LogType.INFO,

@@ -31,7 +31,7 @@ export class GetPatientAppointmentsHandler
     );
 
     return {
-      data: items,
+      data: items.map((item) => item.toPersistence()),
       meta: {
         pagination: buildPaginationMeta(pagination, total),
       },

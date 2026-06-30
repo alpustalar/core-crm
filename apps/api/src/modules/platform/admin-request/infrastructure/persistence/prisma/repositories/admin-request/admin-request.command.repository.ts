@@ -15,6 +15,11 @@ export class AdminRequestCommandRepository
     super(prisma);
   }
 
+  async findById(id: string) {
+    const raw = await this.db.adminRequest.findUnique({ where: { id } });
+    return raw ? new AdminRequest(raw) : null;
+  }
+
   async save(entity: AdminRequest): Promise<AdminRequest> {
     const data = entity.toPersistence();
 

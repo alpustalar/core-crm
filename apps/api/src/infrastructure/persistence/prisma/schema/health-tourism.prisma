@@ -10,6 +10,25 @@ enum HotelbedsTransferBookingStatus {
   MODIFIED
 }
 
+enum BookingPaymentType {
+  HOTEL
+  TRANSFER
+}
+
+enum BookingPaymentStatus {
+  PENDING // linkler üretildi, ödeme bekleniyor
+  PAID // ödeme onaylandı, rezervasyon yapılıyor
+  BOOKED // HotelBeds rezervasyonu tamamlandı
+  EXPIRED // link/rateKey ödeme yapılmadan doldu
+  FAILED // ödeme alındı ama rezervasyon başarısız (iade bekliyor)
+  REFUNDED // iade edildi (iptal veya çift-çekim)
+}
+
+enum BookingPaymentProvider {
+  IYZICO
+  STRIPE
+}
+
 model HotelbedsHotel {
   id              String   @id // Hotelbeds hotel code
   name            String
@@ -61,6 +80,38 @@ model HotelbedsBooking {
   @@map("hotelbeds_bookings")
 }
 
+/// Kliniğin sağlık-turizmi (otel + transfer) config'i — Clinic'ten ayrıştırılmış 1:1
+/// satellite. AI asistanının hangi otelleri (allowlist veya şehir) arayacağını ve
+/// transferin hangi havalimanı/hedef üzerinden kurulacağını belirler.
+model ClinicHealthTourismConfig {
+  id        String  @id @default(uuid())
+  isEnabled Boolean @default(false) @map("is_enabled")
+
+  // OTEL (B2)
+  destinationCode  String?  @map("destination_code") // HotelBeds şehir/bölge kodu (allowlist boşsa fallback)
+  nearbyHotelCodes String[] @map("nearby_hotel_codes") // curated otel allowlist (öncelik)
+
+  // TRANSFER (B3)
+  airportIata        String? @map("airport_iata") // varış havalimanı IATA (ör. "IST")
+  clinicLocationType String? @map("clinic_location_type") // transfer hedef tipi: ATLAS | GPS
+  clinicLocationCode String? @map("clinic_location_code") // otel ATLAS kodu / GPS koordinatı
+  pickupAddress      String? @map("pickup_address") // klinik adresi (transfer + bilgi)
+
+  // FİYAT
+  serviceFeePercent Decimal? @map("service_fee_percent") @db.Decimal(5, 2) // satış üzerine komisyon %
+  defaultCurrency   Currency @default(EUR) @map("default_currency")
+
+  clinicId       String @unique @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize
+  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("clinic_health_tourism_configs")
+}
+
 model HotelbedsTransferBooking {
   id              String                         @id @default(uuid())
   reference       String                         @unique
@@ -86,4 +137,54 @@ model HotelbedsTransferBooking {
   @@index([patientId])
   @@index([leadId])
   @@map("hotelbeds_transfer_bookings")
+}
+
+/// Sağlık turizmi (otel/transfer) rezervasyonu için ÖDEME-ÖNCE (payment-first) tahsilat
+/// kaydı. Hasta ödeme yapmadan HotelBeds'e rezervasyon AÇILMAZ (klinik maliyeti + iptal
+/// riski). İki link üretilir: iyzico (TRY, yurt içi) + Stripe (EUR/USD, yurt dışı). Biri
+/// ödenince webhook `intent`'i HotelBeds'e replay eder, diğer link iptal/expire edilir.
+model BookingPayment {
+  id          String               @id @default(uuid())
+  bookingType BookingPaymentType   @map("booking_type")
+  status      BookingPaymentStatus @default(PENDING)
+
+  // Tahsilat tutarları — hastanın kliniğe ödeyeceği SATIŞ fiyatı (net + serviceFee)
+  saleCurrency Currency @map("sale_currency") // Stripe bu para biriminde çeker (EUR/USD)
+  saleAmount   Decimal  @map("sale_amount") @db.Decimal(12, 2)
+  tryAmount    Decimal  @map("try_amount") @db.Decimal(12, 2) // iyzico TRY çeker (saleAmount × fxRate)
+  netAmount    Decimal  @map("net_amount") @db.Decimal(12, 2) // HotelBeds net maliyet (mutabakat/defter)
+  fxRate       Decimal? @map("fx_rate") @db.Decimal(12, 6) // saleCurrency→TRY oranı
+
+  // Rezervasyon niyeti — ödeme onaylanınca HotelBeds'e replay edilen BookHotel/BookTransfer payload'ı
+  intent Json
+
+  // Sağlayıcı oturumları
+  iyzicoConversationId String?                 @unique @map("iyzico_conversation_id")
+  iyzicoToken          String?                 @map("iyzico_token")
+  iyzicoUrl            String?                 @map("iyzico_url")
+  stripeSessionId      String?                 @unique @map("stripe_session_id")
+  stripeUrl            String?                 @map("stripe_url")
+  paidProvider         BookingPaymentProvider? @map("paid_provider")
+  paidProviderRef      String?                 @map("paid_provider_ref") // iade için: iyzico paymentTransactionId / stripe payment_intent
+  paidAt               DateTime?               @map("paid_at")
+
+  // Sonuç (ödeme sonrası rezervasyon)
+  bookingReference String? @map("booking_reference") // HotelBeds referansı
+  bookingId        String? @map("booking_id") // dahili rezervasyon kaydı id'si
+  failureReason    String? @map("failure_reason") @db.Text
+
+  // Sahiplik / kapsam
+  clinicId       String  @map("clinic_id")
+  organizationId String  @map("organization_id")
+  patientId      String? @map("patient_id")
+  leadId         String? @map("lead_id")
+  conversationId String? @map("conversation_id") // başlatan mesajlaşma sohbeti (onayı geri göndermek için)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([leadId])
+  @@map("booking_payments")
 }

@@ -30,7 +30,7 @@ export class CreatePaymentHandler
     const paymentId = internalRelations?.paymentId ?? randomUUID();
     const installmentId = internalRelations?.installmentId ?? randomUUID();
     const amount = new Decimal(dto.amount);
-    const totalAmount = Money.create(amount, dto.currency);
+    const totalAmount = Money.create(amount, dto.currency).orThrow();
 
     const payment = Payment.create({
       id: paymentId,
@@ -52,6 +52,6 @@ export class CreatePaymentHandler
     });
 
     const savedPayment = await this.paymentCommandRepo.save(payment);
-    return savedPayment.id;
+    return savedPayment.id.value;
   }
 }

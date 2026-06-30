@@ -1,11 +1,6 @@
-import { PROVIDER_EVENTS } from '@src/domain/constants/events';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  IProviderAvailabilityRepository,
-  PROVIDER_AVAILABILITY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -14,9 +9,18 @@ import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-import { ValidateTimeWithinClinicHoursOrThrowQuery } from '@modules/organization/clinic/application/queries/validate-time-within-clinic-hours/validate-time-within-clinic-hours.query';
+
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { CreateProviderShiftCommand } from './create-provider-shift.command';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { PROVIDER_EVENTS } from '@src/domain/constants/events';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+import {
+  IProviderShiftCommandRepository,
+  PROVIDER_SHIFT_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
+import { ProviderShift } from '@modules/clinical/provider/domain/entities/provider-shift.entity';
+import { AssertTimeWithinClinicHoursQuery } from '@modules/organization/clinic/application/queries/assert-time-within-clinic-hours/assert-time-within-clinic-hours.query';
 
 @CommandHandler(CreateProviderShiftCommand)
 export class CreateProviderShiftHandler
@@ -25,8 +29,8 @@ export class CreateProviderShiftHandler
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
     private readonly providerQueryRepo: IProviderQueryRepository,
-    @Inject(PROVIDER_AVAILABILITY_REPOSITORY)
-    private readonly providerAvailabilityRepo: IProviderAvailabilityRepository,
+    @Inject(PROVIDER_SHIFT_COMMAND_REPOSITORY)
+    private readonly providerShiftCommandRepo: IProviderShiftCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager,
@@ -35,35 +39,34 @@ export class CreateProviderShiftHandler
 
   async execute(command: CreateProviderShiftCommand): Promise<void> {
     const {
-      ctx: { actor },
+      ctx: { actor, source },
       dto: { providerId, shifts },
     } = command;
 
-    const { evaluator } = this.policyFactory.user(actor);
-    evaluator
-      .check((p) => p.isTargetInActorsSameClinic(actor.clinicId))
+    const provider = await this.providerQueryRepo.findById(providerId);
+    if (!provider) throw new ProviderNotFoundException();
+
+    this.policyFactory
+      .provider(actor)
+      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId))
       .orThrow(PROVIDER_EVENTS.SHIFT_CREATED);
 
+    provider.validate.isShiftMode.orThrow();
+
     await this.transactionManager.run(async () => {
-      const provider = await this.providerQueryRepo.findById(providerId);
-
-      if (!provider) {
-        throw new BadRequestException('Uzman bulunamadı.');
-      }
-
-      if (!provider.isShiftMode()) {
-        throw new BadRequestException(
-          'Vardiya yalnızca SHIFT modundaki uzmanlar için tanımlanabilir.'
-        );
-      }
-
       await this.queryBus.execute(
-        new ValidateTimeWithinClinicHoursOrThrowQuery(provider.clinicId, shifts)
+        new AssertTimeWithinClinicHoursQuery(provider.clinicId, shifts)
       );
 
-      await this.providerAvailabilityRepo.upsertManyShifts(
-        shifts.map((s) => ({ ...s, providerId }))
+      const preparedShifts = shifts.map((shift) =>
+        ProviderShift.create({
+          ...shift,
+          providerId,
+        })
       );
+
+      await this.providerShiftCommandRepo.replaceShiftsForDates(preparedShifts);
     });
   }
 }

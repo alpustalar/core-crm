@@ -1,6 +1,6 @@
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
 import { PaymentMethod } from '@prisma/client';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import {
   ArAgingData,
   ArAgingFilter,

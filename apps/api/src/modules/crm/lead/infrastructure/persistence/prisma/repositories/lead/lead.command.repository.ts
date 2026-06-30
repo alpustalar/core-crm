@@ -32,15 +32,19 @@ export class LeadCommandRepository
     return new Lead(raw);
   }
 
-  async save(entity: Lead): Promise<Lead> {
-    const data = entity.toPersistence();
+  async findById(id: string): Promise<Lead | null> {
+    const raw = await this.db.lead.findUnique({ where: { id } });
+    return raw ? new Lead(raw) : null;
+  }
 
+  async save(entity: Lead) {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
     const raw = await this.db.lead.upsert({
-      where: { id: entity.id },
-      create: data,
-      update: data,
+      where: { id },
+      create,
+      update,
     });
-
     entity.flushEvents();
     return new Lead(raw);
   }

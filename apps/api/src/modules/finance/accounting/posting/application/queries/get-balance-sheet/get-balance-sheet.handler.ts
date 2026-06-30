@@ -48,7 +48,7 @@ export class GetBalanceSheetHandler
       const account = accountById.get(row.accountId);
 
       return {
-        code: account?.code.value ?? '?',
+        code: account?.code ?? '?',
         name: account?.name ?? '(bilinmeyen hesap)',
         debit: row.totalDebit,
         credit: row.totalCredit,

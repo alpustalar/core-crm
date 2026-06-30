@@ -44,7 +44,7 @@ export class UpdateTreatmentPackageHandler
         ...restDto,
         ...(price &&
           currency && {
-            price: Money.create(new Decimal(price), currency),
+            price: Money.create(new Decimal(price), currency).orThrow(),
           }),
       });
       await this.treatmentPackageCommandRepo.save(treatmentPackage);

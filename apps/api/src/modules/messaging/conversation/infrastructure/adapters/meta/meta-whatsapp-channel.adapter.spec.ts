@@ -1,4 +1,4 @@
-import { MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@prisma/client';
 import { MetaWhatsappChannelAdapter } from './meta-whatsapp-channel.adapter';
 import { SendMessageRequest } from '@modules/messaging/conversation/domain/ports/message-channel.port';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -37,6 +37,7 @@ describe('MetaWhatsappChannelAdapter (gerçek WhatsApp Cloud API gönderim)', ()
   };
 
   const textRequest: SendMessageRequest = {
+    channel: MessageChannel.WHATSAPP,
     clinicId: 'clinic-1',
     toPhone: '+905550001122',
     type: MessageType.TEXT,
@@ -92,6 +93,7 @@ describe('MetaWhatsappChannelAdapter (gerçek WhatsApp Cloud API gönderim)', ()
     const { adapter, fetchMock } = build({ credentials });
 
     const result = await adapter.send({
+      channel: MessageChannel.WHATSAPP,
       clinicId: 'clinic-1',
       toPhone: '+905550001122',
       type: MessageType.TEMPLATE,
@@ -117,6 +119,7 @@ describe('MetaWhatsappChannelAdapter (gerçek WhatsApp Cloud API gönderim)', ()
     const { adapter, fetchMock } = build({ credentials });
 
     await adapter.send({
+      channel: MessageChannel.WHATSAPP,
       clinicId: 'clinic-1',
       toPhone: '+905550001122',
       type: MessageType.TEMPLATE,
@@ -156,7 +159,7 @@ describe('MetaWhatsappChannelAdapter (gerçek WhatsApp Cloud API gönderim)', ()
   it('markRead: status:read payload + message_id ile POST atar', async () => {
     const { adapter, fetchMock } = build({ credentials });
 
-    await adapter.markRead('clinic-1', 'wamid.in.1');
+    await adapter.markRead(MessageChannel.WHATSAPP, 'clinic-1', 'wamid.in.1');
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toContain('/pn-123/messages');
@@ -171,7 +174,9 @@ describe('MetaWhatsappChannelAdapter (gerçek WhatsApp Cloud API gönderim)', ()
 
   it('markRead: credential yoksa sessizce geçer (HTTP yok)', async () => {
     const { adapter, fetchMock } = build({ credentials: null });
-    await expect(adapter.markRead('clinic-1', 'wamid.in.1')).resolves.toBeUndefined();
+    await expect(
+      adapter.markRead(MessageChannel.WHATSAPP, 'clinic-1', 'wamid.in.1')
+    ).resolves.toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

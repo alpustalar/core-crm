@@ -19,6 +19,6 @@ export class GetLeadByIdHandler
   async execute(query: GetLeadByIdQuery): Promise<GetLeadByIdResponse> {
     const lead = await this.leadQueryRepo.findById(query.leadId);
     if (!lead) throw new NotFoundException('Lead bulunamadı.');
-    return { data: lead };
+    return { data: lead.toPersistence() };
   }
 }

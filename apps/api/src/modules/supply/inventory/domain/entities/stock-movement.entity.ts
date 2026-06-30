@@ -1,73 +1,63 @@
 import { StockMovement as IStockMovement } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { randomUUID } from 'crypto';
 import { StockMovementTypeType as StockMovementType } from '@input-type-schemas/StockMovementTypeSchema';
 import { StockMovementDirectionType as StockMovementDirection } from '@input-type-schemas/StockMovementDirectionSchema';
-import { Decimal } from 'decimal.js';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { CreateStockMovementProps } from '@modules/supply/inventory/domain/supply.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class StockMovement extends AggregateRoot {
   constructor(data: IStockMovement) {
     super();
 
-    // Para birimi zırhı
-    const currency = data.currency;
+    const currency = Currency.create(data.currency).orThrow();
 
-    this._id = data.id;
-    this._productId = data.productId;
-    this._clinicId = data.clinicId;
-    this._batchId = data.batchId;
+    this._id = UUID.create(data.id).orThrow();
+    this._productId = UUID.create(data.productId).orThrow();
+    this._clinicId = UUID.create(data.clinicId).orThrow();
+    this._batchId = UUID.create(data.batchId).instance ?? null;
     this._type = data.type;
     this._direction = data.direction;
-    this._quantity = Quantity.create(data.quantity);
-    this._currency = Currency.create(currency);
-
-    this._unitPrice = data.unitPrice
-      ? Money.create(data.unitPrice, currency)
-      : null;
-    this._vatRate =
-      data.vatRate !== null && data.vatRate !== undefined
-        ? VatRate.create(data.vatRate)
-        : null;
-
-    this._vatAmount = data.vatAmount
-      ? Money.create(data.vatAmount, currency)
-      : null;
-    this._totalAmount = data.totalAmount
-      ? Money.create(data.totalAmount, currency)
-      : null;
-
-    this._financeLedgerId = data.financeLedgerId;
-    this._performedById = data.performedById;
+    this._quantity = Quantity.create(data.quantity).orThrow();
+    this._currency = currency;
+    this._unitPrice =
+      Money.create(data.unitPrice, currency.value).instance ?? null;
+    this._vatRate = data.vatRate && VatRate.create(data?.vatRate).orThrow();
+    this._vatAmount =
+      Money.create(data.vatAmount, currency.value).instance ?? null;
+    this._totalAmount =
+      Money.create(data.totalAmount, currency.value).instance ?? null;
+    this._financeLedgerId = UUID.create(data.financeLedgerId).instance ?? null;
+    this._performedById = UUID.create(data.performedById).instance ?? null;
     this._notes = data.notes;
     this._createdAt = data.createdAt;
   }
 
-  private _id: string;
+  private _id: UUID;
 
-  get id(): string {
+  get id(): UUID {
     return this._id;
   }
 
-  private _productId: string;
+  private _productId: UUID;
 
-  get productId(): string {
+  get productId(): UUID {
     return this._productId;
   }
 
-  private _clinicId: string;
+  private _clinicId: UUID;
 
-  get clinicId(): string {
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _batchId: string | null;
+  private _batchId: UUID | null;
 
-  get batchId(): string | null {
+  get batchId(): UUID | null {
     return this._batchId;
   }
 
@@ -119,15 +109,15 @@ export class StockMovement extends AggregateRoot {
     return this._totalAmount;
   }
 
-  private _financeLedgerId: string | null;
+  private _financeLedgerId: UUID | null;
 
-  get financeLedgerId(): string | null {
+  get financeLedgerId(): UUID | null {
     return this._financeLedgerId;
   }
 
-  private _performedById: string | null;
+  private _performedById: UUID | null;
 
-  get performedById(): string | null {
+  get performedById(): UUID | null {
     return this._performedById;
   }
 
@@ -156,35 +146,32 @@ export class StockMovement extends AggregateRoot {
     }
 
     return new StockMovement({
-      id: props.id ?? randomUUID(),
+      id: UUID.create(props.id).instance?.value ?? UUID.generate().value,
       productId: props.productId,
       clinicId: props.clinicId,
       batchId: props.batchId ?? null,
       type: props.type,
       direction: props.direction,
-      quantity: Quantity.create(quantity).value,
+      quantity: Quantity.create(quantity).orThrow().value,
       unitPrice: unitPrice?.amount ?? null,
-      currency: unitPrice?.currency ?? 'TRY',
-      vatRate:
-        props.vatRate !== null && props.vatRate !== undefined
-          ? new Decimal(props.vatRate)
-          : null,
+      currency: unitPrice?.currency ?? Currency.enum.TRY,
+      vatRate: VatRate.create(props.vatRate).instance?.value ?? null,
       vatAmount: vatAmount?.amount ?? null,
       totalAmount: totalAmount?.amount ?? null,
 
       financeLedgerId: props.financeLedgerId ?? null,
       performedById: props.performedById ?? null,
       notes: props.notes ?? null,
-      createdAt: new Date(),
+      createdAt: DateTimeManager.create(),
     });
   }
 
   toPersistence(): IStockMovement {
     return {
-      id: this._id,
-      productId: this._productId,
-      clinicId: this._clinicId,
-      batchId: this._batchId,
+      id: this._id.value,
+      productId: this._productId.value,
+      clinicId: this._clinicId.value,
+      batchId: this._batchId?.value ?? null,
       type: this._type,
       direction: this._direction,
       quantity: this._quantity.value,
@@ -193,8 +180,8 @@ export class StockMovement extends AggregateRoot {
       vatRate: this._vatRate?.value ?? null,
       vatAmount: this._vatAmount?.amount ?? null,
       totalAmount: this._totalAmount?.amount ?? null,
-      financeLedgerId: this._financeLedgerId,
-      performedById: this._performedById,
+      financeLedgerId: this._financeLedgerId?.value ?? null,
+      performedById: this._performedById?.value ?? null,
       notes: this._notes,
       createdAt: this._createdAt,
     };

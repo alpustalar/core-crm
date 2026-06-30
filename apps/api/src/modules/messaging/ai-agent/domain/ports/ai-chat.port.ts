@@ -1,3 +1,6 @@
+import { AiProviderType } from '@input-type-schemas/AiProviderSchema';
+import { MessageChannelType } from '@input-type-schemas/MessageChannelSchema';
+
 export const AI_CHAT_PORT = Symbol('AiChatPort');
 
 /** Modele beslenen tek sohbet turu (kullanıcı/asistan). */
@@ -7,14 +10,17 @@ export interface AiChatMessage {
 }
 
 /**
- * AI yanıt turu girişi. apiKey null ise adapter platform fallback'ini
- * (ENV.ANTHROPIC_API_KEY) kullanır. context, araçların (randevu/müsaitlik) klinik
- * kapsamında çalışabilmesi için gereklidir.
+ * AI yanıt turu girişi. provider, hangi adapter'ın kullanılacağını belirler (router).
+ * apiKey null ise adapter provider'a göre platform fallback'ini (ANTHROPIC_API_KEY /
+ * GEMINI_API_KEY) kullanır. context, araçların (randevu/müsaitlik) klinik kapsamında
+ * çalışabilmesi için gereklidir.
  */
 export interface AiReplyRequest {
   clinicId: string;
   organizationId: string;
   conversationId: string;
+  channel: MessageChannelType;
+  provider: AiProviderType;
   model: string;
   systemPrompt: string | null;
   apiKey: string | null;
@@ -24,6 +30,7 @@ export interface AiReplyRequest {
   contactName: string | null;
   contactPhone: string;
   patientId: string | null;
+  leadId: string | null;
 }
 
 /**

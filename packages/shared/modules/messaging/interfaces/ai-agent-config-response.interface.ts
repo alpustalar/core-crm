@@ -3,6 +3,7 @@ export interface AiAgentConfigResponse {
   id: string;
   clinicId: string;
   isEnabled: boolean;
+  provider: 'ANTHROPIC' | 'GEMINI';
   model: string;
   systemPrompt: string | null;
   hasApiKey: boolean;

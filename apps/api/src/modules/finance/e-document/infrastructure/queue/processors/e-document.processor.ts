@@ -105,7 +105,7 @@ export class EDocumentProcessor extends WorkerHost {
           name: 'Hizmet bedeli',
           quantity: 1,
           unitPrice: invoice.netTotal,
-          vatRate: invoice.vatRate,
+          vatRate: Number(invoice.vatRate),
           vatAmount: invoice.vatTotal,
         },
       ],

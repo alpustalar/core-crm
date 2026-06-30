@@ -11,8 +11,10 @@ import {
   CreateOrganizationProps,
   UpdateOrganizationInfoProps,
 } from '@modules/organization/organization/domain/organization.contracts';
+import { TimeZone } from '@src/domain/value-objects/timezone.vo';
+import { TimeZoneSchema } from '@shared';
 
-export class Organization extends AggregateRoot implements IOrganization {
+export class Organization extends AggregateRoot {
   constructor(data: IOrganization) {
     super();
     this._id = data.id;
@@ -24,7 +26,7 @@ export class Organization extends AggregateRoot implements IOrganization {
     this._city = data.city;
     this._district = data.district;
     this._status = data.status;
-    this._timezone = data.timezone;
+    this._timezone = TimeZone.create(data.timezone).orThrow();
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt;
@@ -75,8 +77,8 @@ export class Organization extends AggregateRoot implements IOrganization {
     return this._status;
   }
 
-  private _timezone: string;
-  get timezone(): string {
+  private _timezone: TimeZone;
+  get timezone(): TimeZone {
     return this._timezone;
   }
 
@@ -107,7 +109,7 @@ export class Organization extends AggregateRoot implements IOrganization {
       city: props.city ?? null,
       district: props.district ?? null,
       status: GlobalStatusSchema.enum.ACTIVE,
-      timezone: props.timezone ?? 'Europe/Istanbul',
+      timezone: props.timezone ?? TimeZoneSchema.enum.Europe_Istanbul,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -184,7 +186,7 @@ export class Organization extends AggregateRoot implements IOrganization {
       city: this._city,
       district: this._district,
       status: this._status,
-      timezone: this._timezone,
+      timezone: this._timezone.value,
       createdAt: this._createdAt,
       updatedAt: new Date(),
       deletedAt: this._deletedAt,

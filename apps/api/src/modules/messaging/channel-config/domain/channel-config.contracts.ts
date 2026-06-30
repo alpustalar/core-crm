@@ -31,3 +31,45 @@ export const CreateClinicWhatsappChannelPropsSchema = z.object({
 export type CreateClinicWhatsappChannelProps = z.infer<
   typeof CreateClinicWhatsappChannelPropsSchema
 >;
+
+// ==========================================
+// TELEGRAM KANAL OLUŞTURMA SÖZLEŞMELERİ (PROPS)
+// ==========================================
+
+export const CreateClinicTelegramBotChannelPropsSchema = z.object({
+  id: z.uuid().optional(),
+  clinicId: z.uuid(),
+  organizationId: z.uuid(),
+
+  // BotFather token'ı zaten şifrelenmiş (TokenCipherService) olarak gelir.
+  botTokenEnc: z.string().min(1, 'Şifreli bot token boş bırakılamaz'),
+  botUsername: z.string().nullable().optional(),
+  // Klinik bazlı webhook secret_token (setWebhook ile kuruldu).
+  webhookSecret: z.string().min(1, 'Webhook secret boş bırakılamaz'),
+});
+
+export type CreateClinicTelegramBotChannelProps = z.infer<
+  typeof CreateClinicTelegramBotChannelPropsSchema
+>;
+
+// ==========================================
+// INSTAGRAM KANAL OLUŞTURMA SÖZLEŞMELERİ (PROPS)
+// ==========================================
+
+export const CreateClinicInstagramChannelPropsSchema = z.object({
+  id: z.uuid().optional(),
+  clinicId: z.uuid(),
+  organizationId: z.uuid(),
+
+  // Instagram professional account id (webhook routing + gönderim hedefi).
+  igUserId: z.string().min(1, 'Instagram hesap id boş bırakılamaz'),
+  pageId: z.string().nullable().optional(),
+  username: z.string().nullable().optional(),
+  // Page/IG erişim token'ı zaten şifrelenmiş (TokenCipherService) olarak gelir.
+  accessToken: z.string().nullable().optional(),
+  tokenExpiresAt: z.date().nullable().optional(),
+});
+
+export type CreateClinicInstagramChannelProps = z.infer<
+  typeof CreateClinicInstagramChannelPropsSchema
+>;

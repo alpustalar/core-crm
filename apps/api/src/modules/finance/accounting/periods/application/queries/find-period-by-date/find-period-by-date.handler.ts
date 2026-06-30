@@ -23,6 +23,6 @@ export class FindPeriodByDateHandler
       query.clinicId,
       query.date
     );
-    return { data: period };
+    return { data: period?.toPersistence() ?? null };
   }
 }

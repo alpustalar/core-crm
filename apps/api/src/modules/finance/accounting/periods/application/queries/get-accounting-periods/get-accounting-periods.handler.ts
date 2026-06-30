@@ -24,6 +24,6 @@ export class GetAccountingPeriodsHandler
       query.clinicId
     );
 
-    return { data: periods };
+    return { data: periods.map((p) => p.toPersistence()) };
   }
 }

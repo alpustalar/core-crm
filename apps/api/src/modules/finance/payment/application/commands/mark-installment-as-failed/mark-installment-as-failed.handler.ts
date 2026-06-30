@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { MarkInstallmentAsFailedCommand } from './mark-installment-as-failed.command';
 import {
   IPaymentCommandRepository,
@@ -34,8 +35,7 @@ export class MarkInstallmentAsFailedHandler
     await this.txManager.outboxRun(async () => {
       const payment =
         await this.paymentQueryRepo.findByInstallmentId(installmentId);
-      if (!payment)
-        throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
+      if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       payment.failInstallment(installmentId);
       await this.paymentCommandRepo.save(payment);
@@ -43,9 +43,9 @@ export class MarkInstallmentAsFailedHandler
       // TODO: entity'de domainEvent fırlatılacak buradan kaldırılacak
       // Event sahipliği payment modülünde: başarısız ödeme olayı burada fırlatılır.
       this.paymentEventPublisher.paymentFailed({
-        paymentId: payment.id,
-        appointmentId: payment.appointmentId,
-        clinicId: payment.clinicId,
+        paymentId: payment.id.value,
+        appointmentId: payment.appointmentId?.value ?? null,
+        clinicId: payment.clinicId.value,
         action: LogAction.PAYMENT_FAILED,
         type: LogType.ERROR,
         details: details ?? 'Ödeme başarısız',

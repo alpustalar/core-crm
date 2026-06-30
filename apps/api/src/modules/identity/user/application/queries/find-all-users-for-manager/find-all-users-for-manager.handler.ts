@@ -7,12 +7,12 @@ import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/help
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindAllUsersForManagerQuery } from '@modules/identity/user/application/queries/find-all-users-for-manager/find-all-users-for-manager.query';
 import { FindAllUsersForManagerQueryResponse } from '@modules/identity/user/application/queries/find-all-users-for-manager/find-all-users-for-manager.response';
-import { UserResponseGroups } from '@modules/identity/user/domain/constants';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { SerializationOptions } from '@shared';
+import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
 
 const { ADMIN, MANAGEMENT } = UserResponseGroups;
 
@@ -66,7 +66,7 @@ export class FindAllUsersForManagerHandler
       });
 
       return {
-        data: items,
+        data: items.map((user) => user.toPersistence()),
         meta: {
           pagination: buildPaginationMeta(dto, total),
           serializationOptions,
@@ -81,7 +81,7 @@ export class FindAllUsersForManagerHandler
       });
 
       return {
-        data: items,
+        data: items.map((user) => user.toPersistence()),
         meta: {
           pagination: buildPaginationMeta(dto, total),
           serializationOptions,

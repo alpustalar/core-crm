@@ -58,6 +58,6 @@ export class SendUserPasswordResetLinkByStaffHandler
       throw new NotFoundException('Kullanıcı bulunamadı');
     }
 
-    await this.firebaseService.generatePasswordResetLink(user.email);
+    await this.firebaseService.generatePasswordResetLink(user.email.value);
   }
 }

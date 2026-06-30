@@ -1,13 +1,15 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateOrganizationInfoCommand } from './update-organization-info.command';
 import { UpdateOrganizationInfoCommandResponse } from './update-organization-info.response';
-import { Inject, NotFoundException } from '@nestjs/common';
-import { FindQuery } from '@modules/organization/organization/application/queries/find/find.query';
+import { Inject } from '@nestjs/common';
 import {
   IOrganizationCommandRepository,
+  IOrganizationQueryRepository,
   ORGANIZATION_COMMAND_REPOSITORY,
+  ORGANIZATION_QUERY_REPOSITORY,
 } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { OrganizationNotFoundException } from '@modules/organization/organization/domain/exceptions/organization.exceptions';
 
 @CommandHandler(UpdateOrganizationInfoCommand)
 export class UpdateOrganizationInfoHandler
@@ -18,24 +20,31 @@ export class UpdateOrganizationInfoHandler
     >
 {
   constructor(
-    private readonly queryBus: TSQueryBus,
+    private readonly commandBus: TSQueryBus,
+    @Inject(ORGANIZATION_QUERY_REPOSITORY)
+    private readonly orgQueryRepo: IOrganizationQueryRepository,
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
-    private readonly orgRepo: IOrganizationCommandRepository
+    private readonly orgCommandRepo: IOrganizationCommandRepository
   ) {}
 
   async execute(
     command: UpdateOrganizationInfoCommand
   ): Promise<UpdateOrganizationInfoCommandResponse> {
     const { dto, organizationId, ctx } = command;
-    const { data: org } = await this.queryBus.execute(
-      new FindQuery(ctx, organizationId)
-    );
 
-    if (!org) throw new NotFoundException('organizasyon bulunamadı');
+    // TODO: policy kontrol yapılacak
 
-    org.updateInfo(dto);
-    await this.orgRepo.save(org);
+    if (!organizationId)
+      throw new OrganizationNotFoundException(organizationId);
 
-    return { id: org.id };
+    const organization = await this.orgQueryRepo.findById(organizationId);
+
+    if (!organization) throw new OrganizationNotFoundException(organizationId);
+
+    organization.updateInfo(dto);
+
+    const saved = await this.orgCommandRepo.save(organization);
+
+    return saved.id;
   }
 }

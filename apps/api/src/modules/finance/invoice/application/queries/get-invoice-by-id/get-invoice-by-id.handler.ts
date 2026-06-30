@@ -23,13 +23,13 @@ export class GetInvoiceByIdHandler
     const tax = invoice.taxSpecification;
     return {
       data: {
-        id: invoice.id,
-        clinicId: invoice.clinicId,
-        patientId: invoice.patientId,
+        id: invoice.id.value,
+        clinicId: invoice.clinicId.value,
+        patientId: invoice.patientId.value,
         netTotal: tax.netAmount.amount.toFixed(2),
         vatTotal: tax.taxAmount.amount.toFixed(2),
         grandTotal: tax.grossAmount.amount.toFixed(2),
-        vatRate: invoice.vatRate,
+        vatRate: invoice.vatRate.value,
         currency: invoice.currency.value,
         issuedAt: invoice.issuedAt,
         status: invoice.status,

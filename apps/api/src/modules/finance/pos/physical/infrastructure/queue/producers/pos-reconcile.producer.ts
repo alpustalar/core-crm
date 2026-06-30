@@ -7,9 +7,7 @@ import { POS_JOBS, QUEUES } from '@common/constants';
 export class PosReconcileProducer implements OnModuleInit {
   private readonly logger = new Logger(PosReconcileProducer.name);
 
-  constructor(
-    @InjectQueue(QUEUES.POS) private readonly posQueue: Queue
-  ) {}
+  constructor(@InjectQueue(QUEUES.POS) private readonly posQueue: Queue) {}
 
   async onModuleInit(): Promise<void> {
     await this.posQueue.add(

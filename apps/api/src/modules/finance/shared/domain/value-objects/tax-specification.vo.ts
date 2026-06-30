@@ -69,7 +69,7 @@ export class TaxSpecification {
     }
 
     const calculatedTax = netAmount.amount.mul(taxRate).div(100);
-    const taxMoney = Money.create(calculatedTax, netAmount.currency);
+    const taxMoney = Money.create(calculatedTax, netAmount.currency).orThrow();
 
     return new TaxSpecification(
       netAmount,
@@ -92,9 +92,9 @@ export class TaxSpecification {
     const vatValue = grossAmount.amount.minus(netValue);
 
     return new TaxSpecification(
-      Money.create(netValue, grossAmount.currency),
+      Money.create(netValue, grossAmount.currency).orThrow(),
       vatRate,
-      Money.create(vatValue, grossAmount.currency)
+      Money.create(vatValue, grossAmount.currency).orThrow()
     );
   }
 }

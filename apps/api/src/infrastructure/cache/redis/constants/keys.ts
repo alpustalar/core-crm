@@ -20,5 +20,11 @@ export const REDIS_KEYS = {
   TRANSFER: {
     AVAILABILITY: (paramsHash: string) =>
       `transfer:availability:${paramsHash}`,
+    // AI asistanı için kısa optionId → HotelBeds transfer rateKey + bağlam.
+    RATE_OPTION: (token: string) => `transfer:rate-option:${token}`,
+  },
+  HOTEL: {
+    // AI asistanı için kısa optionId → HotelBeds rateKey + rezervasyon bağlamı.
+    RATE_OPTION: (token: string) => `hotel:rate-option:${token}`,
   },
 } as const;

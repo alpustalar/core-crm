@@ -1,0 +1,85 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject, Logger } from '@nestjs/common';
+import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
+import { IyzicoTerminalEodCommand } from './iyzico-terminal-eod.command';
+import type { IyzicoTerminalEodResponse } from './iyzico-terminal-eod.response';
+import {
+  IPosDeviceQueryRepository,
+  POS_DEVICE_QUERY_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
+import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
+import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
+import {
+  IyzicoTerminalAuthError,
+  IyzicoTerminalOperationError,
+} from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
+
+@CommandHandler(IyzicoTerminalEodCommand)
+export class IyzicoTerminalEodHandler implements ICommandHandler<
+  IyzicoTerminalEodCommand,
+  IyzicoTerminalEodResponse
+> {
+  private readonly logger = new Logger(IyzicoTerminalEodHandler.name);
+
+  constructor(
+    @Inject(POS_DEVICE_QUERY_REPOSITORY)
+    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
+    private readonly iyzicoTerminalService: IyzicoTerminalService
+  ) {}
+
+  async execute(
+    command: IyzicoTerminalEodCommand
+  ): Promise<IyzicoTerminalEodResponse> {
+    const { input } = command;
+
+    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    if (!device || !device.isActive) {
+      throw new PosDeviceNotFoundException();
+    }
+
+    const deviceUniqueId = device.getIyzicoDeviceUniqueId();
+    const credentials = await this.credentialsResolver.resolve(input.clinicId);
+
+    try {
+      const result = await this.iyzicoTerminalService.endOfDay({
+        credentials,
+        deviceUniqueId,
+        conversationId: crypto.randomUUID(),
+        useSummary: input.useSummary,
+      });
+
+      this.logger.log(
+        `iyzico terminal gün sonu: deviceId=${input.posDeviceId} status=${result.status} batchNo=${result.batchNo ?? '-'}`
+      );
+
+      return {
+        status: result.status === 'SUCCESS' ? 'SUCCESS' : 'FAILED',
+        batchNo: result.batchNo,
+        saleCount: result.saleCount,
+        saleAmount: result.saleAmount,
+        voidCount: result.voidCount,
+        voidAmount: result.voidAmount,
+        refundCount: result.refundCount,
+        refundAmount: result.refundAmount,
+        currency: result.currency,
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
+      };
+    } catch (err) {
+      if (
+        err instanceof IyzicoTerminalOperationError ||
+        err instanceof IyzicoTerminalAuthError
+      ) {
+        this.logger.error(
+          `iyzico terminal gün sonu hatası: deviceId=${input.posDeviceId} — ${err.message}`
+        );
+        return {
+          status: 'FAILED',
+          errorMessage: err.message,
+        };
+      }
+      throw err;
+    }
+  }
+}

@@ -6,6 +6,7 @@ import {
   IPatientQueryRepository,
   PATIENT_QUERY_REPOSITORY,
 } from '@modules/crm/patient/domain/repositories/patient.repository.interface';
+import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
 
 @QueryHandler(FindPatientByContactQuery)
 export class FindPatientByContactHandler
@@ -26,10 +27,8 @@ export class FindPatientByContactHandler
       email: query.email,
     });
 
-    if (!patient) {
-      throw new Error('Misafir bulunamadı');
-    }
+    if (!patient) throw new PatientNotFoundException();
 
-    return { data: patient };
+    return { data: patient.toPersistence() };
   }
 }

@@ -17,7 +17,7 @@ import {
   IBillingAdapter,
 } from '@modules/finance/subscription/infrastructure/adapters/billing-adapter.interface';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 export interface AddModuleResult {
   checkoutUrl: string;
@@ -65,7 +65,7 @@ export class AddModuleHandler
     const { checkoutUrl, conversationId } =
       await this.billingAdapter.initializePayment({
         organizationId,
-        amount: Money.create(module.monthlyPrice, CurrencySchema.enum.TRY),
+        amount: Money.create(module.monthlyPrice, Currency.enum.TRY).orThrow(),
         label: module.name,
         buyer,
       });
@@ -75,8 +75,8 @@ export class AddModuleHandler
       moduleId: module.id,
       priceAtPurchase: Money.create(
         module.monthlyPrice,
-        CurrencySchema.enum.TRY
-      ),
+        Currency.enum.TRY
+      ).orThrow(),
       externalPriceId: externalPriceId ?? conversationId,
     });
 

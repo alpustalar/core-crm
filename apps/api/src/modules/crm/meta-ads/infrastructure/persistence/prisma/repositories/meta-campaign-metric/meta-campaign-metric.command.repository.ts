@@ -37,7 +37,8 @@ export class MetaCampaignMetricCommandRepository
             impressions: p.impressions,
             cpc: p.cpc != null ? new Prisma.Decimal(p.cpc) : null,
             ctr: p.ctr != null ? new Prisma.Decimal(p.ctr) : null,
-            currency: Currency.create(p.currency).value ?? 'TRY',
+            currency:
+              Currency.create(p.currency)?.instance?.value ?? Currency.enum.TRY,
           },
           update: {
             campaignName: p.campaignName,

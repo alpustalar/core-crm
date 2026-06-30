@@ -40,7 +40,7 @@ export class GetLedgerByClinicIdHandler
       .orThrow();
 
     return {
-      data: items,
+      data: items.map((item) => item.toPersistence()),
       meta: {
         pagination: buildPaginationMeta(pagination, total),
       },

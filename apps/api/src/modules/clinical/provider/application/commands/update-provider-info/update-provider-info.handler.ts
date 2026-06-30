@@ -1,5 +1,5 @@
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   IProviderCommandRepository,
@@ -13,6 +13,8 @@ import {
 } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { UpdateProviderInfoCommand } from './update-provider-info.command';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 
 @CommandHandler(UpdateProviderInfoCommand)
 export class UpdateProviderInfoHandler
@@ -32,10 +34,11 @@ export class UpdateProviderInfoHandler
     const { providerId, dto, ctx } = command;
 
     const provider = await this.providerQueryRepo.findById(providerId);
-    if (!provider) throw new NotFoundException('Provider bulunamadı.');
+    if (!provider) throw new ProviderNotFoundException();
 
-    const { evaluator } = this.policyFactory.user(ctx.actor);
-    evaluator
+    this.policyFactory
+      .user(ctx.actor)
+      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(ctx.source))
       .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
       .orThrow(PROVIDER_EVENTS.UPDATED);
 

@@ -7,9 +7,10 @@ describe('ClinicAiAgentConfig entity', () => {
       organizationId: 'org-1',
     });
 
-  it('create: güvenli varsayılanlar (pasif, haiku, pencere-içi)', () => {
+  it('create: güvenli varsayılanlar (pasif, anthropic/haiku, pencere-içi)', () => {
     const config = create();
     expect(config.isEnabled).toBe(false);
+    expect(config.provider).toBe('ANTHROPIC');
     expect(config.model).toBe('claude-haiku-4-5');
     expect(config.replyOnlyWithinWindow).toBe(true);
     expect(config.apiKey).toBeNull();
@@ -36,7 +37,8 @@ describe('ClinicAiAgentConfig entity', () => {
     const config = create();
     config.updateSettings({
       isEnabled: true,
-      model: 'claude-opus-4-8',
+      provider: 'GEMINI',
+      model: 'gemini-2.0-flash',
       systemPrompt: 'Sen bir asistansın',
       apiKey: 'encrypted-key',
       maxTokens: 2048,
@@ -44,7 +46,8 @@ describe('ClinicAiAgentConfig entity', () => {
     });
 
     expect(config.isEnabled).toBe(true);
-    expect(config.model).toBe('claude-opus-4-8');
+    expect(config.provider).toBe('GEMINI');
+    expect(config.model).toBe('gemini-2.0-flash');
     expect(config.systemPrompt).toBe('Sen bir asistansın');
     expect(config.apiKey).toBe('encrypted-key');
     expect(config.maxTokens).toBe(2048);

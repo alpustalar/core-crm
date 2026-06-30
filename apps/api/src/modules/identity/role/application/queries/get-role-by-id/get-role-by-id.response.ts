@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { Role } from '@modules/identity/role/domain/entities/role.entity';
+import { Role } from '@shared';
 
 export type GetRoleByIdQueryResponse = QueryResponse<Role>;

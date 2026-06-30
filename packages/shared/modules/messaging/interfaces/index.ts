@@ -6,3 +6,5 @@ export * from './whatsapp-usage-response.interface';
 export * from './whatsapp-health-response.interface';
 export * from './whatsapp-business-profile-response.interface';
 export * from './ai-agent-config-response.interface';
+export * from './telegram-channel-response.interface';
+export * from './instagram-channel-response.interface';

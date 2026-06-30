@@ -14,6 +14,11 @@ export class OrganizationCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<Organization | null> {
+    const raw = await this.db.organization.findUnique({ where: { id } });
+    return raw ? new Organization(raw) : null;
+  }
+
   async save(entity: Organization): Promise<Organization> {
     const data = entity.toPersistence();
 

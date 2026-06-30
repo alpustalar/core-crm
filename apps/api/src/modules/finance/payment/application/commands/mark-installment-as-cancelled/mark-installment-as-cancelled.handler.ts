@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { MarkInstallmentAsCancelledCommand } from './mark-installment-as-cancelled.command';
 import {
   IPaymentCommandRepository,
@@ -25,7 +26,7 @@ export class MarkInstallmentAsCancelledHandler
       await this.paymentQueryRepo.findByInstallmentId(installmentId);
 
     if (!payment)
-      throw new NotFoundException(`Taksit bulunamadı: ${installmentId}`);
+      throw new InstallmentNotFoundException(installmentId);
     payment.cancelInstallment(installmentId);
     await this.paymentCommandRepo.save(payment);
   }

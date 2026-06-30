@@ -1,4 +1,4 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { User } from '@modules/identity/user/domain/entities/user.entity';
+import { User } from '@shared';
 
 export type FindOneWithIdOrEmailQueryResponse = QueryResponse<User>;

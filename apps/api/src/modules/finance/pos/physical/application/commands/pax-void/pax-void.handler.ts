@@ -1,10 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject, Logger } from '@nestjs/common';
 import {
-  BadRequestException,
-  Inject,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+  OriginalPosTransactionNotFoundException,
+  PosDeviceNotFoundException,
+  PosTransactionMissingExternalRefException,
+  PosTransactionNotVoidableException,
+} from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { PaxVoidCommand } from './pax-void.command';
 import type { PaxVoidResponse } from './pax-void.response';
 import {
@@ -27,9 +28,10 @@ import { PosPaymentSyncService } from '@modules/finance/pos/physical/application
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler
-  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
-{
+export class PaxVoidHandler implements ICommandHandler<
+  PaxVoidCommand,
+  PaxVoidResponse
+> {
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
@@ -51,24 +53,20 @@ export class PaxVoidHandler
       input.originalPosTransactionId
     );
     if (!originalTx) {
-      throw new NotFoundException('Orijinal POS işlemi bulunamadı.');
+      throw new OriginalPosTransactionNotFoundException();
     }
     if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
-      throw new BadRequestException(
-        'Yalnızca başarılı işlemler iptal edilebilir.'
-      );
+      throw new PosTransactionNotVoidableException();
     }
     if (!originalTx.externalRef) {
-      throw new BadRequestException(
-        'Orijinal işlemin PAX referansı (HostRefNum) bulunamadı.'
-      );
+      throw new PosTransactionMissingExternalRefException();
     }
 
     const device = await this.posDeviceQueryRepo.findById(
       originalTx.posDeviceId
     );
     if (!device || !device.isActive) {
-      throw new NotFoundException('POS cihazı bulunamadı veya aktif değil.');
+      throw new PosDeviceNotFoundException();
     }
 
     // Faz 1 — PENDING void kaydı atomik olarak oluşturulur (TCP öncesi)
@@ -90,12 +88,7 @@ export class PaxVoidHandler
     // Faz 2 — PAX TCP çağrısı (transaction dışında)
     try {
       const result = await this.paxService.void({
-        device: {
-          host: device.host,
-          port: device.port,
-          terminalId: device.terminalId,
-          merchantId: device.merchantId,
-        },
+        device: device.getPaxConnection(),
         amountInMinorUnits: Math.round(Number(originalTx.amount) * 100),
         ecReferenceNumber: voidTransactionId,
         originalReferenceNumber: originalTx.externalRef,

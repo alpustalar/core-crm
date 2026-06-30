@@ -8,8 +8,15 @@ import { AccountCode } from '@modules/finance/accounting/chart-of-accounts/domai
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { AccountTypeType as AccountType } from '@input-type-schemas/AccountTypeSchema';
 import { AccountSideType as AccountSide } from '@input-type-schemas/AccountSideSchema';
-import { BadRequestException } from '@nestjs/common';
-import { CreateAccountProps } from '@modules/finance/accounting/chart-of-accounts/domain/chart-of-accounts.contracts';
+import {
+  CreateAccountProps,
+  CreateChildAccountProps,
+} from '@modules/finance/accounting/chart-of-accounts/domain/chart-of-accounts.contracts';
+import {
+  AccountTemplateMismatchException,
+  CannotCreateChildException,
+  InvalidAccountNameException,
+} from '@modules/finance/accounting/chart-of-accounts/domain/exceptions/chart-of-accounts.exceptions';
 
 export interface BuildChartInput {
   clinicId: string;
@@ -29,7 +36,8 @@ export class Account extends AggregateRoot {
     this._normalSide = data.normalSide;
     this._isPostable = data.isPostable;
     this._requiresParty = data.requiresParty;
-    this._currency = data.currency ? Currency.create(data.currency) : null;
+    this._currency = Currency.create(data.currency)?.instance ?? null;
+
     this._isActive = data.isActive;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -107,9 +115,8 @@ export class Account extends AggregateRoot {
 
   public static create(props: CreateAccountProps): Account {
     const accountCode = AccountCode.create(props.code);
-    const currencyStr = props.currency
-      ? Currency.create(props.currency).value
-      : null;
+    const currencyStr =
+      Currency.create(props.currency)?.instance?.value ?? null;
 
     return new Account({
       id: props.id ?? crypto.randomUUID(),
@@ -150,9 +157,9 @@ export class Account extends AggregateRoot {
           parentNode.type !== node.type ||
           parentNode.normalSide !== node.normalSide
         ) {
-          throw new Error(
-            `[Şablon Hatası] ${node.code} nolu alt hesabın tipi/yönü, ` +
-              `üst hesabı olan ${parentNode.code} ile uyuşmuyor!`
+          throw new AccountTemplateMismatchException(
+            node.code,
+            parentNode.code
           );
         }
       }
@@ -173,15 +180,11 @@ export class Account extends AggregateRoot {
     });
   }
 
-  public createChild(
-    props: Omit<CreateAccountProps, 'parentId' | 'type' | 'normalSide'>
-  ): Account {
+  public createChild(props: CreateChildAccountProps): Account {
     // İş Kuralı: Eğer bu hesaba daha önce doğrudan kayıt atılabiliyorduysa,
     // altına çocuk açıldığı an bu hesap artık "kolektif/ana" hesap olur ve doğrudan kayıt kabul etmez.
     if (this._isPostable) {
-      throw new Error(
-        `[Muhasebe Disiplini] Doğrudan kayıt alan (${this._code.value}) hesabın altına alt hesap açılamaz. Önce bu hesabın postable özelliğini kapatmalısınız.`
-      );
+      throw new CannotCreateChildException(this._code.value);
     }
 
     return Account.create({
@@ -211,16 +214,12 @@ export class Account extends AggregateRoot {
     const trimmedName = newName?.trim();
 
     if (!trimmedName) {
-      throw new BadRequestException(
-        'Hesap adı boş bırakılamaz veya sadece boşluktan oluşamaz.'
-      );
+      throw new InvalidAccountNameException();
     }
 
-    // (Veritabanı varchar sınırlarını patlatmamak için)
+    // Veritabanı varchar sınırlarını patlatmamak için
     if (trimmedName.length < 2 || trimmedName.length > 200) {
-      throw new BadRequestException(
-        'Hesap adı en az 2, en fazla 200 karakter olmalıdır.'
-      );
+      throw new InvalidAccountNameException();
     }
 
     if (this._name !== trimmedName) {

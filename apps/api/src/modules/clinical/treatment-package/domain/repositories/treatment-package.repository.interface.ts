@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
 import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
-import { IBaseCommandRepository } from '@common/domain/base-command-repository.interface';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const TREATMENT_PACKAGE_COMMAND_REPO = Symbol(
   'ITreatmentPackageCommandRepository'

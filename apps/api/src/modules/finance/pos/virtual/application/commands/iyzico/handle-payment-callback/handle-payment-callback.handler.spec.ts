@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 
 import { HandlePaymentCallbackHandler } from './handle-payment-callback.handler';
+import { IyzicoTransactionNotFoundException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
 import { HandlePaymentCallbackCommand } from './handle-payment-callback.command';
 import {
   IIyzicoProvider,
@@ -131,14 +131,14 @@ describe('HandlePaymentCallbackHandler', () => {
   });
 
   describe('transaction not found', () => {
-    it('throws NotFoundException', async () => {
+    it('throws IyzicoTransactionNotFoundException', async () => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue({
         isSuccess: true,
       } as any);
       iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(null);
 
       await expect(handler.execute(makeCommand())).rejects.toThrow(
-        NotFoundException
+        IyzicoTransactionNotFoundException
       );
     });
   });

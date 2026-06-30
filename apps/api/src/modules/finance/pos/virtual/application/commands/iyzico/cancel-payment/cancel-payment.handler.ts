@@ -8,12 +8,16 @@ import {
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  CompletedInstallmentNotFoundException,
+  PaymentNotFoundException,
+} from '@modules/finance/payment/domain/exceptions/payment.exceptions';
+import { IyzicoPaymentRecordNotFoundException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
 import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { randomUUID } from 'crypto';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -24,6 +28,7 @@ import {
   IIyzicoTransactionQueryRepository,
   IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(CancelPaymentCommand)
 export class CancelPaymentHandler
@@ -51,45 +56,46 @@ export class CancelPaymentHandler
       ip,
     } = command;
 
-    const payment = await this.queryBus.execute(
+    const { data: payment } = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
     if (!payment) {
-      throw new NotFoundException(`Ödeme bulunamadı: paymentId=${paymentId}`);
+      throw new PaymentNotFoundException(paymentId);
     }
 
-    this.paymentDomainService.paymentIsCompleteOrThrow(payment);
+    this.paymentDomainService.validate.isComplete(payment).orThrow();
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
     );
     if (!completedInstallment) {
-      throw new BadRequestException(`Tamamlanmış taksit bulunamadı.`);
+      throw new CompletedInstallmentNotFoundException();
     }
 
     const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
       completedInstallment.id
     );
+
     if (!iyzicoTx?.iyzicoPaymentId) {
-      throw new BadRequestException(
-        `Bu ödeme için iyzico işlem kaydı bulunamadı.`
-      );
+      throw new IyzicoPaymentRecordNotFoundException();
     }
 
-    const conversationId = randomUUID();
+    const conversationId = UUID.generate();
 
     const sdkResult = await this.iyzicoProvider.cancelPayment({
-      conversationId,
+      conversationId: conversationId.value,
       paymentId: iyzicoTx.iyzicoPaymentId,
       ip,
     });
 
-    this.paymentDomainService.checkIyzicoSdkStatusOrThrow({
-      status: sdkResult.status,
-      paymentId,
-      conversationId,
-      sdkErrorMessage: sdkResult?.errorMessage,
-    });
+    this.paymentDomainService.check
+      .iyzicoSdkStatus({
+        status: sdkResult.status,
+        paymentId,
+        conversationId: conversationId.value,
+        sdkErrorMessage: sdkResult?.errorMessage,
+      })
+      .orThrow();
 
     await this.txManager.outboxRun(async () => {
       await this.commandBus.execute(
