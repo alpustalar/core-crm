@@ -9,6 +9,9 @@ import { PaymentReceivedRule } from '@modules/finance/accounting/posting/domain/
 import { SalesInvoiceIssuedRule } from '@modules/finance/accounting/posting/domain/posting/rules/sales-invoice-issued.rule';
 import { PurchaseInvoiceReceivedRule } from '@modules/finance/accounting/posting/domain/posting/rules/purchase-invoice-received.rule';
 import { PayrollAccruedRule } from '@modules/finance/accounting/posting/domain/posting/rules/payroll-accrued.rule';
+import { FX_RATE_PROVIDER } from '@src/infrastructure/payment/links/fx-rate.port';
+import { StaticEnvFxRateProvider } from '@src/infrastructure/payment/links/adapters/static-env-fx-rate.provider';
+import { TcmbFxRateProvider } from '@src/infrastructure/payment/links/adapters/tcmb-fx-rate.provider';
 
 const CommandHandlers = [
   PostFinancialEventHandler,
@@ -45,6 +48,10 @@ const CommandHandlers = [
       ],
     },
     PostingRuleRegistry,
+    // Model A — posting-time yabancı para çevrimi için FX kuru: TCMB işlem-tarihli döviz alış
+    // kuru (VUK statutory); çözülemezse StaticEnv fallback.
+    StaticEnvFxRateProvider,
+    { provide: FX_RATE_PROVIDER, useClass: TcmbFxRateProvider },
   ],
   exports: [...CommandHandlers],
 })

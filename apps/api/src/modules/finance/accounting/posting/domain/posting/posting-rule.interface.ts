@@ -1,4 +1,5 @@
 import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import { FinancialEvent } from '@shared';
 
 /** Bir kuralın ürettiği ham fiş taslağı — hesaplar henüz kod (id değil). */
@@ -13,6 +14,12 @@ export interface DraftJournalLine {
 export interface DraftJournalEntry {
   date: Date;
   description: string;
+  /**
+   * İşlemin orijinal para birimi. Belirtilmezse defterin fonksiyonel para birimi
+   * varsayılır (çevirme yapılmaz). Yabancı para kuralları bunu event'ten doldurur;
+   * posting handler fonksiyonel paraya çevirir (Model A).
+   */
+  currency?: CurrencyType;
   lines: DraftJournalLine[];
 }
 

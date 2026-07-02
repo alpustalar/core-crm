@@ -32,6 +32,8 @@ export class PaymentReceivedRule implements PostingRule {
     return {
       date: event.occurredAt,
       description: 'Tahsilat',
+      // Yabancı para ise posting handler fonksiyonel paraya çevirir (Model A).
+      currency: payload.currency,
       lines: [
         {
           accountCode: cashAccountCode,

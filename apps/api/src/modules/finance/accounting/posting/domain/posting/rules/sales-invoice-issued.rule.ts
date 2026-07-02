@@ -75,6 +75,8 @@ export class SalesInvoiceIssuedRule implements PostingRule {
     return {
       date: event.occurredAt,
       description: 'Satış faturası',
+      // Yabancı para ise posting handler fonksiyonel paraya çevirir (Model A).
+      currency: payload.currency,
       lines,
     };
   }

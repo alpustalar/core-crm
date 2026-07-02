@@ -6,6 +6,7 @@ import { IyzicoPaymentLinkAdapter } from './adapters/iyzico-payment-link.adapter
 import { StripePaymentLinkAdapter } from './adapters/stripe-payment-link.adapter';
 import { StripeClientFactory } from './adapters/stripe-client.factory';
 import { StaticEnvFxRateProvider } from './adapters/static-env-fx-rate.provider';
+import { TcmbFxRateProvider } from './adapters/tcmb-fx-rate.provider';
 
 /**
  * Sağlayıcı-bağımsız ödeme linki altyapısı: iyzico (TRY) + Stripe (EUR/USD) adapter'ları,
@@ -18,7 +19,9 @@ import { StaticEnvFxRateProvider } from './adapters/static-env-fx-rate.provider'
     StripeClientFactory,
     { provide: IYZICO_PAYMENT_LINK, useClass: IyzicoPaymentLinkAdapter },
     { provide: STRIPE_PAYMENT_LINK, useClass: StripePaymentLinkAdapter },
-    { provide: FX_RATE_PROVIDER, useClass: StaticEnvFxRateProvider },
+    // TCMB işlem-tarihli kur (statutory); çözülemezse StaticEnv fallback'e düşer.
+    StaticEnvFxRateProvider,
+    { provide: FX_RATE_PROVIDER, useClass: TcmbFxRateProvider },
   ],
   exports: [
     StripeClientFactory,

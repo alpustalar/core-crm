@@ -7,6 +7,11 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetFinancialEventByIdQuery } from '@modules/finance/accounting/financial-events/application/queries/get-financial-event-by-id/get-financial-event-by-id.query';
 import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
+import { GetClinicCurrencyQuery } from '@modules/organization/clinic/application/queries/get-clinic-currency/get-clinic-currency.query';
+import {
+  FX_RATE_PROVIDER,
+  IFxRateProvider,
+} from '@src/infrastructure/payment/links/fx-rate.port';
 import {
   IJournalCommandRepository,
   IJournalQueryRepository,
@@ -15,6 +20,7 @@ import {
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { AccountResolver } from '@modules/finance/accounting/posting/domain/posting/account-resolver';
+import { FxConversion } from '@modules/finance/accounting/posting/domain/posting/fx-conversion';
 import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
 import { PostFinancialEventCommand } from './post-financial-event.command';
 import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
@@ -32,6 +38,8 @@ export class PostFinancialEventHandler
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
     private readonly registry: PostingRuleRegistry,
+    @Inject(FX_RATE_PROVIDER)
+    private readonly fxRateProvider: IFxRateProvider,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -82,6 +90,25 @@ export class PostFinancialEventHandler
       clinicId: event.clinicId,
     });
 
+    // Model A — defter tek fonksiyonel para biriminde tutulur. İşlem yabancı para
+    // ise posting anında çevrilir: debit/credit fonksiyonel olur, orijinal tutar +
+    // kur (original*/fxRate) izlenebilirlik için saklanır.
+    const { data: functionalCurrency } = await this.queryBus.execute(
+      new GetClinicCurrencyQuery(event.clinicId)
+    );
+    const txCurrency = draft.currency ?? functionalCurrency;
+    const fxRate =
+      txCurrency === functionalCurrency
+        ? null
+        : new Decimal(
+            // İşlem tarihindeki kur (VUK/TCMB döviz alış) — anlık kur değil.
+            await this.fxRateProvider.getRate(
+              txCurrency,
+              functionalCurrency,
+              event.occurredAt
+            )
+          );
+
     const lines: CreateJournalEntryLineProps[] = draft.lines.map((line) => {
       const account = resolver.resolve(line.accountCode);
       if (!account.isPostable) {
@@ -92,12 +119,21 @@ export class PostFinancialEventHandler
           `${account.code} hesabında alt defter (party) zorunludur.`
         );
       }
+
+      // Tutar çevrimi saf domain'de; handler yalnızca kuru çözüp orchestrate eder.
+      const converted = FxConversion.convertLine({
+        debit: line.debit,
+        credit: line.credit,
+        txCurrency,
+        functionalCurrency,
+        rate: fxRate,
+      });
+
       return {
         accountId: account.id,
         partyId: line.partyId,
-        debit: line.debit,
-        credit: line.credit,
         lineDesc: line.desc,
+        ...converted,
       };
     });
 
@@ -109,6 +145,27 @@ export class PostFinancialEventHandler
         new Decimal(line.credit?.toString() ?? '0')
       );
     }
+
+    // Yabancı para çevriminde satır-başı yuvarlama artığını Kambiyo farkına yaz
+    // (646 Kâr / 656 Zarar) ki çift taraflı denge korunsun.
+    if (fxRate) {
+      const balance = FxConversion.roundingBalance(totalDebit, totalCredit);
+      if (balance) {
+        const isGain = balance.side === 'CREDIT';
+        const kambiyo = resolver.resolve(isGain ? '646' : '656');
+        lines.push({
+          accountId: kambiyo.id,
+          partyId: null,
+          currency: functionalCurrency,
+          debit: isGain ? undefined : balance.amount,
+          credit: isGain ? balance.amount : undefined,
+          lineDesc: 'Kambiyo kur farkı (çevrim yuvarlaması)',
+        });
+        if (isGain) totalCredit = totalCredit.plus(balance.amount);
+        else totalDebit = totalDebit.plus(balance.amount);
+      }
+    }
+
     if (!totalDebit.equals(totalCredit)) {
       throw new Error(
         'Yevmiye fişi borç ve alacak toplamları eşit olmalıdır. Mizan tutarsızlığı engellendi.'

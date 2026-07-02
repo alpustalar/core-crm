@@ -1,14 +1,19 @@
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
 /**
- * Döviz kuru sağlayıcısı. iyzico TRY ister; HotelBeds net/satış genelde EUR/USD olduğundan
- * iyzico linkinden önce satış tutarı TRY'ye çevrilir. v1 adapter statik env oranı okur
- * (canlı kur feed'i sonraki iterasyon). Kur bulunamazsa hata fırlatır → çağıran iyzico linkini
- * atlar, Stripe linki yine üretilir (graceful degrade).
+ * Döviz kuru sağlayıcısı. İki kullanım vardır:
+ *  1) Ödeme linki (iyzico TRY ister; satış EUR/USD ise güncel kurla TRY'ye çevrilir).
+ *  2) Muhasebe postingi (Model A) — yabancı işlem fonksiyonel paraya **işlem tarihindeki**
+ *     kurla çevrilir (VUK: TCMB döviz alış kuru). Bunun için `asOf` geçilir.
+ * Kur bulunamazsa hata fırlatır → çağıran graceful degrade eder (iyzico linkini atlar / posting
+ * fallback sağlayıcıya düşer).
  */
 export const FX_RATE_PROVIDER = Symbol('IFxRateProvider');
 
 export interface IFxRateProvider {
-  /** `from` para birimindeki 1 birimin `to` cinsinden karşılığı (ör. EUR→TRY). */
-  getRate(from: CurrencyType, to: CurrencyType): Promise<number>;
+  /**
+   * `from` para birimindeki 1 birimin `to` cinsinden karşılığı (ör. EUR→TRY).
+   * `asOf` verilirse o işlem tarihindeki kur (statutory); verilmezse güncel/en yakın kur.
+   */
+  getRate(from: CurrencyType, to: CurrencyType, asOf?: Date): Promise<number>;
 }

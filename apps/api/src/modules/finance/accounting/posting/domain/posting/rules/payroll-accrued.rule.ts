@@ -18,6 +18,10 @@ import { FinancialEventTypeSchema } from '@shared';
  *     A 361 Ödenecek SGK                 employeeSgk + employerSgk
  * Denge: brüt + işveren SGK = net + stopaj + (işçi SGK + işveren SGK).
  * Bordro hesabı (brüt→net) finans dışıdır; bu kural yalnız hazır tahakkuku fişler.
+ *
+ * Not (Model A): Bordro yasal olarak daima fonksiyonel parada (TRY) tahakkuk eder —
+ * SGK/GV stopajı/net ücret TL'dir. Yabancı-para bordro olgusu yoktur; bu yüzden
+ * `draft.currency` bilinçli olarak set edilmez (posting'de çevrilmez).
  */
 @Injectable()
 export class PayrollAccruedRule implements PostingRule {

@@ -8,12 +8,16 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 export const JournalLineSchema = z.object({
   currency: CurrencySchema,
+  originalCurrency: CurrencySchema.nullable(),
   id: z.uuid(),
   entryId: z.string(),
   accountId: z.string(),
   partyId: z.string().nullable(),
   debit: z.instanceof(Prisma.Decimal, { message: "Field 'debit' must be a Decimal. Location: ['Models', 'JournalLine']"}),
   credit: z.instanceof(Prisma.Decimal, { message: "Field 'credit' must be a Decimal. Location: ['Models', 'JournalLine']"}),
+  originalDebit: z.instanceof(Prisma.Decimal, { message: "Field 'originalDebit' must be a Decimal. Location: ['Models', 'JournalLine']"}).nullable(),
+  originalCredit: z.instanceof(Prisma.Decimal, { message: "Field 'originalCredit' must be a Decimal. Location: ['Models', 'JournalLine']"}).nullable(),
+  fxRate: z.instanceof(Prisma.Decimal, { message: "Field 'fxRate' must be a Decimal. Location: ['Models', 'JournalLine']"}).nullable(),
   lineDesc: z.string().nullable(),
 })
 

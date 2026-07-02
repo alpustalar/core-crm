@@ -46,9 +46,18 @@ model JournalLine {
   accountId String  @map("account_id")
   partyId   String? @map("party_id") // 120/320 satırlarında zorunlu (alt defter)
 
+  // debit/credit DAİMA defterin fonksiyonel para birimindedir (Model A). currency
+  // de fonksiyonel para birimini taşır — yabancı işlemler posting anında çevrilir.
   debit    Decimal  @default(0) @db.Decimal(14, 2)
   credit   Decimal  @default(0) @db.Decimal(14, 2)
   currency Currency @default(TRY)
+
+  // Yabancı para izlenebilirliği (yalnız çevrilmiş satırlarda dolu; aksi halde null).
+  // original* = işlemin ORİJİNAL para birimindeki tutarı; fxRate = orijinal→fonksiyonel kuru.
+  originalDebit    Decimal?  @map("original_debit") @db.Decimal(14, 2)
+  originalCredit   Decimal?  @map("original_credit") @db.Decimal(14, 2)
+  originalCurrency Currency? @map("original_currency")
+  fxRate           Decimal?  @map("fx_rate") @db.Decimal(18, 6)
 
   lineDesc String? @map("line_desc")
 

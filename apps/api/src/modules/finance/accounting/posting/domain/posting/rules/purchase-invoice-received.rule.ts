@@ -50,6 +50,8 @@ export class PurchaseInvoiceReceivedRule implements PostingRule {
     return {
       date: event.occurredAt,
       description: 'Alış faturası',
+      // Yurtdışı/ithal fatura ise posting handler fonksiyonel paraya çevirir (Model A).
+      currency: payload.currency,
       lines,
     };
   }

@@ -16,7 +16,12 @@ export class StaticEnvFxRateProvider implements IFxRateProvider {
 
   constructor(private readonly config: ConfigService) {}
 
-  async getRate(from: CurrencyType, to: CurrencyType): Promise<number> {
+  // asOf yok sayılır: statik env oranı tarih-bağımsızdır (canlı/tarihli kur için TCMB adapter).
+  async getRate(
+    from: CurrencyType,
+    to: CurrencyType,
+    _asOf?: Date
+  ): Promise<number> {
     if (from === to) return 1;
 
     if (to !== 'TRY') {

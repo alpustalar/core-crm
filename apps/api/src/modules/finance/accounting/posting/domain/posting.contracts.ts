@@ -16,7 +16,31 @@ export const CreateJournalEntryLineInputSchema = z.object({
     >((val) => typeof val === 'string' || val instanceof Decimal)
     .optional(),
 
+  // currency = satırın fonksiyonel (defter) para birimi. debit/credit bu cinstendir.
   currency: z.string().optional(),
+
+  // Yabancı para izlenebilirliği — yalnız çevrilmiş satırlarda dolu (Model A).
+  // original* = işlemin orijinal para birimindeki tutarı; fxRate = orijinal→fonksiyonel kuru.
+  originalDebit: z
+    .custom<
+      string | Decimal
+    >((val) => typeof val === 'string' || val instanceof Decimal)
+    .nullable()
+    .optional(),
+  originalCredit: z
+    .custom<
+      string | Decimal
+    >((val) => typeof val === 'string' || val instanceof Decimal)
+    .nullable()
+    .optional(),
+  originalCurrency: z.string().nullable().optional(),
+  fxRate: z
+    .custom<
+      string | Decimal
+    >((val) => typeof val === 'string' || val instanceof Decimal)
+    .nullable()
+    .optional(),
+
   lineDesc: z.string().nullable().optional(),
 });
 export type CreateJournalEntryLineProps = z.infer<

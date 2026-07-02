@@ -269,6 +269,22 @@ export class DateTimeManager {
   }
 
   /**
+   * Ayraçsız gün anahtarı döner: DDMMYYYY (ör. 01072026). TCMB günlük kur dosya adı
+   * (`/kurlar/YYYYMM/DDMMYYYY.xml`) gibi ayraçsız tarih bekleyen dış servisler için.
+   */
+  static toCompactDateKey(date: Date, tz: TimeZoneType = DEFAULT_TZ): string {
+    return this.tz(date, tz).format('DDMMYYYY');
+  }
+
+  /**
+   * Ayraçsız ay anahtarı döner: YYYYMM (ör. 202607). TCMB kur klasörü gibi ayraçsız
+   * ay segmenti bekleyen dış servisler için.
+   */
+  static toCompactMonthKey(date: Date, tz: TimeZoneType = DEFAULT_TZ): string {
+    return this.tz(date, tz).format('YYYYMM');
+  }
+
+  /**
    * İki tarih arasındaki tam gün farkını döner (later - earlier). Vade
    * yaşlandırması (AR aging) gibi gün bazlı hesaplar için.
    */

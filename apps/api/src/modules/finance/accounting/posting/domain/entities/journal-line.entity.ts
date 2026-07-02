@@ -19,6 +19,13 @@ export class JournalLine {
       Currency.create(data.currency).orThrow()
     );
 
+    this._originalDebit = data.originalDebit ?? null;
+    this._originalCredit = data.originalCredit ?? null;
+    this._originalCurrency = data.originalCurrency
+      ? Currency.create(data.originalCurrency).orThrow()
+      : null;
+    this._fxRate = data.fxRate ?? null;
+
     this._lineDesc = data.lineDesc;
   }
 
@@ -58,6 +65,27 @@ export class JournalLine {
     return this._amount.currency;
   }
 
+  // Yabancı para izlenebilirliği — yalnız çevrilmiş satırlarda dolu (Model A).
+  private _originalDebit: Decimal | null;
+  get originalDebit(): Decimal | null {
+    return this._originalDebit;
+  }
+
+  private _originalCredit: Decimal | null;
+  get originalCredit(): Decimal | null {
+    return this._originalCredit;
+  }
+
+  private _originalCurrency: Currency | null;
+  get originalCurrency(): Currency | null {
+    return this._originalCurrency;
+  }
+
+  private _fxRate: Decimal | null;
+  get fxRate(): Decimal | null {
+    return this._fxRate;
+  }
+
   private _lineDesc: string | null;
 
   get lineDesc(): string | null {
@@ -85,6 +113,19 @@ export class JournalLine {
       debit: amount.debit,
       credit: amount.credit,
       currency: amount.currency.value ?? 'TRY',
+      originalDebit:
+        props.originalDebit != null
+          ? new Decimal(props.originalDebit.toString())
+          : null,
+      originalCredit:
+        props.originalCredit != null
+          ? new Decimal(props.originalCredit.toString())
+          : null,
+      originalCurrency: props.originalCurrency
+        ? Currency.create(props.originalCurrency).orThrow().value
+        : null,
+      fxRate:
+        props.fxRate != null ? new Decimal(props.fxRate.toString()) : null,
       lineDesc: props.lineDesc ?? null,
     });
   }
@@ -110,6 +151,10 @@ export class JournalLine {
       debit: this._amount.debit,
       credit: this._amount.credit,
       currency: this._amount.currency.value,
+      originalDebit: this._originalDebit,
+      originalCredit: this._originalCredit,
+      originalCurrency: this._originalCurrency?.value ?? null,
+      fxRate: this._fxRate,
       lineDesc: this._lineDesc,
     };
   }
