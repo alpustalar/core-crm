@@ -51,7 +51,7 @@ export class ProcessMetaLeadHandler
     );
     if (existing) {
       return {
-        leadId: existing.id,
+        leadId: existing.id.value,
         status: existing.status,
         matchedPatientId: existing.matchedPatientId,
       };
@@ -79,7 +79,7 @@ export class ProcessMetaLeadHandler
     if (account && (payload.phone || payload.email)) {
       const { data: patient } = await this.queryBus.execute(
         new FindPatientByContactQuery(
-          account.clinicId,
+          account.clinicId.value,
           payload.phone,
           payload.email
         )
@@ -92,8 +92,8 @@ export class ProcessMetaLeadHandler
     }
 
     this.eventPublisher.leadReceived({
-      metaLeadId: lead.id,
-      clinicId: account?.clinicId ?? '',
+      metaLeadId: lead.id.value,
+      clinicId: account?.clinicId.value ?? '',
       campaignId: lead.campaignId,
       status: lead.status,
       actorId: 'system',
@@ -104,7 +104,7 @@ export class ProcessMetaLeadHandler
     });
 
     return {
-      leadId: lead.id,
+      leadId: lead.id.value,
       status: lead.status,
       matchedPatientId: lead.matchedPatientId,
     };

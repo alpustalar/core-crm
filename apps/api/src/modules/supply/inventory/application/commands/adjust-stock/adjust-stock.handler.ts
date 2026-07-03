@@ -22,6 +22,7 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
+import { INVENTORY_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(AdjustStockCommand)
 export class AdjustStockHandler
@@ -43,13 +44,16 @@ export class AdjustStockHandler
 
   async execute(command: AdjustStockCommand): Promise<void> {
     const { clinicId, dto, ctx } = command;
-    const { actor } = ctx;
+    const { actor, source } = ctx;
 
-    const { evaluator } = this.policyFactory.clinic(actor);
-    evaluator.check(
-      (p) => p.actorCanManageTargetClinic(clinicId),
-      'Bu klinikte işlem yapma yetkiniz yok.'
-    );
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.check(
+        (p) => p.actorCanManageTargetClinic(clinicId),
+        'Bu klinikte işlem yapma yetkiniz yok.'
+      )
+      .systemBypass(source)
+      .orThrow(INVENTORY_EVENTS.ADJUST_STOCK);
 
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new ProductNotFoundException();

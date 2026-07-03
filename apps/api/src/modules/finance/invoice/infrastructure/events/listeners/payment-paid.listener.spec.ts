@@ -1,11 +1,10 @@
 import { Decimal } from 'decimal.js';
-import { Money } from '@src/domain/value-objects/money.vo';
 import { PaymentPaidInvoiceListener } from './payment-paid.listener';
 
 describe('PaymentPaidInvoiceListener', () => {
   const make = (payment: unknown) => {
     const commandBus = { execute: jest.fn().mockResolvedValue(undefined) };
-    const queryBus = { execute: jest.fn().mockResolvedValue(payment) };
+    const queryBus = { execute: jest.fn().mockResolvedValue({ data: payment }) };
     const listener = new PaymentPaidInvoiceListener(
       commandBus as never,
       queryBus as never
@@ -24,7 +23,7 @@ describe('PaymentPaidInvoiceListener', () => {
     const payment = {
       patientId: 'patient-1',
       currency: 'TRY',
-      totalAmount: Money.create(new Decimal(300), 'TRY'),
+      totalAmount: new Decimal(300),
       installments: [
         { id: 'inst-1', amount: new Decimal(100), currency: 'TRY' },
       ],
@@ -56,7 +55,7 @@ describe('PaymentPaidInvoiceListener', () => {
     const payment = {
       patientId: 'patient-2',
       currency: 'TRY',
-      totalAmount: Money.create(new Decimal(300), 'TRY'),
+      totalAmount: new Decimal(300),
       installments: [
         { id: 'other', amount: new Decimal(100), currency: 'TRY' },
       ],

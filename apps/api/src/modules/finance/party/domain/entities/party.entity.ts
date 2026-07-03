@@ -4,21 +4,29 @@ import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema'
 import { PartyRoleType as PartyRole } from '@input-type-schemas/PartyRoleSchema';
 import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
 import { CreatePartyProps } from '@modules/finance/party/domain/party.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { DateTimeManager, isDefined } from '@common/utils';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { TckNo } from '@src/domain/value-objects/tck-no.vo';
+import { Guard } from '@common/domain/guards';
 
 export class Party extends AggregateRoot {
   constructor(data: IParty) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._organizationId = data.organizationId;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._type = data.type;
     this._roles = data.roles;
-    this._name = data.name;
+    this._name = Name.fromTrusted(data.name);
     this._taxNumber = data.taxNumber;
-    this._nationalId = data.nationalId;
+    this._nationalId = TckNo.create(data.nationalId).instance ?? null;
     this._taxOffice = data.taxOffice;
-    this._email = data.email;
-    this._phone = data.phone;
+    this._email = Email.create(data.email).instance ?? null;
+    this._phone = Phone.create(data.phone).instance ?? null;
     this._address = data.address;
     this._isEInvoiceUser = data.isEInvoiceUser;
     this._eInvoiceMailbox = data.eInvoiceMailbox;
@@ -31,18 +39,18 @@ export class Party extends AggregateRoot {
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
@@ -56,8 +64,8 @@ export class Party extends AggregateRoot {
     return this._roles;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
@@ -66,8 +74,8 @@ export class Party extends AggregateRoot {
     return this._taxNumber;
   }
 
-  private _nationalId: string | null;
-  get nationalId(): string | null {
+  private _nationalId: TckNo | null;
+  get nationalId(): TckNo | null {
     return this._nationalId;
   }
 
@@ -76,13 +84,13 @@ export class Party extends AggregateRoot {
     return this._taxOffice;
   }
 
-  private _email: string | null;
-  get email(): string | null {
+  private _email: Email | null;
+  get email(): Email | null {
     return this._email;
   }
 
-  private _phone: string | null;
-  get phone(): string | null {
+  private _phone: Phone | null;
+  get phone(): Phone | null {
     return this._phone;
   }
 
@@ -136,18 +144,32 @@ export class Party extends AggregateRoot {
     return this._updatedAt;
   }
 
+  public get validate() {
+    return {
+      hasRole: (role: PartyRole) => this.hasRole(role),
+    };
+  }
+
   public static create(props: CreatePartyProps): Party {
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const now = DateTimeManager.create();
     return new Party({
-      id: props.id ?? crypto.randomUUID(),
-      clinicId: props.clinicId,
-      organizationId: props.organizationId,
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
       type: props.type,
       roles: props.roles,
-      name: props.name,
+      name: Name.create(props.name).orThrow().value,
       taxNumber: props.taxNumber ?? null,
-      nationalId: props.nationalId ?? null,
+
+      nationalId: props.nationalId
+        ? TckNo.create(props.nationalId).orThrow().value
+        : null,
+
       taxOffice: props.taxOffice ?? null,
-      email: props.email ?? null,
+
+      email: props.email ? Email.create(props.email).orThrow().value : null,
+
       phone: props.phone ?? null,
       address: props.address ?? null,
       isEInvoiceUser: props.isEInvoiceUser ?? false,
@@ -157,13 +179,9 @@ export class Party extends AggregateRoot {
       originType: props.originType,
       originId: props.originId ?? null,
       isActive: props.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
-  }
-
-  public hasRole(role: PartyRole): boolean {
-    return this._roles.includes(role);
   }
 
   public ensure(input: {
@@ -210,17 +228,31 @@ export class Party extends AggregateRoot {
       >
     >
   ): void {
-    if (snapshot.name !== undefined && snapshot.name !== null) {
-      this._name = snapshot.name;
+    if (isDefined(snapshot.name)) {
+      this._name = Name.create(snapshot.name).orThrow();
     }
-    if (snapshot.taxNumber !== undefined) this._taxNumber = snapshot.taxNumber;
-    if (snapshot.nationalId !== undefined) {
-      this._nationalId = snapshot.nationalId;
+    if (isNotUndefined(snapshot.taxNumber))
+      this._taxNumber = snapshot.taxNumber;
+
+    if (isNotUndefined(snapshot.nationalId)) {
+      this._nationalId = snapshot.nationalId
+        ? TckNo.create(snapshot.nationalId).orThrow()
+        : null;
     }
-    if (snapshot.taxOffice !== undefined) this._taxOffice = snapshot.taxOffice;
-    if (snapshot.email !== undefined) this._email = snapshot.email;
-    if (snapshot.phone !== undefined) this._phone = snapshot.phone;
-    if (snapshot.address !== undefined) this._address = snapshot.address;
+    if (isNotUndefined(snapshot.taxOffice))
+      this._taxOffice = snapshot.taxOffice;
+
+    if (isNotUndefined(snapshot.email))
+      this._email = snapshot.email
+        ? Email.create(snapshot.email).orThrow()
+        : null;
+
+    if (isNotUndefined(snapshot.phone))
+      this._phone = snapshot.phone
+        ? Phone.create(snapshot.phone).orThrow()
+        : null;
+
+    if (isNotUndefined(snapshot.address)) this._address = snapshot.address;
   }
 
   public linkReceivableAccount(accountId: string): void {
@@ -241,17 +273,17 @@ export class Party extends AggregateRoot {
 
   public toPersistence(): IParty {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      organizationId: this._organizationId.value,
       type: this._type,
       roles: this._roles,
-      name: this._name,
+      name: this._name.value,
       taxNumber: this._taxNumber,
-      nationalId: this._nationalId,
+      nationalId: this._nationalId?.value ?? null,
       taxOffice: this._taxOffice,
-      email: this._email,
-      phone: this._phone,
+      email: this._email?.value ?? null,
+      phone: this._phone?.value ?? null,
       address: this._address,
       isEInvoiceUser: this._isEInvoiceUser,
       eInvoiceMailbox: this._eInvoiceMailbox,
@@ -263,5 +295,10 @@ export class Party extends AggregateRoot {
       createdAt: this._createdAt,
       updatedAt: new Date(),
     };
+  }
+
+  private hasRole(role: PartyRole): Guard<boolean> {
+    const has = this._roles.includes(role);
+    return Guard.monitor(has, has, new Error('Parti bu rolü içermiyor'));
   }
 }

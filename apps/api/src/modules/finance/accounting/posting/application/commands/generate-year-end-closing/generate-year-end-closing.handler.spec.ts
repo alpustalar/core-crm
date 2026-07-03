@@ -14,11 +14,11 @@ describe('GenerateYearEndClosingHandler (yıl sonu kapanış, doc 04)', () => {
 
   // 600 gelir, 770 gider, 690/590/591 özet; 690 trial balance'ta olsa bile kapatılmaz.
   const chart = [
-    { id: 'acc-600', code: { value: '600' }, isPostable: true },
-    { id: 'acc-770', code: { value: '770' }, isPostable: true },
-    { id: 'acc-690', code: { value: '690' }, isPostable: true },
-    { id: 'acc-590', code: { value: '590' }, isPostable: true },
-    { id: 'acc-591', code: { value: '591' }, isPostable: true },
+    { id: 'acc-600', code: '600', isPostable: true },
+    { id: 'acc-770', code: '770', isPostable: true },
+    { id: 'acc-690', code: '690', isPostable: true },
+    { id: 'acc-590', code: '590', isPostable: true },
+    { id: 'acc-591', code: '591', isPostable: true },
   ];
 
   const row = (

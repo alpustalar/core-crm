@@ -49,11 +49,12 @@ export class MetaAdAccountCommandRepository
 
   async saveMany(entities: MetaAdAccount[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
-      const data = entity.toPersistence();
+      const create = entity.toPersistence();
+      const { id, ...update } = create;
       return this.db.metaAdAccount.upsert({
-        where: { id: entity.id },
-        create: data,
-        update: data,
+        where: { id: id },
+        create,
+        update,
       });
     });
 

@@ -150,7 +150,8 @@ export class GetProviderAvailabilityHandler
               exception.startTime,
               exception.endTime
             );
-            return exceptionRange.validate.overlapping(cursorRange).isInvalid;
+            return exceptionRange.validate.overlapping(cursorRange)
+              .isOverlapping;
           }
         );
 
@@ -263,7 +264,8 @@ export class GetProviderAvailabilityHandler
               exception.endTime
             );
 
-            return exceptionRange.validate.overlapping(cursorRange).isInvalid;
+            return exceptionRange.validate.overlapping(cursorRange)
+              .isOverlapping;
           }
         );
 
@@ -343,7 +345,7 @@ export class GetProviderAvailabilityHandler
         exception.startTime,
         exception.endTime
       );
-      return dateRange.check.enclosing(exceptionRange).isValid;
+      return dateRange.validate.enclosing(exceptionRange).isValid;
     });
   }
 }

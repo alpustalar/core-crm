@@ -17,22 +17,30 @@ import {
 } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { Guard } from '@common/domain/guards';
 import { DateTimeManager } from '@common/utils';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
 
 export class Provider extends AggregateRoot {
   constructor(data: IProvider) {
     super();
-    this._id = data.id;
-    this._providerTitleId = data.providerTitleId;
-    this._providerSpecialtyId = data.providerSpecialtyId;
-    this._publicPhone = data.publicPhone;
-    this._publicEmail = data.publicEmail;
+    this._id = UUID.fromTrusted(data.id);
+    this._providerTitleId = UUID.create(data.providerTitleId).instance ?? null;
+    this._providerSpecialtyId =
+      UUID.create(data.providerSpecialtyId).instance ?? null;
+
+    this._publicPhone = Phone.create(data.publicPhone).instance ?? null;
+
+    this._publicEmail = Email.create(data.publicEmail).instance ?? null;
+
     this._diplomaNo = data.diplomaNo;
     this._hlrNo = data.hlrNo;
     this._isActive = data.isActive;
     this._operationMode = data.operationMode;
-    this._clinicId = data.clinicId;
-    this._userId = data.userId;
-    this._sectorId = data.sectorId;
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._userId = UUID.fromTrusted(data.userId);
+    this._sectorId = UUID.create(data.sectorId).instance ?? null;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt;
@@ -45,34 +53,34 @@ export class Provider extends AggregateRoot {
     return this._acceptsConsultation;
   }
 
-  private _id: string;
+  private _id: UUID;
 
   // --- Getters ---
-  get id(): string {
+  get id(): UUID {
     return this._id;
   }
 
-  private _providerTitleId: string | null;
+  private _providerTitleId: UUID | null;
 
-  get providerTitleId(): string | null {
+  get providerTitleId(): UUID | null {
     return this._providerTitleId;
   }
 
-  private _providerSpecialtyId: string | null;
+  private _providerSpecialtyId: UUID | null;
 
-  get providerSpecialtyId(): string | null {
+  get providerSpecialtyId(): UUID | null {
     return this._providerSpecialtyId;
   }
 
-  private _publicPhone: string | null;
+  private _publicPhone: Phone | null;
 
-  get publicPhone(): string | null {
+  get publicPhone(): Phone | null {
     return this._publicPhone;
   }
 
-  private _publicEmail: string | null;
+  private _publicEmail: Email | null;
 
-  get publicEmail(): string | null {
+  get publicEmail(): Email | null {
     return this._publicEmail;
   }
 
@@ -100,21 +108,21 @@ export class Provider extends AggregateRoot {
     return this._operationMode;
   }
 
-  private _clinicId: string;
+  private _clinicId: UUID;
 
-  get clinicId(): string {
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _userId: string;
+  private _userId: UUID;
 
-  get userId(): string {
+  get userId(): UUID {
     return this._userId;
   }
 
-  private _sectorId: string | null;
+  private _sectorId: UUID | null;
 
-  get sectorId(): string | null {
+  get sectorId(): UUID | null {
     return this._sectorId;
   }
 
@@ -141,31 +149,49 @@ export class Provider extends AggregateRoot {
 
   public get validate() {
     return {
-      isStaticMode: this.validateStaticMode(),
-      isShiftMode: this.validateShiftMode(),
+      operationMode: {
+        isStatic: this._isStaticMode(),
+        isShift: this._isShiftMode(),
+      },
       canAcceptConsultation: this.canAcceptConsultation(),
-      isDeleted: this.validateIsDeleted(),
-      isActive: this.validateIsActive(),
+      isDeleted: this._isDeleted(),
+      isActive: this._validateIsActive(),
     };
   }
 
   // --- Factory Method ---
   public static create(props: CreateProviderProps): Provider {
-    const now = DateTimeManager.create(); // 2026 Güvenli tarih standardımız
+    const now = DateTimeManager.create();
     const provider = new Provider({
-      id: props.id,
-      userId: props.userId,
-      clinicId: props.clinicId,
-      providerTitleId: props.providerTitleId ?? null,
-      providerSpecialtyId: props.providerSpecialtyId ?? null,
-      publicPhone: props.publicPhone ?? null,
-      publicEmail: props.publicEmail ?? null,
+      id: UUID.create(props.id).orThrow().value,
+      userId: UUID.create(props.userId).orThrow().value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+
+      providerTitleId: props.providerTitleId
+        ? UUID.create(props.providerTitleId).orThrow().value
+        : null,
+
+      providerSpecialtyId: props.providerSpecialtyId
+        ? UUID.create(props.providerSpecialtyId).orThrow().value
+        : null,
+
+      publicPhone: props.publicPhone
+        ? Phone.create(props.publicPhone).orThrow().value
+        : null,
+
+      publicEmail: props.publicEmail
+        ? Email.create(props.publicEmail).orThrow().value
+        : null,
+
       diplomaNo: null,
+
       hlrNo: null,
       isActive: props.isActive ?? true,
       acceptsConsultation: props.acceptsConsultation,
       operationMode: props.operationMode,
-      sectorId: props.sectorId ?? null,
+      sectorId: props.sectorId
+        ? UUID.create(props.sectorId).orThrow().value
+        : null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -173,9 +199,9 @@ export class Provider extends AggregateRoot {
 
     provider.addDomainEvent(
       new ProviderCreatedEvent({
-        providerId: provider.id,
-        clinicId: provider.clinicId,
-        userId: provider.userId,
+        providerId: provider.id.value,
+        clinicId: provider.clinicId.value,
+        userId: provider.userId.value,
       })
     );
     return provider;
@@ -183,13 +209,30 @@ export class Provider extends AggregateRoot {
 
   // --- Business / State Mutation Methods ---
   public updateInfo(dto: UpdateProviderInfo): void {
-    if (dto.providerTitleId !== undefined)
-      this._providerTitleId = dto.providerTitleId;
-    if (dto.providerSpecialtyId !== undefined)
-      this._providerSpecialtyId = dto.providerSpecialtyId;
-    if (dto.sectorId !== undefined) this._sectorId = dto.sectorId;
-    if (dto.publicPhone !== undefined) this._publicPhone = dto.publicPhone;
-    if (dto.publicEmail !== undefined) this._publicEmail = dto.publicEmail;
+    if (isNotUndefined(dto.providerTitleId))
+      this._providerTitleId = dto.providerTitleId
+        ? UUID.create(dto.providerTitleId).orThrow()
+        : null;
+
+    if (isNotUndefined(dto.providerSpecialtyId))
+      this._providerSpecialtyId = UUID.create(
+        dto.providerSpecialtyId
+      ).orThrow();
+
+    if (isNotUndefined(dto.sectorId))
+      this._sectorId = dto.sectorId
+        ? UUID.create(dto.sectorId).orThrow()
+        : null;
+
+    if (isNotUndefined(dto.publicPhone))
+      this._publicPhone = dto.publicPhone
+        ? Phone.create(dto.publicPhone).orThrow()
+        : null;
+
+    if (isNotUndefined(dto.publicEmail))
+      this._publicEmail = dto.publicEmail
+        ? Email.create(dto.publicEmail).orThrow()
+        : null;
   }
 
   public activate(): void {
@@ -216,9 +259,9 @@ export class Provider extends AggregateRoot {
     this._isActive = false;
     this.addDomainEvent(
       new ProviderSoftDeletedEvent({
-        providerId: this._id,
-        clinicId: this._clinicId,
-        userId: this._userId,
+        providerId: this._id.value,
+        clinicId: this._clinicId.value,
+        userId: this._userId.value,
       })
     );
   }
@@ -227,42 +270,49 @@ export class Provider extends AggregateRoot {
     return this._isActive && !this.isDeleted;
   }
 
-  public isStaticMode(): boolean {
-    return this._operationMode === OperationModeSchema.enum.STATIC;
-  }
-
   public switchOperationMode(): void {
     const { STATIC, SHIFT } = OperationModeSchema.enum;
-    this._operationMode = this.isStaticMode() ? SHIFT : STATIC;
-  }
-
-  public isShiftMode(): boolean {
-    return this._operationMode === OperationModeSchema.enum.SHIFT;
+    this._operationMode = this._isStaticMode() ? SHIFT : STATIC;
   }
 
   // --- Mapping ---
   public toPersistence(): IProvider {
     return {
-      id: this._id,
-      providerTitleId: this._providerTitleId,
-      providerSpecialtyId: this._providerSpecialtyId,
-      publicPhone: this._publicPhone,
-      publicEmail: this._publicEmail,
+      id: this._id.value,
+      providerTitleId: this._providerTitleId?.value ?? null,
+      providerSpecialtyId: this._providerSpecialtyId?.value ?? null,
+      publicPhone: this._publicPhone?.value ?? null,
+      publicEmail: this._publicEmail?.value ?? null,
       diplomaNo: this._diplomaNo,
       hlrNo: this._hlrNo,
       isActive: this._isActive,
       acceptsConsultation: this._acceptsConsultation,
       operationMode: this._operationMode,
-      clinicId: this._clinicId,
-      userId: this._userId,
-      sectorId: this._sectorId,
+      clinicId: this._clinicId.value,
+      userId: this._userId.value,
+      sectorId: this._sectorId?.value ?? null,
       createdAt: this._createdAt,
       updatedAt: DateTimeManager.create(),
       deletedAt: this._deletedAt,
     };
   }
 
-  private validateIsDeleted(): Guard<boolean> {
+  private _isStaticMode() {
+    const isStatic = this._operationMode === OperationModeSchema.enum.STATIC;
+
+    return Guard.monitor(
+      isStatic,
+      isStatic,
+      new ProviderNotStaticModeException()
+    );
+  }
+
+  private _isShiftMode() {
+    const is = this._operationMode === OperationModeSchema.enum.SHIFT;
+    return Guard.monitor(is, is, new ProviderNotShiftModeException());
+  }
+
+  private _isDeleted(): Guard<boolean> {
     return Guard.monitor(
       this.isDeleted,
       this.isDeleted,
@@ -270,27 +320,11 @@ export class Provider extends AggregateRoot {
     );
   }
 
-  private validateIsActive(): Guard<boolean> {
+  private _validateIsActive(): Guard<boolean> {
     return Guard.monitor(
       this.isActive,
       this.isActive,
       new Error('Uzman aktif değil')
-    );
-  }
-
-  private validateShiftMode(): Guard<boolean> {
-    return Guard.monitor(
-      this.isShiftMode(),
-      this.isShiftMode(),
-      new ProviderNotShiftModeException()
-    );
-  }
-
-  private validateStaticMode(): Guard<boolean> {
-    return Guard.monitor(
-      this.isStaticMode(),
-      this.isStaticMode(),
-      new ProviderNotStaticModeException()
     );
   }
 

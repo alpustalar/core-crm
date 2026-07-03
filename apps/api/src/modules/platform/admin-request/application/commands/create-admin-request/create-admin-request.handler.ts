@@ -34,7 +34,7 @@ export class CreateAdminRequestHandler
       });
 
       const saved = await this.adminRequestCommandRepo.save(entity);
-      return saved.id;
+      return saved.id.value;
     });
   }
 }

@@ -25,3 +25,6 @@ export const CreateProviderExceptionSchema = z
       path: ['endTime'],
     }
   );
+export type CreateProviderExceptionProps = z.infer<
+  typeof CreateProviderExceptionSchema
+>;

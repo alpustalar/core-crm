@@ -20,6 +20,7 @@ export type TreatmentPackageItemProps = z.infer<
 // 2. CREATE TREATMENT PACKAGE
 // ==========================================
 export const CreateTreatmentPackageSchema = z.object({
+  id: z.uuid().optional(),
   clinicId: z.uuid(),
   name: z.string().min(1, 'Paket adı zorunludur'),
   examinationCount: z.number().int().min(0),

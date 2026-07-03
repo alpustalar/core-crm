@@ -5,23 +5,31 @@ import {
 } from '@input-type-schemas/ExceptionTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { CreateProviderExceptionProps } from '@modules/clinical/provider/domain/contracts/provider-exception.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
 
-export class ProviderException
-  extends AggregateRoot
-  implements IProviderException
-{
+interface IProviderExceptionValidator {
+  type: {
+    isOff: Guard<boolean>;
+    isOn: Guard<boolean>;
+  };
+}
+
+export class ProviderException extends AggregateRoot {
   constructor(data: IProviderException) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._type = data.type;
-    this._dateRange = DateRange.create(data.startTime, data.endTime).orThrow();
+    this._dateRange = DateRange.fromTrusted(data.startTime, data.endTime);
     this._reason = data.reason;
-    this._providerId = data.providerId;
+    this._providerId = UUID.fromTrusted(data.providerId);
     this._createdAt = data.createdAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -49,8 +57,8 @@ export class ProviderException
     return this._reason;
   }
 
-  private _providerId: string;
-  get providerId(): string {
+  private _providerId: UUID;
+  get providerId(): UUID {
     return this._providerId;
   }
 
@@ -59,22 +67,61 @@ export class ProviderException
     return this._createdAt;
   }
 
-  isOff(): boolean {
-    return this._type === ExceptionTypeSchema.enum.OFF;
+  public get validate(): IProviderExceptionValidator {
+    return {
+      type: { isOff: this.isOff, isOn: this.isOn },
+    };
   }
 
-  isOn(): boolean {
-    return this._type === ExceptionTypeSchema.enum.ON;
+  private get isOff() {
+    const isOff = this._type === ExceptionTypeSchema.enum.OFF;
+    return Guard.monitor(
+      isOff,
+      isOff,
+      new Error('Uzman beklenmedik durumu "kapalı" değil')
+    );
+  }
+
+  private get isOn() {
+    const isOn = this._type === ExceptionTypeSchema.enum.ON;
+    return Guard.monitor(
+      isOn,
+      isOn,
+      new Error('Uzman beklenmedik durumu "açık" değil')
+    );
+  }
+
+  public static create(props: CreateProviderExceptionProps): ProviderException {
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
+    const providerId = UUID.create(props.providerId).orThrow();
+
+    const dateRange = DateRange.create(
+      props.startTime,
+      props.endTime
+    ).orThrow();
+
+    const now = DateTimeManager.create();
+
+    return new ProviderException({
+      id: id.value,
+      providerId: providerId.value,
+      type: props.type,
+      startTime: dateRange.startDate,
+      endTime: dateRange.endDate,
+      reason: props.reason ?? null,
+      createdAt: now,
+    });
   }
 
   public toPersistence(): IProviderException {
     return {
-      id: this._id,
+      id: this._id.value,
       type: this._type,
       startTime: this._dateRange.startDate,
       endTime: this._dateRange.endDate,
       reason: this._reason,
-      providerId: this._providerId,
+      providerId: this._providerId.value,
       createdAt: this._createdAt,
     };
   }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
+import { FinancialEvent } from '@shared';
 import {
   DraftJournalEntry,
   PostingContext,

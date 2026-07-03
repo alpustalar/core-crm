@@ -6,11 +6,14 @@ import {
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { MetaLeadStatusType as MetaLeadStatus } from '@input-type-schemas/MetaLeadStatusSchema';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Email } from '@src/domain/value-objects/email.vo';
 
-export class MetaLead extends AggregateRoot implements IMetaLead {
+export class MetaLead extends AggregateRoot {
   constructor(data: IMetaLead) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._metaAdAccountId = data.metaAdAccountId;
     this._metaLeadId = data.metaLeadId;
     this._formId = data.formId;
@@ -19,19 +22,21 @@ export class MetaLead extends AggregateRoot implements IMetaLead {
     this._adsetId = data.adsetId;
     this._adId = data.adId;
     this._name = data.name;
-    this._phone = data.phone;
-    this._email = data.email;
+    this._phone = data.phone ? Phone.fromTrusted(data.phone) : null;
+    this._email = data.email ? Email.fromTrusted(data.email) : null;
     this._rawData = data.rawData;
     this._status = data.status;
     this._matchedPatientId = data.matchedPatientId;
-    this._matchedAppointmentId = data.matchedAppointmentId;
+    this._matchedAppointmentId = data.matchedAppointmentId
+      ? UUID.fromTrusted(data.matchedAppointmentId)
+      : null;
     this._matchedAt = data.matchedAt;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -75,13 +80,13 @@ export class MetaLead extends AggregateRoot implements IMetaLead {
     return this._name;
   }
 
-  private _phone: string | null;
-  get phone(): string | null {
+  private _phone: Phone | null;
+  get phone(): Phone | null {
     return this._phone;
   }
 
-  private _email: string | null;
-  get email(): string | null {
+  private _email: Email | null;
+  get email(): Email | null {
     return this._email;
   }
 
@@ -100,8 +105,8 @@ export class MetaLead extends AggregateRoot implements IMetaLead {
     return this._matchedPatientId;
   }
 
-  private _matchedAppointmentId: string | null;
-  get matchedAppointmentId(): string | null {
+  private _matchedAppointmentId: UUID | null;
+  get matchedAppointmentId(): UUID | null {
     return this._matchedAppointmentId;
   }
 
@@ -132,7 +137,7 @@ export class MetaLead extends AggregateRoot implements IMetaLead {
   }
 
   public markConverted(appointmentId: string): void {
-    this._matchedAppointmentId = appointmentId;
+    this._matchedAppointmentId = UUID.create(appointmentId).orThrow();
     this._status = MetaLeadStatusSchema.enum.CONVERTED;
     if (!this._matchedAt) this._matchedAt = new Date();
   }
@@ -147,7 +152,7 @@ export class MetaLead extends AggregateRoot implements IMetaLead {
 
   public toPersistence(): IMetaLead {
     return {
-      id: this._id,
+      id: this._id.value,
       metaAdAccountId: this._metaAdAccountId,
       metaLeadId: this._metaLeadId,
       formId: this._formId,
@@ -156,12 +161,12 @@ export class MetaLead extends AggregateRoot implements IMetaLead {
       adsetId: this._adsetId,
       adId: this._adId,
       name: this._name,
-      phone: this._phone,
-      email: this._email,
+      phone: this._phone?.value ?? null,
+      email: this._email?.value ?? null,
       rawData: this._rawData,
       status: this._status,
       matchedPatientId: this._matchedPatientId,
-      matchedAppointmentId: this._matchedAppointmentId,
+      matchedAppointmentId: this._matchedAppointmentId?.value ?? null,
       matchedAt: this._matchedAt,
       createdAt: this._createdAt,
       updatedAt: new Date(),

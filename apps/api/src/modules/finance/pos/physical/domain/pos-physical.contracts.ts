@@ -1,41 +1,49 @@
 import { z } from 'zod';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
-import { PosProviderSchema } from '@input-type-schemas/PosProviderSchema';
-import { Decimal } from 'decimal.js'; // Katı tip güvenliği için standardizasyon
+import { Decimal } from 'decimal.js';
+import PosProviderSchema from '@input-type-schemas/PosProviderSchema'; // Katı tip güvenliği için standardizasyon
 
 // ==========================================
 // 1. POS DEVICE & SNAPSHOT SÖZLEŞMELERI
 // ==========================================
 
-export const CreatePosDevicePropsSchema = z.object({
+// 🪐 Ortak (Base) Alanlar: Her iki cihaz tipinde de her zaman ortak olanlar
+const BasePosDeviceSchema = z.object({
   id: z.uuid().optional(),
   clinicId: z.uuid(),
   label: z.string().min(1, 'POS cihazı etiketi zorunludur'),
-  // Varsayılan PAX (entity create içinde uygulanır); type seviyesinde opsiyonel.
-  provider: PosProviderSchema.optional(),
-
-  // PAX (POSLINK / TCP) — provider = PAX için zorunlu
-  terminalId: z.string().min(1, 'Terminal ID zorunludur').nullable().optional(),
-  merchantId: z
-    .string()
-    .min(1, 'Merchant ID (Üye İşyeri No) zorunludur')
-    .nullable()
-    .optional(),
-  host: z.string().min(1, 'Host adresi zorunludur').nullable().optional(),
-  port: z
-    .number()
-    .int()
-    .positive('Geçersiz port numarası')
-    .nullable()
-    .optional(),
-
-  // iyzico Terminal (Host API) — provider = IYZICO_TERMINAL için zorunlu
-  deviceUniqueId: z
-    .string()
-    .min(1, 'Terminal cihaz benzersiz kimliği zorunludur')
-    .nullable()
-    .optional(),
 });
+
+export const CreatePosDevicePropsSchema = z.discriminatedUnion('provider', [
+  // 🎯 1. PAX Cihazı İçin Zorunlu Kurallar
+  BasePosDeviceSchema.extend({
+    provider: z.literal(PosProviderSchema.enum.PAX),
+    terminalId: z.string().min(1, 'PAX için Terminal ID zorunludur'),
+    merchantId: z
+      .string()
+      .min(1, 'PAX için Merchant ID (Üye İşyeri No) zorunludur'),
+    host: z.string().min(1, 'PAX için Host adresi zorunludur'),
+    port: z.number().int().positive('Geçersiz port numarası'),
+
+    deviceUniqueId: z.undefined().optional(),
+  }),
+
+  // 🎯 2. Iyzico Terminal Cihazı İçin Zorunlu Kurallar
+  BasePosDeviceSchema.extend({
+    provider: z.literal(PosProviderSchema.enum.IYZICO_TERMINAL),
+    deviceUniqueId: z
+      .string()
+      .min(1, 'iyzico için Terminal cihaz benzersiz kimliği zorunludur'),
+
+    // PAX alanları bu kolda kesinlikle gelemez
+    terminalId: z.undefined().optional(),
+    merchantId: z.undefined().optional(),
+    host: z.undefined().optional(),
+    port: z.undefined().optional(),
+  }),
+]);
+
+// 🪐 TypeScript tip çıkarımı otomatik olarak Discriminated Union tipine dönüşür!
 export type CreatePosDeviceProps = z.infer<typeof CreatePosDevicePropsSchema>;
 
 /** Bir PAX cihazına TCP bağlanmak için gereken, null olmayan bağlantı bilgisi. */

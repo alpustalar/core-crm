@@ -1,4 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  InvalidVknChecksumException,
+  InvalidVknFormatException,
+} from '@src/domain/exceptions/vo/vkn.exceptions';
 import { Vkn } from '@src/domain/value-objects/vkn.vo';
 import { ClinicGovernmentSpecs } from './clinic-government-specs.entity';
 
@@ -24,7 +27,7 @@ describe('ClinicGovernmentSpecs', () => {
   it('geçersiz VKN create sırasında reddedilir', () => {
     expect(() =>
       ClinicGovernmentSpecs.create({ ...base, companyTaxNumber: '1234567891' })
-    ).toThrow(BadRequestException);
+    ).toThrow(InvalidVknChecksumException);
   });
 
   it('update: VKN değiştirir ve null’a çekebilir', () => {
@@ -44,7 +47,7 @@ describe('ClinicGovernmentSpecs', () => {
       companyTaxNumber: '1234567890',
     });
     expect(() => e.update({ companyTaxNumber: '12' })).toThrow(
-      BadRequestException
+      InvalidVknFormatException
     );
   });
 });

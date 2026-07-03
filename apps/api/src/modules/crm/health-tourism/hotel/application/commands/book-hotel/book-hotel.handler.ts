@@ -30,7 +30,7 @@ export class BookHotelHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    const result = await this.hotelbedsApi.createBooking({
+    const apiResult = await this.hotelbedsApi.createBooking({
       holderName: dto.holderName,
       holderSurname: dto.holderSurname,
       rooms: dto.rooms,
@@ -42,27 +42,27 @@ export class BookHotelHandler
 
     // TODO: entity'de static create methodu oluşturulacak. save ile kayıt yapılır. create methodunda domain event pushlanıcak
 
-    const booking = await this.txManager.run(async () => {
+    await this.txManager.run(async () => {
       return this.bookingCommandRepo.create({
         id: bookingId,
-        reference: result.reference,
+        reference: apiResult.reference,
         hotelCode: dto.hotelCode,
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
-        totalNet: result.totalNet,
-        currency: Currency.create(result.currency).orThrow().value,
+        totalNet: apiResult.totalNet,
+        currency: Currency.create(apiResult.currency).orThrow().value,
         holderName: dto.holderName,
         holderSurname: dto.holderSurname,
-        rooms: result.rooms,
+        rooms: apiResult.rooms,
         patientId: dto.patientId,
         leadId: dto.leadId,
         remarks: dto.remarks,
         serviceFee: dto.serviceFee,
-        organizationId: actor.organizationId!,
-        clinicId: actor.clinicId ?? undefined,
+        organizationId: dto.organizationId,
+        clinicId: dto.clinicId,
       });
     });
 
-    return booking.id;
+    return bookingId;
   }
 }

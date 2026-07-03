@@ -48,7 +48,7 @@ export class GetMetaReportHandler
     const totalClicks = metrics.reduce((sum, m) => sum + m.clicks, 0);
     const averageCpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
 
-    const accountIds = accounts.map((a) => a.id);
+    const accountIds = accounts.map((a) => a.id.value);
     const [totalLeads, convertedLeads] = await Promise.all([
       this.countLeadsByAccounts(accountIds, from, to),
       this.countConvertedLeadsByAccounts(accountIds, from, to),

@@ -35,7 +35,7 @@ export class SetProviderOperationModeHandler
 
     const { evaluator } = this.policyFactory.user(ctx.actor);
     evaluator
-      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
+      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.OPERATION_MODE_SET);
 
     provider.setOperationMode(dto.operationMode);

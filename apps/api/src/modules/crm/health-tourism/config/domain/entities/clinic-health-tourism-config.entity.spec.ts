@@ -1,13 +1,16 @@
 import { ClinicHealthTourismConfig } from './clinic-health-tourism-config.entity';
 
 describe('ClinicHealthTourismConfig (B0)', () => {
-  const base = { clinicId: 'clinic-1', organizationId: 'org-1' };
+  const base = {
+    clinicId: '11111111-1111-4111-8111-111111111111',
+    organizationId: '22222222-2222-4222-8222-222222222222',
+  };
 
   it('create varsayılanları: kapalı, allowlist boş, EUR, fee null', () => {
     const cfg = ClinicHealthTourismConfig.create(base);
     expect(cfg.isEnabled).toBe(false);
     expect(cfg.nearbyHotelCodes).toEqual([]);
-    expect(cfg.defaultCurrency).toBe('EUR');
+    expect(cfg.defaultCurrency.value).toBe('EUR');
     expect(cfg.serviceFeePercent).toBeNull();
   });
 
@@ -52,7 +55,7 @@ describe('ClinicHealthTourismConfig (B0)', () => {
     });
     cfg.updateSettings({ airportIata: 'SAW' });
     expect(cfg.airportIata).toBe('SAW');
-    expect(cfg.defaultCurrency).toBe('USD'); // dokunulmadı
+    expect(cfg.defaultCurrency.value).toBe('USD'); // dokunulmadı
   });
 
   it('fee null’a çekilebilir (temizleme)', () => {

@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+import PosProviderSchema from '@input-type-schemas/PosProviderSchema';
 import { RegisterPosDeviceCommand } from './register-pos-device.command';
 import { RegisterPosDeviceResponse } from './register-pos-device.response';
 import {
@@ -23,22 +24,25 @@ export class RegisterPosDeviceHandler
   ): Promise<RegisterPosDeviceResponse> {
     const { input } = command;
 
-    const device = PosDevice.create({
-      clinicId: input.clinicId,
-      label: input.label,
-      provider: input.provider,
-      terminalId: input.terminalId,
-      merchantId: input.merchantId,
-      host: input.host,
-      port: input.port,
-      deviceUniqueId: input.deviceUniqueId,
-    });
-
-    if (device.isPax()) {
-      device.getPaxConnection();
-    } else {
-      device.getIyzicoDeviceUniqueId();
-    }
+    // DTO superRefine ile sağlayıcıya göre zorunlu alanları garanti eder; burada düz DTO,
+    // entity'nin katı discriminated CreatePosDeviceProps koluna daraltılır (alanlar doğrulanmış).
+    const device =
+      input.provider === PosProviderSchema.enum.IYZICO_TERMINAL
+        ? PosDevice.create({
+            clinicId: input.clinicId,
+            label: input.label,
+            provider: PosProviderSchema.enum.IYZICO_TERMINAL,
+            deviceUniqueId: input.deviceUniqueId!,
+          })
+        : PosDevice.create({
+            clinicId: input.clinicId,
+            label: input.label,
+            provider: PosProviderSchema.enum.PAX,
+            terminalId: input.terminalId!,
+            merchantId: input.merchantId!,
+            host: input.host!,
+            port: input.port!,
+          });
 
     const saved = await this.posDeviceCommandRepo.save(device);
 

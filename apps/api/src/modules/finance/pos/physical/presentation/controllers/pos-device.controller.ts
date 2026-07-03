@@ -5,6 +5,7 @@ import {
   IGetContext,
 } from '@common/decorators/get-context.decorator';
 import { RegisterPosDeviceCommand } from '@modules/finance/pos/physical/application/commands/register-pos-device/register-pos-device.command';
+import { RegisterPosDeviceDto } from '@shared/modules/pos/dto/commands';
 import { InitiatePosTransactionCommand } from '@modules/finance/pos/physical/application/commands/initiate-pos-transaction/initiate-pos-transaction.command';
 import { FindPosDevicesQuery } from '@modules/finance/pos/physical/application/queries/find-pos-devices/find-pos-devices.query';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -28,7 +29,7 @@ export class PosDeviceController {
 
   @Post()
   register(
-    @Body() body: RegisterPosDeviceCommand['input'],
+    @Body() body: RegisterPosDeviceDto,
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(new RegisterPosDeviceCommand(body, ctx));

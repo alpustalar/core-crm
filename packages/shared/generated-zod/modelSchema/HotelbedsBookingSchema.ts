@@ -25,7 +25,7 @@ export const HotelbedsBookingSchema = z.object({
   remarks: z.string().nullable(),
   serviceFee: z.instanceof(Prisma.Decimal, { message: "Field 'serviceFee' must be a Decimal. Location: ['Models', 'HotelbedsBooking']"}).nullable(),
   organizationId: z.string(),
-  clinicId: z.string().nullable(),
+  clinicId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

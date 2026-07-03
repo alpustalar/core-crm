@@ -79,13 +79,14 @@ export class MetaLeadCommandRepository
 
   async saveMany(metaLeads: MetaLead[]): Promise<void> {
     const prismaQueries = metaLeads.map((metaLead) => {
-      const persistence = metaLead.toPersistence();
-      const rawDataValue = persistence.rawData ?? Prisma.JsonNull;
+      const create = metaLead.toPersistence();
+      const { id, ...update } = create;
+      const rawDataValue = create.rawData ?? Prisma.JsonNull;
 
       return this.db.metaLead.upsert({
-        where: { id: metaLead.id },
-        create: { ...persistence, rawData: rawDataValue },
-        update: { ...persistence, rawData: rawDataValue },
+        where: { id },
+        create: { ...create, rawData: rawDataValue },
+        update: { ...update, rawData: rawDataValue },
       });
     });
 

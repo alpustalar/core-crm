@@ -12,10 +12,10 @@ describe('GetVatDeclarationHandler (doc 06 §1)', () => {
 
   // 391 Hesaplanan, 191 İndirilecek + alt hesabı 191.01; 600 alakasız (hariç tutulmalı).
   const chart = [
-    { id: 'acc-391', code: { value: '391' }, isPostable: true },
-    { id: 'acc-191', code: { value: '191' }, isPostable: true },
-    { id: 'acc-191-01', code: { value: '191.01' }, isPostable: true },
-    { id: 'acc-600', code: { value: '600.01' }, isPostable: true },
+    { id: 'acc-391', code: '391', isPostable: true },
+    { id: 'acc-191', code: '191', isPostable: true },
+    { id: 'acc-191-01', code: '191.01', isPostable: true },
+    { id: 'acc-600', code: '600.01', isPostable: true },
   ];
 
   const mov = (entryDate: string, debit: number, credit: number) => ({

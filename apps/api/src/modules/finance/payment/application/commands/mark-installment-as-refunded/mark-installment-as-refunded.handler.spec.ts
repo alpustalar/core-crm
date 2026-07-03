@@ -5,9 +5,9 @@ import { MarkInstallmentAsRefundedCommand } from './mark-installment-as-refunded
 
 describe('MarkInstallmentAsRefundedHandler', () => {
   const makePayment = () => ({
-    id: 'pay-1',
-    appointmentId: 'appt-1',
-    clinicId: 'clinic-1',
+    id: { value: 'pay-1' },
+    appointmentId: { value: 'appt-1' },
+    clinicId: { value: 'clinic-1' },
     refundInstallment: jest.fn(),
   });
 

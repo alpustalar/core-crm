@@ -1,4 +1,7 @@
-import { BookingPayment as IBookingPayment } from '@shared/generated-zod';
+import {
+  BookingPayment as IBookingPayment,
+  BookingPaymentStatusSchema,
+} from '@shared/generated-zod';
 import { Prisma } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
@@ -8,8 +11,13 @@ import {
   BookingPaymentStatusValue,
   BookingPaymentTypeValue,
   CreateBookingPaymentProps,
-  Currency,
 } from '../booking-payment.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Url } from '@src/domain/value-objects/url.vo';
+import { Money } from '@src/domain/value-objects/money.vo';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 type Decimal = IBookingPayment['saleAmount'];
 
@@ -19,40 +27,41 @@ type Decimal = IBookingPayment['saleAmount'];
  * PENDING → (ödeme) PAID → (HotelBeds book) BOOKED | (hata) FAILED ; PENDING → EXPIRED ;
  * herhangi → REFUNDED. Çift-çekim (iki link de ödenirse) ikinci ödeme iade edilir.
  */
-export class BookingPayment extends AggregateRoot implements IBookingPayment {
+export class BookingPayment extends AggregateRoot {
   constructor(data: IBookingPayment) {
+    const currency = Currency.fromTrusted(data.saleCurrency);
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._bookingType = data.bookingType;
     this._status = data.status;
-    this._saleCurrency = data.saleCurrency;
-    this._saleAmount = data.saleAmount;
-    this._tryAmount = data.tryAmount;
-    this._netAmount = data.netAmount;
+    this._saleCurrency = currency;
+    this._saleAmount = Money.fromTrusted(data.saleAmount, currency.value);
+    this._tryAmount = Money.fromTrusted(data.tryAmount, currency.value);
+    this._netAmount = Money.fromTrusted(data.netAmount, currency.value);
     this._fxRate = data.fxRate;
     this._intent = data.intent;
     this._iyzicoConversationId = data.iyzicoConversationId;
     this._iyzicoToken = data.iyzicoToken;
-    this._iyzicoUrl = data.iyzicoUrl;
+    this._iyzicoUrl = Url.create(data.iyzicoUrl).instance ?? null;
     this._stripeSessionId = data.stripeSessionId;
-    this._stripeUrl = data.stripeUrl;
+    this._stripeUrl = Url.create(data.stripeUrl).instance ?? null;
     this._paidProvider = data.paidProvider;
     this._paidProviderRef = data.paidProviderRef;
     this._paidAt = data.paidAt;
     this._bookingReference = data.bookingReference;
     this._bookingId = data.bookingId;
     this._failureReason = data.failureReason;
-    this._clinicId = data.clinicId;
-    this._organizationId = data.organizationId;
-    this._patientId = data.patientId;
-    this._leadId = data.leadId;
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._patientId = data.patientId ? UUID.fromTrusted(data.patientId) : null;
+    this._leadId = data.leadId ? UUID.fromTrusted(data.leadId) : null;
     this._conversationId = data.conversationId;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -71,18 +80,18 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
     return this._saleCurrency;
   }
 
-  private _saleAmount: Decimal;
-  get saleAmount(): Decimal {
+  private _saleAmount: Money;
+  get saleAmount(): Money {
     return this._saleAmount;
   }
 
-  private _tryAmount: Decimal;
-  get tryAmount(): Decimal {
+  private _tryAmount: Money;
+  get tryAmount(): Money {
     return this._tryAmount;
   }
 
-  private _netAmount: Decimal;
-  get netAmount(): Decimal {
+  private _netAmount: Money;
+  get netAmount(): Money {
     return this._netAmount;
   }
 
@@ -111,8 +120,8 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
     return this._iyzicoToken;
   }
 
-  private _iyzicoUrl: string | null;
-  get iyzicoUrl(): string | null {
+  private _iyzicoUrl: Url | null;
+  get iyzicoUrl(): Url | null {
     return this._iyzicoUrl;
   }
 
@@ -121,8 +130,8 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
     return this._stripeSessionId;
   }
 
-  private _stripeUrl: string | null;
-  get stripeUrl(): string | null {
+  private _stripeUrl: Url | null;
+  get stripeUrl(): Url | null {
     return this._stripeUrl;
   }
 
@@ -156,23 +165,23 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
     return this._failureReason;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
-  private _patientId: string | null;
-  get patientId(): string | null {
+  private _patientId: UUID | null;
+  get patientId(): UUID | null {
     return this._patientId;
   }
 
-  private _leadId: string | null;
-  get leadId(): string | null {
+  private _leadId: UUID | null;
+  get leadId(): UUID | null {
     return this._leadId;
   }
 
@@ -198,7 +207,7 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
     return new BookingPayment({
       id: props.id ?? crypto.randomUUID(),
       bookingType: props.bookingType,
-      status: 'PENDING',
+      status: BookingPaymentStatusSchema.enum.PENDING,
       saleCurrency: props.saleCurrency,
       saleAmount: new Prisma.Decimal(props.saleAmount),
       tryAmount: new Prisma.Decimal(props.tryAmount),
@@ -216,10 +225,12 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
       bookingReference: null,
       bookingId: null,
       failureReason: null,
-      clinicId: props.clinicId,
-      organizationId: props.organizationId,
-      patientId: props.patientId,
-      leadId: props.leadId,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
+      patientId: props.patientId
+        ? UUID.create(props.patientId).orThrow().value
+        : null,
+      leadId: props.leadId ? UUID.create(props.leadId).orThrow().value : null,
       conversationId: props.conversationId,
       createdAt: now,
       updatedAt: now,
@@ -230,28 +241,41 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
 
   /** initiate sırasında üretilen sağlayıcı link bilgilerini saklar. */
   public attachLinks(links: BookingPaymentLinks): void {
-    if (links.iyzicoConversationId !== undefined) {
+    if (isNotUndefined(links.iyzicoConversationId)) {
       this._iyzicoConversationId = links.iyzicoConversationId;
     }
-    if (links.iyzicoToken !== undefined) this._iyzicoToken = links.iyzicoToken;
-    if (links.iyzicoUrl !== undefined) this._iyzicoUrl = links.iyzicoUrl;
-    if (links.stripeSessionId !== undefined) {
+    if (isNotUndefined(links.iyzicoToken))
+      this._iyzicoToken = links.iyzicoToken;
+
+    if (isNotUndefined(links.iyzicoUrl))
+      this._iyzicoUrl = links.iyzicoUrl
+        ? Url.create(links.iyzicoUrl).orThrow()
+        : null;
+
+    if (isNotUndefined(links.stripeSessionId)) {
       this._stripeSessionId = links.stripeSessionId;
     }
-    if (links.stripeUrl !== undefined) this._stripeUrl = links.stripeUrl;
-    this._updatedAt = new Date();
+    if (isNotUndefined(links.stripeUrl))
+      this._stripeUrl = links.stripeUrl
+        ? Url.create(links.stripeUrl).orThrow()
+        : null;
+
+    this._updatedAt = DateTimeManager.create();
   }
 
   public isPending(): boolean {
-    return this._status === 'PENDING';
+    return this._status === BookingPaymentStatusSchema.enum.PENDING;
   }
 
   public isPaid(): boolean {
-    return this._status === 'PAID';
+    return this._status === BookingPaymentStatusSchema.enum.PAID;
   }
 
   public isSettled(): boolean {
-    return this._status === 'PAID' || this._status === 'BOOKED';
+    return (
+      this._status === BookingPaymentStatusSchema.enum.PAID ||
+      this._status === BookingPaymentStatusSchema.enum.BOOKED
+    );
   }
 
   /** PENDING → PAID. providerRef iade için saklanır. */
@@ -259,26 +283,28 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
     provider: BookingPaymentProviderValue,
     providerRef: string
   ): void {
-    if (this._status !== 'PENDING') {
+    if (this._status !== BookingPaymentStatusSchema.enum.PENDING) {
       throw new Error(
         `Ödeme yalnız PENDING durumunda işaretlenebilir (mevcut: ${this._status}).`
       );
     }
-    this._status = 'PAID';
+
+    const now = DateTimeManager.create();
+    this._status = BookingPaymentStatusSchema.enum.PAID;
     this._paidProvider = provider;
     this._paidProviderRef = providerRef;
-    this._paidAt = new Date();
-    this._updatedAt = new Date();
+    this._paidAt = now;
+    this._updatedAt = now;
   }
 
   /** PAID → BOOKED. HotelBeds rezervasyonu tamamlandı. */
   public markBooked(reference: string, bookingId?: string | null): void {
-    if (this._status !== 'PAID') {
+    if (this._status !== BookingPaymentStatusSchema.enum.PAID) {
       throw new Error(
         `Rezervasyon yalnız PAID durumunda tamamlanabilir (mevcut: ${this._status}).`
       );
     }
-    this._status = 'BOOKED';
+    this._status = BookingPaymentStatusSchema.enum.BOOKED;
     this._bookingReference = reference;
     this._bookingId = bookingId ?? null;
     this._updatedAt = new Date();
@@ -286,24 +312,24 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
 
   /** Ödeme alındı ama HotelBeds book başarısız → iade beklenir. */
   public markFailed(reason: string): void {
-    this._status = 'FAILED';
+    this._status = BookingPaymentStatusSchema.enum.FAILED;
     this._failureReason = reason;
     this._updatedAt = new Date();
   }
 
   /** PENDING → EXPIRED (link süresi doldu, ödeme yapılmadı). */
   public markExpired(): void {
-    if (this._status !== 'PENDING') {
+    if (this._status !== BookingPaymentStatusSchema.enum.PENDING) {
       throw new Error(
         `Yalnız PENDING durumundaki kayıt expire edilebilir (mevcut: ${this._status}).`
       );
     }
-    this._status = 'EXPIRED';
+    this._status = BookingPaymentStatusSchema.enum.EXPIRED;
     this._updatedAt = new Date();
   }
 
   public markRefunded(reason?: string): void {
-    this._status = 'REFUNDED';
+    this._status = BookingPaymentStatusSchema.enum.REFUNDED;
     if (reason) this._failureReason = reason;
     this._updatedAt = new Date();
   }
@@ -312,33 +338,33 @@ export class BookingPayment extends AggregateRoot implements IBookingPayment {
 
   public toPersistence(): IBookingPayment {
     return {
-      id: this._id,
+      id: this._id.value,
       bookingType: this._bookingType,
       status: this._status,
-      saleCurrency: this._saleCurrency,
-      saleAmount: this._saleAmount,
-      tryAmount: this._tryAmount,
-      netAmount: this._netAmount,
+      saleCurrency: this._saleCurrency.value,
+      saleAmount: this._saleAmount.amount,
+      tryAmount: this._tryAmount.amount,
+      netAmount: this._netAmount.amount,
       fxRate: this._fxRate,
       intent: this._intent,
       iyzicoConversationId: this._iyzicoConversationId,
       iyzicoToken: this._iyzicoToken,
-      iyzicoUrl: this._iyzicoUrl,
+      iyzicoUrl: this._iyzicoUrl?.value ?? null,
       stripeSessionId: this._stripeSessionId,
-      stripeUrl: this._stripeUrl,
+      stripeUrl: this._stripeUrl?.value ?? null,
       paidProvider: this._paidProvider,
       paidProviderRef: this._paidProviderRef,
       paidAt: this._paidAt,
       bookingReference: this._bookingReference,
       bookingId: this._bookingId,
       failureReason: this._failureReason,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
-      patientId: this._patientId,
-      leadId: this._leadId,
+      clinicId: this._clinicId.value,
+      organizationId: this._organizationId.value,
+      patientId: this._patientId?.value ?? null,
+      leadId: this._leadId?.value ?? null,
       conversationId: this._conversationId,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

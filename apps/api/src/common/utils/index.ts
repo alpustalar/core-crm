@@ -7,3 +7,5 @@ export * from './is-empty';
 export * from './mapper-array';
 export * from './is-json-type';
 export * from './capitalize';
+export * from './is-not-defined';
+export * from './end-time-calculator';

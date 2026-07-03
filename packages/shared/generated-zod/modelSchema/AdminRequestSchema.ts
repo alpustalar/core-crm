@@ -14,6 +14,7 @@ export const AdminRequestSchema = z.object({
   targetId: z.string(),
   requestedBy: z.string(),
   organizationId: z.string().nullable(),
+  clinicId: z.string().nullable(),
   metadata: JsonValueSchema.nullable(),
   reviewedBy: z.string().nullable(),
   reviewedAt: z.coerce.date().nullable(),

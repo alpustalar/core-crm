@@ -8,12 +8,15 @@ import {
   InvalidProviderBreakConfigurationException,
   ProviderBreakOutOfRangeException,
 } from '@modules/clinical/provider/domain/exceptions/provider-shift.exceptions';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DayMinute } from '@src/domain/value-objects/day-minute.vo';
+import { isDefined } from '@common/utils';
 
 export class ProviderShift extends AggregateRoot {
   constructor(data: IProviderShift) {
     super();
-    this._id = data.id;
-    this._providerId = data.providerId;
+    this._id = UUID.fromTrusted(data.id);
+    this._providerId = UUID.fromTrusted(data.providerId);
     this._date = data.date;
 
     this._shiftRange = DayMinuteRange.fromNumbers(
@@ -21,10 +24,12 @@ export class ProviderShift extends AggregateRoot {
       data.endMinute
     );
 
-    this._breakRange =
-      data.breakStartMinute !== null && data.breakEndMinute !== null
-        ? DayMinuteRange.fromNumbers(data.breakStartMinute, data.breakEndMinute)
-        : null;
+    if (isDefined(data.breakStartMinute) && isDefined(data.breakEndMinute)) {
+      this._breakRange = DayMinuteRange.fromNumbers(
+        data.breakStartMinute,
+        data.breakEndMinute
+      );
+    }
 
     this.validate.breakConfiguration().orThrow();
   }
@@ -32,13 +37,13 @@ export class ProviderShift extends AggregateRoot {
   // ────────────────────────────────────────────────────────────────────────────
   // Private Properties & Getters
   // ────────────────────────────────────────────────────────────────────────────
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _providerId: string;
-  get providerId(): string {
+  private _providerId: UUID;
+  get providerId(): UUID {
     return this._providerId;
   }
 
@@ -155,32 +160,40 @@ export class ProviderShift extends AggregateRoot {
 
   // ────────────────────────────────────────────────────────────────────────────
   public static create(props: CreateShiftProps): ProviderShift {
+    const id = props.id
+      ? UUID.create(props.id).orThrow().value
+      : UUID.generate().value;
+
+    const shiftStartMinute = DayMinute.fromNumber(props.startMinute);
+    const shiftEndMinute = DayMinute.fromNumber(props.endMinute);
+
+    const shiftMinuteRange = DayMinuteRange.create(
+      shiftStartMinute,
+      shiftEndMinute
+    );
+
+    let breakMinuteRange: DayMinuteRange | null = null;
+
+    if (isDefined(props.breakStartMinute) && isDefined(props.breakEndMinute)) {
+      const breakStartMinute = DayMinute.fromNumber(props.breakStartMinute);
+      const breakEndMinute = DayMinute.fromNumber(props.breakEndMinute);
+      breakMinuteRange = DayMinuteRange.create(
+        breakStartMinute,
+        breakEndMinute
+      );
+    }
+
     return new ProviderShift({
-      id: props.id ?? crypto.randomUUID(),
-      providerId: props.providerId,
+      id,
+      providerId: UUID.create(props.providerId).orThrow().value,
       date: props.date,
-      startMinute: props.startMinute,
-      endMinute: props.endMinute,
-      breakStartMinute: props.breakStartMinute ?? null,
-      breakEndMinute: props.breakEndMinute ?? null,
+
+      startMinute: shiftMinuteRange.start.value,
+      endMinute: shiftMinuteRange.end.value,
+
+      breakStartMinute: breakMinuteRange ? breakMinuteRange.start.value : null,
+      breakEndMinute: breakMinuteRange ? breakMinuteRange.end.value : null,
     });
-  }
-
-  /**
-   * 🎯 Domain Kuralı: Talep edilen randevu aralığının bu vardiyada rezerve edilip edilemeyeceğini döner.
-   */
-  public canBook(requestedRange: DayMinuteRange): boolean {
-    // Randevu hekimin çalışma saatleri içinde mi?
-    const isWithinHours = requestedRange.isCompletelyWithin(this._shiftRange);
-    if (!isWithinHours) return false;
-
-    // Randevu hekimin molasıyla çakışıyor mu?
-    const hitsBreak = this._breakRange
-      ? requestedRange.overlapsWith(this._breakRange)
-      : false;
-    if (hitsBreak) return false;
-
-    return true;
   }
 
   /**
@@ -196,20 +209,34 @@ export class ProviderShift extends AggregateRoot {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Mapping to Persistence
-
-  // --- Domain Entity / Value Object İçindeki Metot ---
-
-  // ────────────────────────────────────────────────────────────────────────────
   public toPersistence(): IProviderShift {
     return {
-      id: this._id,
-      providerId: this._providerId,
+      id: this._id.value,
+      providerId: this._providerId.value,
       date: this._date,
       startMinute: this.startMinute,
       endMinute: this.endMinute,
       breakStartMinute: this.breakStartMinute,
       breakEndMinute: this.breakEndMinute,
     };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Mapping to Persistence
+
+  // --- Domain Entity / Value Object İçindeki Metot ---
+
+  /**
+   * 🎯 Domain Kuralı: Talep edilen randevu aralığının bu vardiyada rezerve edilip edilemeyeceğini döner.
+   */
+  private canBook(requestedRange: DayMinuteRange): boolean {
+    const isWithinHours = requestedRange.isCompletelyWithin(this._shiftRange);
+    if (!isWithinHours) return false;
+
+    const hitsBreak = this._breakRange
+      ? requestedRange.overlapsWith(this._breakRange).value
+      : false;
+
+    return !hitsBreak;
   }
 }

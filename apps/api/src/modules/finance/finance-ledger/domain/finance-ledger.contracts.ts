@@ -9,6 +9,7 @@ import { Money } from '@src/domain/value-objects/money.vo';
 // ==========================================
 
 export const CreateFinanceLedgerSchema = z.object({
+  id: z.uuid().optional(),
   organizationId: z.uuid(),
   clinicId: z.uuid(),
   patientId: z.uuid().nullable().optional(),

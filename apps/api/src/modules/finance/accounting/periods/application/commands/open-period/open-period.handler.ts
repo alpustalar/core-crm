@@ -39,6 +39,6 @@ export class OpenPeriodHandler
       await this.periodCommandRepo.save(period);
     });
 
-    return period.id;
+    return period.id.value;
   }
 }

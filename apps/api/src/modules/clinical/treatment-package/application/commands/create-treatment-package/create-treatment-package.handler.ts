@@ -45,7 +45,7 @@ export class CreateTreatmentPackageHandler
     });
     return this.txManager.run(async () => {
       const createdPackage = await this.treatmentPackageCommandRepo.save(pkg);
-      return createdPackage.id;
+      return createdPackage.id.value;
     });
   }
 }

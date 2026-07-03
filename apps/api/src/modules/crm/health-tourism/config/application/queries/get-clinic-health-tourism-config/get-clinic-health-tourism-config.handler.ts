@@ -28,8 +28,8 @@ export class GetClinicHealthTourismConfigHandler
 
     return {
       data: {
-        id: config.id,
-        clinicId: config.clinicId,
+        id: config.id.value,
+        clinicId: config.clinicId.value,
         isEnabled: config.isEnabled,
         destinationCode: config.destinationCode,
         nearbyHotelCodes: config.nearbyHotelCodes,
@@ -40,7 +40,7 @@ export class GetClinicHealthTourismConfigHandler
         serviceFeePercent: config.serviceFeePercent
           ? config.serviceFeePercent.toNumber()
           : null,
-        defaultCurrency: config.defaultCurrency,
+        defaultCurrency: config.defaultCurrency.value,
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,
       },

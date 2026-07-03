@@ -1,4 +1,7 @@
-import { AccountingPeriod as IAccountingPeriod, AccountingPeriodStatusSchema, } from '@shared';
+import {
+  AccountingPeriod as IAccountingPeriod,
+  AccountingPeriodStatusSchema,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 
@@ -9,16 +12,15 @@ import {
   InvalidPeriodReopenException,
   PeriodAlreadyClosedException,
 } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Guard } from '@common/domain/guards';
 
-export class AccountingPeriod
-  extends AggregateRoot
-  implements IAccountingPeriod
-{
+export class AccountingPeriod extends AggregateRoot {
   constructor(data: IAccountingPeriod) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._organizationId = data.organizationId;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._year = data.year;
     this._status = data.status;
     this._startsAt = data.startsAt;
@@ -27,18 +29,18 @@ export class AccountingPeriod
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
@@ -72,69 +74,92 @@ export class AccountingPeriod
     return this._updatedAt;
   }
 
+  public get validate() {
+    return {
+      isOpen: this.isOpen,
+      isClosed: this.isClosed,
+      isLocked: this.isLocked,
+      canPost: this.canPost,
+      isOpenOrLocked: this.validateIsOpenOrLocked,
+    };
+  }
+
+  private get canPost(): Guard<boolean> {
+    const isOpen = this.isOpen.value;
+    return Guard.monitor(
+      isOpen,
+      isOpen,
+      new Error('Sadece açık döneme fiş atılabilir')
+    );
+  }
+
+  private get isOpen(): Guard<boolean> {
+    const isOpen = this._status === AccountingPeriodStatusSchema.enum.OPEN;
+    return Guard.monitor(isOpen, isOpen, new Error('Dönem açık değil'));
+  }
+
+  private get isLocked(): Guard<boolean> {
+    const isLocked = this._status === AccountingPeriodStatusSchema.enum.LOCKED;
+    return Guard.monitor(isLocked, isLocked, new Error('Dönem kilitli değil.'));
+  }
+
+  private get isClosed(): Guard<boolean> {
+    const isClosed = this._status === AccountingPeriodStatusSchema.enum.CLOSED;
+    return Guard.monitor(isClosed, isClosed, new Error('Dönem kapalı değil.'));
+  }
+
+  private get validateIsOpenOrLocked(): Guard<boolean> {
+    return Guard.monitor(
+      !this.isClosed.value,
+      !this.isClosed.value,
+      new PeriodAlreadyClosedException(this.id.value, this.year)
+    );
+  }
+
   public static create(props: CreateAccountingPeriodProps): AccountingPeriod {
+    const now = DateTimeManager.create();
+
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
     return new AccountingPeriod({
-      id: props.id ?? crypto.randomUUID(),
-      clinicId: props.clinicId,
-      organizationId: props.organizationId,
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
       year: props.year,
       status: AccountingPeriodStatusSchema.enum.OPEN,
       startsAt: DateTimeManager.startOfYear(props.year),
       endsAt: DateTimeManager.endOfYear(props.year),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
   }
 
-  public isOpen(): boolean {
-    return this._status === AccountingPeriodStatusSchema.enum.OPEN;
-  }
-
-  public isLocked(): boolean {
-    return this._status === AccountingPeriodStatusSchema.enum.LOCKED;
-  }
-
-  public isClosed(): boolean {
-    return this._status === AccountingPeriodStatusSchema.enum.CLOSED;
-  }
-
-  /** Sadece OPEN döneme fiş atılabilir. */
-  public canPost(): boolean {
-    return this.isOpen();
-  }
-
   public lock(): void {
-    if (!this.isOpen()) {
+    if (!this.isOpen.value) {
       throw new InvalidPeriodLockException();
     }
     this._status = AccountingPeriodStatusSchema.enum.LOCKED;
   }
 
   public reopen(): void {
-    if (!this.isLocked()) {
+    if (!this.isLocked.value) {
       throw new InvalidPeriodReopenException();
     }
     this._status = AccountingPeriodStatusSchema.enum.OPEN;
   }
 
   public close(): void {
-    if (this.isClosed()) {
-      throw new PeriodAlreadyClosedException(this.id, this.year);
+    if (this.isClosed.value) {
+      throw new PeriodAlreadyClosedException(this.id.value, this.year);
     }
     this._status = AccountingPeriodStatusSchema.enum.CLOSED;
   }
 
-  public validateIsOpenOrLocked(): void {
-    if (this.isClosed()) {
-      throw new PeriodAlreadyClosedException(this.id, this.year);
-    }
-  }
-
   public toPersistence(): IAccountingPeriod {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      organizationId: this._organizationId.value,
       year: this._year,
       status: this._status,
       startsAt: this._startsAt,

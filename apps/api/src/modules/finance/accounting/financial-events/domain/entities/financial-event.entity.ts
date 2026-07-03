@@ -4,17 +4,18 @@ import { FinancialEventRecordedEvent } from '../events/financial-event-recorded.
 import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
  * Değişmez (append-only) ekonomik olay. Bir kez yazılır, asla güncellenmez.
  * Posting bunu okuyup çift taraflı fişe çevirir.
  */
-export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
+export class FinancialEvent extends AggregateRoot {
   constructor(data: IFinancialEvent) {
     super();
-    this._id = data.id;
-    this._organizationId = data.organizationId;
-    this._clinicId = data.clinicId;
+    this._id = UUID.fromTrusted(data.id);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._type = data.type;
     this._occurredAt = data.occurredAt;
     this._payload = data.payload;
@@ -25,18 +26,18 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
     this._createdAt = data.createdAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
@@ -80,27 +81,36 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
     return this._createdAt;
   }
 
+  /**
+   * (New Record): İlk kez yeni bir finansal olay kaydederken çağrılır.
+   */
   public static record(props: RecordFinancialEventProps): FinancialEvent {
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const organizationId = UUID.create(props.organizationId).orThrow();
+    const clinicId = UUID.create(props.clinicId).orThrow();
+
+    const now = new Date();
+
     const event = new FinancialEvent({
-      id: props.id ?? crypto.randomUUID(),
-      organizationId: props.organizationId,
-      clinicId: props.clinicId,
+      id: id.value,
+      organizationId: organizationId.value,
+      clinicId: clinicId.value,
       type: props.type,
-      occurredAt: props.occurredAt ?? new Date(),
+      occurredAt: props.occurredAt ?? now,
       payload: props.payload as JsonValue,
       sourceModule: props.sourceModule,
       sourceRefId: props.sourceRefId ?? null,
       dedupeKey: props.dedupeKey ?? null,
       performedById: props.performedById ?? null,
-      createdAt: new Date(),
+      createdAt: now,
     });
 
-    // Posting'i tetikleyen domain event'i raise et (yalnızca yeni kayıtta).
+    // 🚀 Çift taraflı fiş (Posting) mekanizmasını tetikleyen domain event
     event.addDomainEvent(
       new FinancialEventRecordedEvent({
-        financialEventId: event._id,
-        organizationId: event._organizationId,
-        type: event._type,
+        financialEventId: event.id.value,
+        organizationId: event.organizationId.value,
+        type: event.type,
       })
     );
 
@@ -109,9 +119,9 @@ export class FinancialEvent extends AggregateRoot implements IFinancialEvent {
 
   public toPersistence(): IFinancialEvent {
     return {
-      id: this._id,
-      organizationId: this._organizationId,
-      clinicId: this._clinicId,
+      id: this._id.value,
+      organizationId: this._organizationId.value,
+      clinicId: this._clinicId.value,
       type: this._type,
       occurredAt: this._occurredAt,
       payload: this._payload,

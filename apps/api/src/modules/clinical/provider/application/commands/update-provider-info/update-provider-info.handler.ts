@@ -39,7 +39,7 @@ export class UpdateProviderInfoHandler
     this.policyFactory
       .user(ctx.actor)
       .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(ctx.source))
-      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
+      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.UPDATED);
 
     provider.updateInfo(dto);

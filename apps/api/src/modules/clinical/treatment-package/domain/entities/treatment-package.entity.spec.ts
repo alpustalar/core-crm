@@ -8,13 +8,15 @@ import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package
 import { Money } from '@src/domain/value-objects/money.vo';
 
 describe('TreatmentPackage entity', () => {
+  const CLINIC_ID = '11111111-1111-4111-8111-111111111111';
+
   const baseProps: CreateTreatmentPackageProps = {
-    clinicId: 'clinic-1',
+    clinicId: CLINIC_ID,
     name: '  Saç Ekimi Paketi  ',
     examinationCount: 2,
     controlCount: 3,
     validityDays: 365,
-    price: Money.create(15000, 'TRY'),
+    price: Money.create(15000, 'TRY').orThrow(),
     providerIds: ['prov-1', 'prov-2'],
     items: [{ treatmentId: 'trt-1', count: 4 }],
   };
@@ -24,7 +26,7 @@ describe('TreatmentPackage entity', () => {
       const pkg = TreatmentPackage.create(baseProps);
 
       expect(pkg.id).toBeDefined();
-      expect(pkg.name).toBe('Saç Ekimi Paketi'); // trim
+      expect(pkg.name.value).toBe('Saç Ekimi Paketi'); // trim
       expect(pkg.isActive).toBe(true);
       expect(pkg.isDeleted).toBe(false);
       expect(pkg.price.amount.toNumber()).toBe(15000);
@@ -38,10 +40,10 @@ describe('TreatmentPackage entity', () => {
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(TreatmentPackageCreatedEvent);
       expect((events[0] as TreatmentPackageCreatedEvent).packageId).toBe(
-        pkg.id
+        pkg.id.value
       );
       expect((events[0] as TreatmentPackageCreatedEvent).clinicId).toBe(
-        'clinic-1'
+        CLINIC_ID
       );
     });
 
@@ -58,12 +60,12 @@ describe('TreatmentPackage entity', () => {
     it('boş isim reddedilir', () => {
       expect(() =>
         TreatmentPackage.create({ ...baseProps, name: '   ' })
-      ).toThrow('Tedavi paketi ismi boş olamaz.');
+      ).toThrow('Tedavi paketi adı uygun değil');
     });
 
     it('negatif fiyat reddedilir (Money katmanı)', () => {
       // Money migration sonrası negatiflik Money VO'da reddedilir (entity'ye ulaşmaz).
-      expect(() => Money.create(-1, 'TRY')).toThrow(
+      expect(() => Money.create(-1, 'TRY').orThrow()).toThrow(
         'Para miktarı negatif olamaz.'
       );
     });
@@ -74,9 +76,9 @@ describe('TreatmentPackage entity', () => {
       const pkg = TreatmentPackage.create(baseProps);
       pkg.clearDomainEvents(); // create event'ini ayıkla
 
-      pkg.update({ name: 'Yeni İsim', price: Money.create(20000, 'TRY') });
+      pkg.update({ name: 'Yeni İsim', price: Money.create(20000, 'TRY').orThrow() });
 
-      expect(pkg.name).toBe('Yeni İsim');
+      expect(pkg.name.value).toBe('Yeni İsim');
       expect(pkg.price.amount.toNumber()).toBe(20000);
       expect(pkg.validityDays).toBe(365); // dokunulmadı
 

@@ -49,14 +49,14 @@ export class CreateProviderShiftHandler
     this.policyFactory
       .provider(actor)
       .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
-      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId))
+      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.SHIFT_CREATED);
 
-    provider.validate.isShiftMode.orThrow();
+    provider.validate.operationMode.isShift.orThrow();
 
     await this.transactionManager.run(async () => {
       await this.queryBus.execute(
-        new AssertTimeWithinClinicHoursQuery(provider.clinicId, shifts)
+        new AssertTimeWithinClinicHoursQuery(provider.clinicId.value, shifts)
       );
 
       const preparedShifts = shifts.map((shift) =>

@@ -1,6 +1,5 @@
 import { PosDevice as IPosDevice } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { randomUUID } from 'crypto';
 import PosProviderSchema, {
   PosProviderType as PosProvider,
 } from '@input-type-schemas/PosProviderSchema';
@@ -12,6 +11,9 @@ import {
   PosDeviceMissingDeviceUniqueIdException,
   PosDeviceProviderMismatchException,
 } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Guard } from '@common/domain/guards';
 
 export class PosDevice extends AggregateRoot implements IPosDevice {
   constructor(data: IPosDevice) {
@@ -96,14 +98,47 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
     return this._updatedAt;
   }
 
+  public get validate() {
+    return {
+      posDevice: {
+        isPax: this._isPax,
+        isIyzicoTerminal: this._isIyzicoTerminal,
+      },
+    };
+  }
+
+  private get _isPax(): Guard<boolean> {
+    const isPax = this._provider === PosProviderSchema.enum.PAX;
+    return Guard.monitor(
+      isPax,
+      isPax,
+      new PosDeviceProviderMismatchException(
+        PosProviderSchema.enum.PAX,
+        this._provider
+      )
+    );
+  }
+
+  private get _isIyzicoTerminal(): Guard<boolean> {
+    const isIyzico = this._provider === PosProviderSchema.enum.IYZICO_TERMINAL;
+    return Guard.monitor(
+      isIyzico,
+      isIyzico,
+      new PosDeviceProviderMismatchException(
+        PosProviderSchema.enum.IYZICO_TERMINAL,
+        this._provider
+      )
+    );
+  }
+
   public static create(props: CreatePosDeviceProps): PosDevice {
-    const now = new Date();
-    const provider = props.provider ?? PosProviderSchema.enum.PAX;
+    const now = DateTimeManager.create();
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     return new PosDevice({
-      id: props.id ?? randomUUID(),
-      clinicId: props.clinicId,
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
       label: props.label,
-      provider,
+      provider: props.provider,
       terminalId: props.terminalId ?? null,
       merchantId: props.merchantId ?? null,
       host: props.host ?? null,
@@ -116,25 +151,13 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
     });
   }
 
-  public isPax(): boolean {
-    return this._provider === PosProviderSchema.enum.PAX;
-  }
-
-  public isIyzicoTerminal(): boolean {
-    return this._provider === PosProviderSchema.enum.IYZICO_TERMINAL;
-  }
-
   /**
    * PAX TCP bağlantı bilgisini null-güvenli döner. Cihaz PAX değilse veya
    * bağlantı alanları eksikse domain hatası fırlatır.
    */
   public getPaxConnection(): PaxConnection {
-    if (!this.isPax()) {
-      throw new PosDeviceProviderMismatchException(
-        PosProviderSchema.enum.PAX,
-        this._provider
-      );
-    }
+    this._isPax.orThrow();
+
     if (
       this._host === null ||
       this._port === null ||
@@ -160,12 +183,8 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
    * terminal değilse veya deviceUniqueId yoksa domain hatası fırlatır.
    */
   public getIyzicoDeviceUniqueId(): string {
-    if (!this.isIyzicoTerminal()) {
-      throw new PosDeviceProviderMismatchException(
-        PosProviderSchema.enum.IYZICO_TERMINAL,
-        this._provider
-      );
-    }
+    this._isIyzicoTerminal.orThrow();
+
     if (this._deviceUniqueId === null) {
       throw new PosDeviceMissingDeviceUniqueIdException();
     }

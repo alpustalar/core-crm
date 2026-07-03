@@ -24,7 +24,7 @@ export class AdminRequestCommandRepository
     const data = entity.toPersistence();
 
     const raw = await this.db.adminRequest.upsert({
-      where: { id: entity.id },
+      where: { id: entity.id.value },
       create: {
         ...(data as Prisma.AdminRequestUncheckedCreateInput),
         metadata: data.metadata as Prisma.InputJsonValue,
@@ -43,7 +43,7 @@ export class AdminRequestCommandRepository
     const prismaQueries = entities.map((entity) => {
       const data = entity.toPersistence();
       return this.db.adminRequest.upsert({
-        where: { id: entity.id },
+        where: { id: entity.id.value },
         create: {
           ...(data as Prisma.AdminRequestUncheckedCreateInput),
           metadata: data.metadata as Prisma.InputJsonValue,

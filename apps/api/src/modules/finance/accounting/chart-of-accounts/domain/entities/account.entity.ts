@@ -15,8 +15,10 @@ import {
 import {
   AccountTemplateMismatchException,
   CannotCreateChildException,
-  InvalidAccountNameException,
 } from '@modules/finance/accounting/chart-of-accounts/domain/exceptions/chart-of-accounts.exceptions';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export interface BuildChartInput {
   clinicId: string;
@@ -26,11 +28,11 @@ export interface BuildChartInput {
 export class Account extends AggregateRoot {
   constructor(data: IAccount) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._organizationId = data.organizationId;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._code = AccountCode.create(data.code);
-    this._name = data.name;
+    this._name = Name.fromTrusted(data.name);
     this._parentId = data.parentId;
     this._type = data.type;
     this._normalSide = data.normalSide;
@@ -43,18 +45,18 @@ export class Account extends AggregateRoot {
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
@@ -63,8 +65,8 @@ export class Account extends AggregateRoot {
     return this._code;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
@@ -118,12 +120,18 @@ export class Account extends AggregateRoot {
     const currencyStr =
       Currency.create(props.currency)?.instance?.value ?? null;
 
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
+    const now = DateTimeManager.create();
+
+    const name = Name.create(props.name).orThrow();
+
     return new Account({
-      id: props.id ?? crypto.randomUUID(),
-      clinicId: props.clinicId,
-      organizationId: props.organizationId,
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
       code: accountCode.value,
-      name: props.name,
+      name: name.value,
       parentId: props.parentId ?? null,
       type: props.type,
       normalSide: props.normalSide,
@@ -131,8 +139,8 @@ export class Account extends AggregateRoot {
       requiresParty: props.requiresParty ?? false,
       currency: currencyStr,
       isActive: props.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
   }
 
@@ -189,9 +197,9 @@ export class Account extends AggregateRoot {
 
     return Account.create({
       ...props,
-      parentId: this._id,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
+      parentId: this._id.value,
+      clinicId: this._clinicId.value,
+      organizationId: this._organizationId.value,
       type: this._type, // Ana hesaptan miras
       normalSide: this._normalSide, // Ana hesaptan miras
       isPostable: true, // Yeni açılan uç hesap varsayılan olarak aktiftir
@@ -211,21 +219,8 @@ export class Account extends AggregateRoot {
   }
 
   public rename(newName: string): void {
-    const trimmedName = newName?.trim();
-
-    if (!trimmedName) {
-      throw new InvalidAccountNameException();
-    }
-
-    // Veritabanı varchar sınırlarını patlatmamak için
-    if (trimmedName.length < 2 || trimmedName.length > 200) {
-      throw new InvalidAccountNameException();
-    }
-
-    if (this._name !== trimmedName) {
-      this._name = trimmedName;
-      this._updatedAt = new Date();
-    }
+    this._name = Name.create(newName).orThrow();
+    this._updatedAt = new Date();
   }
 
   public togglePostable(status: boolean): void {
@@ -235,11 +230,11 @@ export class Account extends AggregateRoot {
 
   public toPersistence(): IAccount {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      organizationId: this._organizationId.value,
       code: this._code.value,
-      name: this._name,
+      name: this._name.value,
       parentId: this._parentId,
       type: this._type,
       normalSide: this._normalSide,

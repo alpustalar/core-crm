@@ -37,6 +37,7 @@ import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/appl
 import { ConfirmBookingPaymentCommand } from './confirm-booking-payment.command';
 import { PaymentProviders } from '@common/constants';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(ConfirmBookingPaymentCommand)
 export class ConfirmBookingPaymentHandler
@@ -122,15 +123,17 @@ export class ConfirmBookingPaymentHandler
 
   /**
    * Tahsilatı muhasebe katmanına köprüler: hastanın carisini garanti eder ve PAYMENT_RECEIVED
-   * ekonomik olayını yazar (POS_CARD). Tutar her zaman TRY karşılığı (tryAmount) — Stripe EUR
-   * ödense bile defter TRY tutulduğundan tek para biriminde tutarlı kalır. dedupeKey ile
-   * idempotent; lead/misafir rezervasyonunda atlanır (convert-lead sonrası cari oluşur). Köprü
-   * hatası tahsilatı/rezervasyonu bozmaz.
+   * ekonomik olayını yazar (POS_CARD). Model A (çok-para): iyzico yurtiçi TRY tahsilatında tutar
+   * tryAmount, para birimi verilmez (fonksiyonel para → çevrim yok); Stripe yurtdışı döviz
+   * tahsilatında orijinal saleAmount + saleCurrency yazılır ve posting fonksiyonel paraya çevirir
+   * (kur/orijinal tutar izlenebilirlik için saklanır). dedupeKey ile idempotent; lead/misafir
+   * rezervasyonunda atlanır (convert-lead sonrası cari oluşur). Köprü hatası tahsilatı/rezervasyonu
+   * bozmaz.
    */
   private async recordPaymentReceived(bp: BookingPayment): Promise<void> {
     if (!bp.patientId) {
       this.logger.warn(
-        `Muhasebe köprüsü atlandı (bp=${bp.id}): lead/misafir rezervasyonu — cari yok.`
+        `Muhasebe köprüsü atlandı (bp=${bp.id.value}): lead/misafir rezervasyonu — cari yok.`
       );
       return;
     }
@@ -139,34 +142,44 @@ export class ConfirmBookingPaymentHandler
     try {
       const { partyId, organizationId } = await this.commandBus.execute(
         new EnsurePartyForPatientCommand(
-          bp.patientId,
-          bp.clinicId,
+          bp.patientId.value,
+          bp.clinicId.value,
           PartyRoleSchema.enum.CUSTOMER,
           ctx
         )
       );
 
+      // iyzico = yurtiçi TRY (fonksiyonel para; çevrim yok) → tryAmount, currency yok.
+      // Stripe = yurtdışı döviz → orijinal saleAmount + saleCurrency; posting fonksiyonel
+      // paraya çevirir (kur/orijinal saklanır). Model A tek-fonksiyonel-para invariantı.
+      const paidViaStripe = bp.paidProvider === PaymentProviders.STRIPE;
+      const amount = paidViaStripe
+        ? bp.saleAmount.amount.toString()
+        : bp.tryAmount.amount.toString();
+
       await this.commandBus.execute(
         new RecordFinancialEventCommand(
           {
             organizationId,
-            clinicId: bp.clinicId,
+            clinicId: bp.clinicId.value,
             type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: {
               method: 'POS_CARD',
-              amount: bp.tryAmount.toString(),
+              amount,
               partyId,
+              // Yalnız yurtdışı (Stripe döviz) tahsilatta set edilir → posting çevirir.
+              ...(paidViaStripe ? { currency: bp.saleCurrency.value } : {}),
             },
             sourceModule: 'booking-payment',
-            sourceRefId: bp.id,
-            dedupeKey: `booking-payment-received:${bp.id}`,
+            sourceRefId: bp.id.value,
+            dedupeKey: `booking-payment-received:${bp.id.value}`,
           },
           ctx
         )
       );
     } catch (error) {
       this.logger.error(
-        `Muhasebe köprüsü başarısız (bp=${bp.id}); olay sonradan yeniden üretilebilir: ${
+        `Muhasebe köprüsü başarısız (bp=${bp.id.value}); olay sonradan yeniden üretilebilir: ${
           error instanceof Error ? error.message : error
         }`
       );
@@ -182,16 +195,16 @@ export class ConfirmBookingPaymentHandler
     try {
       await this.commandBus.execute(
         new SendBookingConfirmationCommand({
-          clinicId: bp.clinicId,
+          clinicId: bp.clinicId.value,
           conversationId: bp.conversationId,
           bookingType: bp.bookingType,
-          reference: bp.bookingReference ?? bp.bookingId ?? bp.id,
+          reference: bp.bookingReference ?? bp.bookingId ?? bp.id.value,
           summary: this.buildSummary(bp),
         })
       );
     } catch (err) {
       this.logger.warn(
-        `Onay mesajı gönderilemedi (bp=${bp.id}): ${
+        `Onay mesajı gönderilemedi (bp=${bp.id.value}): ${
           err instanceof Error ? err.message : err
         }`
       );
@@ -232,8 +245,8 @@ export class ConfirmBookingPaymentHandler
       holderSurname: intent.holderSurname,
       rooms: intent.rooms,
       remarks: intent.remarks,
-      patientId: bp.patientId ?? undefined,
-      leadId: bp.leadId ?? undefined,
+      patientId: bp.patientId?.value ?? undefined,
+      leadId: bp.leadId?.value ?? undefined,
     } as BookHotelDto;
   }
 
@@ -248,9 +261,9 @@ export class ConfirmBookingPaymentHandler
       holderEmail: intent.holderEmail,
       holderPhone: intent.holderPhone,
       transfers: intent.transfers,
-      patientId: bp.patientId ?? undefined,
-      leadId: bp.leadId ?? undefined,
-      clinicId: bp.clinicId,
+      patientId: bp.patientId?.value ?? undefined,
+      leadId: bp.leadId?.value ?? undefined,
+      clinicId: bp.clinicId.value,
     } as BookTransferDto;
   }
 
@@ -270,7 +283,7 @@ export class ConfirmBookingPaymentHandler
       }
     } catch (err) {
       this.logger.warn(
-        `Diğer link expire edilemedi (bp=${bp.id}): ${
+        `Diğer link expire edilemedi (bp=${bp.id.value}): ${
           err instanceof Error ? err.message : err
         }`
       );
@@ -287,12 +300,12 @@ export class ConfirmBookingPaymentHandler
       provider === PaymentProviders.IYZICO ? this.iyzicoLink : this.stripeLink;
     const amount =
       provider === PaymentProviders.IYZICO
-        ? bp.tryAmount.toNumber()
-        : bp.saleAmount.toNumber();
+        ? bp.tryAmount.amount.toNumber()
+        : bp.saleAmount.amount.toNumber();
     const currency =
       provider === PaymentProviders.IYZICO
-        ? CurrencySchema.enum.TRY
-        : bp.saleCurrency;
+        ? Currency.fromTrusted(CurrencySchema.enum.TRY).value
+        : bp.saleCurrency.value;
     await adapter.refund({ providerRef, amount, currency });
   }
 
@@ -300,9 +313,9 @@ export class ConfirmBookingPaymentHandler
   private buildSystemContext(bp: BookingPayment): IGetContext {
     const actor: ActorContext = {
       ...SYSTEM_ACTOR,
-      clinicId: bp.clinicId,
-      organizationId: bp.organizationId,
-      managedClinics: [{ id: bp.clinicId }],
+      clinicId: bp.clinicId.value,
+      organizationId: bp.organizationId.value,
+      managedClinics: [{ id: bp.clinicId.value }],
     };
     return {
       actor,

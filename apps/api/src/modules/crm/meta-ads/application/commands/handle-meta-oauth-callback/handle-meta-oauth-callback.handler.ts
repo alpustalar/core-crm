@@ -120,7 +120,7 @@ export class HandleMetaOAuthCallbackHandler
         });
 
         this.eventPublisher.accountConnected({
-          metaAdAccountId: account.id,
+          metaAdAccountId: account.id.value,
           clinicId,
           adAccountId: adAccount.id,
           actorId: userId,

@@ -14,7 +14,7 @@ export const CreateAdminRequestPropsSchema = z.object({
   requestedBy: z.uuid(), // Talebi oluşturan admin/kullanıcı ID'si
   organizationId: z.uuid().optional(),
 
-  // JSON/Esnek meta veri alanı için zırhlı yapı:
+  clinicId: z.uuid().optional(),
   metadata: z.record(z.string(), z.any()).nullable().optional(),
 });
 export type CreateAdminRequestProps = z.infer<

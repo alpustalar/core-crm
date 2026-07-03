@@ -24,12 +24,12 @@ export class GetBookingPaymentHandler
 
     return {
       data: {
-        id: bp.id,
+        id: bp.id.value,
         bookingType: bp.bookingType,
         status: bp.status,
         bookingReference: bp.bookingReference,
-        saleAmount: bp.saleAmount.toNumber(),
-        saleCurrency: bp.saleCurrency,
+        saleAmount: bp.saleAmount.amount.toNumber(),
+        saleCurrency: bp.saleCurrency.value,
       },
     };
   }

@@ -35,7 +35,7 @@ export class SetProviderExaminationHandler
 
     const { evaluator } = this.policyFactory.user(ctx.actor);
     evaluator
-      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
+      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.EXAMINATION_SET);
 
     provider.setConsultationAcceptance(dto.acceptsConsultation);

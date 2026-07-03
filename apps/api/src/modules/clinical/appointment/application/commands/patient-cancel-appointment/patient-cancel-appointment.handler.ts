@@ -1,6 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { PatientCancelAppointmentCommand } from './patient-cancel-appointment.command';
-import { PatientCancelAppointmentResponse } from './patient-cancel-appointment.response';
+import {
+  CancelAppointmentStatus,
+  PatientCancelAppointmentResponse,
+} from './patient-cancel-appointment.response';
 import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
@@ -70,18 +73,18 @@ export class PatientCancelAppointmentHandler
           appointmentId: appointment.id.value,
           clinicId: appointment.clinicId.value,
           patientId: appointment.patientId?.value ?? null,
-          patientName: appointment.patientName,
+          patientName: appointment.patientName.value,
           startTime: appointment.startTime,
           cancelReason,
         });
-        return { status: 'CANCELLATION_REQUESTED' };
+        return { status: CancelAppointmentStatus.CANCELLATION_REQUESTED };
       });
     }
 
     appointment.cancelBooking(actor.patientId ?? actor.email, cancelReason);
     return this.transactionManager.run(async () => {
       await this.appointmentCommandRepo.save(appointment);
-      return { status: 'CANCELLED' };
+      return { status: CancelAppointmentStatus.CANCELLED };
     });
   }
 }

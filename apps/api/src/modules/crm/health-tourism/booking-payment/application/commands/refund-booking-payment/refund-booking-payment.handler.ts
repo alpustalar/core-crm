@@ -12,6 +12,8 @@ import {
   IBookingPaymentQueryRepository,
 } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
+import { PaymentProviders } from '@common/constants';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(RefundBookingPaymentCommand)
 export class RefundBookingPaymentHandler
@@ -44,23 +46,30 @@ export class RefundBookingPaymentHandler
 
     if (bp.status !== 'BOOKED') {
       this.logger.warn(
-        `İade atlandı (bp=${bp.id}); durum BOOKED değil (mevcut: ${bp.status}).`
+        `İade atlandı (bp=${bp.id.value}); durum BOOKED değil (mevcut: ${bp.status}).`
       );
       return;
     }
     if (!bp.paidProvider || !bp.paidProviderRef) {
-      this.logger.warn(`İade atlandı (bp=${bp.id}); ödeme referansı yok.`);
+      this.logger.warn(
+        `İade atlandı (bp=${bp.id.value}); ödeme referansı yok.`
+      );
       return;
     }
 
     // v1: tam satış tutarı iade (HotelBeds iptal cezası mahsubu sonraki iterasyon).
     const adapter =
-      bp.paidProvider === 'IYZICO' ? this.iyzicoLink : this.stripeLink;
+      bp.paidProvider === PaymentProviders.IYZICO
+        ? this.iyzicoLink
+        : this.stripeLink;
     const amount =
-      bp.paidProvider === 'IYZICO'
-        ? bp.tryAmount.toNumber()
-        : bp.saleAmount.toNumber();
-    const currency = bp.paidProvider === 'IYZICO' ? 'TRY' : bp.saleCurrency;
+      bp.paidProvider === PaymentProviders.IYZICO
+        ? bp.tryAmount.amount.toNumber()
+        : bp.saleAmount.amount.toNumber();
+    const currency =
+      bp.paidProvider === PaymentProviders.IYZICO
+        ? Currency.enum.TRY
+        : bp.saleCurrency.value;
 
     await adapter.refund({
       providerRef: bp.paidProviderRef,
@@ -72,7 +81,7 @@ export class RefundBookingPaymentHandler
     bp.markRefunded(reason ?? 'Rezervasyon iptal edildi.');
     await this.commandRepo.save(bp);
     this.logger.log(
-      `İade tamamlandı (bp=${bp.id}, provider=${bp.paidProvider}, amount=${amount} ${currency}).`
+      `İade tamamlandı (bp=${bp.id.value}, provider=${bp.paidProvider}, amount=${amount} ${currency}).`
     );
   }
 }

@@ -1,11 +1,7 @@
 import { z } from 'zod';
+import PatientPackageStatusSchema from '@shared/generated-zod/inputTypeSchemas/PatientPackageStatusSchema';
 
-const PatientPackageStatusSchema = z.enum([
-  'ACTIVE',
-  'COMPLETED',
-  'CANCELLED',
-  'SUSPENDED',
-]);
+
 
 export const UpdatePatientPackageSchema = z.object({
   notes: z.string().optional(),

@@ -8,6 +8,7 @@ import {
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { AccountingPeriodStatusSchema } from '@shared';
 
 describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
   const ctx = {
@@ -40,7 +41,10 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     const period = {
       id: 'period-2026',
       year: 2026,
-      canPost: () => params.canPost ?? true,
+      status:
+        params.canPost === false
+          ? AccountingPeriodStatusSchema.enum.LOCKED
+          : AccountingPeriodStatusSchema.enum.OPEN,
     };
 
     const journalQueryRepo = {

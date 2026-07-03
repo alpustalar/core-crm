@@ -40,7 +40,7 @@ export class SoftDeleteProviderByClinicIdHandler
     const { evaluator } = this.policyFactory.user(actor);
     evaluator
       .bypassIf(ExecutionPolicy.isSystemInitiated(source))
-      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId))
+      .check((p) => p.isTargetInActorsManagedClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.SOFT_DELETED);
 
     provider.softDelete();

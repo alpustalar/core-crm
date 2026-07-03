@@ -20,6 +20,7 @@ import {
   IProviderShiftQueryRepository,
   PROVIDER_SHIFT_QUERY_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
+import { DateRange } from '@src/domain/value-objects/date-range.vo';
 
 @QueryHandler(GetProviderScheduleQuery)
 export class GetProviderScheduleHandler
@@ -43,26 +44,32 @@ export class GetProviderScheduleHandler
     const { providerId, startDate, endDate } = query;
 
     const provider = await this.providerQueryRepo.findById(providerId);
+
     if (!provider) throw new ProviderNotFoundException();
+
+    const exceptionQueryDateRange = DateRange.create(
+      startDate,
+      endDate
+    ).orThrow();
 
     const exceptions =
       await this.providerExceptionQueryRepo.findExceptionsByDateRange(
         providerId,
-        startDate,
-        endDate
+        exceptionQueryDateRange.startDate,
+        exceptionQueryDateRange.endDate
       );
 
-    if (provider.isShiftMode()) {
+    if (provider.validate.operationMode.isShift.value) {
       const shifts = await this.providerShiftQueryRepo.findShiftsByDateRange(
         providerId,
-        startDate,
-        endDate
+        exceptionQueryDateRange.startDate,
+        exceptionQueryDateRange.endDate
       );
       return {
         data: {
           operationMode: OperationModeSchema.enum.SHIFT,
-          shifts,
-          exceptions,
+          shifts: shifts.map((shift) => shift.toPersistence()),
+          exceptions: exceptions.map((exception) => exception.toPersistence()),
         },
       };
     }
@@ -73,7 +80,7 @@ export class GetProviderScheduleHandler
       data: {
         operationMode: OperationModeSchema.enum.STATIC,
         availabilities,
-        exceptions,
+        exceptions: exceptions.map((exception) => exception.toPersistence()),
       },
     };
   }

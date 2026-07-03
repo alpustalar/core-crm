@@ -20,8 +20,10 @@ export const BookHotelSchema = z.object({
   holderName: z.string().min(1),
   holderSurname: z.string().min(1),
   rooms: z.array(RoomRequestSchema).min(1),
-  patientId: z.string().uuid().optional(),
-  leadId: z.string().uuid().optional(),
+  patientId: z.uuid(),
+  leadId: z.uuid().optional(),
   remarks: z.string().max(500).optional(),
   serviceFee: z.number().min(0).optional(),
+  clinicId: z.uuid(),
+  organizationId: z.uuid()
 });

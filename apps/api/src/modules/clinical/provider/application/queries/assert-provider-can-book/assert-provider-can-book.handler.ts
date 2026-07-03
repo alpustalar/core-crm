@@ -58,7 +58,7 @@ export class AssertProviderCanBookHandler
         bookingTimeRange.endDate
       );
 
-    if (provider.isShiftMode()) {
+    if (provider.validate.operationMode.isShift.value) {
       const providerShifts =
         await this.providerShiftQueryRepo.findShiftsByDateRange(
           providerId,
@@ -67,6 +67,7 @@ export class AssertProviderCanBookHandler
         );
 
       const dateKey = DateTimeManager.toDateKey(startTime);
+
       const providerShift = providerShifts.find(
         (providerShift) =>
           DateTimeManager.toDateKey(providerShift.date) === dateKey
@@ -74,19 +75,16 @@ export class AssertProviderCanBookHandler
 
       if (!providerShift) throw new ProviderShiftNotFoundException();
 
-      const appointmentStartMinute = DayMinute.fromDate(startTime);
-      const appointmentEndMinute = DayMinute.fromDate(endTime);
-
       const requestedRange = DayMinuteRange.create(
-        appointmentStartMinute,
-        appointmentEndMinute
+        DayMinute.fromDate(startTime),
+        DayMinute.fromDate(endTime)
       );
 
       // mola çakışması veya vardiya dışına taşma kontrolü
       providerShift.validate.canBook(requestedRange).orThrow();
 
       exceptions.forEach((exception) => {
-        if (exception.isOff())
+        if (exception.validate.type.isOff.value)
           exception.dateRange.validate
             .overlapping(bookingTimeRange, 'Uzmanın bu saatte izni bulunuyor')
             .orThrow();
@@ -102,6 +100,6 @@ export class AssertProviderCanBookHandler
       availabilities,
       exceptions
     );
-    providerSchedule.validateBookingAvailability(bookingTimeRange).orThrow();
+    providerSchedule.validate.bookingAvailability(bookingTimeRange).orThrow();
   }
 }

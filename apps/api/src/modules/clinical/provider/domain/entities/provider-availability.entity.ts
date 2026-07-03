@@ -6,16 +6,11 @@ import {
   CreateProviderAvailabilityProps,
   UpdateProviderAvailabilityProps,
 } from '@modules/clinical/provider/domain/contracts/provider-availability.contracts';
-import {
-  BreakTimeOutOfRangeException,
-  InvalidBreakTimeConfigurationException,
-} from '@modules/clinical/provider/domain/exceptions/provider-availability.exceptions';
+import { BreakTimeOutOfRangeException } from '@modules/clinical/provider/domain/exceptions/provider-availability.exceptions';
 import { DateTimeManager } from '@src/common/infrastructure/date-time/date-time.manager';
+import { isDefined } from '@common/utils';
 
-export class ProviderAvailability
-  extends AggregateRoot
-  implements IProviderAvailability
-{
+export class ProviderAvailability extends AggregateRoot {
   constructor(data: IProviderAvailability) {
     super();
     this._id = UUID.fromTrusted(data.id);
@@ -30,7 +25,7 @@ export class ProviderAvailability
     );
 
     this._breakRange =
-      data.breakStartMinute != null && data.breakEndMinute != null
+      isDefined(data.breakStartMinute) && isDefined(data.breakEndMinute)
         ? DayMinuteRange.fromTrusted(data.breakStartMinute, data.breakEndMinute)
         : null;
 
@@ -41,13 +36,13 @@ export class ProviderAvailability
   // Private Properties & Getters
   // ────────────────────────────────────────────────────────────────────────────
   private _id: UUID;
-  get id(): string {
-    return this._id.value;
+  get id(): UUID {
+    return this._id;
   }
 
   private _providerId: UUID;
-  get providerId(): string {
-    return this._providerId.value;
+  get providerId(): UUID {
+    return this._providerId;
   }
 
   private _dayOfWeek: number;
@@ -95,6 +90,7 @@ export class ProviderAvailability
     props: CreateProviderAvailabilityProps
   ): ProviderAvailability {
     const providerId = UUID.create(props.providerId).orThrow();
+
     const availabilityRange = DayMinuteRange.fromNumbers(
       props.startMinute,
       props.endMinute
@@ -107,8 +103,10 @@ export class ProviderAvailability
           )
         : null;
 
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
     return new ProviderAvailability({
-      id: props.id ?? UUID.generate().value,
+      id: id.value,
       providerId: providerId.value,
       dayOfWeek: props.dayOfWeek,
       startMinute: availabilityRange.start.toNumber(),
@@ -123,30 +121,24 @@ export class ProviderAvailability
   // ────────────────────────────────────────────────────────────────────────────
   // Public Update Method
   // ────────────────────────────────────────────────────────────────────────────
-  public update(props: UpdateProviderAvailabilityProps): void {
-    const newAvailabilityRange = DayMinuteRange.fromNumbers(
+  public update(
+    props: UpdateProviderAvailabilityProps,
+    options: { businessRulesEnabled: true }
+  ): void {
+    const availabilityRange = DayMinuteRange.fromNumbers(
       props.startMinute,
       props.endMinute
     );
+    this._availabilityRange = availabilityRange;
+    this._breakRange = this._createBreakRange(
+      availabilityRange,
+      props.breakStartMinute,
+      props.breakEndMinute,
+      options
+    );
 
-    const newBreakRange =
-      props.breakStartMinute != null && props.breakEndMinute != null
-        ? DayMinuteRange.fromNumbers(
-            props.breakStartMinute,
-            props.breakEndMinute
-          )
-        : null;
-
-    this._availabilityRange = newAvailabilityRange;
-    this._breakRange = newBreakRange;
-
-    this.validate();
-
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Domain Validation & Helper
 
   // ────────────────────────────────────────────────────────────────────────────
   public toPersistence(): IProviderAvailability {
@@ -164,16 +156,59 @@ export class ProviderAvailability
   }
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Mapping to Persistence
+  // Domain Validation & Helper
 
-  // ────────────────────────────────────────────────────────────────────────────
+  private _createBreakRange(
+    availabilityRange: DayMinuteRange,
+    startMinute?: number | null,
+    endMinute?: number | null,
+    options = { businessRulesEnabled: true }
+  ) {
+    const breakStartMinute = startMinute ?? this.breakStartMinute;
+    const breakEndMinute = endMinute ?? this.breakEndMinute;
+
+    const breakRange =
+      isDefined(breakStartMinute) && isDefined(breakEndMinute)
+        ? DayMinuteRange.fromNumbers(breakStartMinute, breakEndMinute)
+        : null;
+
+    if (options.businessRulesEnabled)
+      this._businessRulesValidator()
+        .createBreakRange(breakRange, availabilityRange)
+        .orThrow();
+
+    return breakRange;
+  }
+
+  private _businessRulesValidator() {
+    return {
+      createBreakRange: (
+        breakRange: DayMinuteRange | null,
+        availabilityRange: DayMinuteRange
+      ) => {
+        const isInvalid = !!(
+          this.breakRange && !breakRange?.isCompletelyWithin(availabilityRange)
+        );
+
+        return {
+          isValid: !isInvalid,
+          isInvalid,
+          orThrow: () => {
+            if (isInvalid) {
+              throw new BreakTimeOutOfRangeException(
+                breakRange?.start.toString() ?? 'Belirsiz',
+                breakRange?.end.toString() ?? 'Belirsiz',
+                availabilityRange.start.toString(),
+                availabilityRange.end.toString()
+              );
+            }
+          },
+        };
+      },
+    };
+  }
+
   private validate(): void {
-    const hasStart = this.breakStartMinute !== null;
-    const hasEnd = this.breakEndMinute !== null;
-    if (hasStart !== hasEnd) {
-      throw new InvalidBreakTimeConfigurationException();
-    }
-
     if (
       this._breakRange &&
       !this._breakRange.isCompletelyWithin(this._availabilityRange)

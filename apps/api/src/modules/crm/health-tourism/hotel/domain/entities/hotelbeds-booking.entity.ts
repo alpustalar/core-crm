@@ -7,33 +7,36 @@ import { HotelbedsBookingStatusType as HotelbedsBookingStatus } from '@input-typ
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { HotelbedsBookingAlreadyCancelledException } from '@modules/crm/health-tourism/hotel/domain/exceptions/hotelbeds-booking.exceptions';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { LastName } from '@src/domain/value-objects/last-name.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
 
 export class HotelbedsBooking extends AggregateRoot {
   constructor(data: IHotelbedsBooking) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._reference = data.reference;
     this._hotelCode = data.hotelCode;
-    this._patientId = data.patientId;
-    this._leadId = data.leadId;
+    this._patientId = UUID.create(data.patientId).instance ?? null;
+    this._leadId = UUID.create(data.leadId).instance ?? null;
     this._checkIn = data.checkIn;
     this._checkOut = data.checkOut;
     this._status = data.status;
     this._totalNet = Money.create(data.totalNet, data.currency).orThrow();
-    this._holderName = data.holderName;
-    this._holderSurname = data.holderSurname;
+    this._holderName = Name.fromTrusted(data.holderName);
+    this._holderSurname = LastName.fromTrusted(data.holderSurname);
     this._rooms = data.rooms;
     this._remarks = data.remarks;
     this._serviceFee =
       Money.create(data.serviceFee, data.currency).instance ?? null;
-    this._organizationId = data.organizationId;
-    this._clinicId = data.clinicId;
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -47,13 +50,13 @@ export class HotelbedsBooking extends AggregateRoot {
     return this._hotelCode;
   }
 
-  private _patientId: string | null;
-  get patientId(): string | null {
+  private _patientId: UUID | null;
+  get patientId(): UUID | null {
     return this._patientId;
   }
 
-  private _leadId: string | null;
-  get leadId(): string | null {
+  private _leadId: UUID | null;
+  get leadId(): UUID | null {
     return this._leadId;
   }
 
@@ -77,13 +80,13 @@ export class HotelbedsBooking extends AggregateRoot {
     return this._totalNet;
   }
 
-  private _holderName: string;
-  get holderName(): string {
+  private _holderName: Name;
+  get holderName(): Name {
     return this._holderName;
   }
 
-  private _holderSurname: string;
-  get holderSurname(): string {
+  private _holderSurname: LastName;
+  get holderSurname(): LastName {
     return this._holderSurname;
   }
 
@@ -102,13 +105,13 @@ export class HotelbedsBooking extends AggregateRoot {
     return this._serviceFee;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
-  private _clinicId: string | null;
-  get clinicId(): string | null {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
@@ -137,11 +140,11 @@ export class HotelbedsBooking extends AggregateRoot {
 
   toPersistence(): IHotelbedsBooking {
     return {
-      id: this._id,
+      id: this._id.value,
       reference: this._reference,
       hotelCode: this._hotelCode,
-      patientId: this._patientId,
-      leadId: this._leadId,
+      patientId: this._patientId?.value ?? null,
+      leadId: this._leadId?.value ?? null,
       checkIn: this._checkIn,
       checkOut: this._checkOut,
       status: this._status,
@@ -149,15 +152,15 @@ export class HotelbedsBooking extends AggregateRoot {
       totalNet: this._totalNet.amount,
       currency: this._totalNet.currency,
 
-      holderName: this._holderName,
-      holderSurname: this._holderSurname,
+      holderName: this._holderName.value,
+      holderSurname: this._holderSurname.value,
       rooms: this._rooms ?? null,
       remarks: this._remarks,
 
       serviceFee: this._serviceFee?.amount ?? null,
 
-      organizationId: this._organizationId,
-      clinicId: this._clinicId,
+      organizationId: this._organizationId.value,
+      clinicId: this._clinicId?.value ?? null,
       createdAt: this._createdAt,
       updatedAt: new Date(),
     };

@@ -10,26 +10,28 @@ import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema'
 import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/admin-request.contracts';
 import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
 import { AdminRequestStatusType as AdminRequestStatus } from '@input-type-schemas/AdminRequestStatusSchema';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
-export class AdminRequest extends AggregateRoot implements IAdminRequest {
+export class AdminRequest extends AggregateRoot {
   constructor(data: IAdminRequest) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._type = data.type;
     this._status = data.status;
     this._targetId = data.targetId;
     this._requestedBy = data.requestedBy;
-    this._organizationId = data.organizationId;
+    this._organizationId = UUID.create(data.organizationId).instance ?? null;
     this._metadata = data.metadata;
     this._reviewedBy = data.reviewedBy;
     this._reviewedAt = data.reviewedAt;
     this._reviewNote = data.reviewNote;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
+    this._clinicId = UUID.create(data.clinicId).instance ?? null;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -43,6 +45,11 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
     return this._status;
   }
 
+  private _clinicId: UUID | null;
+  get clinicId(): UUID | null {
+    return this._clinicId;
+  }
+
   private _targetId: string;
   get targetId(): string {
     return this._targetId;
@@ -53,8 +60,8 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
     return this._requestedBy;
   }
 
-  private _organizationId: string | null;
-  get organizationId(): string | null {
+  private _organizationId: UUID | null;
+  get organizationId(): UUID | null {
     return this._organizationId;
   }
 
@@ -89,14 +96,25 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
   }
 
   static create(props: CreateAdminRequestProps): AdminRequest {
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
     const entity = new AdminRequest({
-      id: props.id,
+      id: id.value,
       type: props.type,
       status: AdminRequestStatusSchema.enum.PENDING,
       targetId: props.targetId,
       requestedBy: props.requestedBy,
-      organizationId: props.organizationId ?? null,
+
+      organizationId: props.organizationId
+        ? UUID.create(props.organizationId).orThrow().value
+        : null,
+
+      clinicId: props.clinicId
+        ? UUID.create(props.clinicId).orThrow().value
+        : null,
+
       metadata: (props.metadata as JsonValue) ?? null,
+
       reviewedBy: null,
       reviewedAt: null,
       reviewNote: null,
@@ -106,11 +124,11 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
 
     entity.addDomainEvent(
       new AdminRequestCreatedEvent({
-        requestId: entity.id,
+        requestId: entity.id.value,
         type: entity.type,
         targetId: entity.targetId,
         requestedBy: entity.requestedBy,
-        organizationId: entity.organizationId ?? undefined,
+        organizationId: entity.organizationId?.value ?? undefined,
       })
     );
 
@@ -130,13 +148,13 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
 
     this.addDomainEvent(
       new AdminRequestReviewedEvent({
-        requestId: this._id,
+        requestId: this._id.value,
         type: this._type,
         status: AdminRequestStatusSchema.enum.APPROVED,
         targetId: this._targetId,
         requestedBy: this._requestedBy,
         reviewedBy,
-        organizationId: this._organizationId ?? undefined,
+        organizationId: this._organizationId?.value ?? undefined,
         reviewNote,
       })
     );
@@ -155,13 +173,13 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
 
     this.addDomainEvent(
       new AdminRequestReviewedEvent({
-        requestId: this._id,
+        requestId: this._id.value,
         type: this._type,
         status: AdminRequestStatusSchema.enum.REJECTED,
         targetId: this._targetId,
         requestedBy: this._requestedBy,
         reviewedBy,
-        organizationId: this._organizationId ?? undefined,
+        organizationId: this._organizationId?.value ?? undefined,
         reviewNote,
       })
     );
@@ -173,12 +191,13 @@ export class AdminRequest extends AggregateRoot implements IAdminRequest {
 
   public toPersistence(): IAdminRequest {
     return {
-      id: this._id,
+      id: this._id.value,
       type: this._type,
       status: this._status,
       targetId: this._targetId,
       requestedBy: this._requestedBy,
-      organizationId: this._organizationId,
+      organizationId: this._organizationId?.value ?? null,
+      clinicId: this._clinicId?.value ?? null,
       metadata: this._metadata,
       reviewedBy: this._reviewedBy,
       reviewedAt: this._reviewedAt,

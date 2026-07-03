@@ -46,11 +46,11 @@ export class CreateProviderAvailabilityHandler
 
     if (!provider) throw new ProviderNotFoundException();
 
-    provider.validate.isStaticMode.orThrow();
+    provider.validate.operationMode.isStatic.orThrow();
 
     await this.queryBus.execute(
       new AssertTimeWithinClinicHoursQuery(
-        provider.clinicId,
+        provider.clinicId.value,
         dto.availabilities
       )
     );
@@ -58,7 +58,7 @@ export class CreateProviderAvailabilityHandler
     this.policyFactory
       .provider(actor)
       .evaluator.systemBypass(source)
-      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId))
+      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.AVAILABILITY_CREATED);
 
     await this.transactionManager.run(async () => {

@@ -53,7 +53,7 @@ export const CreateHotelbedsBookingSchema = z.object({
   remarks: z.string().optional(),
   serviceFee: z.number().optional(),
   organizationId: z.uuid(),
-  clinicId: z.uuid().optional(),
+  clinicId: z.uuid(),
 });
 export type CreateHotelbedsBookingData = z.infer<
   typeof CreateHotelbedsBookingSchema

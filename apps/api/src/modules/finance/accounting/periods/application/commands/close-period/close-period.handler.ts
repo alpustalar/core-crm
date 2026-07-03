@@ -25,16 +25,16 @@ export class ClosePeriodHandler
     const period = await this.periodCommandRepo.findById(command.periodId);
     if (!period) throw new PeriodNotFoundException();
 
-    period.validateIsOpenOrLocked();
+    period.validate.isOpenOrLocked.orThrow();
 
-    // Kapanış fişleri (dönem hâlâ postable) + dönem CLOSED atomik
+    // Kapanış fişleri (dönem hâlâ postable) + dönem CLOSED, transaction
     await this.txManager.outboxRun(async () => {
       await this.commandBus.execute(
         new GenerateYearEndClosingCommand(
           {
-            clinicId: period.clinicId,
-            organizationId: period.organizationId,
-            periodId: period.id,
+            clinicId: period.clinicId.value,
+            organizationId: period.organizationId.value,
+            periodId: period.id.value,
             dateFrom: period.startsAt,
             dateTo: period.endsAt,
             entryDate: period.endsAt,

@@ -35,7 +35,7 @@ export class FindAllProvidersHandler
           organizationIds
         );
       return {
-        data: items,
+        data: items.map((item) => item.toPersistence()),
         meta: { pagination: buildPaginationMeta(pagination, total) },
       };
     }
@@ -57,7 +57,7 @@ export class FindAllProvidersHandler
       const paginatedItems = allItems.slice(start, start + pagination.limit);
 
       return {
-        data: paginatedItems,
+        data: paginatedItems.map((item) => item.toPersistence()),
         meta: { pagination: buildPaginationMeta(pagination, total) },
       };
     }
@@ -71,7 +71,7 @@ export class FindAllProvidersHandler
       actor.clinicId
     );
     return {
-      data: items,
+      data: items.map((item) => item.toPersistence()),
       meta: { pagination: buildPaginationMeta(pagination, total) },
     };
   }

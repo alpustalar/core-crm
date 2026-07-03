@@ -27,13 +27,13 @@ import {
 export class Invoice extends AggregateRoot {
   constructor(data: IInvoice) {
     super();
-    this._id = UUID.create(data.id).orThrow();
-    this._clinicId = UUID.create(data.clinicId).orThrow();
-    this._patientId = UUID.create(data.patientId).orThrow();
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._patientId = UUID.fromTrusted(data.patientId);
     this._appointmentId = UUID.create(data.appointmentId).instance ?? null;
     this._paymentId = UUID.create(data.paymentId).instance ?? null;
-    this._currency = Currency.create(data.currency).orThrow();
-    this._vatRate = VatRate.create(data.vatRate).orThrow();
+    this._currency = Currency.fromTrusted(data.currency);
+    this._vatRate = VatRate.fromTrusted(data.vatRate);
     this._status = data.status;
     this._invoiceNumber = data.invoiceNumber
       ? InvoiceNumber.create(data.invoiceNumber)
@@ -48,9 +48,9 @@ export class Invoice extends AggregateRoot {
     this._updatedAt = data.updatedAt;
     this._isDeleted = data.isDeleted;
     this._taxSpecification = TaxSpecification.create(
-      Money.create(data.netTotal, data.currency).orThrow(),
+      Money.fromTrusted(data.netTotal, data.currency),
       data.vatRate,
-      Money.create(data.vatTotal, data.currency).orThrow()
+      Money.fromTrusted(data.vatTotal, data.currency)
     );
   }
 

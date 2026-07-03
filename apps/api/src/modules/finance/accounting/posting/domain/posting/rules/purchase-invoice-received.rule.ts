@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
+import { FinancialEvent } from '@shared';
 import {
   DraftJournalEntry,
   DraftJournalLine,

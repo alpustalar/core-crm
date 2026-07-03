@@ -78,7 +78,7 @@ export class ConnectMetaAccountHandler
     });
 
     this.eventPublisher.accountConnected({
-      metaAdAccountId: account.id,
+      metaAdAccountId: account.id.value,
       clinicId,
       adAccountId: dto.adAccountId,
       actorId: actor.userId,
@@ -89,9 +89,9 @@ export class ConnectMetaAccountHandler
     });
 
     return {
-      id: account.id,
+      id: account.id.value,
       adAccountId: account.adAccountId,
-      businessName: account.businessName,
+      businessName: account.businessName?.value ?? null,
     };
   }
 }

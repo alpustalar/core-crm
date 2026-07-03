@@ -18,6 +18,6 @@ export class GetPartyByIdHandler
 
   async execute(query: GetPartyByIdQuery): Promise<GetPartyByIdResponse> {
     const party = await this.partyQueryRepo.findById(query.partyId);
-    return { data: party };
+    return { data: party?.toPersistence() ?? null };
   }
 }

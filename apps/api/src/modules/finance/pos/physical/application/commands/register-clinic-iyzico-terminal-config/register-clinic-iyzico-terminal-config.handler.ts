@@ -55,7 +55,7 @@ export class RegisterClinicIyzicoTerminalConfigHandler implements ICommandHandle
           password: input.password,
         });
         const saved = await this.configCommandRepo.save(existing);
-        return saved.id;
+        return saved.id.value;
       }
 
       const config = ClinicIyzicoTerminalConfig.create({
@@ -66,7 +66,7 @@ export class RegisterClinicIyzicoTerminalConfigHandler implements ICommandHandle
         password: input.password,
       });
       const saved = await this.configCommandRepo.save(config);
-      return saved.id;
+      return saved.id.value;
     });
   }
 }

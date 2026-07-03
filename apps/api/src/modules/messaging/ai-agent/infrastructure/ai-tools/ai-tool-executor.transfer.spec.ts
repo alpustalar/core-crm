@@ -80,7 +80,7 @@ describe('AiToolExecutor — transfer araçları (B3)', () => {
         }
         if (q instanceof GetTransferBookingsQuery) {
           return Promise.resolve({
-            data: { items: overrides?.bookings ?? [], total: 0 },
+            data: overrides?.bookings ?? [],
           });
         }
         throw new Error('beklenmeyen query');

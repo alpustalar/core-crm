@@ -65,7 +65,7 @@ export class SyncCampaignMetricsHandler
           await this.metricCommandRepo.saveMany(
             insights.map((insight) => ({
               id: randomUUID(),
-              metaAdAccountId: account.id,
+              metaAdAccountId: account.id.value,
               campaignId: insight.campaign_id,
               campaignName: insight.campaign_name,
               date: new Date(insight.date_start),

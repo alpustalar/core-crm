@@ -26,16 +26,16 @@ export class GetMetaLeadsHandler
 
     return {
       data: result.items.map((lead) => ({
-        id: lead.id,
+        id: lead.id.value,
         metaLeadId: lead.metaLeadId,
         campaignId: lead.campaignId,
         campaignName: lead.campaignName,
         name: lead.name,
-        phone: lead.phone,
-        email: lead.email,
+        phone: lead.phone?.value ?? null,
+        email: lead.email?.value ?? null,
         status: lead.status,
         matchedPatientId: lead.matchedPatientId,
-        matchedAppointmentId: lead.matchedAppointmentId,
+        matchedAppointmentId: lead.matchedAppointmentId?.value ?? null,
         matchedAt: lead.matchedAt,
         createdAt: lead.createdAt,
       })),

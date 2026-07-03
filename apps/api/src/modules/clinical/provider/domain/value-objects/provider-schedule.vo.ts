@@ -18,6 +18,13 @@ export class ProviderSchedule {
     private readonly exceptions: ProviderException[]
   ) {}
 
+  public get validate() {
+    return {
+      bookingAvailability: (timeRange: DateRange) =>
+        this.bookingAvailability(timeRange),
+    };
+  }
+
   static create(
     availabilities: IProviderAvailability[],
     exceptions: ProviderException[]
@@ -25,7 +32,7 @@ export class ProviderSchedule {
     return new ProviderSchedule(availabilities, exceptions);
   }
 
-  validateBookingAvailability(timeRange: DateRange) {
+  private bookingAvailability(timeRange: DateRange) {
     const { startDate: startTime, endDate: endTime } = timeRange;
     const dayOfWeek = startTime.getUTCDay();
     const availability = this.availabilities.find(

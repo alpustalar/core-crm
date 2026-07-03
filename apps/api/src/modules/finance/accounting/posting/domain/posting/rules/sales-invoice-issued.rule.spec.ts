@@ -19,7 +19,7 @@ describe('SalesInvoiceIssuedRule', () => {
       dedupeKey: 'sales-invoice:inv-1',
       performedById: null,
       createdAt: new Date('2026-06-17'),
-    });
+    }).toPersistence();
 
   const sumDebit = (lines: { debit?: string }[]) =>
     lines.reduce((s, l) => s + Number(l.debit ?? 0), 0);

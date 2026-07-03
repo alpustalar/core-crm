@@ -5,9 +5,9 @@ import { MarkInstallmentAsPaidCommand } from './mark-installment-as-paid.command
 
 describe('MarkInstallmentAsPaidHandler', () => {
   const makePayment = () => ({
-    id: 'pay-1',
-    appointmentId: 'appt-1',
-    clinicId: 'clinic-1',
+    id: { value: 'pay-1' },
+    appointmentId: { value: 'appt-1' },
+    clinicId: { value: 'clinic-1' },
     completeInstallment: jest.fn(),
   });
 

@@ -19,7 +19,7 @@ describe('PayrollAccruedRule', () => {
       dedupeKey: 'payroll-accrual:usr-1:2026-06',
       performedById: null,
       createdAt: new Date('2026-06-30'),
-    });
+    }).toPersistence();
 
   it('B 770×2 / A 335 + 360 + 361 (dengeli; 361 = işçi + işveren SGK)', () => {
     // Brüt 10000 = net 7000 + stopaj 1500 + işçi SGK 1500; işveren SGK 2000.

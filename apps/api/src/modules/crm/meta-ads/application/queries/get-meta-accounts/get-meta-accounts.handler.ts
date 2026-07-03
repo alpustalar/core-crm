@@ -20,14 +20,14 @@ export class GetMetaAccountsHandler
     const accounts = await this.accountQueryRepo.findByClinicId(query.clinicId);
 
     return {
-      data: accounts.map((a) => ({
-        id: a.id,
-        clinicId: a.clinicId,
-        adAccountId: a.adAccountId,
-        businessName: a.businessName,
-        isActive: a.isActive,
-        lastSyncAt: a.lastSyncAt,
-        connectedAt: a.createdAt,
+      data: accounts.map((account) => ({
+        id: account.id.value,
+        clinicId: account.clinicId.value,
+        adAccountId: account.adAccountId,
+        businessName: account.businessName?.value ?? null,
+        isActive: account.isActive,
+        lastSyncAt: account.lastSyncAt,
+        connectedAt: account.createdAt,
       })),
     };
   }

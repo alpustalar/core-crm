@@ -1,21 +1,23 @@
-import {
-  MetaAdAccount as IMetaAdAccount,
-  MetaCampaignMetric,
-  MetaLead,
-} from '@shared';
+import { MetaAdAccount as IMetaAdAccount } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
 
 const TOKEN_EXPIRY_WARNING_DAYS = 7;
 
-export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
+export class MetaAdAccount extends AggregateRoot {
   constructor(data: IMetaAdAccount) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._adAccountId = data.adAccountId;
     this._accessToken = data.accessToken;
     this._pageId = data.pageId;
-    this._businessName = data.businessName;
+    this._businessName = data.businessName
+      ? Name.create(data.businessName).value
+      : null;
     this._isActive = data.isActive;
     this._tokenExpiresAt = data.tokenExpiresAt;
     this._lastSyncAt = data.lastSyncAt;
@@ -23,13 +25,13 @@ export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
@@ -48,8 +50,8 @@ export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
     return this._pageId;
   }
 
-  private _businessName: string | null;
-  get businessName(): string | null {
+  private _businessName: Name | null;
+  get businessName(): Name | null {
     return this._businessName;
   }
 
@@ -78,12 +80,18 @@ export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
     return this._updatedAt;
   }
 
-  // Prisma relation stubs — never populated from domain
-  get leads(): MetaLead[] {
-    return [];
-  }
-  get metrics(): MetaCampaignMetric[] {
-    return [];
+  public get validate() {
+    return {
+      tokenExpiringSoon: () => {
+        const isExpiringSoon = this.isTokenExpiringSoon();
+
+        return Guard.monitor(
+          isExpiringSoon,
+          isExpiringSoon,
+          new Error('Token süresi yakında doluyor')
+        );
+      },
+    };
   }
 
   public deactivate(): void {
@@ -91,7 +99,7 @@ export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
   }
 
   public markSynced(): void {
-    this._lastSyncAt = new Date();
+    this._lastSyncAt = DateTimeManager.create();
   }
 
   public refreshToken(accessToken: string, expiresAt: Date | null): void {
@@ -99,26 +107,26 @@ export class MetaAdAccount extends AggregateRoot implements IMetaAdAccount {
     this._tokenExpiresAt = expiresAt;
   }
 
-  public isTokenExpiringSoon(): boolean {
-    if (!this._tokenExpiresAt) return false;
-    const threshold = new Date();
-    threshold.setDate(threshold.getDate() + TOKEN_EXPIRY_WARNING_DAYS);
-    return this._tokenExpiresAt <= threshold;
-  }
-
   public toPersistence(): IMetaAdAccount {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
       adAccountId: this._adAccountId,
       accessToken: this._accessToken,
       pageId: this._pageId,
-      businessName: this._businessName,
+      businessName: this._businessName?.value ?? null,
       isActive: this._isActive,
       tokenExpiresAt: this._tokenExpiresAt,
       lastSyncAt: this._lastSyncAt,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
+  }
+
+  private isTokenExpiringSoon(): boolean {
+    if (!this._tokenExpiresAt) return false;
+    const threshold = DateTimeManager.create();
+    threshold.setDate(threshold.getDate() + TOKEN_EXPIRY_WARNING_DAYS);
+    return this._tokenExpiresAt <= threshold;
   }
 }

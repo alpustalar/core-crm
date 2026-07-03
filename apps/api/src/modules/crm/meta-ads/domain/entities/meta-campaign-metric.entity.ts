@@ -3,18 +3,18 @@ import {
   MetaCampaignMetric as IMetaCampaignMetric,
 } from '@shared';
 import { Decimal } from 'decimal.js';
-import { Money } from '@src/domain/value-objects/money.vo'; // Money VO entegre edildi
+import { Money } from '@src/domain/value-objects/money.vo';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class MetaCampaignMetric extends AggregateRoot {
-  // Constructor imzasını 'any' veya gevşek tipe çekerek Prisma katılıklarını domainden uzak tutuyoruz
   constructor(data: IMetaCampaignMetric) {
     super();
 
     const { value: currencyStr } = Currency.create(data.currency).orThrow();
 
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._metaAdAccountId = data.metaAdAccountId;
     this._campaignId = data.campaignId;
     this._campaignName = data.campaignName;
@@ -25,13 +25,13 @@ export class MetaCampaignMetric extends AggregateRoot {
 
     this._clicks = data.clicks;
     this._impressions = data.impressions;
-    this._ctr = data.ctr ? new Decimal(data.ctr) : null; // CTR percentage olduğu için Decimal
+    this._ctr = data.ctr ? new Decimal(data.ctr) : null;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -102,7 +102,7 @@ export class MetaCampaignMetric extends AggregateRoot {
 
   public toPersistence(): IMetaCampaignMetric {
     return {
-      id: this._id,
+      id: this._id.value,
       metaAdAccountId: this._metaAdAccountId,
       campaignId: this._campaignId,
       campaignName: this._campaignName,

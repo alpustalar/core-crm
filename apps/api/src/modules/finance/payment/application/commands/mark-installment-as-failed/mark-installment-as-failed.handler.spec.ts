@@ -5,9 +5,9 @@ import { MarkInstallmentAsFailedCommand } from './mark-installment-as-failed.com
 
 describe('MarkInstallmentAsFailedHandler', () => {
   const makePayment = () => ({
-    id: 'pay-1',
-    appointmentId: 'appt-1',
-    clinicId: 'clinic-1',
+    id: { value: 'pay-1' },
+    appointmentId: { value: 'appt-1' },
+    clinicId: { value: 'clinic-1' },
     failInstallment: jest.fn(),
   });
 

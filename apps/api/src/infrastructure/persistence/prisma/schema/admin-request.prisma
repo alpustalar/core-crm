@@ -5,6 +5,7 @@ model AdminRequest {
   targetId       String             @map("target_id")
   requestedBy    String             @map("requested_by")
   organizationId String?            @map("organization_id")
+  clinicId       String?            @map("clinic_id")
   metadata       Json?
   reviewedBy     String?            @map("reviewed_by")
   reviewedAt     DateTime?          @map("reviewed_at")

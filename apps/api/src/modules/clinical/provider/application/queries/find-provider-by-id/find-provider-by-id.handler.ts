@@ -1,4 +1,4 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { PolicyFactory } from '@modules/platform/policy/application/policy-factory';
 import {
@@ -7,6 +7,7 @@ import {
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { FindProviderByIdQuery } from './find-provider-by-id.query';
 import { FindProviderByIdQueryResponse } from '@modules/clinical/provider/application/queries/find-provider-by-id/find-provider-by-id.response';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 
 @QueryHandler(FindProviderByIdQuery)
 export class FindProviderByIdHandler
@@ -29,14 +30,12 @@ export class FindProviderByIdHandler
 
     const provider = await this.providerQueryRepo.findById(providerId);
 
-    if (!provider) {
-      throw new NotFoundException('Provider bulunamadı.');
-    }
+    if (!provider) throw new ProviderNotFoundException();
 
     const serializationOptions = this.policyFactory
       .user(actor)
-      .policy.getSerializeOptions(provider.id, provider.clinicId);
+      .policy.getSerializeOptions(provider.id.value, provider.clinicId.value);
 
-    return { data: provider, meta: serializationOptions };
+    return { data: provider.toPersistence(), meta: serializationOptions };
   }
 }

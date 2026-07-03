@@ -24,10 +24,10 @@ describe('BookingPayment entity — durum makinesi', () => {
     netAmount: 100,
     fxRate: 35,
     intent: hotelIntent,
-    clinicId: 'clinic-1',
-    organizationId: 'org-1',
+    clinicId: '11111111-1111-4111-8111-111111111111',
+    organizationId: '22222222-2222-4222-8222-222222222222',
     patientId: null,
-    leadId: 'lead-1',
+    leadId: '33333333-3333-4333-8333-333333333333',
     conversationId: 'conv-1',
   };
 
@@ -35,8 +35,8 @@ describe('BookingPayment entity — durum makinesi', () => {
     const bp = BookingPayment.create(baseProps);
     expect(bp.status).toBe('PENDING');
     expect(bp.isPending()).toBe(true);
-    expect(bp.saleAmount.toNumber()).toBe(120);
-    expect(bp.tryAmount.toNumber()).toBe(4200);
+    expect(bp.saleAmount.amount.toNumber()).toBe(120);
+    expect(bp.tryAmount.amount.toNumber()).toBe(4200);
     expect(bp.fxRate?.toNumber()).toBe(35);
     expect(bp.bookingIntent.type).toBe('HOTEL');
   });
@@ -44,13 +44,13 @@ describe('BookingPayment entity — durum makinesi', () => {
   it('attachLinks: sağlayıcı link bilgilerini saklar', () => {
     const bp = BookingPayment.create(baseProps);
     bp.attachLinks({
-      iyzicoConversationId: bp.id,
+      iyzicoConversationId: bp.id.value,
       iyzicoToken: 'tok',
       iyzicoUrl: 'https://iyzi',
       stripeSessionId: 'cs_1',
       stripeUrl: 'https://stripe',
     });
-    expect(bp.iyzicoUrl).toBe('https://iyzi');
+    expect(bp.iyzicoUrl?.value).toBe('https://iyzi');
     expect(bp.stripeSessionId).toBe('cs_1');
   });
 

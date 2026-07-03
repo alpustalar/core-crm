@@ -18,6 +18,12 @@ import { RecordFinancialEventCommand } from '@modules/finance/accounting/financi
 import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.command';
 
 describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
+  // Entity.create UUID VO doğrulaması yaptığından fixture id'leri geçerli UUID olmalı.
+  const CLINIC_ID = '11111111-1111-4111-8111-111111111111';
+  const ORG_ID = '22222222-2222-4222-8222-222222222222';
+  const PATIENT_ID = '33333333-3333-4333-8333-333333333333';
+  const LEAD_ID = '44444444-4444-4444-8444-444444444444';
+
   const hotelIntent: HotelBookingIntent = {
     type: 'HOTEL',
     hotelCode: 'H1',
@@ -37,10 +43,10 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     netAmount: 100,
     fxRate: 35,
     intent: hotelIntent,
-    clinicId: 'clinic-1',
-    organizationId: 'org-1',
+    clinicId: CLINIC_ID,
+    organizationId: ORG_ID,
     patientId: null,
-    leadId: 'lead-1',
+    leadId: LEAD_ID,
     conversationId: 'conv-1',
   };
 
@@ -50,7 +56,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
   ): BookingPayment => {
     const bp = BookingPayment.create({ ...props, patientId });
     bp.attachLinks({
-      iyzicoConversationId: bp.id,
+      iyzicoConversationId: bp.id.value,
       iyzicoUrl: 'https://iyzi',
       stripeSessionId: 'cs_1',
       stripeUrl: 'https://stripe',
@@ -120,7 +126,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
-        bookingPaymentId: bp.id,
+        bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
       })
@@ -134,16 +140,16 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     expect(
       calls.some((c) => c instanceof SendBookingConfirmationCommand)
     ).toBe(true);
-    expect(iyzicoLink.expireLink).toHaveBeenCalledWith(bp.id);
+    expect(iyzicoLink.expireLink).toHaveBeenCalledWith(bp.id.value);
   });
 
-  it('hastalı rezervasyon → BOOKED sonrası PAYMENT_RECEIVED köprüsü (tryAmount TRY + dedupeKey)', async () => {
-    const bp = makeBp('PENDING', 'patient-1');
+  it('hastalı Stripe (yurtdışı) rezervasyon → PAYMENT_RECEIVED köprüsü orijinal döviz (saleAmount EUR + currency) yazar; posting çevirir', async () => {
+    const bp = makeBp('PENDING', PATIENT_ID);
     const { handler, commandBus } = build(bp);
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
-        bookingPaymentId: bp.id,
+        bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
       })
@@ -158,15 +164,48 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
       (c) => c instanceof RecordFinancialEventCommand
     ) as RecordFinancialEventCommand;
 
-    expect(ensure?.patientId).toBe('patient-1');
-    // Stripe EUR ödense de defter TRY: tryAmount (4200) yazılır.
+    expect(ensure?.patientId).toBe(PATIENT_ID);
+    // Stripe döviz tahsilatı: orijinal saleAmount (120) + saleCurrency (EUR) yazılır;
+    // fonksiyonel paraya çevirmeyi posting handler yapar (Model A).
     expect(record?.input.type).toBe('PAYMENT_RECEIVED');
+    expect(record?.input.payload).toMatchObject({
+      method: 'POS_CARD',
+      amount: '120',
+      partyId: 'party-1',
+      currency: 'EUR',
+    });
+    expect(record?.input.dedupeKey).toBe(
+      `booking-payment-received:${bp.id.value}`
+    );
+  });
+
+  it('hastalı iyzico (yurtiçi) rezervasyon → PAYMENT_RECEIVED köprüsü tryAmount TRY yazar, currency verilmez (çevrim yok)', async () => {
+    const bp = makeBp('PENDING', PATIENT_ID);
+    const { handler, commandBus } = build(bp);
+
+    await handler.execute(
+      new ConfirmBookingPaymentCommand({
+        bookingPaymentId: bp.id.value,
+        provider: 'IYZICO',
+        providerRef: 'tx_1',
+      })
+    );
+
+    expect(bp.status).toBe('BOOKED');
+    const calls = (commandBus.execute as jest.Mock).mock.calls.map((c) => c[0]);
+    const record = calls.find(
+      (c) => c instanceof RecordFinancialEventCommand
+    ) as RecordFinancialEventCommand;
+
+    // iyzico yurtiçi TRY: tryAmount (4200); currency yok → posting fonksiyonel para varsayar.
     expect(record?.input.payload).toMatchObject({
       method: 'POS_CARD',
       amount: '4200',
       partyId: 'party-1',
     });
-    expect(record?.input.dedupeKey).toBe(`booking-payment-received:${bp.id}`);
+    expect(
+      (record?.input.payload as Record<string, unknown>).currency
+    ).toBeUndefined();
   });
 
   it('çift-çekim: zaten BOOKED kayda ikinci ödeme → ikinci ödeme iade, rebook YOK', async () => {
@@ -175,7 +214,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
-        bookingPaymentId: bp.id,
+        bookingPaymentId: bp.id.value,
         provider: 'IYZICO',
         providerRef: 'tx_2',
       })
@@ -194,7 +233,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
-        bookingPaymentId: bp.id,
+        bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
       })

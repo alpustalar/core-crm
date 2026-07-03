@@ -1,26 +1,25 @@
 import { ClinicPaymentGateway as IClinicPaymentGateway } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicPaymentGatewayProps } from '@modules/finance/payment-gateway/domain/payment-gateway.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Kliniğin ödeme altyapısı (finance bounded-context). Clinic'ten ayrıştırılmış
  * 1:1 satellite; Iyzico marketplace alt üye işyeri anahtarını barındırır.
  */
-export class ClinicPaymentGateway
-  extends AggregateRoot
-  implements IClinicPaymentGateway
-{
+export class ClinicPaymentGateway extends AggregateRoot {
   constructor(data: IClinicPaymentGateway) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._iyzicoSubMerchantKey = data.iyzicoSubMerchantKey;
-    this._clinicId = data.clinicId;
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -29,8 +28,8 @@ export class ClinicPaymentGateway
     return this._iyzicoSubMerchantKey;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
@@ -47,10 +46,12 @@ export class ClinicPaymentGateway
   public static create(
     props: CreateClinicPaymentGatewayProps
   ): ClinicPaymentGateway {
-    const now = new Date();
+    const now = DateTimeManager.create();
+
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     return new ClinicPaymentGateway({
-      id: props.id ?? crypto.randomUUID(),
-      clinicId: props.clinicId,
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
       iyzicoSubMerchantKey: props.iyzicoSubMerchantKey,
       createdAt: now,
       updatedAt: now,
@@ -64,9 +65,9 @@ export class ClinicPaymentGateway
 
   public toPersistence(): IClinicPaymentGateway {
     return {
-      id: this._id,
+      id: this._id.value,
       iyzicoSubMerchantKey: this._iyzicoSubMerchantKey,
-      clinicId: this._clinicId,
+      clinicId: this._clinicId.value,
       createdAt: this._createdAt,
       updatedAt: new Date(),
     };

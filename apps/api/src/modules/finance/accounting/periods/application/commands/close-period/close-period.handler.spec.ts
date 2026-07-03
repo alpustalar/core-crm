@@ -1,32 +1,33 @@
-import { ConflictException } from '@nestjs/common';
+import { PeriodAlreadyClosedException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 import { ClosePeriodHandler } from './close-period.handler';
 import { ClosePeriodCommand } from './close-period.command';
 import { GenerateYearEndClosingCommand } from '@modules/finance/accounting/posting/application/commands/generate-year-end-closing/generate-year-end-closing.command';
-import {
-  IAccountingPeriodCommandRepository,
-  IAccountingPeriodQueryRepository,
-} from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
+import { IAccountingPeriodCommandRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
   const ctx = { actor: { userId: 'u-1' } } as never;
 
   const makePeriod = (isClosed = false) => ({
-    id: 'period-1',
-    clinicId: 'clinic-1',
-    organizationId: 'org-1',
+    id: { value: 'period-1' },
+    clinicId: { value: 'clinic-1' },
+    organizationId: { value: 'org-1' },
     year: 2026,
     startsAt: new Date('2026-01-01'),
     endsAt: new Date('2026-12-31'),
-    isClosed: jest.fn().mockReturnValue(isClosed),
+    validate: {
+      isOpenOrLocked: {
+        orThrow: jest.fn(() => {
+          if (isClosed) throw new PeriodAlreadyClosedException('period-1', 2026);
+        }),
+      },
+    },
     close: jest.fn(),
   });
 
   const build = (period: ReturnType<typeof makePeriod> | null) => {
-    const periodQueryRepo = {
-      findById: jest.fn().mockResolvedValue(period),
-    } as unknown as IAccountingPeriodQueryRepository;
     const periodCommandRepo = {
+      findById: jest.fn().mockResolvedValue(period),
       save: jest.fn().mockResolvedValue(period),
     } as unknown as IAccountingPeriodCommandRepository;
     const commandBus = {
@@ -39,7 +40,6 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
     return {
       handler: new ClosePeriodHandler(
         periodCommandRepo,
-        periodQueryRepo,
         commandBus,
         txManager
       ),
@@ -76,7 +76,9 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
     const period = makePeriod(true);
     const { handler, commandBus } = build(period);
 
-    await expect(run(handler)).rejects.toBeInstanceOf(ConflictException);
+    await expect(run(handler)).rejects.toBeInstanceOf(
+      PeriodAlreadyClosedException
+    );
     expect(commandBus.execute).not.toHaveBeenCalled();
     expect(period.close).not.toHaveBeenCalled();
   });

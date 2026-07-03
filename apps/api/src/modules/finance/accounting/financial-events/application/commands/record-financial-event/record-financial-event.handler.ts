@@ -30,14 +30,14 @@ export class RecordFinancialEventHandler
       const existing = await this.eventQueryRepo.findByDedupeKey(
         input.dedupeKey
       );
-      if (existing) return existing.id;
+      if (existing) return existing.id.value;
     }
 
     const event = FinancialEvent.record(input);
 
     try {
       await this.txManager.run(() => this.eventCommandRepo.append(event));
-      return event.id;
+      return event.id.value;
     } catch (error) {
       // Eşzamanlı kayıt aynı dedupeKey'i yazmış olabilir → mevcut olanı döndür.
       if (
@@ -47,7 +47,7 @@ export class RecordFinancialEventHandler
         const raced = await this.eventQueryRepo.findByDedupeKey(
           input.dedupeKey
         );
-        if (raced) return raced.id;
+        if (raced) return raced.id.value;
       }
       throw error;
     }

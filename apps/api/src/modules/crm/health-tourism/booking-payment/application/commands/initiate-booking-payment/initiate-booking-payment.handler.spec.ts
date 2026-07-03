@@ -29,10 +29,10 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
     netCurrency: 'EUR',
     serviceFeePercent: 20,
     buyer: { name: 'Ali', surname: 'Veli', email: '', phone: '+90555' },
-    clinicId: 'clinic-1',
-    organizationId: 'org-1',
+    clinicId: '11111111-1111-4111-8111-111111111111',
+    organizationId: '22222222-2222-4222-8222-222222222222',
     patientId: null,
-    leadId: 'lead-1',
+    leadId: '33333333-3333-4333-8333-333333333333',
     conversationId: 'conv-1',
     ip: '127.0.0.1',
   };
@@ -128,7 +128,7 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
     });
     expect(repo.save).toHaveBeenCalledTimes(1);
     expect(saved[0].status).toBe('PENDING');
-    expect(saved[0].iyzicoUrl).toBe('https://iyzi/pay');
+    expect(saved[0].iyzicoUrl?.value).toBe('https://iyzi/pay');
     expect(saved[0].stripeSessionId).toBe('cs_1');
   });
 

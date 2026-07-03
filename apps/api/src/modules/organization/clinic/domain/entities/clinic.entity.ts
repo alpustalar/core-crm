@@ -210,7 +210,7 @@ export class Clinic extends AggregateRoot {
 
   public update(data: UpdateClinic): void {
     if (data.name !== undefined) {
-      const name = Name.create(data.name);
+      const name = Name.create(data.name).orThrow();
       this._name = name;
       this._slug = name.toSlug();
     }

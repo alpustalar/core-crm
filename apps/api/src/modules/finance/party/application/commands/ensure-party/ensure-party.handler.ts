@@ -36,14 +36,14 @@ export class EnsurePartyHandler
     if (ExistingParty) {
       ExistingParty.ensure(input);
       await this.txManager.run(() => this.partyCommandRepo.save(ExistingParty));
-      return ExistingParty.id;
+      return ExistingParty.id.value;
     }
 
     const party = Party.create({ ...input, roles: normalizeArray(input.role) });
 
     try {
       await this.txManager.run(() => this.partyCommandRepo.save(party));
-      return party.id;
+      return party.id.value;
     } catch (error) {
       // Eşzamanlı ensure çağrısı aynı origin için cari oluşturmuş olabilir
       // (clinicId+originType+originId unique). Bu durumda mevcut olanı döndür.
@@ -53,7 +53,7 @@ export class EnsurePartyHandler
           input.originType,
           input.originId
         );
-        if (raced) return raced.id;
+        if (raced) return raced.id.value;
       }
       throw error;
     }

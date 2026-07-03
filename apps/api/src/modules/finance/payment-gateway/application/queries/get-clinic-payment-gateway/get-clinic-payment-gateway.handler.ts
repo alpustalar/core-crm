@@ -28,7 +28,7 @@ export class GetClinicPaymentGatewayHandler
 
     return {
       data: {
-        clinicId: gateway.clinicId,
+        clinicId: gateway.clinicId.value,
         iyzicoSubMerchantKey: gateway.iyzicoSubMerchantKey,
         createdAt: gateway.createdAt,
         updatedAt: gateway.updatedAt,

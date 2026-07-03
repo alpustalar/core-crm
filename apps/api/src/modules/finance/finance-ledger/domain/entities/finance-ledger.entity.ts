@@ -10,17 +10,24 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
 import { CreateFinanceLedgerProps } from '@modules/finance/finance-ledger/domain/finance-ledger.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+import { TaxRate } from 'stripe';
 
 export class FinanceLedgerEntity extends AggregateRoot {
   constructor(data: IFinanceLedger) {
     super();
-    this._id = data.id;
-    this._organizationId = data.organizationId;
-    this._clinicId = data.clinicId;
-    this._patientId = data.patientId;
-    this._paymentId = data.paymentId;
-    this._installmentId = data.installmentId;
-    this._performedById = data.performedById;
+    this._id = UUID.fromTrusted(data.id);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._patientId = data.patientId ? UUID.fromTrusted(data.patientId) : null;
+    this._paymentId = data.paymentId ? UUID.fromTrusted(data.paymentId) : null;
+    this._installmentId = data.installmentId
+      ? UUID.fromTrusted(data.installmentId)
+      : null;
+    this._performedById = data.performedById
+      ? UUID.fromTrusted(data.performedById)
+      : null;
     this._type = data.type;
     this._source = data.source;
     this._category = data.category;
@@ -42,13 +49,13 @@ export class FinanceLedgerEntity extends AggregateRoot {
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
   private _taxSpecification: TaxSpecification;
@@ -56,28 +63,28 @@ export class FinanceLedgerEntity extends AggregateRoot {
     return this._taxSpecification;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _patientId: string | null;
-  get patientId(): string | null {
+  private _patientId: UUID | null;
+  get patientId(): UUID | null {
     return this._patientId;
   }
 
-  private _paymentId: string | null;
-  get paymentId(): string | null {
+  private _paymentId: UUID | null;
+  get paymentId(): UUID | null {
     return this._paymentId;
   }
 
-  private _installmentId: string | null;
-  get installmentId(): string | null {
+  private _installmentId: UUID | null;
+  get installmentId(): UUID | null {
     return this._installmentId;
   }
 
-  private _performedById: string | null;
-  get performedById(): string | null {
+  private _performedById: UUID | null;
+  get performedById(): UUID | null {
     return this._performedById;
   }
 
@@ -101,13 +108,13 @@ export class FinanceLedgerEntity extends AggregateRoot {
     return this._status;
   }
 
-  private _currency: string;
-  get currency(): string {
+  private _currency: Currency;
+  get currency(): Currency {
     return this._currency;
   }
 
-  private _taxRate: number;
-  get taxRate(): number {
+  private _taxRate: TaxRate;
+  get taxRate(): TaxRate {
     return this._taxRate;
   }
 
@@ -137,17 +144,31 @@ export class FinanceLedgerEntity extends AggregateRoot {
   }
 
   public static create(props: CreateFinanceLedgerProps): FinanceLedgerEntity {
-    // 2. Vergi oranını yedirerek kurallara uygun TaxSpecification üretiyoruz (taxAmount içeride hesaplanacak)
     const taxSpec = TaxSpecification.create(props.money, props.taxRate ?? 0);
 
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
     return new FinanceLedgerEntity({
-      id: crypto.randomUUID(),
-      organizationId: props.organizationId,
-      clinicId: props.clinicId,
-      patientId: props.patientId ?? null,
-      paymentId: props.paymentId ?? null,
-      installmentId: props.installmentId ?? null,
-      performedById: props.performedById ?? null,
+      id: id.value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+
+      patientId: props.patientId
+        ? UUID.create(props.patientId).orThrow().value
+        : null,
+
+      paymentId: props.paymentId
+        ? UUID.create(props.paymentId).orThrow().value
+        : null,
+
+      installmentId: props.installmentId
+        ? UUID.create(props.installmentId).orThrow().value
+        : null,
+
+      performedById: props.performedById
+        ? UUID.create(props.performedById).orThrow().value
+        : null,
+
       type: props.type,
       source: props.source,
       category: props.category,
@@ -196,13 +217,13 @@ export class FinanceLedgerEntity extends AggregateRoot {
 
   public toPersistence(): IFinanceLedger {
     return {
-      id: this._id,
-      organizationId: this._organizationId,
-      clinicId: this._clinicId,
-      patientId: this._patientId,
-      paymentId: this._paymentId,
-      installmentId: this._installmentId,
-      performedById: this._performedById,
+      id: this._id.value,
+      organizationId: this._organizationId.value,
+      clinicId: this._clinicId.value,
+      patientId: this._patientId?.value ?? null,
+      paymentId: this._paymentId?.value ?? null,
+      installmentId: this._installmentId?.value ?? null,
+      performedById: this._performedById?.value ?? null,
       type: this._type,
       source: this._source,
       category: this._category,

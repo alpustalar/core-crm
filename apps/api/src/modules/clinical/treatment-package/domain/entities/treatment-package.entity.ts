@@ -3,7 +3,6 @@ import {
   TreatmentPackageItem,
   TreatmentPackageProvider,
 } from '@shared';
-import { randomUUID } from 'crypto';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 
 import {
@@ -17,10 +16,12 @@ import {
   TreatmentPackageItemProps,
   UpdateTreatmentPackageProps,
 } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
-import {
-  TreatmentPackageAlreadyDeletedException,
-  TreatmentPackageNameEmptyException,
-} from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
+import { TreatmentPackageAlreadyDeletedException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 export class TreatmentPackage extends AggregateRoot {
   constructor(
@@ -30,31 +31,31 @@ export class TreatmentPackage extends AggregateRoot {
     }
   ) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._name = data.name;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._name = Name.fromTrusted(data.name);
     this._examinationCount = data.examinationCount;
     this._controlCount = data.controlCount;
     this._validityDays = data.validityDays;
-    this._price = Money.create(data.price, data.currency).orThrow();
+    this._price = Money.fromTrusted(data.price, data.currency);
     this._isActive = data.isActive;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
@@ -81,6 +82,10 @@ export class TreatmentPackage extends AggregateRoot {
   private _isActive: boolean;
   get isActive(): boolean {
     return this._isActive;
+  }
+
+  get currency(): Currency {
+    return Currency.fromTrusted(this.price.currency);
   }
 
   private _createdAt: Date;
@@ -122,20 +127,20 @@ export class TreatmentPackage extends AggregateRoot {
   }
 
   public static create(props: CreateTreatmentPackageProps): TreatmentPackage {
-    if (!props.name || props.name.trim().length === 0) {
-      throw new TreatmentPackageNameEmptyException();
-    }
     props.price.validate.greaterThanZero.orThrow(
       'Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'
     );
 
     const now = new Date();
-    const generatedId = randomUUID();
+    const id = props.id
+      ? UUID.create(props.id).orThrow().value
+      : UUID.generate().value;
 
     const entity = new TreatmentPackage({
-      id: generatedId,
-      clinicId: props.clinicId,
-      name: props.name.trim(),
+      id: id,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      name: Name.create(props.name, 'Tedavi paketi adı uygun değil').orThrow()
+        .value,
       examinationCount: props.examinationCount,
       controlCount: props.controlCount,
       validityDays: props.validityDays,
@@ -152,9 +157,9 @@ export class TreatmentPackage extends AggregateRoot {
 
     entity.addDomainEvent(
       new TreatmentPackageCreatedEvent({
-        packageId: entity._id,
-        clinicId: entity._clinicId,
-        name: entity._name,
+        packageId: entity._id.value,
+        clinicId: entity._clinicId.value,
+        name: entity._name.value,
       })
     );
 
@@ -166,35 +171,35 @@ export class TreatmentPackage extends AggregateRoot {
       throw new TreatmentPackageAlreadyDeletedException();
     }
 
-    if (props.name !== undefined) {
-      if (props.name.trim().length === 0) {
-        throw new TreatmentPackageNameEmptyException();
-      }
-      this._name = props.name.trim();
+    if (isNotUndefined(props.name)) {
+      this._name = Name.create(props.name).orThrow();
     }
-    if (props.examinationCount !== undefined)
+    if (isNotUndefined(props.examinationCount))
       this._examinationCount = props.examinationCount;
-    if (props.controlCount !== undefined)
+    if (isNotUndefined(props.controlCount))
       this._controlCount = props.controlCount;
-    if (props.validityDays !== undefined)
+    if (isNotUndefined(props.validityDays))
       this._validityDays = props.validityDays;
-    if (props.price !== undefined) {
+
+    if (isNotUndefined(props.price)) {
       props.price.validate.greaterThanZero.orThrow(
         'Tedavi paket fiyatı negatif olamaz'
       );
       this._price = props.price;
     }
-    if (props.isActive !== undefined) this._isActive = props.isActive;
-    if (props.providerIds !== undefined)
-      this._providerIdsToSync = props.providerIds;
-    if (props.items !== undefined) this._itemsToSync = props.items;
+    if (isNotUndefined(props.isActive)) this._isActive = props.isActive;
 
-    this._updatedAt = new Date();
+    if (isNotUndefined(props.providerIds))
+      this._providerIdsToSync = props.providerIds;
+
+    if (isNotUndefined(props.items)) this._itemsToSync = props.items;
+
+    this._updatedAt = DateTimeManager.create();
 
     this.addDomainEvent(
       new TreatmentPackageUpdatedEvent({
-        packageId: this._id,
-        clinicId: this._clinicId,
+        packageId: this._id.value,
+        clinicId: this._clinicId.value,
       })
     );
   }
@@ -207,26 +212,32 @@ export class TreatmentPackage extends AggregateRoot {
     this._isActive = false;
   }
 
+  public switchActiveStatus(): void {
+    this._isActive = !this._isActive;
+  }
+
   public softDelete(): void {
     if (this._deletedAt) return;
 
-    this._deletedAt = new Date();
-    this._isActive = false;
-    this._updatedAt = new Date();
+    const now = DateTimeManager.create();
+    this._deletedAt = now;
+    this._updatedAt = now;
+
+    this.deactivate();
 
     this.addDomainEvent(
       new TreatmentPackageDeletedEvent({
-        packageId: this._id,
-        clinicId: this._clinicId,
+        packageId: this._id.value,
+        clinicId: this._clinicId.value,
       })
     );
   }
 
   toPersistence(): ITreatmentPackage {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      name: this._name,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      name: this._name.value,
       examinationCount: this._examinationCount,
       controlCount: this._controlCount,
       validityDays: this._validityDays,

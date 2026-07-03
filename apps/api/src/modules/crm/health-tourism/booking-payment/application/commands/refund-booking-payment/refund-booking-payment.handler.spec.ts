@@ -31,9 +31,9 @@ describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
     netAmount: 100,
     fxRate: 35,
     intent: hotelIntent,
-    clinicId: 'clinic-1',
-    organizationId: 'org-1',
-    patientId: 'patient-1',
+    clinicId: '11111111-1111-4111-8111-111111111111',
+    organizationId: '22222222-2222-4222-8222-222222222222',
+    patientId: '44444444-4444-4444-8444-444444444444',
     leadId: null,
     conversationId: 'conv-1',
   };

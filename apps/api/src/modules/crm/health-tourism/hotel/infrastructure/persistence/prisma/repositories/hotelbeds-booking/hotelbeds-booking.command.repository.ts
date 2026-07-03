@@ -35,23 +35,27 @@ export class HotelbedsBookingCommandRepository
         serviceFee:
           data.serviceFee != null ? new Decimal(data.serviceFee) : null,
         organizationId: data.organizationId,
-        clinicId: data.clinicId ?? null,
+        clinicId: data.clinicId,
       },
     });
     return new HotelbedsBooking(raw);
   }
 
   async save(booking: HotelbedsBooking): Promise<HotelbedsBooking> {
-    const data = booking.toPersistence();
-    const writeData = {
-      ...data,
-      rooms: data.rooms as Prisma.InputJsonValue,
+    const toPersistence = booking.toPersistence();
+
+    const create = {
+      ...toPersistence,
+      rooms: toPersistence.rooms as Prisma.InputJsonValue,
     };
+
+    const { id, ...update } = create;
     const raw = await this.db.hotelbedsBooking.upsert({
-      where: { id: data.id },
-      create: writeData,
-      update: writeData,
+      where: { id },
+      create,
+      update,
     });
+
     booking.flushEvents();
     return new HotelbedsBooking(raw);
   }

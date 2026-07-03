@@ -121,7 +121,7 @@ export class MetaWebhookController {
     await this.commandBus.execute(
       new ProcessMetaLeadCommand({
         metaLeadId: value.leadgen_id,
-        metaAdAccountId: matchingAccount.id,
+        metaAdAccountId: matchingAccount.id.value,
         formId: value.form_id,
         campaignId: value.campaign_id,
         adsetId: value.adset_id,

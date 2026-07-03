@@ -85,7 +85,7 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
         }
         if (q instanceof GetHotelBookingsQuery) {
           return Promise.resolve({
-            data: { items: overrides?.bookings ?? [], total: 0 },
+            data: overrides?.bookings ?? [],
           });
         }
         throw new Error('beklenmeyen query');

@@ -8,7 +8,7 @@ import { TimeConflictException } from '@src/domain/exceptions/time-conflict.exce
 interface IDateRangePublicValidator {
   expiration: {
     isValid: boolean;
-    isInvalid: boolean;
+    isExpired: boolean;
     orThrow: (exception?: Error) => void;
   };
   overlapping: (
@@ -16,8 +16,13 @@ interface IDateRangePublicValidator {
     throwMsg?: string
   ) => {
     isValid: boolean;
-    isInvalid: boolean;
+    isOverlapping: boolean;
     orThrow: () => DateRange;
+  };
+  enclosing: (other: DateRange) => {
+    isValid: boolean;
+    isEnclosing: boolean;
+    orThrow: (exception?: Error) => DateRange;
   };
 }
 
@@ -87,12 +92,29 @@ export class DateRange {
     const self = this;
 
     return {
+      enclosing: (other: DateRange) => {
+        const isValid = self.isEnclosing(other);
+
+        return {
+          isValid,
+          isEnclosing: !isValid,
+          orThrow: (exception?: Error): DateRange => {
+            if (!isValid) {
+              throw (
+                exception ??
+                new Error('Belirtilen zaman aralığı hedef aralığı kapsamıyor.')
+              );
+            }
+            return self;
+          },
+        };
+      },
       expiration: {
         get isValid() {
           const now = DateTimeManager.create();
           return !DateTimeManager.isBefore(self._endDate, now);
         },
-        get isInvalid() {
+        get isExpired() {
           const now = DateTimeManager.create();
           return DateTimeManager.isBefore(self._endDate, now);
         },
@@ -111,7 +133,7 @@ export class DateRange {
 
         return {
           isValid: !isOverlapping,
-          isInvalid: isOverlapping,
+          isOverlapping: isOverlapping,
           orThrow: (): DateRange => {
             if (isOverlapping) {
               throw new TimeConflictException(throwMsg);
@@ -127,29 +149,6 @@ export class DateRange {
     return DateTimeManager.diffInMinutes(this._endDate, this._startDate);
   }
 
-  public get check() {
-    const self = this;
-
-    return {
-      enclosing: (other: DateRange) => {
-        const isValid = self.isEnclosing(other);
-
-        return {
-          isValid,
-          isInvalid: !isValid,
-          orThrow: (exception?: Error): DateRange => {
-            if (!isValid) {
-              throw (
-                exception ??
-                new Error('Belirtilen zaman aralığı hedef aralığı kapsamıyor.')
-              );
-            }
-            return self;
-          },
-        };
-      },
-    };
-  }
   /**
    * 🎯 Güvenilir Kurucu: Persisted (DB) tarihlerden doğrudan VO üretir; sıra doğrulaması atlanır.
    */
