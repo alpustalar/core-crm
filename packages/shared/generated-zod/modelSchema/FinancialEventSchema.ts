@@ -8,15 +8,15 @@ import { FinancialEventTypeSchema } from '../inputTypeSchemas/FinancialEventType
 
 export const FinancialEventSchema = z.object({
   type: FinancialEventTypeSchema,
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
   organizationId: z.string(),
+  performedById: z.string().nullable(),
   occurredAt: z.coerce.date(),
   payload: JsonValueSchema,
   sourceModule: z.string(),
   sourceRefId: z.string().nullable(),
   dedupeKey: z.string().nullable(),
-  performedById: z.string().nullable(),
   createdAt: z.coerce.date(),
 })
 

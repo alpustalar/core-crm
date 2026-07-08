@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client'
 import { PlanIdSchema } from '../inputTypeSchemas/PlanIdSchema'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // SUBSCRIPTION ITEM SCHEMA
@@ -8,11 +9,12 @@ import { PlanIdSchema } from '../inputTypeSchemas/PlanIdSchema'
 
 export const SubscriptionItemSchema = z.object({
   planId: PlanIdSchema.nullable(),
-  id: z.uuid(),
+  currency: CurrencySchema,
+  id: z.string(),
   subscriptionId: z.string(),
   moduleId: z.string().nullable(),
-  priceAtPurchase: z.instanceof(Prisma.Decimal, { message: "Field 'priceAtPurchase' must be a Decimal. Location: ['Models', 'SubscriptionItem']"}),
   externalPriceId: z.string().nullable(),
+  priceAtPurchase: z.instanceof(Prisma.Decimal, { message: "Field 'priceAtPurchase' must be a Decimal. Location: ['Models', 'SubscriptionItem']"}),
   createdAt: z.coerce.date(),
 })
 

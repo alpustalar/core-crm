@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const RoleCapabilitySchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   roleId: z.string(),
   capabilityId: z.string(),
   createdAt: z.coerce.date(),

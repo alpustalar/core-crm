@@ -8,11 +8,11 @@ import { GlobalStatusSchema } from '../inputTypeSchemas/GlobalStatusSchema'
 export const UserSchema = z.object({
   status: GlobalStatusSchema,
   id: z.string(),
+  roleId: z.string(),
+  clinicId: z.string().nullable(),
   displayName: z.string(),
   email: z.string(),
   emailVerified: z.boolean(),
-  roleId: z.string(),
-  clinicId: z.string().nullable(),
   picture: z.string().nullable(),
   phoneNumber: z.string().nullable(),
   lastLogin: z.coerce.date(),

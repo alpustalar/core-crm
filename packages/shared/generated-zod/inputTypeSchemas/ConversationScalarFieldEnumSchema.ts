@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
-export const ConversationScalarFieldEnumSchema = z.enum(['id','clinicId','organizationId','channel','contactPhone','contactName','patientId','leadId','status','assignedUserId','lastMessageAt','lastInboundAt','unreadCount','agentReadAt','windowExpiresAt','marketingOptOut','optOutAt','createdAt','updatedAt']);
+export const ConversationScalarFieldEnumSchema = z.enum(['id','organizationId','clinicId','assignedUserId','lastMessageAt','patientId','leadId','lastInboundAt','status','channel','contactPhone','contactName','unreadCount','agentReadAt','windowExpiresAt','marketingOptOut','optOutAt','createdAt','updatedAt']);
 
 export default ConversationScalarFieldEnumSchema;

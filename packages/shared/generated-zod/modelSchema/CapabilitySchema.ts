@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const CapabilitySchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   name: z.string(),
   module: z.string(),
   action: z.string(),

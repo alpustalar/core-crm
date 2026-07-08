@@ -8,7 +8,7 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 export const TreatmentPackageSchema = z.object({
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
   name: z.string(),
   examinationCount: z.number().int(),

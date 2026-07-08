@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ProviderShiftSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   providerId: z.string(),
   date: z.coerce.date(),
   startMinute: z.number().int(),

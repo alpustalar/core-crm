@@ -11,7 +11,7 @@ import { PosTransactionStatusSchema } from '../inputTypeSchemas/PosTransactionSt
 export const PosTransactionSchema = z.object({
   currency: CurrencySchema,
   status: PosTransactionStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   posDeviceId: z.string(),
   clinicId: z.string(),
   patientId: z.string().nullable(),

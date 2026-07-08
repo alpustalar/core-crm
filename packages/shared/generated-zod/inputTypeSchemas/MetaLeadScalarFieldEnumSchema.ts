@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
-export const MetaLeadScalarFieldEnumSchema = z.enum(['id','metaAdAccountId','metaLeadId','formId','campaignId','campaignName','adsetId','adId','name','phone','email','rawData','status','matchedPatientId','matchedAppointmentId','matchedAt','createdAt','updatedAt']);
+export const MetaLeadScalarFieldEnumSchema = z.enum(['id','metaAdAccountId','metaLeadId','formId','campaignId','matchedPatientId','matchedAppointmentId','adsetId','adId','campaignName','name','phone','email','rawData','status','matchedAt','createdAt','updatedAt']);
 
 export default MetaLeadScalarFieldEnumSchema;

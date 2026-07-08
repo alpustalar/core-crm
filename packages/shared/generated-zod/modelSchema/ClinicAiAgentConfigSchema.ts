@@ -13,7 +13,9 @@ import { AiProviderSchema } from '../inputTypeSchemas/AiProviderSchema'
  */
 export const ClinicAiAgentConfigSchema = z.object({
   provider: AiProviderSchema,
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
+  organizationId: z.string(),
   isEnabled: z.boolean(),
   model: z.string(),
   systemPrompt: z.string().nullable(),
@@ -21,8 +23,6 @@ export const ClinicAiAgentConfigSchema = z.object({
   maxTokens: z.number().int().nullable(),
   replyOnlyWithinWindow: z.boolean(),
   businessHours: JsonValueSchema.nullable(),
-  clinicId: z.string(),
-  organizationId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ProviderTitleSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   slug: z.string(),
   sortOrder: z.number().int(),
 })

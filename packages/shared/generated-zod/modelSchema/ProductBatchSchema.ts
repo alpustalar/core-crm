@@ -8,7 +8,7 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 export const ProductBatchSchema = z.object({
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
   productId: z.string(),
   clinicId: z.string(),
   supplierId: z.string().nullable(),

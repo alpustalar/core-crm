@@ -5,9 +5,9 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ProviderSpecialtySchema = z.object({
-  id: z.uuid(),
-  slug: z.string(),
+  id: z.string(),
   sectorId: z.string(),
+  slug: z.string(),
 })
 
 export type ProviderSpecialty = z.infer<typeof ProviderSpecialtySchema>

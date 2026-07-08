@@ -11,7 +11,11 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 export const HotelbedsTransferBookingSchema = z.object({
   status: HotelbedsTransferBookingStatusSchema,
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
+  organizationId: z.string(),
+  clinicId: z.string().nullable(),
+  patientId: z.string().nullable(),
+  leadId: z.string().nullable(),
   reference: z.string(),
   clientReference: z.string().nullable(),
   holderName: z.string(),
@@ -21,10 +25,6 @@ export const HotelbedsTransferBookingSchema = z.object({
   transfers: JsonValueSchema,
   totalAmount: z.instanceof(Prisma.Decimal, { message: "Field 'totalAmount' must be a Decimal. Location: ['Models', 'HotelbedsTransferBooking']"}),
   remarks: z.string().nullable(),
-  organizationId: z.string(),
-  clinicId: z.string().nullable(),
-  patientId: z.string().nullable(),
-  leadId: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

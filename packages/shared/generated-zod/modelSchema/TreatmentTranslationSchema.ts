@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const TreatmentTranslationSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   masterTreatmentId: z.string().nullable(),
   languageId: z.string(),
   treatmentId: z.string().nullable(),

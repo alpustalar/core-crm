@@ -5,11 +5,11 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ClinicExceptionSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
   date: z.coerce.date(),
   isClosed: z.boolean(),
   reason: z.string().nullable(),
-  clinicId: z.string(),
 })
 
 export type ClinicException = z.infer<typeof ClinicExceptionSchema>

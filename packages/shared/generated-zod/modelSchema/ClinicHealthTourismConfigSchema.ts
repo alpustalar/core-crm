@@ -13,7 +13,9 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
  */
 export const ClinicHealthTourismConfigSchema = z.object({
   defaultCurrency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
+  organizationId: z.string(),
   isEnabled: z.boolean(),
   destinationCode: z.string().nullable(),
   nearbyHotelCodes: z.string().array(),
@@ -22,8 +24,6 @@ export const ClinicHealthTourismConfigSchema = z.object({
   clinicLocationCode: z.string().nullable(),
   pickupAddress: z.string().nullable(),
   serviceFeePercent: z.instanceof(Prisma.Decimal, { message: "Field 'serviceFeePercent' must be a Decimal. Location: ['Models', 'ClinicHealthTourismConfig']"}).nullable(),
-  clinicId: z.string(),
-  organizationId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

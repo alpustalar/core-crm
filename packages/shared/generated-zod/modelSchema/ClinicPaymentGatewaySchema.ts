@@ -5,9 +5,9 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ClinicPaymentGatewaySchema = z.object({
-  id: z.uuid(),
-  iyzicoSubMerchantKey: z.string(),
+  id: z.string(),
   clinicId: z.string(),
+  iyzicoSubMerchantKey: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

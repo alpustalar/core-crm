@@ -5,10 +5,11 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ProductCategorySchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
+  id: z.string(),
   organizationId: z.string(),
+  clinicId: z.string(),
   parentId: z.string().nullable(),
+  name: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

@@ -9,7 +9,7 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 export const JournalLineSchema = z.object({
   currency: CurrencySchema,
   originalCurrency: CurrencySchema.nullable(),
-  id: z.uuid(),
+  id: z.string(),
   entryId: z.string(),
   accountId: z.string(),
   partyId: z.string().nullable(),

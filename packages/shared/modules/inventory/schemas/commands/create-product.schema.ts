@@ -18,4 +18,5 @@ export const CreateProductSchema = z.object({
   reorderQty: z.number().min(0).optional(),
   categoryId: z.uuid().optional().nullable(),
   supplierId: z.uuid().optional().nullable(),
+  clinicId: z.uuid()
 });

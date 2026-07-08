@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const TreatmentPackageProviderSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   packageId: z.string(),
   providerId: z.string(),
 })

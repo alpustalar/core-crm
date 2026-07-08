@@ -8,9 +8,9 @@ import { TaxParameterKeySchema } from '../inputTypeSchemas/TaxParameterKeySchema
 
 export const TaxParameterSchema = z.object({
   key: TaxParameterKeySchema,
-  id: z.uuid(),
-  clinicId: z.string(),
+  id: z.string(),
   organizationId: z.string(),
+  clinicId: z.string(),
   rate: z.instanceof(Prisma.Decimal, { message: "Field 'rate' must be a Decimal. Location: ['Models', 'TaxParameter']"}),
   validFrom: z.coerce.date(),
   validTo: z.coerce.date().nullable(),

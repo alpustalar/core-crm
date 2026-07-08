@@ -9,7 +9,7 @@ import { TimeZoneSchema } from '../inputTypeSchemas/TimeZoneSchema'
 export const OrganizationSchema = z.object({
   status: GlobalStatusSchema,
   timezone: TimeZoneSchema,
-  id: z.uuid(),
+  id: z.string(),
   name: z.string(),
   slug: z.string(),
   phone: z.string().nullable(),

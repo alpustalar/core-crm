@@ -7,11 +7,11 @@ import { ResourceTypeSchema } from '../inputTypeSchemas/ResourceTypeSchema'
 
 export const ResourceSchema = z.object({
   type: ResourceTypeSchema,
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
   name: z.string(),
   description: z.string().nullable(),
   isActive: z.boolean(),
-  clinicId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),

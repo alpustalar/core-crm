@@ -9,7 +9,9 @@ import { z } from 'zod';
  * ayrıştırılmış 1:1 satellite. Webhook gelen olayı phoneNumberId ile bu kayda routing eder.
  */
 export const ClinicWhatsappChannelSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
+  organizationId: z.string(),
   phoneNumberId: z.string(),
   wabaId: z.string().nullable(),
   displayPhoneNumber: z.string().nullable(),
@@ -21,8 +23,6 @@ export const ClinicWhatsappChannelSchema = z.object({
   tokenExpiresAt: z.coerce.date().nullable(),
   qualityRating: z.string().nullable(),
   messagingTier: z.string().nullable(),
-  clinicId: z.string(),
-  organizationId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

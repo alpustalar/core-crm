@@ -14,7 +14,7 @@ export const PatientSchema = z.object({
   bloodType: BloodTypeSchema.nullable(),
   status: PatientStatusSchema,
   patientType: PatientTypeSchema.nullable(),
-  id: z.uuid(),
+  id: z.string(),
   firebaseUid: z.string().nullable(),
   organizationId: z.string(),
   clinicId: z.string().nullable(),

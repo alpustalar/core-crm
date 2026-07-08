@@ -12,7 +12,7 @@ export const StockMovementSchema = z.object({
   type: StockMovementTypeSchema,
   direction: StockMovementDirectionSchema,
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
   productId: z.string(),
   clinicId: z.string(),
   batchId: z.string().nullable(),

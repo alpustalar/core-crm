@@ -5,11 +5,16 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ClinicPortalSettingsSchema = z.object({
-  id: z.uuid(),
-  apiKey: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
+  apiKey: z.string(),
+  customDomain: z.string().nullable(),
   primaryColor: z.string(),
   customTitle: z.string().nullable(),
-  clinicId: z.string(),
+  allowOnlineBooking: z.boolean(),
+  showMedicalRecords: z.boolean(),
+  showFinancials: z.boolean(),
+  showRaysAndImages: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

@@ -5,11 +5,11 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const MetaAdAccountSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
   adAccountId: z.string(),
-  accessToken: z.string(),
   pageId: z.string().nullable(),
+  accessToken: z.string(),
   businessName: z.string().nullable(),
   isActive: z.boolean(),
   tokenExpiresAt: z.coerce.date().nullable(),

@@ -25,5 +25,8 @@ export const BookHotelSchema = z.object({
   remarks: z.string().max(500).optional(),
   serviceFee: z.number().min(0).optional(),
   clinicId: z.uuid(),
-  organizationId: z.uuid()
+  organizationId: z.uuid(),
+  // Ödeme-önce saga'yı baypas eden manuel override: ödeme kanal dışı (havale/nakit vb.)
+  // tahsil edildiyse personel bilinçli olarak true gönderir; aksi halde direkt booking reddedilir.
+  manualOverride: z.boolean().optional().default(false),
 });

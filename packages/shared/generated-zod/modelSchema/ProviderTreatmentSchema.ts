@@ -6,13 +6,13 @@ import { Prisma } from '@prisma/client'
 /////////////////////////////////////////
 
 export const ProviderTreatmentSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
+  providerId: z.string(),
   customPrice: z.instanceof(Prisma.Decimal, { message: "Field 'customPrice' must be a Decimal. Location: ['Models', 'ProviderTreatment']"}).nullable(),
   customDuration: z.number().int().nullable(),
   isActive: z.boolean(),
   updatedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date().nullable(),
-  providerId: z.string(),
   treatmentId: z.string(),
 })
 

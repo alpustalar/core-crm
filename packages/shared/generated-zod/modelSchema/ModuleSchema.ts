@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client'
+import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
 // MODULE SCHEMA
 /////////////////////////////////////////
 
 export const ModuleSchema = z.object({
-  id: z.uuid(),
+  currency: CurrencySchema,
+  id: z.string(),
   key: z.string(),
   name: z.string(),
   description: z.string().nullable(),

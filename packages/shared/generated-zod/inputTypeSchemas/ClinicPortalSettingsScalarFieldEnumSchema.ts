@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
-export const ClinicPortalSettingsScalarFieldEnumSchema = z.enum(['id','apiKey','primaryColor','customTitle','clinicId','createdAt','updatedAt']);
+export const ClinicPortalSettingsScalarFieldEnumSchema = z.enum(['id','clinicId','apiKey','customDomain','primaryColor','customTitle','allowOnlineBooking','showMedicalRecords','showFinancials','showRaysAndImages','createdAt','updatedAt']);
 
 export default ClinicPortalSettingsScalarFieldEnumSchema;

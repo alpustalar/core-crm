@@ -39,4 +39,7 @@ export const BookTransferSchema = z.object({
   patientId: z.string().uuid().optional(),
   leadId: z.string().uuid().optional(),
   clinicId: z.string().uuid().optional(),
+  // Ödeme-önce saga'yı baypas eden manuel override: ödeme kanal dışı (havale/nakit vb.)
+  // tahsil edildiyse personel bilinçli olarak true gönderir; aksi halde direkt booking reddedilir.
+  manualOverride: z.boolean().optional().default(false),
 });

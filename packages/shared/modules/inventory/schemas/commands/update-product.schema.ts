@@ -10,6 +10,7 @@ export const UpdateProductSchema = z.object({
   vatRate: z.number().min(0).max(100).optional(),
   criticalStockQty: z.number().min(0).optional(),
   reorderQty: z.number().min(0).optional(),
-  categoryId: z.string().uuid().optional().nullable(),
-  supplierId: z.string().uuid().optional().nullable(),
+  categoryId: z.string().optional().nullable(),
+  supplierId: z.string().optional().nullable(),
+  clinicId: z.uuid(),
 });

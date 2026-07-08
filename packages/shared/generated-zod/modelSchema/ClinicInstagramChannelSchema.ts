@@ -10,7 +10,9 @@ import { z } from 'zod';
  * id'si (webhook routing + gönderim hedefi). accessToken (Page/IG token) şifreli saklanır.
  */
 export const ClinicInstagramChannelSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
+  organizationId: z.string(),
   igUserId: z.string(),
   pageId: z.string().nullable(),
   username: z.string().nullable(),
@@ -18,8 +20,6 @@ export const ClinicInstagramChannelSchema = z.object({
   isActive: z.boolean(),
   tokenExpiresAt: z.coerce.date().nullable(),
   lastError: z.string().nullable(),
-  clinicId: z.string(),
-  organizationId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

@@ -10,7 +10,7 @@ import { PaymentStatusSchema } from '../inputTypeSchemas/PaymentStatusSchema'
 export const PaymentSchema = z.object({
   currency: CurrencySchema,
   status: PaymentStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
   patientId: z.string(),
   appointmentId: z.string().nullable(),

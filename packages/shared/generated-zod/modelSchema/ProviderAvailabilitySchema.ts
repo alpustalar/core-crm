@@ -5,7 +5,8 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ProviderAvailabilitySchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
+  providerId: z.string(),
   dayOfWeek: z.number().int(),
   startMinute: z.number().int(),
   endMinute: z.number().int(),
@@ -13,7 +14,6 @@ export const ProviderAvailabilitySchema = z.object({
   breakEndMinute: z.number().int().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date().nullable(),
-  providerId: z.string(),
 })
 
 export type ProviderAvailability = z.infer<typeof ProviderAvailabilitySchema>

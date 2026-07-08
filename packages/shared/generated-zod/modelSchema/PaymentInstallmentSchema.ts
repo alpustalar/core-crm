@@ -12,7 +12,7 @@ export const PaymentInstallmentSchema = z.object({
   currency: CurrencySchema,
   method: PaymentMethodSchema,
   status: InstallmentStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   paymentId: z.string(),
   installmentNo: z.number().int(),
   amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'PaymentInstallment']"}),

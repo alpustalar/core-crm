@@ -7,14 +7,14 @@ import { PosProviderSchema } from '../inputTypeSchemas/PosProviderSchema'
 
 export const PosDeviceSchema = z.object({
   provider: PosProviderSchema,
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
-  label: z.string(),
   terminalId: z.string().nullable(),
   merchantId: z.string().nullable(),
+  deviceUniqueId: z.string().nullable(),
+  label: z.string(),
   host: z.string().nullable(),
   port: z.number().int().nullable(),
-  deviceUniqueId: z.string().nullable(),
   isActive: z.boolean(),
   isDeleted: z.boolean(),
   createdAt: z.coerce.date(),

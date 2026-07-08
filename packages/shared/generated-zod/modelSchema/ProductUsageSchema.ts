@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client'
 /////////////////////////////////////////
 
 export const ProductUsageSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   productId: z.string(),
   clinicId: z.string(),
   batchId: z.string().nullable(),

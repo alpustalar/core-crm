@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { AppointmentSourceSchema } from '../inputTypeSchemas/AppointmentSourceSchema'
 import { TimeZoneSchema } from '../inputTypeSchemas/TimeZoneSchema'
+import { AppointmentCreatorTypeSchema } from '../inputTypeSchemas/AppointmentCreatorTypeSchema'
 import { AppointmentStatusSchema } from '../inputTypeSchemas/AppointmentStatusSchema'
 import { ExaminationTypeSchema } from '../inputTypeSchemas/ExaminationTypeSchema'
 import { VisitTypeSchema } from '../inputTypeSchemas/VisitTypeSchema'
@@ -10,12 +12,14 @@ import { ExternalSystemSchema } from '../inputTypeSchemas/ExternalSystemSchema'
 /////////////////////////////////////////
 
 export const AppointmentSchema = z.object({
+  source: AppointmentSourceSchema,
   timezone: TimeZoneSchema,
+  creatorType: AppointmentCreatorTypeSchema,
   status: AppointmentStatusSchema,
   examinationType: ExaminationTypeSchema.nullable(),
   visitType: VisitTypeSchema.nullable(),
   externalSystem: ExternalSystemSchema.nullable(),
-  id: z.uuid(),
+  id: z.string(),
   patientName: z.string(),
   patientPhone: z.string(),
   patientEmail: z.string().nullable(),
@@ -23,6 +27,10 @@ export const AppointmentSchema = z.object({
   endTime: z.coerce.date(),
   treatmentType: z.string().nullable(),
   notes: z.string().nullable(),
+  approvedAt: z.coerce.date().nullable(),
+  approvedBy: z.string().nullable(),
+  createdById: z.string().nullable(),
+  createdByRealName: z.string().nullable(),
   canceledAt: z.coerce.date().nullable(),
   canceledBy: z.string().nullable(),
   cancelReason: z.string().nullable(),

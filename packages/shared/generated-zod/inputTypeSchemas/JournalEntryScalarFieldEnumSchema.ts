@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
-export const JournalEntryScalarFieldEnumSchema = z.enum(['id','clinicId','organizationId','periodId','entryNo','entryDate','description','status','eventId','reversedById','performedById','createdAt','updatedAt']);
+export const JournalEntryScalarFieldEnumSchema = z.enum(['id','clinicId','organizationId','periodId','eventId','reversedById','performedById','entryNo','entryDate','description','status','createdAt','updatedAt']);
 
 export default JournalEntryScalarFieldEnumSchema;

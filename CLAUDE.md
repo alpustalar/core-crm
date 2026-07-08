@@ -144,18 +144,19 @@ Each command/query is self-contained in its own folder with:
 
 **Response Type Kuralı — KURAL**:
 
-| İşlem tipi | Dönüş tipi | Notlar |
-|---|---|---|
-| **Query** | `QueryResponse<T>` | `@shared/common/response/response.interface.ts`'den import edilir |
-| **Command — create** | `string` | Oluşturulan kaydın `id`'si doğrudan döner |
-| **Command — update / delete (basit)** | `void` | Sadece aşağıdaki istisnalar yoksa |
-| **Command — optimistic locking** | `{ version: number }` veya `{ updatedAt: Date }` | Frontend bir sonraki istekte doğru version'ı gönderebilmeli |
-| **Command — 3rd party entegrasyon** | `{ referenceId, status, ... }` | Dış servis (Nilvera, İyzico, Stripe) anlık metadata üretiyorsa |
-| **Command — Saga / workflow adımı** | İlgili state / output | Sonraki adım bu çıktıya bağlıysa |
+| İşlem tipi                            | Dönüş tipi                                       | Notlar                                                            |
+| ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| **Query**                             | `QueryResponse<T>`                               | `@shared/common/response/response.interface.ts`'den import edilir |
+| **Command — create**                  | `string`                                         | Oluşturulan kaydın `id`'si doğrudan döner                         |
+| **Command — update / delete (basit)** | `void`                                           | Sadece aşağıdaki istisnalar yoksa                                 |
+| **Command — optimistic locking**      | `{ version: number }` veya `{ updatedAt: Date }` | Frontend bir sonraki istekte doğru version'ı gönderebilmeli       |
+| **Command — 3rd party entegrasyon**   | `{ referenceId, status, ... }`                   | Dış servis (Nilvera, İyzico, Stripe) anlık metadata üretiyorsa    |
+| **Command — Saga / workflow adımı**   | İlgili state / output                            | Sonraki adım bu çıktıya bağlıysa                                  |
 
 **Altın Kural**: Command'ler asla zengin domain modeli veya entity listesi döndürmez. Sadece o command'in yaşam döngüsünü tamamlamak için gereken **minimum metadata** döner (ID, version, status, entegrasyon ref no). Veri listelemek veya detay göstermek için her zaman Query kullanılır.
 
 **Query response** (`*.response.ts`) — `T` her zaman plain model / read-model'dir, **domain entity DEĞİL**:
+
 ```typescript
 import { QueryResponse } from '@shared/common/response/response.interface';
 import { Lead } from '@shared'; // generated plain model — domain entity DEĞİL
@@ -164,12 +165,13 @@ export type GetLeadByIdResponse = QueryResponse<Lead | null>;
 ```
 
 **Query sınıfında `__responseType`** (TSQueryBus için tip çıkarımı sağlar):
+
 ```typescript
 export class GetLeadByIdQuery implements IQuery {
   readonly __responseType!: GetLeadByIdResponse;
   constructor(
     public readonly leadId: string,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }
 ```
@@ -178,10 +180,10 @@ export class GetLeadByIdQuery implements IQuery {
 
 Sorumluluk ayrımı nettir: **repository `find*` metodları domain entity döndürür** (iş kuralları, getter'lar, VO'lar için); **query handler'ı bu entity'yi dışarı sızdırmaz**. Handler, response'a koymadan önce entity'yi mutlaka plain / serileştirilebilir bir shape'e çevirir:
 
-| Senaryo | Handler dönüşü |
-|---|---|
-| **Tek kayıt** | `entity.toPersistence()` → `@shared` generated plain model |
-| **Liste** | `items.map((e) => e.toPersistence())` |
+| Senaryo                        | Handler dönüşü                                                            |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| **Tek kayıt**                  | `entity.toPersistence()` → `@shared` generated plain model                |
+| **Liste**                      | `items.map((e) => e.toPersistence())`                                     |
 | **Projeksiyon / okuma modeli** | `domain/<module>.contracts.ts`'teki `Filter` / `Response` read-model tipi |
 
 **Gerekçe**: Entity domain katmanına aittir; private alanları, Value Object'leri (`UUID`, `Phone`, `Money`) ve davranış metotları HTTP/serileştirme sınırının ötesine taşınmaz. Bu yüzden `QueryResponse<T>` içindeki `T` **hiçbir zaman bir entity değildir** — daima plain model veya read-model'dir. Repository entity döner ki handler domain mantığını çalıştırabilsin; handler düz veriye map'leyip öyle döner.
@@ -201,6 +203,7 @@ async execute(query: GetLeadByIdQuery): Promise<GetLeadByIdResponse> {
 ```
 
 **Command — create** (`*.response.ts` gerekmez, doğrudan `string`):
+
 ```typescript
 // create-lead.handler.ts
 async execute(command: CreateLeadCommand): Promise<string> {
@@ -210,6 +213,7 @@ async execute(command: CreateLeadCommand): Promise<string> {
 ```
 
 **Command — basit update / delete** (`void`, response dosyası olmaz):
+
 ```typescript
 async execute(command: UpdateLeadStatusCommand): Promise<void> {
   // optimistic locking, 3rd party entegrasyon veya saga yoksa void yeterli
@@ -217,6 +221,7 @@ async execute(command: UpdateLeadStatusCommand): Promise<void> {
 ```
 
 **Command — optimistic locking** (versiyonlu güncelleme, response dosyası olur):
+
 ```typescript
 // update-appointment.response.ts
 export interface UpdateAppointmentResponse {
@@ -231,6 +236,7 @@ async execute(command: UpdateAppointmentCommand): Promise<UpdateAppointmentRespo
 ```
 
 **Command — 3rd party entegrasyon** (response dosyası olur):
+
 ```typescript
 // create-invoice.response.ts
 export interface CreateInvoiceResponse {
@@ -242,6 +248,7 @@ export interface CreateInvoiceResponse {
 **TSCommandBus / TSQueryBus — KURAL**:
 
 Controller'larda ham `CommandBus` / `QueryBus` yerine tip-güvenli sarmalayıcılar kullanılır.
+
 - Konum: `src/common/cqrs/`
 - `TSCommandBus`: `TCommand.__responseType` üzerinden dönüş tipini çıkarır
 - `TSQueryBus`: `TQuery.__responseType` üzerinden dönüş tipini çıkarır
@@ -423,12 +430,12 @@ Her modülün, entity'lerinin ortak domain-seviye tiplerini toplayan **merkezi b
 
 **Mimarî Katmanlar ve Veri Akışı (Data Pipeline)** — verinin mimarideki yolculuğuna göre doğru suffix:
 
-| Suffix | Ne | Nerede |
-|---|---|---|
-| **`...Props`** | Command Handler'dan çıkıp **Entity static `create`** metoduna beslenen katı, zırhlı giriş tipi | `domain/<module>.contracts.ts` |
-| **`...Data`** | Repository katmanında doğrudan **Prisma / ORM**'e paslanan, DB şemasına uygun saf veri nesnesi | `infrastructure/persistence` (genelde `<module>.contracts.ts`) |
-| **`...Payload`** | Domain Event gerçekleştiğinde event parametresi olarak fırlatılan veri paketi | `domain/events` |
-| **`Filter` / `Response`** | Okuma modelleri, listeleme filtreleri, sorgu çıktıları (ör. `StockLevel`, `FindBookingsFilter`) | `domain/<module>.contracts.ts` |
+| Suffix                    | Ne                                                                                              | Nerede                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **`...Props`**            | Command Handler'dan çıkıp **Entity static `create`** metoduna beslenen katı, zırhlı giriş tipi  | `domain/<module>.contracts.ts`                                 |
+| **`...Data`**             | Repository katmanında doğrudan **Prisma / ORM**'e paslanan, DB şemasına uygun saf veri nesnesi  | `infrastructure/persistence` (genelde `<module>.contracts.ts`) |
+| **`...Payload`**          | Domain Event gerçekleştiğinde event parametresi olarak fırlatılan veri paketi                   | `domain/events`                                                |
+| **`Filter` / `Response`** | Okuma modelleri, listeleme filtreleri, sorgu çıktıları (ör. `StockLevel`, `FindBookingsFilter`) | `domain/<module>.contracts.ts`                                 |
 
 **İsimlendirme Standartları**:
 
@@ -461,7 +468,10 @@ export const CreateProductSchema = z.object({
   clinicId: z.uuid(),
   name: z.string().min(1),
   quantity: z.custom<Quantity>((val) => val instanceof Quantity),
-  vatRate: z.custom<VatRate>((val) => val instanceof VatRate).nullable().optional(),
+  vatRate: z
+    .custom<VatRate>((val) => val instanceof VatRate)
+    .nullable()
+    .optional(),
 });
 export type CreateProductProps = z.infer<typeof CreateProductSchema>;
 
@@ -722,14 +732,14 @@ export class Appointment extends AggregateRoot implements IAppointment {
   public static schedule(props: CreateAppointmentProps): Appointment {
     const appointment = Appointment.create(props);
     appointment.addDomainEvent(
-            new AppointmentScheduledEvent({
-              appointmentId: appointment.id,
-              clinicId: appointment.clinicId,
-              providerId: appointment.providerId,
-              patientId: appointment.patientId,
-              startTime: appointment.startTime,
-              endTime: appointment.endTime,
-            })
+      new AppointmentScheduledEvent({
+        appointmentId: appointment.id,
+        clinicId: appointment.clinicId,
+        providerId: appointment.providerId,
+        patientId: appointment.patientId,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+      })
     );
     return appointment;
   }
@@ -737,28 +747,28 @@ export class Appointment extends AggregateRoot implements IAppointment {
   public static book(props: CreateAppointmentProps): Appointment {
     const appointment = Appointment.create(props);
     appointment.addDomainEvent(
-            new AppointmentBookedEvent({
-              appointmentId: appointment.id,
-              clinicId: appointment.clinicId,
-              providerId: appointment.providerId,
-              patientId: appointment.patientId,
-              startTime: appointment.startTime,
-              endTime: appointment.endTime,
-            })
+      new AppointmentBookedEvent({
+        appointmentId: appointment.id,
+        clinicId: appointment.clinicId,
+        providerId: appointment.providerId,
+        patientId: appointment.patientId,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+      })
     );
     return appointment;
   }
 
   public static calculateEndTimeOrThrow(
-          start: Date,
-          endTime?: Date,
-          duration?: number
+    start: Date,
+    endTime?: Date,
+    duration?: number
   ): Date {
     if (endTime) {
       const parsedEndTime = new Date(endTime);
       if (parsedEndTime <= new Date(start)) {
         throw new Error(
-                'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
+          'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
         );
       }
       return parsedEndTime;
@@ -769,16 +779,16 @@ export class Appointment extends AggregateRoot implements IAppointment {
     }
 
     throw new Error(
-            'Randevu süresi (duration) veya bitiş zamanı (endTime) belirlenemedi.'
+      'Randevu süresi (duration) veya bitiş zamanı (endTime) belirlenemedi.'
     );
   }
 
   private static create(props: CreateAppointmentProps): Appointment {
     const now = new Date();
     const endTime = Appointment.calculateEndTimeOrThrow(
-            props.startTime,
-            props.endTime,
-            props.duration
+      props.startTime,
+      props.endTime,
+      props.duration
     );
 
     if (props.startTime < now) {
@@ -825,7 +835,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
   public cancelSchedule(canceledBy: string, reason?: string): void {
     if (!this._canBeCancelled()) {
       throw new Error(
-              'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
+        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
       );
     }
     this._applyCancellation(canceledBy, reason);
@@ -843,52 +853,52 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
     if (!this._canBeCancelled()) {
       throw new Error(
-              'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
+        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
       );
     }
     this._applyCancellation(patientId, reason);
   }
 
   public complete(
-          eventPayload: Omit<
-                  AppointmentCompletedEventPayload,
-                  'appointmentId' | 'clinicId' | 'patientId' | 'providerId'
-          >
+    eventPayload: Omit<
+      AppointmentCompletedEventPayload,
+      'appointmentId' | 'clinicId' | 'patientId' | 'providerId'
+    >
   ): void {
     if (this.isCancelled() || this.isCompleted() || this.isNoShow()) {
       throw new Error(
-              `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular tamamlanamaz.`
+        `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular tamamlanamaz.`
       );
     }
     this._status = AppointmentStatusSchema.enum.COMPLETED;
     this._updatedAt = new Date();
 
     this.addDomainEvent(
-            new AppointmentCompletedEvent({
-              ...eventPayload,
-              appointmentId: this._id,
-              clinicId: this._clinicId,
-              patientId: this._patientId,
-              providerId: this._providerId,
-            })
+      new AppointmentCompletedEvent({
+        ...eventPayload,
+        appointmentId: this._id,
+        clinicId: this._clinicId,
+        patientId: this._patientId,
+        providerId: this._providerId,
+      })
     );
   }
 
   public markAsNoShow(): void {
     if (!this.isPending() && !this.isConfirmed()) {
       throw new Error(
-              'Yalnızca onaylanan veya bekleyen randevular gelmeme olarak işaretlenebilir.'
+        'Yalnızca onaylanan veya bekleyen randevular gelmeme olarak işaretlenebilir.'
       );
     }
     this._status = AppointmentStatusSchema.enum.NOSHOW;
   }
 
   public reschedule(
-          startTime: Date,
-          endTime: Date,
-          providerId: string,
-          notes?: string,
-          treatmentId?: string | null
+    startTime: Date,
+    endTime: Date,
+    providerId: string,
+    notes?: string,
+    treatmentId?: string | null
   ): void {
     // Ortak zamanlama mantığını çalıştır
     this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
@@ -905,11 +915,11 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   // TODO: kaç saat öncesine kadar değişiklik yapabilir klinik ayarlarında DB'de tutulsun
   public rescheduleByPatient(
-          startTime: Date,
-          endTime: Date,
-          providerId: string,
-          notes?: string,
-          treatmentId?: string | null
+    startTime: Date,
+    endTime: Date,
+    providerId: string,
+    notes?: string,
+    treatmentId?: string | null
   ): void {
     const now = new Date();
 
@@ -917,7 +927,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
     if (hoursLeft < 6) {
       throw new Error(
-              'Randevunuza 6 saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.'
+        'Randevunuza 6 saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.'
       );
     }
 
@@ -1004,21 +1014,21 @@ export class Appointment extends AggregateRoot implements IAppointment {
    * Yeniden zamanlama işlemlerinin ortak validasyon ve atama motoru (Private Helper)
    */
   private _applyReschedule(
-          startTime: Date,
-          endTime: Date,
-          providerId: string,
-          notes?: string,
-          treatmentId?: string | null
+    startTime: Date,
+    endTime: Date,
+    providerId: string,
+    notes?: string,
+    treatmentId?: string | null
   ): void {
     if (!this.canBeRescheduled()) {
       throw new Error(
-              `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular yeniden zamanlanamaz. Mevcut durum: ${this._status}`
+        `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular yeniden zamanlanamaz. Mevcut durum: ${this._status}`
       );
     }
 
     if (new Date(endTime) <= new Date(startTime)) {
       throw new Error(
-              'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
+        'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
       );
     }
 
@@ -1048,7 +1058,6 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return !invalidStatuses.includes(this._status);
   }
 }
-
 ```
 
 ---
@@ -1065,6 +1074,7 @@ export class Appointment extends AggregateRoot implements IAppointment {
 **Toplu işlemlerde** entity pattern N+1 soruna yol açar. "Her entity için ayrı domain event/validation gerekiyor mu?" sorusu sorulur; genellikle cevap hayırdır — bu durumda doğrudan `updateMany` / `deleteMany` kullanılır ve domain bypass açıkça kabul edilir.
 
 #### ⚠️ Toplu İşlem İstisnaları ve Güvenlik Duvarı:
+
 - **Event Dağıtımı:** Toplu işlem sonucu sistemin geri kalanının (Read-Model, Cache, Diğer Modüller) haberdar olması gerekiyorsa, domain bypass edildiği için Command Handler içinden manuel olarak tek bir toplu event (Örn: `InvoicesBulkUpdatedEvent`) fırlatılmalıdır.
 - **İlişki Kısıtı (Prisma):** `updateMany` işlemlerinin ilişkili tablolar (relations) üzerinde toplu kural işletemeyeceği, sadece düz kolon bazlı filtreleme ve atama yapabileceği unutulmamalıdır.
 
@@ -1080,40 +1090,125 @@ await this.providerCommandRepo.softDeleteAllByClinicId(clinicId);
 
 ---
 
-**Command Repository API — KURAL: `save` / `saveMany` önceliği**:
+**Command Repository API — KURAL: `create` (insert) vs `save` (update) ayrımı**:
 
-`*CommandRepository` interface'i mümkün olduğunca yalnızca `save` ve `saveMany` metodlarını açar. Her ikisi de `upsert` tabanlıdır; böylece ayrı `create` / `update` dalları gerekmez.
+`*CommandRepository` interface'i iki tip işlemi netleştirir:
+
+- **`create(props)`**: Yeni kayıt **ekler** (INSERT). İlişkiler kurması gerekiyorsa (M2M, nested create), bu metod uzlaşabilir.
+- **`save(entity)`**: Mevcut entity'yi **günceller** (UPDATE — `upsert` bile değil, doğrudan `update`). Veri zaten `id` taşıyor; entity domain metodları sonrası çağrılır.
+
+Upsert yapması gereken işlemler (`findOrCreate`, auth bulun-veya-oluştur, broker login) **istisna** olarak ayrı metod (`upsertByEmail`, `findOrCreateByOAuth`) alabilir.
+
+**ID GENERATION KURALI: Prisma modellerinde hiçbir zaman otomatik ID üretilmez.** Her kayıt oluşturulurken `create(props)` çağrısında `props.id` gönderilir — handler/command'de UUID.generate() ile üretilir, repository'ye geçilir.
+
+**Her command repo `BaseCommandRepository` ile kurulur; `create`, `save`, `findById` taşır — KURAL**:
+
+Tüm `*CommandRepository` sınıfları **`BaseCommandRepository<TEntity>`** taban sınıfını extend eder; interface'leri **`IBaseCommandRepository<TEntity>`**'den türer. `IBaseCommandRepository` **`create(props)` + `save(entity)` + `findById(id)`**'yi zorunlu kılar:
+
+- **`create(props)`**: Yeni kayıt INSERT eder (handler UUID.generate() ile id gönderir)
+- **`save(entity)`**: Mevcut entity'yi UPDATE eder (domain metodları sonrası çağrılır, `flushEvents` çağrılır)
+- **`findById(id)`**: Entity yükler (state değişikliği akışında kullanılır)
+
+Böylece "yükle → domain metodu → kaydet" akışı **tek repository** ile yürür: `const entity = await repo.findById(id); entity.activate(); await repo.save(entity);`
 
 ```typescript
-// ✓ İdeal command repository interface
-export interface IFooCommandRepository {
-  save(entity: Foo): Promise<Foo>;
-  saveMany(entities: Foo[]): Promise<void>;
+// ✓ İdeal command repository interface — create/save/findById IBaseCommandRepository'den
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
+import { Foo } from '@modules/foo/domain/entities/foo.entity';
+import { CreateFooProps } from '@modules/foo/domain/foo.contracts';
+
+export type IFooCommandRepository = IBaseCommandRepository<Foo> & {
+  create(props: CreateFooProps): Promise<Foo>;
+};
+// ekstra metod (saveMany, bulk, upsert vb.) gerekiyorsa:
+// export interface IFooCommandRepository extends IBaseCommandRepository<Foo> {
+//   create(props: CreateFooProps): Promise<Foo>;
+//   saveMany(entities: Foo[]): Promise<void>;
+//   upsertByEmail(email: string, props: CreateFooProps): Promise<Foo>;
+// }
+```
+
+```typescript
+// command repo — BaseCommandRepository extend eder; create/findById/save implement
+@Injectable()
+export class FooCommandRepository
+  extends BaseCommandRepository<Foo>
+  implements IFooCommandRepository
+{
+  constructor(prisma: PrismaService) {
+    super(prisma);
+  }
+
+  async create(props: CreateFooProps): Promise<Foo> {
+    const raw = await this.db.foo.create({ data: props });
+    return new Foo(raw);
+  }
+
+  async findById(id: string): Promise<Foo | null> {
+    const raw = await this.db.foo.findUnique({ where: { id } });
+    return raw ? new Foo(raw) : null;
+  }
+
+  async save(entity: Foo): Promise<Foo> {
+    const data = entity.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.foo.update({ where: { id }, data: update });
+    entity.flushEvents();
+    return new Foo(raw);
+  }
 }
 ```
 
-**`save` implementasyonu** — upsert + flushEvents:
+```typescript
+// handler — yeni kayıt: create; state değişikliği: load-modify-save
+// Yeni kayıt
+const newFoo = await this.fooCommandRepo.create({
+  id: UUID.generate().value,
+  name: dto.name,
+});
+
+// State değişikliği: "yükle → metodu çağır → kaydet"
+const existing = await this.fooCommandRepo.findById(fooId);
+existing.activate(); // domain metodu
+await this.fooCommandRepo.save(existing); // UPDATE + flushEvents otomatik
+```
+
+**`create(props)` implementasyonu** — INSERT, ilişkiler kurabilir:
+
+```typescript
+async create(props: CreateFooProps): Promise<FooEntity> {
+  // props.id gelen handler'dan UUID.generate() ile gelir — hiçbir zaman auto-generate değil
+  const raw = await this.db.foo.create({
+    data: props,
+    include: { /* ilişkiler gerekiyorsa */ },
+  });
+  return new FooEntity(raw);
+}
+```
+
+**`save(entity)` implementasyonu** — UPDATE + flushEvents (upsert değil):
+
 ```typescript
 async save(entity: FooEntity): Promise<FooEntity> {
   const data = entity.toPersistence();
-  const raw = await this.db.foo.upsert({
+  const raw = await this.db.foo.update({
     where: { id: data.id },
-    create: data,
-    update: data,
+    data, // id hariç (PK güncellemez)
   });
   entity.flushEvents();
   return new FooEntity(raw);
 }
 ```
 
-**`saveMany` implementasyonu** — ALS tx farkındalığı:
+**`saveMany(entities)` implementasyonu** — Batch UPDATE:
+
 ```typescript
 async saveMany(entities: FooEntity[]): Promise<void> {
   const queries = entities.map((e) => {
     const data = e.toPersistence();
-    return this.db.foo.upsert({ where: { id: data.id }, create: data, update: data });
+    const { id, ...update } = data;
+    return this.db.foo.update({ where: { id }, data: update });
   });
-  // ALS transaction varsa Promise.all (iç içe tx açılmaz), yoksa $transaction ile atomik
   if (txStorage.getStore()?.tx) {
     await Promise.all(queries);
   } else {
@@ -1123,22 +1218,39 @@ async saveMany(entities: FooEntity[]): Promise<void> {
 }
 ```
 
-**İzin verilen istisnalar** — yalnızca şu üç durumda ekstra metod eklenebilir:
-
-| İstisna | Örnek | Neden |
-|---|---|---|
-| İlk kayıt oluştururken M2M / nested create gerekiyor | `create(props)` — `role.connect`, `managedClinics.connect`, `providerProfile.create` | `toPersistence()` scalar dönüştürür; ilişki bağlantıları `upsert` ile kurulamaz |
-| Bulk işlem | `softDeleteAllByOrganizationId(orgId)` | Entity pattern N+1 yaratır; domain bypass kabul edilir |
-| Hot-path scalar güncelleme | `updateLastLogin(userId)` | Entity yükleme (ekstra sorgu) kabul edilemez overhead oluşturuyor |
+**`upsertByEmail(email, props)` istisna örneği** — findOrCreate:
 
 ```typescript
-// ❌ Yanlış — save varken ayrı update metodu eklemek
+async upsertByEmail(email: string, props: CreateFooProps): Promise<FooEntity> {
+  const raw = await this.db.foo.upsert({
+    where: { email },
+    create: { ...props, id: props.id ?? UUID.generate().value },
+    update: props,
+  });
+  return new FooEntity(raw);
+}
+```
+
+**İzin verilen istisnalar** — `create`/`save` dışı ekstra metod:
+
+| İstisna                                | Örnek                                                                                | Neden                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| İlk kayıt M2M/nested create ile        | `create(props)` — `role.connect`, `managedClinics.connect`, `providerProfile.create` | `toPersistence()` scalar türetir; ilişkiler `create` data payload'ında kurulur      |
+| FindOrCreate / auth bulun-veya-oluştur | `upsertByEmail(email, props)`, `findOrCreateByOAuth(provider, id)`                   | Atomik bulma + oluşturma gerekli; DB constraint (unique email) altında upsert uygun |
+| Bulk işlem                             | `softDeleteAllByOrganizationId(orgId)`                                               | Entity pattern N+1; domain bypass kabul edilir                                      |
+| Hot-path scalar güncelleme             | `updateLastLogin(userId)`                                                            | Entity yükleme overhead'i kabul edilemez                                            |
+
+```typescript
+// ❌ Yanlış — save varken ayrı update metodu
 update(id: string, data: Partial<Foo>): Promise<Foo>; // state değişikliği için fazlalık
 
-// ✓ Doğru — state değişikliği entity üzerinden, ardından save
+// ✓ Doğru — state değişikliği entity üzerinden
 const foo = await this.fooQueryRepo.findById(id);
 foo.activate(); // domain method
-await this.fooCommandRepo.save(foo);
+await this.fooCommandRepo.save(foo); // UPDATE
+
+// ✓ İstisna — findOrCreate
+const user = await this.userCommandRepo.upsertByEmail(email, { id: UUID.generate(), ...props });
 ```
 
 **AggregateRoot — KURAL**:
@@ -1172,99 +1284,87 @@ Handler asla `addDomainEvent()` veya `contextService.addEvent()` çağırmaz. Ev
 
 ---
 
-**3. Specification Pattern — KURAL**:
+**Prisma ID Policy — KURAL: Manuel ID üretimi**:
 
-Repository'lerde `findMany` / `findOne` çağrılarında filtre koşulları **Specification** nesneleri ile ifade edilir; ham Prisma `where` objeleri handler'a sızmaz.
+Prisma modellerinde **hiçbir zaman `@default()`** (auto-increment, cuid, uuid) kullanılmaz. Her id elle gönderilir:
 
-**Klasör yapısı**:
-
-```
-src/
-├── domain/
-│   └── shared/
-│       └── specification.interface.ts        # Saf domain interface'i
-│
-└── infrastructure/
-    └── persistence/
-        └── prisma/
-            └── specifications/
-                ├── user/
-                │   ├── user-by-email.spec.ts
-                │   └── user-by-clinic.spec.ts
-                └── shared/
-                    ├── and.spec.ts
-                    └── or.spec.ts
-```
-
-**`specification.interface.ts`** (domain — Prisma'ya bağımlı değil):
-
-```typescript
-export interface Specification<TQuery> {
-  toQuery(): TQuery;
+```prisma
+model Foo {
+  id String @id @map("id")
+  // ❌ ASLA: @default(uuid())
+  // ❌ ASLA: @default(cuid())
+  // ❌ ASLA: @default(autoincrement())
 }
 ```
 
-**Somut spec'ler** (`infrastructure/persistence/prisma/specifications/`):
-
 ```typescript
-// user-by-email.spec.ts
-import { Prisma } from '@prisma/client';
-import { Specification } from '@src/domain/shared/specification.interface';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { shouldValidate } from '@common/domain/utils/should-validate';
+import { DateTimeManager } from '@common/utils';
 
-export class UserByEmailSpec implements Specification<Prisma.UserWhereInput> {
-  constructor(private readonly email: string) {}
-  toQuery(): Prisma.UserWhereInput {
-    return { email: this.email };
+export class Foo extends AggregateRoot {
+  // ... constructor ve property'ler ...
+
+  public static create(
+    props: { id?: string; name: string }, // ID OPSİYONEL
+    options = DefaultValidateOptions
+  ): Foo {
+
+    // 🚧 Kapıdaki koruma: ID gelmişse formatını doğrula, gelmemişse jilet gibi generate et!
+    const fooId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
+    // Diğer iş kuralları validasyonları...
+    if(shouldValidate(options))
+    /*iş kuralı validasyonları */
+
+    const now = DateTimeManager.create()
+
+    const instance = new Foo({
+      id: fooId.value,
+      name: props.name,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Event fırlatma konforu
+    instance.addDomainEvent(new FooCreatedEvent({ fooId: instance.id.value }));
+
+    return instance;
   }
 }
+// foo.command-handler.ts
+async execute(command: CreateFooCommand) {
+  // 🚀 1. Nesne domain katmanında, tüm kurallara uyarak doğar
+  const foo = Foo.create({ 
+    id: command.id, // Eğer dışarıdan gelen özel bir ID varsa geçilir (örn: bulk sync), yoksa undefined kalır
+    name: command.name 
+  });
 
-// user-by-clinic.spec.ts
-export class UserByClinicSpec implements Specification<Prisma.UserWhereInput> {
-  constructor(private readonly clinicId: string) {}
-  toQuery(): Prisma.UserWhereInput {
-    return { clinicId: this.clinicId };
-  }
+  // 🚀 2. Repo sadece doğmuş ve zırhlanmış DOMAIN ENTITY kabul eder
+  await this.fooCommandRepo.create(foo);
+}
+
+// repo.create: props.id'yi Prisma'ya direk kopyalar
+// foo.prisma.repository.ts
+async create(entity: Foo): Promise<Foo> {
+  const data = entity.toPersistence();
+
+  // DB'ye doğrudan zırhlı veri yazılır
+  const raw = await this.db.foo.create({ data });
+
+  // Event'ler güvenle salınır
+  entity.flushEvents();
+
+  return new Foo(raw);
 }
 ```
 
-**Combinator'lar** (`specifications/shared/`):
+**Gerekçe**: Pre-generated ID'ler (1) state consistency'yi sağlar (handler kontrol eder), (2) ID'yi bilinçli bir şekilde dağıtabilir (örn. correlation/audit), (3) Prisma automatic ID'ler ile oluşan race condition'ları ortadan kaldırır.
 
-```typescript
-// and.spec.ts
-export class AndSpec<TQuery extends object> implements Specification<TQuery> {
-  constructor(private readonly specs: Specification<TQuery>[]) {}
-  toQuery(): TQuery {
-    return { AND: this.specs.map((s) => s.toQuery()) } as TQuery;
-  }
-}
+---
 
-// or.spec.ts
-export class OrSpec<TQuery extends object> implements Specification<TQuery> {
-  constructor(private readonly specs: Specification<TQuery>[]) {}
-  toQuery(): TQuery {
-    return { OR: this.specs.map((s) => s.toQuery()) } as TQuery;
-  }
-}
-```
-
-**Handler'da kullanım**:
-
-```typescript
-const spec = new AndSpec([
-  new UserByClinicSpec(clinicId),
-  new OrSpec([new UserByEmailSpec(email), new UserByRoleSpec(roleId)]),
-]);
-
-const users = await this.userRepo.findMany(spec);
-```
-
-**Repository'de kullanım**:
-
-```typescript
-findMany(spec: Specification<Prisma.UserWhereInput>) {
-  return this.db.user.findMany({ where: spec.toQuery() });
-}
-```
 
 **4. Policy-Based Authorization**:
 
@@ -1875,7 +1975,10 @@ export class AppointmentSlotConflictException extends DomainException<SlotConfli
   public readonly errorCode = ERROR_CODES.APPOINTMENT.SLOT_CONFLICT;
   public override readonly httpStatus = HttpStatus.CONFLICT; // 409
 
-  constructor(meta: SlotConflictMeta, message = 'Seçilen randevu saatleri dolu.') {
+  constructor(
+    meta: SlotConflictMeta,
+    message = 'Seçilen randevu saatleri dolu.'
+  ) {
     super(message, meta);
   }
 }
@@ -2184,7 +2287,7 @@ const clinicDetails = await this.queryBus.execute(
 
 **Kural:** "Modüller arası veri paylaşımı yasaktır" kuralının **tek ve mutlak istisnası**, Auth Guard katmanında çalışan `findForAuth` (veya benzeri ActorContext inşa eden) merkezi altyapı sorgularıdır.
 
-*   **Gerekçe:** Her HTTP isteğinde tetiklenen Auth Guard'ın performansını korumak ve veritabanı gidiş-dönüş (I/O) maliyetini düşürmek adına, aktörün yetki sınırlarını çizen ilişkisel kimlikler tek bir sorguda `include` edilmelidir.
+- **Gerekçe:** Her HTTP isteğinde tetiklenen Auth Guard'ın performansını korumak ve veritabanı gidiş-dönüş (I/O) maliyetini düşürmek adına, aktörün yetki sınırlarını çizen ilişkisel kimlikler tek bir sorguda `include` edilmelidir.
 
 ```typescript
 // src/modules/identity/auth/infrastructure/persistence/auth.repository.ts

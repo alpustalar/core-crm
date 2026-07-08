@@ -7,7 +7,7 @@ import { LanguageDirectionSchema } from '../inputTypeSchemas/LanguageDirectionSc
 
 export const LanguageSchema = z.object({
   direction: LanguageDirectionSchema,
-  id: z.uuid(),
+  id: z.string(),
   code: z.string(),
   name: z.string(),
   isActive: z.boolean(),

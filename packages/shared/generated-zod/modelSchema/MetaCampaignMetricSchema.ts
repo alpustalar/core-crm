@@ -8,7 +8,7 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 export const MetaCampaignMetricSchema = z.object({
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
   metaAdAccountId: z.string(),
   campaignId: z.string(),
   campaignName: z.string(),

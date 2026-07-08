@@ -7,11 +7,11 @@ import { ClinicLegalTypeSchema } from '../inputTypeSchemas/ClinicLegalTypeSchema
 
 export const ClinicGovernmentSpecsSchema = z.object({
   legalType: ClinicLegalTypeSchema,
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
   healthFacilityCode: z.string(),
   ussPassword: z.string().nullable(),
   companyTaxNumber: z.string().nullable(),
-  clinicId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

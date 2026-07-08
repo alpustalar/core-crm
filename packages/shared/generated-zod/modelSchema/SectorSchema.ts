@@ -7,7 +7,7 @@ import { SectorTypeSchema } from '../inputTypeSchemas/SectorTypeSchema'
 
 export const SectorSchema = z.object({
   name: SectorTypeSchema,
-  id: z.uuid(),
+  id: z.string(),
   slug: z.string(),
 })
 

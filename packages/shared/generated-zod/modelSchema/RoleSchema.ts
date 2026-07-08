@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const RoleSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   name: z.string(),
   slug: z.string(),
   priority: z.number().int(),

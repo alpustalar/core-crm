@@ -5,9 +5,9 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const MasterTreatmentSchema = z.object({
-  id: z.uuid(),
-  slug: z.string(),
+  id: z.string(),
   treatmentCategoryId: z.string(),
+  slug: z.string(),
   defaultDuration: z.number().int(),
   sutCode: z.string().nullable(),
 })

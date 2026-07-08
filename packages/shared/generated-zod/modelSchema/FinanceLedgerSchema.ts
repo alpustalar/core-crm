@@ -16,7 +16,7 @@ export const FinanceLedgerSchema = z.object({
   category: LedgerCategorySchema,
   status: LedgerStatusSchema,
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
   organizationId: z.string(),
   clinicId: z.string(),
   patientId: z.string().nullable(),

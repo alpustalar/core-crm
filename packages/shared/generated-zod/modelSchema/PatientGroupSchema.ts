@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const PatientGroupSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string().nullable(),
   name: z.string(),
   description: z.string().nullable(),

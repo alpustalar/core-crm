@@ -7,7 +7,7 @@ import { FileTypeSchema } from '../inputTypeSchemas/FileTypeSchema'
 
 export const MedicalFileSchema = z.object({
   fileType: FileTypeSchema,
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
   patientId: z.string(),
   providerId: z.string(),

@@ -21,7 +21,7 @@ export const BookingPaymentSchema = z.object({
   status: BookingPaymentStatusSchema,
   saleCurrency: CurrencySchema,
   paidProvider: BookingPaymentProviderSchema.nullable(),
-  id: z.uuid(),
+  id: z.string(),
   saleAmount: z.instanceof(Prisma.Decimal, { message: "Field 'saleAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"}),
   tryAmount: z.instanceof(Prisma.Decimal, { message: "Field 'tryAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"}),
   netAmount: z.instanceof(Prisma.Decimal, { message: "Field 'netAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"}),

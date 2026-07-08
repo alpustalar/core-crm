@@ -7,7 +7,7 @@ import { PatientPackageStatusSchema } from '../inputTypeSchemas/PatientPackageSt
 
 export const PatientTreatmentPackageSchema = z.object({
   status: PatientPackageStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   patientId: z.string(),
   packageId: z.string(),
   providerId: z.string(),

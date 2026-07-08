@@ -7,7 +7,7 @@ import { OperationModeSchema } from '../inputTypeSchemas/OperationModeSchema'
 
 export const ProviderSchema = z.object({
   operationMode: OperationModeSchema,
-  id: z.uuid(),
+  id: z.string(),
   publicPhone: z.string().nullable(),
   publicEmail: z.string().nullable(),
   diplomaNo: z.string().nullable(),

@@ -14,15 +14,15 @@ import { TelegramChannelStatusSchema } from '../inputTypeSchemas/TelegramChannel
 export const ClinicTelegramChannelSchema = z.object({
   provider: TelegramProviderSchema,
   status: TelegramChannelStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
+  clinicId: z.string(),
+  organizationId: z.string(),
   botTokenEnc: z.string().nullable(),
   botUsername: z.string().nullable(),
   webhookSecret: z.string().nullable(),
   phoneNumber: z.string().nullable(),
   mtprotoSessionEnc: z.string().nullable(),
   lastError: z.string().nullable(),
-  clinicId: z.string(),
-  organizationId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

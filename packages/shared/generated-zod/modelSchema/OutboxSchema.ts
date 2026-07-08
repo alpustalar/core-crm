@@ -6,7 +6,7 @@ import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
 /////////////////////////////////////////
 
 export const OutboxSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   type: z.string(),
   payload: JsonValueSchema,
   createdAt: z.coerce.date(),

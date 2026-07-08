@@ -8,7 +8,7 @@ import { ENabizSyncStatusSchema } from '../inputTypeSchemas/ENabizSyncStatusSche
 
 export const ENabizSyncSchema = z.object({
   status: ENabizSyncStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   appointmentId: z.string(),
   referenceNo: z.string().nullable(),
   submittedAt: z.coerce.date().nullable(),

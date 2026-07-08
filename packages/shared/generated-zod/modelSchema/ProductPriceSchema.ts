@@ -10,7 +10,7 @@ import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 export const ProductPriceSchema = z.object({
   type: PriceTypeSchema,
   currency: CurrencySchema,
-  id: z.uuid(),
+  id: z.string(),
   productId: z.string(),
   clinicId: z.string().nullable(),
   amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'ProductPrice']"}),

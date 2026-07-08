@@ -5,11 +5,11 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const TreatmentCategoryTranslationSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  description: z.string().nullable(),
+  id: z.string(),
   languageId: z.string(),
   treatmentCategoryId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
 })
 
 export type TreatmentCategoryTranslation = z.infer<typeof TreatmentCategoryTranslationSchema>

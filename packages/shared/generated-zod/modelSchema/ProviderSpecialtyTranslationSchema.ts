@@ -5,7 +5,7 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ProviderSpecialtyTranslationSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   specialtyId: z.string(),
   languageId: z.string(),
   name: z.string(),

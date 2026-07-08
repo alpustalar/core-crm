@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BillingTargetSchema } from '../inputTypeSchemas/BillingTargetSchema'
 import { SubStatusSchema } from '../inputTypeSchemas/SubStatusSchema'
 
 /////////////////////////////////////////
@@ -6,9 +7,11 @@ import { SubStatusSchema } from '../inputTypeSchemas/SubStatusSchema'
 /////////////////////////////////////////
 
 export const SubscriptionSchema = z.object({
+  billingTarget: BillingTargetSchema,
   status: SubStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   organizationId: z.string(),
+  clinicId: z.string().nullable(),
   externalId: z.string().nullable(),
   trialEndsAt: z.coerce.date().nullable(),
   currentPeriodStart: z.coerce.date().nullable(),

@@ -8,12 +8,12 @@ import { IyzicoTransactionStatusSchema } from '../inputTypeSchemas/IyzicoTransac
 
 export const IyzicoTransactionSchema = z.object({
   status: IyzicoTransactionStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   installmentId: z.string(),
   conversationId: z.string(),
-  token: z.string().nullable(),
   iyzicoPaymentId: z.string().nullable(),
   iyzicoPaymentTransactionId: z.string().nullable(),
+  token: z.string().nullable(),
   rawResponse: JsonValueSchema.nullable(),
   errorCode: z.string().nullable(),
   errorMessage: z.string().nullable(),

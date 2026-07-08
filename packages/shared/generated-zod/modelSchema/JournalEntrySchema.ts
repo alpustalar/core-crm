@@ -7,16 +7,16 @@ import { JournalEntryStatusSchema } from '../inputTypeSchemas/JournalEntryStatus
 
 export const JournalEntrySchema = z.object({
   status: JournalEntryStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   clinicId: z.string(),
   organizationId: z.string(),
   periodId: z.string(),
-  entryNo: z.bigint().nullable(),
-  entryDate: z.coerce.date(),
-  description: z.string().nullable(),
   eventId: z.string().nullable(),
   reversedById: z.string().nullable(),
   performedById: z.string().nullable(),
+  entryNo: z.bigint().nullable(),
+  entryDate: z.coerce.date(),
+  description: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

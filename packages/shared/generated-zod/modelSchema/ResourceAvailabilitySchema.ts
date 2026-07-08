@@ -5,12 +5,12 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ResourceAvailabilitySchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
+  resourceId: z.string(),
   dayOfWeek: z.number().int(),
   startMinute: z.number().int(),
   endMinute: z.number().int(),
   isClosed: z.boolean(),
-  resourceId: z.string(),
 })
 
 export type ResourceAvailability = z.infer<typeof ResourceAvailabilitySchema>

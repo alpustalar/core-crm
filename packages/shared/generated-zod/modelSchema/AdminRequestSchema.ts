@@ -10,11 +10,11 @@ import { AdminRequestStatusSchema } from '../inputTypeSchemas/AdminRequestStatus
 export const AdminRequestSchema = z.object({
   type: AdminRequestTypeSchema,
   status: AdminRequestStatusSchema,
-  id: z.uuid(),
+  id: z.string(),
   targetId: z.string(),
-  requestedBy: z.string(),
   organizationId: z.string().nullable(),
   clinicId: z.string().nullable(),
+  requestedBy: z.string(),
   metadata: JsonValueSchema.nullable(),
   reviewedBy: z.string().nullable(),
   reviewedAt: z.coerce.date().nullable(),

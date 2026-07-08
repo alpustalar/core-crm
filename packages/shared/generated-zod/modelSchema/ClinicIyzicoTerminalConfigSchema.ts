@@ -5,12 +5,12 @@ import { z } from 'zod';
 /////////////////////////////////////////
 
 export const ClinicIyzicoTerminalConfigSchema = z.object({
-  id: z.uuid(),
+  id: z.string(),
   clientId: z.string(),
+  clinicId: z.string(),
   clientSecret: z.string(),
   username: z.string(),
   password: z.string(),
-  clinicId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })
