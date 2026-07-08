@@ -22,19 +22,22 @@ import {
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
+  IYZICO_TERMINAL_RETRYABLE_GROUPS,
   IyzicoTerminalAuthError,
   IyzicoTerminalOperationError,
-  IYZICO_TERMINAL_RETRYABLE_GROUPS,
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
+import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
 
 @CommandHandler(IyzicoTerminalVoidCommand)
-export class IyzicoTerminalVoidHandler implements ICommandHandler<
-  IyzicoTerminalVoidCommand,
-  IyzicoTerminalVoidResponse
-> {
+export class IyzicoTerminalVoidHandler
+  implements
+    ICommandHandler<IyzicoTerminalVoidCommand, IyzicoTerminalVoidResponse>
+{
   private readonly logger = new Logger(IyzicoTerminalVoidHandler.name);
 
   constructor(
@@ -80,26 +83,26 @@ export class IyzicoTerminalVoidHandler implements ICommandHandler<
       throw new PosDeviceNotFoundException();
     }
 
-    const deviceUniqueId = device.getIyzicoDeviceUniqueId();
+    const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
     const credentials = await this.credentialsResolver.resolve(input.clinicId);
+
+    const posTransaction = PosTransaction.create({
+      posDeviceId: device.id.value,
+      clinicId: input.clinicId,
+      paymentId: originalTx.paymentId ?? undefined,
+      amount: Number(originalTx.amount.amount),
+      currency: originalTx.amount.currency,
+    });
 
     // Faz 1 — PENDING iptal kaydı atomik olarak oluşturulur (HTTP öncesi)
     const { voidTransactionId, voidTx } = await this.txManager.outboxRun(
       async () => {
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
-          clinicId: input.clinicId,
-          paymentId: originalTx.paymentId ?? undefined,
-          amount: Number(originalTx.amount.amount),
-          currency: originalTx.amount.currency,
-        });
-        return { voidTransactionId: id, voidTx: tx };
+        const tx = await this.posTransactionCommandRepo.create(posTransaction);
+        return { voidTransactionId: tx.id.value, voidTx: tx };
       }
     );
 
-    // Faz 2 — iyzico Terminal iptal çağrısı (transaction dışında)
+    // Faz 2 — iyzico Terminal iptal çağrısı
     try {
       const result = await this.iyzicoTerminalService.voidPayment({
         credentials,
@@ -110,10 +113,11 @@ export class IyzicoTerminalVoidHandler implements ICommandHandler<
         paymentDate,
       });
 
-      const approved = result.status === 'SUCCESS';
+      const approved =
+        result.status === IyzicoTerminalStatusSchema.enum.SUCCESS;
       const externalRef = result.cancelHostReference ?? result.paymentId;
 
-      // Faz 3 — sonuç + orijinal ödemeyi iade/iptal işaretle atomik (outboxRun)
+      // Faz 3 — sonuç + orijinal ödemeyi iade/iptal işaretle
       await this.txManager.outboxRun(async () => {
         if (approved) {
           voidTx.markSuccess(externalRef, result);
@@ -182,10 +186,4 @@ export class IyzicoTerminalVoidHandler implements ICommandHandler<
       throw err;
     }
   }
-}
-
-/** Orijinal satış işleminin ham yanıtından iyzico paymentDate'ini çıkarır. */
-function extractIyzicoPaymentDate(rawResponse: unknown): string | undefined {
-  const raw = rawResponse as { paymentDate?: unknown } | null;
-  return typeof raw?.paymentDate === 'string' ? raw.paymentDate : undefined;
 }

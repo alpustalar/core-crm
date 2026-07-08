@@ -13,6 +13,8 @@ import {
   IMessageQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () => {
@@ -63,6 +65,10 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       execute: jest.fn().mockResolvedValue({ data: params.patient ?? null }),
     } as unknown as TSQueryBus;
 
+    const commandBus = {
+      execute: jest.fn().mockResolvedValue('lead-generated-1'),
+    } as unknown as TSCommandBus;
+
     const txManager = {
       outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
     } as unknown as TransactionManager;
@@ -73,12 +79,14 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       messageCommandRepo,
       messageQueryRepo,
       queryBus,
+      commandBus,
       txManager
     );
 
     return {
       handler,
       queryBus,
+      commandBus,
       messageCommandRepo,
       conversationCommandRepo,
       getSavedConversation: () => savedConversation,
@@ -160,6 +168,72 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
 
     expect(t.queryBus.execute).toHaveBeenCalledTimes(1);
     expect(t.getSavedConversation()!.patientId).toBe('p-7');
+  });
+
+  const adReferral = {
+    medium: 'AD' as const,
+    adId: 'ad-123',
+    sourceUrl: 'https://fb.me/x',
+    ctwaClid: 'ctwa-xyz',
+    headline: 'Saç Ekimi',
+    body: null,
+  };
+
+  it('reklam referral (WhatsApp): yeni misafir yazışmada attribution\'lı Lead üretilir ve bağlanır', async () => {
+    const t = build({ existingConversation: null, patient: null });
+
+    await t.handler.execute(
+      new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
+    );
+
+    // CreateLeadCommand dispatch edildi (kanal WHATSAPP, medium AD, attribution dolu).
+    expect(t.commandBus.execute).toHaveBeenCalledTimes(1);
+    const cmd = (t.commandBus.execute as jest.Mock).mock
+      .calls[0][0] as CreateLeadCommand;
+    expect(cmd).toBeInstanceOf(CreateLeadCommand);
+    expect(cmd.clinicId).toBe(baseInput.clinicId);
+    expect(cmd.dto.source).toBe('WHATSAPP');
+    expect(cmd.dto.medium).toBe('AD');
+    expect(cmd.dto.adId).toBe('ad-123');
+    expect(cmd.dto.ctwaClid).toBe('ctwa-xyz');
+    expect(cmd.dto.phone).toBe(baseInput.contactPhone);
+
+    // Dönen leadId yazışmaya bağlandı.
+    expect(t.getSavedConversation()!.leadId).toBe('lead-generated-1');
+  });
+
+  it('reklam referral ama hasta zaten kayıtlı: Lead üretilmez (misafir değil)', async () => {
+    const t = build({ existingConversation: null, patient: { id: 'patient-9' } });
+
+    await t.handler.execute(
+      new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
+    );
+
+    expect(t.commandBus.execute).not.toHaveBeenCalled();
+    expect(t.getSavedConversation()!.leadId).toBeNull();
+  });
+
+  it('referral yok: Lead üretilmez', async () => {
+    const t = build({ existingConversation: null, patient: null });
+
+    await t.handler.execute(new ReceiveInboundMessageCommand(baseInput));
+
+    expect(t.commandBus.execute).not.toHaveBeenCalled();
+  });
+
+  it('reklam referral ama var olan yazışma: Lead üretilmez (yalnız yeni yazışmada)', async () => {
+    const existing = Conversation.start({
+      clinicId: 'clinic-1',
+      organizationId: 'org-1',
+      contactPhone: baseInput.contactPhone,
+    });
+    const t = build({ existingConversation: existing, patient: null });
+
+    await t.handler.execute(
+      new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
+    );
+
+    expect(t.commandBus.execute).not.toHaveBeenCalled();
   });
 
   it('idempotency: aynı externalId tekrar gelirse yeni mesaj oluşturulmaz', async () => {

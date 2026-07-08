@@ -1,3 +1,17 @@
+enum AppointmentSource {
+  CLINIC_INTERNAL // Klinik içi (Sekreterya, Hekim Paneli)
+  PATIENT_PORTAL // Hasta Portalı (White-Label Portalın içi)
+  WEB_WIDGET // Kliniğin web sitesine gömdüğü randevu botu/widget'ı
+  INTEGRATION // Harici entegrasyonlar (Örn: DoktorTakvimi, WhatsApp Bot)
+}
+
+enum AppointmentCreatorType {
+  CLINIC_STAFF // Klinik personeli (Sekreter, Hekim, Yönetici)
+  PATIENT // Hastanın bizzat kendisi (Portal veya Widget üzerinden)
+  AI_AGENT // Yapay Zeka Ajanı (Sesli arama asistanı veya WhatsApp AI Ajanı)
+  SYSTEM // Sistem içi otomatik süreçler (Örn: Yinelenen randevu tetikleyicisi)
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
@@ -19,7 +33,7 @@ enum VisitType {
 }
 
 model Appointment {
-  id String @id @default(uuid())
+  id String @id
 
   patientName  String  @map("patient_name")
   patientPhone String  @map("patient_phone")
@@ -28,10 +42,21 @@ model Appointment {
   startTime DateTime @map("start_time")
   endTime   DateTime @map("end_time")
 
+  source AppointmentSource @default(CLINIC_INTERNAL) @map("source")
+
   timezone TimeZone @default(Europe_Istanbul)
 
   treatmentType String? @map("treatment_type")
   notes         String? @db.Text
+
+  approvedAt DateTime? @map("approved_at") // Onaylandığı an
+  approvedBy String?   @map("approved_by") // Onaylayan Personelin ID'si
+
+  creatorType AppointmentCreatorType @default(CLINIC_STAFF) @map("creator_type")
+
+  // Randevuyu oluşturanın kimliği (Polymorphic mantık)
+  createdById       String? @map("created_by_id") // Staff ID, Patient ID veya AI Agent Config ID
+  createdByRealName String? @map("created_by_real_name") // Raporlarda hızlı basmak için (Örn: "DentalAI v2", "Sekreter Ayça")
 
   status AppointmentStatus @default(PENDING)
 

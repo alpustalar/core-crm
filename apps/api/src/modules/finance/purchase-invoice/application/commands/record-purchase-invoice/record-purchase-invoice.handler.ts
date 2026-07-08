@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BadRequestException, Inject, Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { IGetContext } from '@common/decorators';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -18,6 +18,8 @@ import {
   PartyTypeSchema,
 } from '@shared';
 import { RecordPurchaseInvoiceCommand } from './record-purchase-invoice.command';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
 
 @CommandHandler(RecordPurchaseInvoiceCommand)
 export class RecordPurchaseInvoiceHandler
@@ -36,17 +38,16 @@ export class RecordPurchaseInvoiceHandler
     const { dto, ctx } = command;
     const clinicId = ctx.actor.clinicId;
     const organizationId = ctx.actor.organizationId;
-    if (!clinicId || !organizationId) {
-      throw new BadRequestException('Aktörün clinic/organization bağlamı yok.');
-    }
+    if (!clinicId) throw new ClinicNotAssignedException();
+    if (!organizationId) throw new OrganizationNotAssignedException();
 
-    const id = crypto.randomUUID();
+    const generatedPurchaseInvoiceId = crypto.randomUUID();
     const netTotal = new Decimal(dto.netTotal);
     const vatTotal = new Decimal(dto.vatTotal);
     const grandTotal = netTotal.plus(vatTotal);
 
     const invoice = PurchaseInvoice.create({
-      id,
+      id: generatedPurchaseInvoiceId,
       clinicId,
       organizationId,
       supplierId: dto.supplierId,
@@ -63,9 +64,9 @@ export class RecordPurchaseInvoiceHandler
     // Belge kaydı + muhasebe köprüsü aynı outboxRun içinde; köprü hatası try/catch ile
     // yutulur (belge kaydı geri alınmaz, olay dedupeKey ile sonradan üretilebilir).
     await this.txManager.outboxRun(async () => {
-      await this.purchaseInvoiceCommandRepo.save(invoice);
+      await this.purchaseInvoiceCommandRepo.create(invoice);
       await this.recordPurchaseInvoiceReceived({
-        purchaseInvoiceId: id,
+        purchaseInvoiceId: generatedPurchaseInvoiceId,
         clinicId,
         organizationId,
         supplierId: dto.supplierId,
@@ -81,7 +82,7 @@ export class RecordPurchaseInvoiceHandler
       });
     });
 
-    return id;
+    return generatedPurchaseInvoiceId;
   }
 
   /**
@@ -89,6 +90,7 @@ export class RecordPurchaseInvoiceHandler
    * eder ve PURCHASE_INVOICE_RECEIVED olayını yazar. Olay Outbox'a düşer; posting
    * listener'ı fişi (150/770 + 191 / 320) üretir. dedupeKey ile idempotenttir.
    */
+
   private async recordPurchaseInvoiceReceived(
     input: RecordPurchaseInvoiceReceivedInput
   ): Promise<void> {
@@ -109,6 +111,8 @@ export class RecordPurchaseInvoiceHandler
           input.ctx
         )
       );
+
+      // TODO: burdaki source module dedupe key gibi alanları daha sistemik bi hale getiricez belki bi fonksiyon içinde constantlarla kullanılabilir
 
       await this.commandBus.execute(
         new RecordFinancialEventCommand(

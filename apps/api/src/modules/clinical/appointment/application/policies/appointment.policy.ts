@@ -33,8 +33,8 @@ export class AppointmentPolicy extends ClinicPolicy {
     const isManager = this.actorCanManageTargetClinic(appointment.clinicId);
 
     const groups: AppointmentResponseGroup[] = [
-      isSelf && AppointmentsResponseGroups.DATA_OWNER,
-      isProvider && AppointmentsResponseGroups.PROVIDER,
+      isSelf && AppointmentsResponseGroups.PROVIDER_DATA_OWNER,
+      isProvider && AppointmentsResponseGroups.INTERNAL,
       isManager && AppointmentsResponseGroups.MANAGEMENT,
       isManager && AppointmentsResponseGroups.FINANCIAL,
       isAdmin && AppointmentsResponseGroups.ADMIN,
@@ -50,18 +50,5 @@ export class AppointmentPolicy extends ClinicPolicy {
       ),
       groups,
     };
-  }
-
-  canCancelOwnBooking(appointment: {
-    patientId: string | null;
-    patientEmail: string | null;
-  }): boolean {
-    if (appointment.patientId && this.actor.patientId) {
-      return appointment.patientId === this.actor.patientId;
-    }
-    if (appointment.patientEmail) {
-      return appointment.patientEmail === this.actor.email;
-    }
-    return false;
   }
 }

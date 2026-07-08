@@ -7,7 +7,7 @@ import { IProductQueryRepository } from '@modules/supply/inventory/domain/reposi
 import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
 
 import { Decimal } from 'decimal.js';
-import { StockLevel } from '@modules/supply/inventory/domain/supply.contracts';
+import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
 
 @Injectable()
 export class ProductQueryRepository

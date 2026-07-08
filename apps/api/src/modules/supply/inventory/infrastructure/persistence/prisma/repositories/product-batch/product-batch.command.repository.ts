@@ -19,12 +19,19 @@ export class ProductBatchCommandRepository
     return raw ? new ProductBatch(raw) : null;
   }
 
-  async save(batch: ProductBatch): Promise<ProductBatch> {
+  async create(batch: ProductBatch): Promise<ProductBatch> {
     const data = batch.toPersistence();
-    const raw = await this.db.productBatch.upsert({
-      where: { id: data.id },
-      create: data,
-      update: { quantity: data.quantity, updatedAt: new Date() },
+    const raw = await this.db.productBatch.create({ data });
+    batch.flushEvents();
+    return new ProductBatch(raw);
+  }
+
+  async save(batch: ProductBatch): Promise<ProductBatch> {
+    const create = batch.toPersistence();
+    const { id, ...data } = create;
+    const raw = await this.db.productBatch.update({
+      where: { id },
+      data,
     });
     batch.flushEvents();
     return new ProductBatch(raw);
@@ -32,14 +39,11 @@ export class ProductBatchCommandRepository
 
   async saveMany(batches: ProductBatch[]): Promise<void> {
     const prismaQueries = batches.map((batch) => {
-      const data = batch.toPersistence();
-      return this.db.productBatch.upsert({
-        where: { id: data.id },
-        create: data,
-        update: {
-          quantity: data.quantity,
-          updatedAt: new Date(),
-        },
+      const create = batch.toPersistence();
+      const { id, ...data } = create;
+      return this.db.productBatch.update({
+        where: { id },
+        data,
       });
     });
 

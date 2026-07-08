@@ -19,6 +19,9 @@ import {
 import {
   GetClinicGovernmentSpecsQuery
 } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
+import {
+  GetClinicOrganizationIdQuery
+} from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import {
   EnsurePartyForPatientCommand
@@ -68,6 +71,8 @@ export class IssueInvoiceHandler
     }
 
     const invoiceId = UUID.generate().value;
+    // Fatura hem kliniğe hem organizasyona bağlıdır; org, kliniğin sahibi org'undan çözülür.
+    const organizationId = await this.resolveOrganizationId(input.clinicId);
     // KDV oranı parametriktir: açıkça verilmemişse şubenin geçerli sağlık KDV'sini çöz.
     const vatRate =
       input.vatRate ?? (await this.resolveVatRate(input.clinicId));
@@ -81,6 +86,7 @@ export class IssueInvoiceHandler
     await this.txManager.outboxRun(async () => {
       await this.invoiceCommandRepo.create({
         id: invoiceId,
+        organizationId,
         clinicId: input.clinicId,
         patientId: input.patientId,
         appointmentId: input.appointmentId,
@@ -127,6 +133,14 @@ export class IssueInvoiceHandler
         error
       );
     }
+  }
+
+  /** Kliniğin bağlı olduğu organizasyonun id'sini çözer (bounded context — QueryBus). */
+  private async resolveOrganizationId(clinicId: string): Promise<string> {
+    const { data } = await this.queryBus.execute(
+      new GetClinicOrganizationIdQuery(clinicId)
+    );
+    return data;
   }
 
   /** Şubenin bugün geçerli sağlık hizmeti KDV oranını parametrik tablodan çözer. */

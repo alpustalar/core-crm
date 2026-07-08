@@ -36,6 +36,24 @@ export interface WhatsappContext {
   from?: string;
 }
 
+/**
+ * Click-to-WhatsApp reklam referral'ı — kişi "Mesaj Gönder" reklamına tıklayınca ilk gelen
+ * mesaja iliştirilir. `source_type: 'ad'` reklamdan geldiğini, `source_id` reklam id'sini,
+ * `ctwa_clid` tıklama id'sini (Conversions API için) taşır.
+ * https://developers.facebook.com/docs/whatsapp/cloud-api/guides/track-your-ads
+ */
+export interface WhatsappReferral {
+  source_type?: string; // 'ad' | 'post'
+  source_id?: string; // reklam (ad) id'si
+  source_url?: string;
+  headline?: string;
+  body?: string;
+  media_type?: string;
+  image_url?: string;
+  video_url?: string;
+  ctwa_clid?: string; // Click-to-WhatsApp click id
+}
+
 export interface WhatsappInboundMessage {
   from: string; // gönderenin telefon numarası (wa_id)
   id: string; // WhatsApp mesaj id'si
@@ -52,6 +70,7 @@ export interface WhatsappInboundMessage {
   reaction?: WhatsappReaction;
   contacts?: unknown[];
   context?: WhatsappContext;
+  referral?: WhatsappReferral; // reklamdan (Click-to-WhatsApp) geldiyse dolu
 }
 
 export interface WhatsappStatus {

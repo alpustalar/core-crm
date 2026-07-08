@@ -9,7 +9,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetStockMovementsQuery)

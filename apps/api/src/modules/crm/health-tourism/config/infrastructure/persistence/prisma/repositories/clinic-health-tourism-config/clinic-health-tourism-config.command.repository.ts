@@ -20,6 +20,15 @@ export class ClinicHealthTourismConfigCommandRepository
     return raw ? new ClinicHealthTourismConfig(raw) : null;
   }
 
+  async create(
+    entity: ClinicHealthTourismConfig
+  ): Promise<ClinicHealthTourismConfig> {
+    const data = entity.toPersistence();
+    const raw = await this.db.clinicHealthTourismConfig.create({ data });
+    entity.flushEvents();
+    return new ClinicHealthTourismConfig(raw);
+  }
+
   async save(
     entity: ClinicHealthTourismConfig
   ): Promise<ClinicHealthTourismConfig> {
@@ -38,6 +47,20 @@ export class ClinicHealthTourismConfigCommandRepository
         serviceFeePercent: data.serviceFeePercent,
         defaultCurrency: data.defaultCurrency,
       },
+    });
+    entity.flushEvents();
+    return new ClinicHealthTourismConfig(raw);
+  }
+
+  async sync(
+    entity: ClinicHealthTourismConfig
+  ): Promise<ClinicHealthTourismConfig> {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
+    const raw = await this.db.clinicHealthTourismConfig.upsert({
+      where: { id },
+      create,
+      update,
     });
     entity.flushEvents();
     return new ClinicHealthTourismConfig(raw);

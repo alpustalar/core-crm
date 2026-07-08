@@ -14,8 +14,6 @@ import {
 } from '@modules/clinical/treatment-package/domain/contracts/patient-treatment-package.contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
 import {
-  InvalidTreatmentPackageCancelException,
-  InvalidTreatmentPackageCompletionException,
   InvalidTreatmentPackageResumeException,
   InvalidTreatmentPackageStatusException,
 } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
@@ -23,7 +21,8 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Guard } from '@common/domain/guards';
-import { isDefined } from '@common/utils';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { shouldValidate } from '@common/domain/utils/should-validate';
 
 interface IPatientPackageValidator {
   status: {
@@ -51,7 +50,7 @@ export class PatientTreatmentPackage extends AggregateRoot {
     this._providerId = UUID.fromTrusted(data.providerId);
     this._paymentId = data.paymentId ?? null;
 
-    this._dateRange = DateRange.create(data.startDate, data.endDate).orThrow();
+    this._dateRange = DateRange.fromTrusted(data.startDate, data.endDate);
 
     this._notes = data.notes ?? null;
     this._status = data.status;
@@ -144,17 +143,17 @@ export class PatientTreatmentPackage extends AggregateRoot {
   public get validate(): IPatientPackageValidator {
     const self = this;
 
-    const isActive = this.isActive;
-    const isCompleted = this.isCompleted;
-    const isCancelled = this.isCancelled;
-    const isSuspended = this.isSuspended;
-    const isExpired = self.isExpired;
+    const isActive = this._isActive;
+    const isCompleted = this._isCompleted;
+    const isCancelled = this._isCancelled;
+    const isSuspended = this._isSuspended;
+    const isExpired = self._isExpired;
 
-    const canComplete = this.canComplete;
-    const canCancel = this.canCancel;
-    const canSuspend = this.canSuspend;
-    const canResume = this.canResume;
-    const canUncancel = this.canUncancel;
+    const canComplete = this._canComplete;
+    const canCancel = this._canCancel;
+    const canSuspend = this._canSuspend;
+    const canResume = this._canResume;
+    const canUncancel = this._canUncancel;
     return {
       status: {
         get isActive() {
@@ -194,76 +193,111 @@ export class PatientTreatmentPackage extends AggregateRoot {
     };
   }
 
-  private get isExpired() {
+  private get _isExpired() {
     const { isExpired, isValid } = this._dateRange.validate.expiration;
     return Guard.monitor(
       isExpired,
       isValid,
-      new Error('Paketin süresi dolmuş.')
+      () => new Error('Paketin süresi dolmuş.')
     );
   }
 
-  private get canSuspend() {
-    const can = this.isActive.value && !this.isExpired.value;
-    return Guard.monitor(can, can, new Error('Bu paket askıya alınamaz'));
-  }
-
-  private get canResume() {
-    const can = this.isSuspended.value && !this.isExpired.value;
-    return Guard.monitor(can, can, new Error('Bu paket devam ettirilemez'));
-  }
-
-  private get canUncancel() {
-    const can = this.isCancelled.value && !this.isExpired.value;
+  private get _canSuspend() {
+    const can = this._isActive.value && !this._isExpired.value;
     return Guard.monitor(
       can,
       can,
-      new Error('Bu paket tekrar aktif hale getirilemez')
+      () =>
+        new InvalidTreatmentPackageStatusException(this.status, this.id.value)
     );
   }
 
-  private get canComplete() {
-    const can = this.isActive.value && !this.isExpired.value;
-    return Guard.monitor(can, can, new Error('Bu paket tamamlanabilir değil'));
+  private get _canResume() {
+    const can = this._isSuspended.value && !this._isExpired.value;
+    return Guard.monitor(
+      can,
+      can,
+      () => new Error('Bu paket devam ettirilemez')
+    );
   }
 
-  private get canCancel() {
-    const can = !this.isCompleted.value && !this.isCancelled.value;
-    return Guard.monitor(can, can, new Error('Bu paket iptal edilemez.'));
+  private get _canUncancel() {
+    const can = this._isCancelled.value && !this._isExpired.value;
+    return Guard.monitor(
+      can,
+      can,
+      () => new Error('Bu paket tekrar aktif hale getirilemez')
+    );
   }
 
-  private get isCompleted() {
+  private get _canComplete() {
+    const can = this._isActive.value && !this._isExpired.value;
+    return Guard.monitor(
+      can,
+      can,
+      () => new Error('Bu paket tamamlanabilir değil')
+    );
+  }
+
+  private get _canCancel() {
+    const can = !this._isCompleted.value && !this._isCancelled.value;
+    return Guard.monitor(can, can, () => new Error('Bu paket iptal edilemez.'));
+  }
+
+  private get _isCompleted() {
     const isComplete =
       this._status === PatientPackageStatusSchema.enum.COMPLETED;
     return Guard.monitor(
       isComplete,
       isComplete,
-      new Error('Paket kapalı değil')
+      () => new Error('Paket kapalı değil')
     );
   }
 
-  private get isCancelled() {
+  private get _isCancelled() {
     const isCancel = this._status === PatientPackageStatusSchema.enum.CANCELLED;
     return Guard.monitor(
       isCancel,
       isCancel,
-      new Error('Paket iptal edilmemiş')
+      () => new Error('Paket iptal edilmemiş')
     );
   }
 
-  private get isActive() {
+  private get _isActive() {
     const isActive = this._status === PatientPackageStatusSchema.enum.ACTIVE;
-    return Guard.monitor(isActive, isActive, new Error('Paket aktif değil'));
+    return Guard.monitor(
+      isActive,
+      isActive,
+      () => new Error('Paket aktif değil')
+    );
   }
 
-  private get isSuspended() {
+  private get _isSuspended() {
     const isSuspend =
       this._status === PatientPackageStatusSchema.enum.SUSPENDED;
     return Guard.monitor(
       isSuspend,
       isSuspend,
-      new Error('Paket askıya alınmamış')
+      () => new Error('Paket askıya alınmamış')
     );
+  }
+
+  private get _businessRulesValidator() {
+    return {
+      reactivate: () => {
+        const valid = this._isCancelled.value;
+        return {
+          valid,
+          isInvalid: !valid,
+          orThrow: () => {
+            if (!valid)
+              throw new Error(
+                'Sadece iptal edilmiş paketler yeniden etkinleştirilebilir.'
+              );
+          },
+        };
+      },
+    };
   }
 
   static create(
@@ -296,50 +330,6 @@ export class PatientTreatmentPackage extends AggregateRoot {
   }
 
   update(props: UpdatePatientTreatmentPackageProps): void {
-    if (isDefined(props.status) && props.status !== this._status) {
-      const statusTransitionMap: Record<PatientPackageStatus, () => void> = {
-        [PatientPackageStatusSchema.enum.SUSPENDED]: () => {
-          if (!this.validate.lifecycle.canSuspend.value)
-            throw new InvalidTreatmentPackageStatusException(
-              this.status,
-              this.id.value
-            );
-        },
-        [PatientPackageStatusSchema.enum.COMPLETED]: () => {
-          if (!this.validate.lifecycle.canComplete.value)
-            throw new InvalidTreatmentPackageCompletionException(
-              this.status,
-              this.id.value
-            );
-        },
-        [PatientPackageStatusSchema.enum.CANCELLED]: () => {
-          if (!this.validate.lifecycle.canCancel.value)
-            throw new InvalidTreatmentPackageCancelException(
-              this.status,
-              this.id.value
-            );
-        },
-        [PatientPackageStatusSchema.enum.ACTIVE]: () => {
-          const canTransition = this.validate.status.isSuspended.value
-            ? this.validate.lifecycle.canResume.value
-            : this.validate.lifecycle.canUncancel.value;
-
-          if (!canTransition) {
-            throw new Error(
-              'Paket mevcut durumundan aktif duruma geçirilemez.'
-            );
-          }
-        },
-      };
-
-      const transitionGuard = statusTransitionMap[props.status];
-      if (transitionGuard) {
-        transitionGuard();
-      }
-
-      this._status = props.status;
-    }
-
     if (isNotUndefined(props.providerId)) {
       this._providerId = UUID.create(props.providerId).orThrow();
     }
@@ -361,36 +351,31 @@ export class PatientTreatmentPackage extends AggregateRoot {
     this._updatedAt = DateTimeManager.create();
   }
 
-  complete(): void {
+  complete(options = DefaultValidateOptions): void {
+    if (shouldValidate(options)) this._canComplete.orThrow();
     this._status = PatientPackageStatusSchema.enum.COMPLETED;
   }
 
-  cancel(): void {
+  cancel(options = DefaultValidateOptions): void {
+    if (shouldValidate(options)) this._isCancelled.orThrow();
     this._status = PatientPackageStatusSchema.enum.CANCELLED;
   }
 
-  reactivate(): void {
-    if (this.isCancelled.value) {
-      throw new Error(
-        'Sadece iptal edilmiş paketler yeniden etkinleştirilebilir.'
-      );
-    }
+  reactivate(options = DefaultValidateOptions): void {
+    if (shouldValidate(options))
+      this._businessRulesValidator.reactivate().orThrow();
+
     this._status = PatientPackageStatusSchema.enum.ACTIVE;
     this._updatedAt = DateTimeManager.create();
   }
 
-  suspend(): void {
-    if (!this.isActive.value) {
-      throw new InvalidTreatmentPackageStatusException(
-        this.status,
-        this.id.value
-      );
-    }
+  suspend(options = DefaultValidateOptions): void {
+    if (shouldValidate(options)) this._canSuspend.orThrow();
     this._status = PatientPackageStatusSchema.enum.SUSPENDED;
   }
 
   resume(): void {
-    if (!this.isSuspended.value) {
+    if (!this._isSuspended.value) {
       throw new InvalidTreatmentPackageResumeException(
         this.status,
         this.id.value

@@ -13,6 +13,7 @@ export class ExecutionPolicy {
       ExecutionSources.INTERNAL_CASCADE,
       ExecutionSources.SYSTEM_CRON,
       ExecutionSources.DATA_IMPORT,
+      ExecutionSources.AI_EXECUTION,
     ];
     return systemSources.includes(source);
   }

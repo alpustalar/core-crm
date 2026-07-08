@@ -13,12 +13,13 @@ import {
   IyzicoTerminalAuthError,
   IyzicoTerminalOperationError,
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(IyzicoTerminalEodCommand)
-export class IyzicoTerminalEodHandler implements ICommandHandler<
-  IyzicoTerminalEodCommand,
-  IyzicoTerminalEodResponse
-> {
+export class IyzicoTerminalEodHandler
+  implements
+    ICommandHandler<IyzicoTerminalEodCommand, IyzicoTerminalEodResponse>
+{
   private readonly logger = new Logger(IyzicoTerminalEodHandler.name);
 
   constructor(
@@ -34,18 +35,21 @@ export class IyzicoTerminalEodHandler implements ICommandHandler<
     const { input } = command;
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
 
-    const deviceUniqueId = device.getIyzicoDeviceUniqueId();
+    device.validate.status.isActive().orThrow();
+
+    const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
+
     const credentials = await this.credentialsResolver.resolve(input.clinicId);
 
     try {
       const result = await this.iyzicoTerminalService.endOfDay({
         credentials,
         deviceUniqueId,
-        conversationId: crypto.randomUUID(),
+        conversationId: UUID.generate().value,
         useSummary: input.useSummary,
       });
 

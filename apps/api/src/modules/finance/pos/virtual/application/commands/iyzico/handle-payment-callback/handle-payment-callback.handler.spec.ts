@@ -16,7 +16,6 @@ import {
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
@@ -69,6 +68,7 @@ describe('HandlePaymentCallbackHandler', () => {
   beforeEach(async () => {
     const mockIyzicoProvider: jest.Mocked<IIyzicoProvider> = {
       retrieveCheckoutForm: jest.fn(),
+      chargeWithSavedCard: jest.fn(),
       paymentInitialize: jest.fn(),
       refund: jest.fn(),
       getInstallmentInfo: jest.fn(),
@@ -99,7 +99,6 @@ describe('HandlePaymentCallbackHandler', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HandlePaymentCallbackHandler,
-        PaymentDomainService,
         { provide: IYZICO_PROVIDER, useValue: mockIyzicoProvider },
         {
           provide: IYZICO_TRANSACTION_QUERY_REPOSITORY,

@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BookingPaymentCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<BookingPayment>
   implements IBookingPaymentCommandRepository
 {
   constructor(prisma: PrismaService) {
@@ -16,12 +16,9 @@ export class BookingPaymentCommandRepository
 
   async save(entity: BookingPayment): Promise<BookingPayment> {
     const data = entity.toPersistence();
-    const create = data as unknown as Prisma.BookingPaymentUncheckedCreateInput;
-
-    const raw = await this.db.bookingPayment.upsert({
+    const raw = await this.db.bookingPayment.update({
       where: { id: data.id },
-      create,
-      update: {
+      data: {
         status: data.status,
         iyzicoConversationId: data.iyzicoConversationId,
         iyzicoToken: data.iyzicoToken,
@@ -40,5 +37,24 @@ export class BookingPaymentCommandRepository
 
     entity.flushEvents();
     return new BookingPayment(raw);
+  }
+
+  async create(entity: BookingPayment): Promise<BookingPayment> {
+    const create = entity.toPersistence();
+    const { intent, ...rest } = create;
+
+    const data = {
+      ...rest,
+      intent: intent ?? Prisma.JsonNull,
+    };
+
+    const raw = await this.db.bookingPayment.create({ data });
+    entity.flushEvents();
+    return new BookingPayment(raw);
+  }
+
+  async findById(id: string): Promise<BookingPayment | null> {
+    const raw = await this.db.bookingPayment.findUnique({ where: { id } });
+    return raw ? new BookingPayment(raw) : null;
   }
 }

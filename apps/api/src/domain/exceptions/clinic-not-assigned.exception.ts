@@ -4,7 +4,6 @@ import { ERROR_CODES } from '@common/constants/error-codes.constant';
 
 export class ClinicNotAssignedException extends DomainException {
   public readonly errorCode = ERROR_CODES.AUTH.CLINIC_NOT_ASSIGNED;
-
   public override readonly httpStatus = HttpStatus.BAD_REQUEST;
 
   constructor(

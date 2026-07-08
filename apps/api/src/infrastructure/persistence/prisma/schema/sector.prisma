@@ -6,7 +6,7 @@ enum SectorType {
 }
 
 model Sector {
-  id   String     @id @default(uuid())
+  id   String     @id
   slug String     @unique
   name SectorType
 

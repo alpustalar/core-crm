@@ -19,6 +19,13 @@ export class OrganizationCommandRepository
     return raw ? new Organization(raw) : null;
   }
 
+  async create(entity: Organization): Promise<Organization> {
+    const data = entity.toPersistence();
+    const raw = await this.db.organization.create({ data });
+    entity.flushEvents();
+    return new Organization(raw);
+  }
+
   async save(entity: Organization): Promise<Organization> {
     const data = entity.toPersistence();
 

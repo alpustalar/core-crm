@@ -3,26 +3,35 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { Coordinates } from '@src/domain/value-objects/coordinates.vo';
 import { CreateHotelbedsHotelProps } from '@modules/crm/health-tourism/hotel/domain/contracts/hotelbeds-hotel.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
-export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
+export class HotelbedsHotel extends AggregateRoot {
   constructor(data: IHotelbedsHotel) {
     super();
-    this._id = data.id;
-    this._name = data.name;
+
+    this._id = UUID.fromTrusted(data.id);
+    this._name = Name.fromTrusted(data.name);
     this._categoryCode = data.categoryCode;
-    this._categoryName = data.categoryName;
+
+    this._categoryName = data.categoryName
+      ? Name.create(data.categoryName).value
+      : null;
     this._destinationCode = data.destinationCode;
-    this._destinationName = data.destinationName;
+
+    this._destinationName = data.destinationName
+      ? Name.create(data.destinationName).value
+      : null;
+
     this._address = data.address;
-    this._latitude = data.latitude;
-    this._longitude = data.longitude;
+
     this._images = data.images;
     this._phones = data.phones;
     this._lastSyncedAt = data.lastSyncedAt;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
 
-    // 🚀 Constructor içinde ham veriden VO üretiyoruz (Gözden kaçan atama eklendi)
     this._coordinates =
       Coordinates.create(data.latitude, data.longitude).instance ?? null;
   }
@@ -30,13 +39,13 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
   // ────────────────────────────────────────────────────────────────────────────
   // Private Properties & Getters
   // ────────────────────────────────────────────────────────────────────────────
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
@@ -45,8 +54,8 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
     return this._categoryCode;
   }
 
-  private _categoryName: string | null;
-  get categoryName(): string | null {
+  private _categoryName: Name | null;
+  get categoryName(): Name | null {
     return this._categoryName;
   }
 
@@ -55,8 +64,8 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
     return this._destinationCode;
   }
 
-  private _destinationName: string | null;
-  get destinationName(): string | null {
+  private _destinationName: Name | null;
+  get destinationName(): Name | null {
     return this._destinationName;
   }
 
@@ -65,17 +74,14 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
     return this._address;
   }
 
-  private _latitude: number | null;
   get latitude(): number | null {
     return this._coordinates?.longitude ?? null;
   }
 
-  private _longitude: number | null;
   get longitude(): number | null {
     return this._coordinates?.longitude ?? null;
   }
 
-  // 🚀 Zenginleştirilmiş İş Kuralları İçin VO Getteri
   private _coordinates: Coordinates | null;
   get coordinates(): Coordinates | null {
     return this._coordinates;
@@ -115,8 +121,12 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
       props.longitude
     ).instance;
 
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
+    const now = DateTimeManager.create();
+
     return new HotelbedsHotel({
-      id: props.id ?? crypto.randomUUID(),
+      id: id.value,
       name: props.name,
       categoryCode: props.categoryCode,
       categoryName: props.categoryName ?? null,
@@ -127,15 +137,11 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
       longitude: coordinates?.longitude ?? null,
       images: props.images ?? null,
       phones: props.phones ?? null,
-      lastSyncedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      lastSyncedAt: now,
+      createdAt: now,
+      updatedAt: now,
     });
   }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // 🎯 Domain Davranışları (Zengin İş Kuralları)
-  // ────────────────────────────────────────────────────────────────────────────
 
   /**
    * Otelin verilen başka bir lokasyona (Örn: Havalimanı veya merkeze) olan mesafesini metre cinsinden söyler.
@@ -150,7 +156,6 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
    */
   public updateCoordinates(coordinates: Coordinates): void {
     this._coordinates = coordinates;
-    this._updatedAt = new Date();
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -158,20 +163,20 @@ export class HotelbedsHotel extends AggregateRoot implements IHotelbedsHotel {
   // ────────────────────────────────────────────────────────────────────────────
   public toPersistence(): IHotelbedsHotel {
     return {
-      id: this._id,
-      name: this._name,
-      categoryCode: this._categoryCode,
-      categoryName: this._categoryName,
-      destinationCode: this._destinationCode,
-      destinationName: this._destinationName,
-      address: this._address,
-      latitude: this._latitude,
-      longitude: this._longitude,
-      images: this._images ?? null,
-      phones: this._phones ?? null,
-      lastSyncedAt: this._lastSyncedAt,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      id: this.id.value,
+      name: this.name.value,
+      categoryCode: this.categoryCode,
+      categoryName: this.categoryName?.value ?? null,
+      destinationCode: this.destinationCode,
+      destinationName: this.destinationName?.value ?? null,
+      address: this.address,
+      latitude: this.latitude,
+      longitude: this.longitude,
+      images: this.images ?? null,
+      phones: this.phones ?? null,
+      lastSyncedAt: this.lastSyncedAt,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

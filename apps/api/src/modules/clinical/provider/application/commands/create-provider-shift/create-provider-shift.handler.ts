@@ -4,7 +4,7 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
@@ -12,7 +12,6 @@ import {
 
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { CreateProviderShiftCommand } from './create-provider-shift.command';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import {
@@ -48,7 +47,7 @@ export class CreateProviderShiftHandler
 
     this.policyFactory
       .provider(actor)
-      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
+      .evaluator.systemBypass(source)
       .check((p) => p.isTargetInActorsSameClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.SHIFT_CREATED);
 

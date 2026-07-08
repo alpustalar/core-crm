@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { IGetContext } from '@common/decorators';
+import { IGetContext, IGetPatientContext } from '@common/decorators';
 import { ActorContext } from '@common/interfaces';
 import { SYSTEM_ACTOR } from '@common/constants/system-actor.constant';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
+import { MessageChannelType } from '@input-type-schemas/MessageChannelSchema';
 import {
   AiToolCall,
   AiToolContext,
@@ -207,6 +208,22 @@ export class AiToolExecutor implements IAiToolExecutor {
     };
   }
 
+  /** Mesajlaşma kanalını LeadSource'a eşler (örtüşenler direkt; diğerleri MANUAL). */
+  private channelToLeadSource(
+    channel: MessageChannelType
+  ): CreateLeadDto['source'] {
+    switch (channel) {
+      case 'WHATSAPP':
+        return 'WHATSAPP';
+      case 'INSTAGRAM':
+        return 'INSTAGRAM';
+      case 'TELEGRAM':
+        return 'TELEGRAM';
+      default:
+        return 'MANUAL';
+    }
+  }
+
   /** Kliniğin IANA zaman dilimini bus üzerinden çözer (yerel saat → UTC çevirimi için). */
   private async getClinicTimezone(
     context: AiToolContext
@@ -329,7 +346,7 @@ export class AiToolExecutor implements IAiToolExecutor {
   /**
    * Bir doktorun verilen gündeki hazır boş slotlarını (klinik yerel saatinde)
    * döner. AI bu çıktıyı doğrudan hastaya sunar — boş slot aritmetiği LLM'e
-   * bırakılmaz (eskiden check_provider_availability + LLM hesabı yapılıyordu).
+   * bırakılmaz
    */
   private async suggestSlots(
     input: Record<string, unknown>,
@@ -564,7 +581,9 @@ export class AiToolExecutor implements IAiToolExecutor {
 
     const ctx = this.buildClinicContext(context);
     const dto: CreateLeadDto = {
-      source: isWhatsApp ? 'WHATSAPP' : 'MANUAL',
+      // Kanal LeadSource ile örtüşür (WHATSAPP/INSTAGRAM/TELEGRAM); değilse MANUAL.
+      source: this.channelToLeadSource(context.channel),
+      medium: 'ORGANIC',
       name,
       phone,
       notes: `AI sohbet asistanı üzerinden kayıt (kanal: ${context.channel}).`,
@@ -591,7 +610,6 @@ export class AiToolExecutor implements IAiToolExecutor {
     input: Record<string, unknown>,
     context: AiToolContext
   ): Promise<AiToolResult> {
-    const ctx = this.buildClinicContext(context);
     const appointmentId = this.requireId(input.appointmentId);
     if (!appointmentId) {
       return { content: 'İptal için geçerli bir randevu kimliği gerekli.' };
@@ -610,8 +628,15 @@ export class AiToolExecutor implements IAiToolExecutor {
       cancelReason: typeof input.reason === 'string' ? input.reason : undefined,
     };
 
+    const patientActorContext = createPatientActorContext({
+      phone: context.contactPhone,
+      clinicId: context.clinicId,
+      organizationId: context.organizationId,
+      patientId: context.patientId!,
+    });
+
     const result = await this.commandBus.execute(
-      new PatientCancelAppointmentCommand(dto, ctx)
+      new PatientCancelAppointmentCommand(dto, patientActorContext)
     );
 
     const message =
@@ -1408,4 +1433,21 @@ export class AiToolExecutor implements IAiToolExecutor {
       isHandoff: true,
     };
   }
+}
+
+function createPatientActorContext({
+  phone,
+  patientId,
+  organizationId,
+  clinicId,
+}: {
+  phone: string;
+  patientId: string;
+  organizationId: string;
+  clinicId: string;
+}): IGetPatientContext {
+  return {
+    actor: { phone, patientId, organizationId, clinicId },
+    source: ExecutionSources.AI_EXECUTION,
+  };
 }

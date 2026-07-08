@@ -33,7 +33,7 @@ export class SyncCampaignMetricsHandler
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
     private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_CAMPAIGN_METRIC_COMMAND_REPOSITORY)
-    private readonly metricCommandRepo: IMetaCampaignMetricCommandRepository,
+    private readonly metaCampaignMetricCommandRepo: IMetaCampaignMetricCommandRepository,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService
@@ -47,22 +47,23 @@ export class SyncCampaignMetricsHandler
       : await this.accountQueryRepo.findAllActive();
 
     const yesterday = DateTimeManager.subtractDays(new Date(), 1);
-    const dateStr = DateTimeManager.toDateString(yesterday);
+    const dateString = DateTimeManager.toDateString(yesterday);
 
     let syncedMetrics = 0;
 
     for (const account of accounts) {
       try {
         const token = this.tokenCipher.decrypt(account.accessToken);
+
         const insights = await this.metaApi.getCampaignInsights(
           account.adAccountId,
           token,
-          dateStr,
-          dateStr
+          dateString,
+          dateString
         );
 
         if (insights.length > 0) {
-          await this.metricCommandRepo.saveMany(
+          await this.metaCampaignMetricCommandRepo.saveMany(
             insights.map((insight) => ({
               id: randomUUID(),
               metaAdAccountId: account.id.value,

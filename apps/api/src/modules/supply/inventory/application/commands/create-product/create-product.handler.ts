@@ -7,6 +7,11 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { CreateProductCommand } from './create-product.command';
+import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateProductCommand)
 export class CreateProductHandler
@@ -15,32 +20,35 @@ export class CreateProductHandler
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productCommandRepo: IProductCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateProductCommand): Promise<string> {
     const { dto, ctx } = command;
-    const { actor } = ctx;
+    const { actor, source } = ctx;
 
-    // TODO: controllera capability guard ekle
+    if (!actor.organizationId) throw new OrganizationNotAssignedException();
+
+    if (!actor.clinicId) {
+      this.policyFactory
+        .clinic(actor)
+        .evaluator.systemBypass(source)
+        .check((p) => p.actorCanAccessTargetClinic(dto.clinicId))
+        .orThrow();
+    }
+
+    const product = Product.create({
+      vatRate: dto.vatRate ?? 0,
+      criticalStockQty: dto.criticalStockQty ?? 0,
+      reorderQty: dto.reorderQty ?? 0,
+      organizationId: actor.organizationId,
+      ...dto,
+    });
 
     return this.txManager.run(async () => {
-      const product = Product.create({
-        name: dto.name,
-        stockCode: dto.stockCode,
-        barcode: dto.barcode,
-        brand: dto.brand,
-        description: dto.description,
-        unit: dto.unit,
-        condition: dto.condition,
-        vatRate: dto.vatRate ?? 0,
-        criticalStockQty: dto.criticalStockQty ?? 0,
-        reorderQty: dto.reorderQty ?? 0,
-        organizationId: actor.organizationId!,
-        categoryId: dto.categoryId,
-        supplierId: dto.supplierId,
-      });
-      const saved = await this.productCommandRepo.save(product);
+      const saved = await this.productCommandRepo.create(product);
       return saved.id.value;
     });
   }

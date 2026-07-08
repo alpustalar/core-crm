@@ -22,6 +22,8 @@ import { Name } from '@src/domain/value-objects/name.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { shouldValidate } from '@common/domain/utils/should-validate';
 
 export class TreatmentPackage extends AggregateRoot {
   constructor(
@@ -126,10 +128,14 @@ export class TreatmentPackage extends AggregateRoot {
     return this._examinationCount + this._controlCount;
   }
 
-  public static create(props: CreateTreatmentPackageProps): TreatmentPackage {
-    props.price.validate.greaterThanZero.orThrow(
-      'Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'
-    );
+  public static create(
+    props: CreateTreatmentPackageProps,
+    options = DefaultValidateOptions
+  ): TreatmentPackage {
+    if (shouldValidate(options))
+      props.price.validate.greaterThanZero.orThrow(
+        'Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'
+      );
 
     const now = new Date();
     const id = props.id
@@ -157,18 +163,22 @@ export class TreatmentPackage extends AggregateRoot {
 
     entity.addDomainEvent(
       new TreatmentPackageCreatedEvent({
-        packageId: entity._id.value,
-        clinicId: entity._clinicId.value,
-        name: entity._name.value,
+        packageId: entity.id.value,
+        clinicId: entity.clinicId.value,
+        name: entity.name.value,
       })
     );
 
     return entity;
   }
 
-  public update(props: UpdateTreatmentPackageProps): void {
+  public update(
+    props: UpdateTreatmentPackageProps,
+    options = DefaultValidateOptions
+  ): void {
     if (this._deletedAt) {
-      throw new TreatmentPackageAlreadyDeletedException();
+      if (shouldValidate(options))
+        throw new TreatmentPackageAlreadyDeletedException();
     }
 
     if (isNotUndefined(props.name)) {
@@ -182,9 +192,10 @@ export class TreatmentPackage extends AggregateRoot {
       this._validityDays = props.validityDays;
 
     if (isNotUndefined(props.price)) {
-      props.price.validate.greaterThanZero.orThrow(
-        'Tedavi paket fiyatı negatif olamaz'
-      );
+      if (shouldValidate(options))
+        props.price.validate.greaterThanZero.orThrow(
+          'Tedavi paket fiyatı negatif olamaz'
+        );
       this._price = props.price;
     }
     if (isNotUndefined(props.isActive)) this._isActive = props.isActive;
@@ -217,7 +228,7 @@ export class TreatmentPackage extends AggregateRoot {
   }
 
   public softDelete(): void {
-    if (this._deletedAt) return;
+    if (this.deletedAt) return;
 
     const now = DateTimeManager.create();
     this._deletedAt = now;
@@ -227,26 +238,26 @@ export class TreatmentPackage extends AggregateRoot {
 
     this.addDomainEvent(
       new TreatmentPackageDeletedEvent({
-        packageId: this._id.value,
-        clinicId: this._clinicId.value,
+        packageId: this.id.value,
+        clinicId: this.clinicId.value,
       })
     );
   }
 
   toPersistence(): ITreatmentPackage {
     return {
-      id: this._id.value,
-      clinicId: this._clinicId.value,
-      name: this._name.value,
-      examinationCount: this._examinationCount,
-      controlCount: this._controlCount,
-      validityDays: this._validityDays,
-      price: this._price.amount,
-      currency: this._price.currency,
-      isActive: this._isActive,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
-      deletedAt: this._deletedAt,
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      name: this.name.value,
+      examinationCount: this.examinationCount,
+      controlCount: this.controlCount,
+      validityDays: this.validityDays,
+      price: this.price.amount,
+      currency: this.price.currency,
+      isActive: this.isActive,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
     };
   }
 }

@@ -1,5 +1,5 @@
 model TreatmentCategory {
-  id       String @id @default(uuid())
+  id       String @id
   sectorId String @map("sector_id")
   slug     String @unique
 
@@ -13,22 +13,22 @@ model TreatmentCategory {
 }
 
 model TreatmentCategoryTranslation {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-
+  id                  String @id
   languageId          String @map("language_id")
   treatmentCategoryId String @map("treatment_category_id")
+
+  name        String
+  description String?
 
   language          Language          @relation(fields: [languageId], references: [id])
   treatmentCategory TreatmentCategory @relation(fields: [treatmentCategoryId], references: [id])
 }
 
 model MasterTreatment {
-  id   String @id @default(uuid())
-  slug String @unique
-
+  id                  String @id
   treatmentCategoryId String @map("treatment_category_id")
+
+  slug String @unique
 
   defaultDuration Int     @map("default_duration")
   // Resmi SUT prosedür kodu — AppointmentProcedure oluşturulurken default olarak kullanılır
@@ -43,7 +43,7 @@ model MasterTreatment {
 }
 
 model TreatmentTranslation {
-  id String @id @default(uuid())
+  id String @id
 
   masterTreatmentId String? @map("master_treatment_id")
   languageId        String  @map("language_id")
@@ -63,7 +63,7 @@ model TreatmentTranslation {
 }
 
 model Treatment {
-  id String @id @default(uuid())
+  id String @id
 
   slug                String
   treatmentCategoryId String @map("treatment_category_id")
@@ -114,7 +114,7 @@ enum PatientPackageStatus {
 }
 
 model TreatmentPackage {
-  id       String @id @default(uuid())
+  id       String @id
   clinicId String @map("clinic_id")
 
   name             String
@@ -140,10 +140,11 @@ model TreatmentPackage {
 }
 
 model TreatmentPackageItem {
-  id          String @id @default(uuid())
+  id          String @id
   packageId   String @map("package_id")
   treatmentId String @map("treatment_id")
-  count       Int
+
+  count Int
 
   package   TreatmentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   treatment Treatment        @relation(fields: [treatmentId], references: [id])
@@ -153,7 +154,7 @@ model TreatmentPackageItem {
 }
 
 model TreatmentPackageProvider {
-  id         String @id @default(uuid())
+  id         String @id
   packageId  String @map("package_id")
   providerId String @map("provider_id")
 
@@ -165,7 +166,7 @@ model TreatmentPackageProvider {
 }
 
 model PatientTreatmentPackage {
-  id         String  @id @default(uuid())
+  id         String  @id
   patientId  String  @map("patient_id")
   packageId  String  @map("package_id")
   providerId String  @map("provider_id")

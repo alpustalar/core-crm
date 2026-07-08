@@ -52,25 +52,28 @@ model HotelbedsHotel {
 }
 
 model HotelbedsBooking {
-  id             String                 @id @default(uuid())
-  reference      String                 @unique
-  hotelCode      String                 @map("hotel_code")
-  patientId      String?                @map("patient_id")
-  leadId         String?                @map("lead_id")
-  checkIn        DateTime               @map("check_in") @db.Date
-  checkOut       DateTime               @map("check_out") @db.Date
-  status         HotelbedsBookingStatus @default(CONFIRMED)
-  totalNet       Decimal                @map("total_net") @db.Decimal(10, 2)
-  currency       Currency               @default(EUR)
-  holderName     String                 @map("holder_name")
-  holderSurname  String                 @map("holder_surname")
-  rooms          Json
-  remarks        String?                @db.Text
-  serviceFee     Decimal?               @map("service_fee") @db.Decimal(10, 2)
-  organizationId String                 @map("organization_id")
-  clinicId       String                 @map("clinic_id")
-  createdAt      DateTime               @default(now()) @map("created_at")
-  updatedAt      DateTime               @updatedAt @map("updated_at")
+  id             String  @id
+  patientId      String? @map("patient_id")
+  organizationId String  @map("organization_id")
+  clinicId       String  @map("clinic_id")
+
+  reference       String                 @unique
+  clientReference String?                @map("client_reference") // acente-tarafı idempotency/korelasyon anahtarı (HotelBeds'e gönderilen)
+  hotelCode       String                 @map("hotel_code")
+  leadId          String?                @map("lead_id")
+  checkIn         DateTime               @map("check_in") @db.Date
+  checkOut        DateTime               @map("check_out") @db.Date
+  status          HotelbedsBookingStatus @default(CONFIRMED)
+  totalNet        Decimal                @map("total_net") @db.Decimal(10, 2)
+  currency        Currency               @default(EUR)
+  holderName      String                 @map("holder_name")
+  holderSurname   String                 @map("holder_surname")
+  rooms           Json
+  remarks         String?                @db.Text
+  serviceFee      Decimal?               @map("service_fee") @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   hotel HotelbedsHotel @relation(fields: [hotelCode], references: [id])
 
@@ -84,7 +87,10 @@ model HotelbedsBooking {
 /// satellite. AI asistanının hangi otelleri (allowlist veya şehir) arayacağını ve
 /// transferin hangi havalimanı/hedef üzerinden kurulacağını belirler.
 model ClinicHealthTourismConfig {
-  id        String  @id @default(uuid())
+  id             String @id
+  clinicId       String @unique @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize
+
   isEnabled Boolean @default(false) @map("is_enabled")
 
   // OTEL (B2)
@@ -101,9 +107,7 @@ model ClinicHealthTourismConfig {
   serviceFeePercent Decimal? @map("service_fee_percent") @db.Decimal(5, 2) // satış üzerine komisyon %
   defaultCurrency   Currency @default(EUR) @map("default_currency")
 
-  clinicId       String @unique @map("clinic_id")
-  organizationId String @map("organization_id") // denormalize
-  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -113,7 +117,12 @@ model ClinicHealthTourismConfig {
 }
 
 model HotelbedsTransferBooking {
-  id              String                         @id @default(uuid())
+  id             String  @id
+  organizationId String  @map("organization_id")
+  clinicId       String? @map("clinic_id")
+  patientId      String? @map("patient_id")
+  leadId         String? @map("lead_id")
+
   reference       String                         @unique
   clientReference String?                        @map("client_reference")
   status          HotelbedsTransferBookingStatus @default(CONFIRMED)
@@ -125,12 +134,9 @@ model HotelbedsTransferBooking {
   totalAmount     Decimal                        @map("total_amount") @db.Decimal(10, 2)
   currency        Currency                       @default(EUR)
   remarks         String?                        @db.Text
-  organizationId  String                         @map("organization_id")
-  clinicId        String?                        @map("clinic_id")
-  patientId       String?                        @map("patient_id")
-  leadId          String?                        @map("lead_id")
-  createdAt       DateTime                       @default(now()) @map("created_at")
-  updatedAt       DateTime                       @updatedAt @map("updated_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([organizationId])
   @@index([clinicId])
@@ -144,7 +150,7 @@ model HotelbedsTransferBooking {
 /// riski). İki link üretilir: iyzico (TRY, yurt içi) + Stripe (EUR/USD, yurt dışı). Biri
 /// ödenince webhook `intent`'i HotelBeds'e replay eder, diğer link iptal/expire edilir.
 model BookingPayment {
-  id          String               @id @default(uuid())
+  id          String               @id
   bookingType BookingPaymentType   @map("booking_type")
   status      BookingPaymentStatus @default(PENDING)
 

@@ -11,48 +11,137 @@ enum SubStatus {
   EXPIRED
 }
 
+/// Aboneliğin faturalandırma hedefi — org merkezî mi öder yoksa her klinik ayrı mı (franchise).
+/// Org ayarından (OrganizationFinanceSettings.subscriptionBillingTarget) türetilip denormalize edilir.
+enum BillingTarget {
+  ORGANIZATION
+  CLINIC
+}
+
 model Module {
-  id           String  @id @default(uuid())
-  key          String  @unique // "E_INVOICE", "POS_INTEGRATION"
+  id           String   @id
+  key          String   @unique // "E_INVOICE", "POS_INTEGRATION"
   name         String
   description  String?
-  monthlyPrice Decimal @map("monthly_price") @db.Decimal(10, 2)
-  isActive     Boolean @default(true) @map("is_active")
+  monthlyPrice Decimal  @map("monthly_price") @db.Decimal(10, 2)
+  currency     Currency
+  isActive     Boolean  @default(true) @map("is_active")
 
-  items SubscriptionItem[]
+  items       SubscriptionItem[]
+  planModules PlanModule[]
 
   @@map("modules")
 }
 
-model Subscription {
-  id             String    @id @default(uuid())
-  organizationId String    @unique @map("organization_id")
-  externalId     String?   @unique @map("external_id")
-  status         SubStatus @default(ACTIVE)
+/// Plan tanımı — sabit PlanId'ye bağlı, admin-düzenlenebilir fiyat + modül bundle.
+/// PlanId enum sabittir (yeni plan eklenmez); Plan satırı fiyat/isim/modülleri taşır.
+model Plan {
+  id     String @id
+  planId PlanId @unique
 
-  trialEndsAt        DateTime? @map("trial_ends_at")
-  currentPeriodStart DateTime? @map("current_period_start")
-  currentPeriodEnd   DateTime? @map("current_period_end")
-  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+  name         String
+  monthlyPrice Decimal  @map("monthly_price") @db.Decimal(10, 2)
+  currency     Currency
+  isActive     Boolean  @default(true) @map("is_active")
 
-  organization Organization       @relation(fields: [organizationId], references: [id])
-  items        SubscriptionItem[]
+  modules PlanModule[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@map("plans")
+}
+
+/// Plan ↔ Module bundle (many-to-many) — bir plana dahil modüller.
+model PlanModule {
+  id        String @id
+  planRowId String @map("plan_id") // FK → Plan.id (enum planId ile karışmasın diye planRowId)
+  moduleId  String @map("module_id")
+
+  plan   Plan   @relation(fields: [planRowId], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([planRowId, moduleId])
+  @@map("plan_modules")
+}
+
+model Subscription {
+  id String @id
+
+  organizationId String  @map("organization_id")
+  // partial unique index ile (WHERE clinic_id IS NULL) sağlanır.
+  clinicId       String? @unique @map("clinic_id")
+  externalId     String? @unique @map("external_id")
+
+  billingTarget BillingTarget @default(ORGANIZATION) @map("billing_target")
+
+  // Sahip org her zaman dolu (her klinik bir org'a bağlı). clinicId yalnız CLINIC hedefte dolu.
+  // Tekillik: clinicId nullable @unique (klinik-başına tek); org-başına tek (org hedef) migration'da
+
+  status SubStatus @default(ACTIVE)
+
+  trialEndsAt DateTime? @map("trial_ends_at")
+
+  currentPeriodStart DateTime? @map("current_period_start")
+  currentPeriodEnd   DateTime? @map("current_period_end")
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  clinic       Clinic?      @relation(fields: [clinicId], references: [id])
+
+  items         SubscriptionItem[]
+  paymentMethod SubscriptionPaymentMethod?
+  createdAt     DateTime                   @default(now()) @map("created_at")
+  updatedAt     DateTime                   @updatedAt @map("updated_at")
+
+  @@index([organizationId])
   @@map("subscriptions")
 }
 
+/// Kayıtlı ödeme yöntemi (kart saklama) — otomatik yenileme (recurring auto-charge) için.
+/// İlk ödemede müşteri kartını saklarsa iyzico cardUserKey+cardToken üretir; yenileme günü
+/// bu token'larla non-3DS payment.create çağrılır. buyer* alanları yenileme anında
+/// iyzico'nun zorunlu tuttuğu alıcı bilgisini yeniden kurmak için snapshot'lanır.
+model SubscriptionPaymentMethod {
+  id             String @id
+  subscriptionId String @unique @map("subscription_id")
+
+  provider String @default("IYZICO")
+
+  cardUserKey String @map("card_user_key")
+  cardToken   String @map("card_token")
+
+  // Görüntüleme metadata'sı (kart maskesi/kuruluşu)
+  maskedNumber    String? @map("masked_number")
+  cardAssociation String? @map("card_association")
+  cardFamily      String? @map("card_family")
+
+  // Yenileme anında payment.create için alıcı (buyer) snapshot'ı
+  buyerName      String  @map("buyer_name")
+  buyerSurname   String  @map("buyer_surname")
+  buyerEmail     String  @map("buyer_email")
+  buyerGsmNumber String  @map("buyer_gsm_number")
+  buyerIp        String  @map("buyer_ip")
+  buyerCity      String? @map("buyer_city")
+  buyerAddress   String? @map("buyer_address")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("subscription_payment_methods")
+}
+
 model SubscriptionItem {
-  id             String @id @default(uuid())
-  subscriptionId String @map("subscription_id")
-
-  planId   PlanId?
-  moduleId String? @map("module_id")
-
-  priceAtPurchase Decimal @map("price_at_purchase") @db.Decimal(10, 2)
+  id              String  @id
+  subscriptionId  String  @map("subscription_id")
+  planId          PlanId?
+  moduleId        String? @map("module_id")
   externalPriceId String? @map("external_price_id")
+
+  priceAtPurchase Decimal  @map("price_at_purchase") @db.Decimal(10, 2)
+  currency        Currency
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   module       Module?      @relation(fields: [moduleId], references: [id])

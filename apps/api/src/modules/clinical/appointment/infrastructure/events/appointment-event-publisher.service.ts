@@ -4,6 +4,10 @@ import {
   AppointmentCancellationRequestedEvent,
   AppointmentCancellationRequestedPayload,
 } from '@modules/clinical/appointment/domain/events/appointment-cancellation-requested.event';
+import {
+  AppointmentsBulkSoftDeletedEvent,
+  AppointmentsBulkSoftDeletedEventPayload,
+} from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
 import { IAppointmentEventPublisher } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
 import { CONTEXT_SERVICE } from '@src/infrastructure/context/domain/interfaces/context.service.interface';
 
@@ -18,5 +22,9 @@ export class AppointmentEventPublisher implements IAppointmentEventPublisher {
     this.contextService.addEvent(
       new AppointmentCancellationRequestedEvent(payload)
     );
+  }
+
+  bulkSoftDeleted(payload: AppointmentsBulkSoftDeletedEventPayload) {
+    this.contextService.addEvent(new AppointmentsBulkSoftDeletedEvent(payload));
   }
 }

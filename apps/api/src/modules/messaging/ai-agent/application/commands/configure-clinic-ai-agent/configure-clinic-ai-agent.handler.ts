@@ -54,6 +54,6 @@ export class ConfigureClinicAiAgentHandler
     const saved = await this.txManager.run(() =>
       this.configCommandRepo.save(config)
     );
-    return saved.id;
+    return saved.id.value;
   }
 }

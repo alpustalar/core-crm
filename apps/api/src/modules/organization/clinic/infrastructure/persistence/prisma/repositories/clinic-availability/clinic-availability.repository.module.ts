@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
-import { CLINIC_AVAILABILITY_QUERY_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
+import {
+  CLINIC_AVAILABILITY_COMMAND_REPOSITORY,
+  CLINIC_AVAILABILITY_QUERY_REPOSITORY,
+} from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
 import { ClinicAvailabilityQueryRepository } from './clinic-availability.query.repository';
+import { ClinicAvailabilityCommandRepository } from '@modules/organization/clinic/infrastructure/persistence/prisma/repositories/clinic-availability/clinic-availability.command.repository';
 
 @Module({
   providers: [
@@ -8,7 +12,14 @@ import { ClinicAvailabilityQueryRepository } from './clinic-availability.query.r
       provide: CLINIC_AVAILABILITY_QUERY_REPOSITORY,
       useClass: ClinicAvailabilityQueryRepository,
     },
+    {
+      provide: CLINIC_AVAILABILITY_COMMAND_REPOSITORY,
+      useClass: ClinicAvailabilityCommandRepository,
+    },
   ],
-  exports: [CLINIC_AVAILABILITY_QUERY_REPOSITORY],
+  exports: [
+    CLINIC_AVAILABILITY_QUERY_REPOSITORY,
+    CLINIC_AVAILABILITY_COMMAND_REPOSITORY,
+  ],
 })
 export class ClinicAvailabilityRepositoryModule {}

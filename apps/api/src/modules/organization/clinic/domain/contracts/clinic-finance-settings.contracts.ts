@@ -1,6 +1,8 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import { RoundingDirectionSchema } from '@input-type-schemas/RoundingDirectionSchema';
+import { PayoutTriggerSchema } from '@input-type-schemas/PayoutTriggerSchema';
 
 // ==========================================
 // KLİNİK FİNANS AYARLARI (SATELLITE) SÖZLEŞMESİ
@@ -14,11 +16,17 @@ export const CreateClinicFinanceSettingsPropsSchema = z.object({
   clinicId: z.uuid('Klinik ID zorunludur'),
 
   defaultCurrency: CurrencySchema.optional(),
+  roundingType: RoundingDirectionSchema.optional(),
+  providerPayoutTrigger: PayoutTriggerSchema.optional(),
+  invoicePrefix: z.string().optional(),
   autoCreateInvoice: z.boolean().optional(),
-  defaultVatRate: z.instanceof(Prisma.Decimal).optional(),
+  autoSendDebtReminder: z.boolean().optional(),
+  defaultVatRate: z.instanceof(Decimal).optional(),
   useCostTracking: z.boolean().optional(),
   allowNegativeBalance: z.boolean().optional(),
+  maxNegativeBalanceAmount: z.instanceof(Decimal).optional(),
   maxInstallmentCount: z.number().int().positive().optional(),
+  isEInvoiceActive: z.boolean().optional(),
   fiscalYearStartMonth: z.number().int().min(1).max(12).optional(),
 });
 

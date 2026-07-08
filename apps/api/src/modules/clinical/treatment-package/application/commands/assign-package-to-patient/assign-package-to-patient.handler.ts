@@ -17,6 +17,7 @@ import { CreatePaymentCommand } from '@modules/finance/payment/application/comma
 import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 import { TreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(AssignPackageToPatientCommand)
 export class AssignPackageToPatientHandler
@@ -30,7 +31,7 @@ export class AssignPackageToPatientHandler
     @Inject(TREATMENT_PACKAGE_QUERY_REPO)
     private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly patientPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus
   ) {}
@@ -42,25 +43,26 @@ export class AssignPackageToPatientHandler
     const { actor } = ctx;
 
     if (!actor.clinicId) throw new ClinicNotAssignedException();
+    const actorClinicId = actor.clinicId;
 
     const pkg = await this.treatmentPackageQueryRepo.findById(dto.packageId);
     if (!pkg) throw new TreatmentPackageNotFoundException();
 
     const endDate = DateTimeManager.addDays(dto.startDate, pkg.validityDays);
-    const paymentId = crypto.randomUUID();
+    const generatedPaymentId = UUID.generate().value;
 
     return this.txManager.run(async () => {
       await this.commandBus.execute(
         new CreatePaymentCommand(
           {
-            clinicId: actor.clinicId!,
+            clinicId: actorClinicId,
             patientId: dto.patientId,
             amount: Number(pkg.price.amount),
             providerId: dto.providerId,
             currency: pkg.price.currency,
             method: dto.method,
           },
-          { paymentId }
+          { paymentId: generatedPaymentId }
         )
       );
 
@@ -71,14 +73,14 @@ export class AssignPackageToPatientHandler
         startDate: dto.startDate,
         endDate,
         notes: dto.notes,
-        paymentId: paymentId,
+        paymentId: generatedPaymentId,
       });
 
-      await this.patientPackageCommandRepo.save(patientTreatmentPkg);
+      await this.patientTreatmentPackageCommandRepo.create(patientTreatmentPkg);
 
       return {
         id: patientTreatmentPkg.id.value,
-        paymentId,
+        paymentId: generatedPaymentId,
       };
     });
   }

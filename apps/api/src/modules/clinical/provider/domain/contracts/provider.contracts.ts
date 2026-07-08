@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  ProviderAvailability as IProviderAvailability,
-  UpdateProviderInfoSchema,
-} from '@shared';
+import { ProviderAvailability as IProviderAvailability, UpdateProviderInfoSchema, } from '@shared';
 import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
 
@@ -13,7 +10,7 @@ import { ResponseGroups } from '@common/constants/response-groups.constant';
 // --- PROVIDER ---
 
 export const CreateProviderSchema = z.object({
-  id: z.uuid(),
+  id: z.uuid().optional(),
   userId: z.uuid(),
   clinicId: z.uuid(),
   providerTitleId: z.uuid().optional(),
@@ -30,7 +27,7 @@ export type CreateProviderProps = z.infer<typeof CreateProviderSchema>;
 
 // --- PROVIDER AVAILABILITY (Haftalık Çalışma Şablonu) ---
 export const CreateProviderAvailabilitySchema = z.object({
-  id: z.uuid().optional(),
+  id: z.uuid(),
   providerId: z.uuid(),
   dayOfWeek: z.number().min(0).max(6), // 0: Pazar, 6: Cumartesi
   startMinute: z.number().min(0).max(1440), // Gün içindeki dakika (örn: 540 -> 09:00)

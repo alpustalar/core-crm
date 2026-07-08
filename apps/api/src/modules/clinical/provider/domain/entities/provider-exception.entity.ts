@@ -33,12 +33,10 @@ export class ProviderException extends AggregateRoot {
     return this._id;
   }
 
-  private _startTime: Date;
   get startTime(): Date {
     return this._dateRange.startDate;
   }
 
-  private _endTime: Date;
   get endTime(): Date {
     return this._dateRange.endDate;
   }
@@ -78,7 +76,8 @@ export class ProviderException extends AggregateRoot {
     return Guard.monitor(
       isOff,
       isOff,
-      new Error('Uzman beklenmedik durumu "kapalı" değil')
+      () =>
+        new Error('Uzman çalışma istisnası "Blokaj (Kapalı)" tipinde değil.')
     );
   }
 
@@ -87,10 +86,9 @@ export class ProviderException extends AggregateRoot {
     return Guard.monitor(
       isOn,
       isOn,
-      new Error('Uzman beklenmedik durumu "açık" değil')
+      () => new Error('Uzman çalışma istisnası "Ek Mesai"  tipinde değil.')
     );
   }
-
   public static create(props: CreateProviderExceptionProps): ProviderException {
     const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
 
@@ -116,13 +114,13 @@ export class ProviderException extends AggregateRoot {
 
   public toPersistence(): IProviderException {
     return {
-      id: this._id.value,
-      type: this._type,
-      startTime: this._dateRange.startDate,
-      endTime: this._dateRange.endDate,
-      reason: this._reason,
-      providerId: this._providerId.value,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      type: this.type,
+      startTime: this.startTime,
+      endTime: this.endTime,
+      reason: this.reason,
+      providerId: this.providerId.value,
+      createdAt: this.createdAt,
     };
   }
 }

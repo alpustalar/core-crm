@@ -4,6 +4,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { Guard } from '@common/domain/guards';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
+import { CreateMetaAdAccountProps } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 
 const TOKEN_EXPIRY_WARNING_DAYS = 7;
 
@@ -88,10 +89,46 @@ export class MetaAdAccount extends AggregateRoot {
         return Guard.monitor(
           isExpiringSoon,
           isExpiringSoon,
-          new Error('Token süresi yakında doluyor')
+          () => new Error('Token süresi yakında doluyor')
         );
       },
     };
+  }
+
+  public static create(props: CreateMetaAdAccountProps): MetaAdAccount {
+    const accountId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
+    const now = DateTimeManager.create();
+
+    return new MetaAdAccount({
+      id: accountId.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      adAccountId: props.adAccountId,
+      accessToken: props.accessToken,
+      pageId: props.pageId ?? null,
+      businessName: props.businessName
+        ? Name.create(props.businessName).orThrow().value
+        : null,
+
+      isActive: true,
+      tokenExpiresAt: props.tokenExpiresAt ?? null,
+      lastSyncAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // TODO: event pushlanacak ÖRN: {
+    //       metaAdAccountId,
+    //       clinicId,
+    //       adAccountId,
+    //       actorId,
+    //       source,
+    //       action: LogAction.META_ADS_ACCOUNT_CONNECTED,
+    //       type: LogType.INFO,
+    //       details: props.details... `Meta hesap bağlandı: ${metaAdAccountId} | 'Meta Hesap OAuth ile bağlandı: ${metaAdAccountId}'`,
+    //     }
   }
 
   public deactivate(): void {

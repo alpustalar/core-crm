@@ -10,7 +10,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 
 @CommandHandler(ConfirmAppointmentCommand)

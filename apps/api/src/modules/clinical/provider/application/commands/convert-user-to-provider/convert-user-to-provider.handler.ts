@@ -1,11 +1,10 @@
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
-import { IPolicyFactory, POLICY_FACTORY, } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import {
-  ConvertUserToProviderCommand
-} from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
-import {
-  ConvertUserToProviderResponse
-} from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.response';
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ConvertUserToProviderCommand } from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
+import { ConvertUserToProviderResponse } from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.response';
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
@@ -45,7 +44,6 @@ export class ConvertUserToProviderHandler
       .orThrow(PROVIDER_EVENTS.CREATED);
 
     const provider = Provider.create({
-      id: crypto.randomUUID(),
       userId: dto.userId,
       clinicId: dto.clinicId,
       providerTitleId: dto.titleId,
@@ -58,7 +56,7 @@ export class ConvertUserToProviderHandler
     });
 
     await this.transactionManager.run(() =>
-      this.providerCommandRepo.save(provider)
+      this.providerCommandRepo.create(provider)
     );
   }
 }

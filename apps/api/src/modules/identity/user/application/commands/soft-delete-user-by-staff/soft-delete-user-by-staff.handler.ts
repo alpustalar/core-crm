@@ -10,7 +10,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { SoftDeleteUserByStaffResponse } from '@modules/identity/user/application/commands/soft-delete-user-by-staff/soft-delete-user-by-staff.response';
 import { RedisService } from '@src/infrastructure/cache/redis/redis.service';

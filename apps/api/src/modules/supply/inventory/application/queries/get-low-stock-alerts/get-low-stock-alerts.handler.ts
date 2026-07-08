@@ -9,7 +9,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetLowStockAlertsQuery)
 export class GetLowStockAlertsHandler

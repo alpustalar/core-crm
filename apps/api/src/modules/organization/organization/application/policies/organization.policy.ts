@@ -1,4 +1,4 @@
-import { BasePolicy } from '@modules/platform/policy/application/base.policy';
+import { BasePolicy } from '@modules/platform/policy/staff/application/base.policy';
 import { isEmpty } from '@common/utils/is-empty';
 
 export class OrganizationPolicy extends BasePolicy {

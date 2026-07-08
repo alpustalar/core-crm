@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import {
-  CLINIC_AVAILABILITY_DOMAIN_SERVICE,
-  IClinicAvailabilityDomainService,
-} from '@modules/organization/clinic/domain/interfaces/clinic-availability.domain-service.interface';
-import {
   CLINIC_AVAILABILITY_QUERY_REPOSITORY,
   IClinicAvailabilityQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
@@ -13,7 +9,9 @@ import { AssertClinicCanBookQuery } from './assert-clinic-can-book.query';
 import {
   CLINIC_EXCEPTION_QUERY_REPOSITORY,
   IClinicExceptionQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinix-exception.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-exception.repository.interface';
+import { ClinicSchedule } from '@modules/organization/clinic/domain/value-objects/clinic-schedule.vo';
+import { DayMinuteRange } from '@src/domain/value-objects/day-minute-range.vo';
 
 @QueryHandler(AssertClinicCanBookQuery)
 export class AssertClinicCanBookHandler
@@ -23,14 +21,12 @@ export class AssertClinicCanBookHandler
     @Inject(CLINIC_AVAILABILITY_QUERY_REPOSITORY)
     private readonly clinicAvailabilityQueryRepository: IClinicAvailabilityQueryRepository,
     @Inject(CLINIC_EXCEPTION_QUERY_REPOSITORY)
-    private readonly clinicExceptionQueryRepo: IClinicExceptionQueryRepository,
-    @Inject(CLINIC_AVAILABILITY_DOMAIN_SERVICE)
-    private readonly clinicAvailabilityDomainService: IClinicAvailabilityDomainService
+    private readonly clinicExceptionQueryRepo: IClinicExceptionQueryRepository
   ) {}
 
   async execute(query: AssertClinicCanBookQuery): Promise<void> {
     const { clinicId, startTime, endTime } = query;
-    const dayOfWeek = startTime.getDay();
+    const dayOfWeek = DateTimeManager.getDayOfWeek(startTime);
 
     const [availability, exception] = await Promise.all([
       this.clinicAvailabilityQueryRepository.findByClinicAndDay(
@@ -43,22 +39,19 @@ export class AssertClinicCanBookHandler
       ),
     ]);
 
-    const isOpen =
-      !!availability && !availability.isClosed && !exception?.isClosed;
+    const clinicSchedule = ClinicSchedule.create(
+      availability ? [availability] : [],
+      exception ? [exception] : []
+    );
 
-    this.clinicAvailabilityDomainService.validateTimeWithinClinicHoursOrThrow({
-      startMinute: DateTimeManager.getDayMinutes(startTime),
-      endMinute: DateTimeManager.getDayMinutes(endTime),
-      clinicSchedule: {
-        isOpen,
-        workingHours: isOpen
-          ? {
-              startMinute: availability.startMinute,
-              endMinute: availability.endMinute,
-            }
-          : null,
-        reason: exception?.reason ?? null,
-      },
-    });
+    clinicSchedule.validate
+      .bookingAvailability({
+        date: startTime,
+        requestedRange: DayMinuteRange.fromNumbers(
+          DateTimeManager.getDayMinutes(startTime),
+          DateTimeManager.getDayMinutes(endTime)
+        ),
+      })
+      .orThrow();
   }
 }

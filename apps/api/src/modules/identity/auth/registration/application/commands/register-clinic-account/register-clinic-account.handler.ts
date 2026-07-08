@@ -15,7 +15,9 @@ import { InitializeChartOfAccountsCommand } from '@modules/finance/accounting/ch
 import { OpenPeriodCommand } from '@modules/finance/accounting/periods/application/commands/open-period/open-period.command';
 import { InitializeTaxParametersCommand } from '@modules/finance/accounting/tax-parameters/application/commands/initialize-tax-parameters/initialize-tax-parameters.command';
 import { DateTimeManager } from '@common/utils';
-import { NotFoundException } from '@nestjs/common';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { CreateOrganization } from '@shared/modules/organization/types';
+import { RegistrationConfigurationException } from '@modules/identity/auth/registration/domain/registration.exceptions';
 
 @CommandHandler(RegisterClinicAccountCommand)
 export class RegisterClinicAccountHandler
@@ -42,16 +44,15 @@ export class RegisterClinicAccountHandler
       new GetRoleBySlugQuery(ROLE_SLUGS.CLINIC_OWNER)
     );
 
-    if (!role?.id) {
-      throw new NotFoundException('Rol bulunamadı');
+    if (!role) {
+      throw new RegistrationConfigurationException('Rol bulunamadı');
     }
 
-    const roleId = role.id;
+    const generatedOrganizationId = UUID.generate().value;
+    const generatedClinicId = UUID.generate().value;
 
-    const organizationId = crypto.randomUUID();
-    const clinicId = crypto.randomUUID();
-    await this.transactionManager.run(async () => {
-      const organizationDto = {
+    await this.transactionManager.outboxRun(async () => {
+      const organizationDto: CreateOrganization = {
         name: clinicDto.name,
         phone: clinicDto.phone,
         email: clinicDto.email,
@@ -61,28 +62,28 @@ export class RegisterClinicAccountHandler
       };
       await this.commandBus.execute(
         new CreateOrganizationCommand(organizationDto, this.internalCtx, {
-          id: organizationId,
+          id: generatedOrganizationId,
         })
       );
 
       await this.commandBus.execute(
         new CreateClinicCommand(clinicDto, this.internalCtx, {
-          clinicId,
-          organizationId,
+          clinicId: generatedClinicId,
+          organizationId: generatedOrganizationId,
         })
       );
 
-      const userDto: CreateUser = {
+      const createUserDto: CreateUser = {
         ...ownerDto,
-        roleId,
-        organizationId,
-        clinicId,
+        roleId: role.id,
+        organizationId: generatedOrganizationId,
+        clinicId: generatedClinicId,
       };
 
       await this.commandBus.execute(
-        new CreateUserCommand(userDto, this.internalCtx, {
-          ownedOrganizationIds: [organizationId],
-          managedClinicIds: [clinicId],
+        new CreateUserCommand(createUserDto, this.internalCtx, {
+          ownedOrganizationIds: [generatedOrganizationId],
+          managedClinicIds: [generatedClinicId],
         })
       );
 
@@ -90,27 +91,27 @@ export class RegisterClinicAccountHandler
       // (idempotent) + cari yıl dönemi. Posting'in çalışabilmesi için ön koşul.
       await this.commandBus.execute(
         new InitializeChartOfAccountsCommand(
-          clinicId,
-          organizationId,
+          generatedClinicId,
+          generatedOrganizationId,
           this.internalCtx
         )
       );
 
       await this.commandBus.execute(
         new OpenPeriodCommand(
-          clinicId,
-          organizationId,
+          generatedClinicId,
+          generatedOrganizationId,
           DateTimeManager.currentYear(),
           this.internalCtx
         )
       );
 
       // Varsayılan vergi parametreleri (KDV/stopaj/kurumlar) — idempotent.
-      // Fatura kesimi KDV oranını buradan çözer (bkz documents/finans/06-vergi.md).
+      // Fatura kesimi KDV oranını buradan çözer
       await this.commandBus.execute(
         new InitializeTaxParametersCommand(
-          clinicId,
-          organizationId,
+          generatedClinicId,
+          generatedOrganizationId,
           this.internalCtx
         )
       );

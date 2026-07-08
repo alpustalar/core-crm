@@ -39,7 +39,7 @@ export class CreatePatientHandler
       firstName: dto.firstName,
     });
 
-    const saved = await this.patientCommandRepo.save(patient);
+    const saved = await this.patientCommandRepo.create(patient);
     return saved.id.value;
   }
 }

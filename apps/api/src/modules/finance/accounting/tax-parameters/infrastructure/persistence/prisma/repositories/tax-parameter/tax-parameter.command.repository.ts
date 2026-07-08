@@ -19,6 +19,13 @@ export class TaxParameterCommandRepository
     return raw ? new TaxParameter(raw) : null;
   }
 
+  async create(entity: TaxParameter): Promise<TaxParameter> {
+    const data = entity.toPersistence();
+    const raw = await this.db.taxParameter.create({ data });
+    entity.flushEvents();
+    return new TaxParameter(raw);
+  }
+
   async save(entity: TaxParameter) {
     const create = entity.toPersistence();
     const { id, ...update } = create;

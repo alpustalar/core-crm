@@ -6,9 +6,9 @@ import { Money } from '@src/domain/value-objects/money.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/supply.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
 
 export class StockMovement extends AggregateRoot {
   constructor(data: IStockMovement) {
@@ -16,21 +16,26 @@ export class StockMovement extends AggregateRoot {
 
     const currency = Currency.create(data.currency).orThrow();
 
-    this._id = UUID.create(data.id).orThrow();
-    this._productId = UUID.create(data.productId).orThrow();
-    this._clinicId = UUID.create(data.clinicId).orThrow();
+    this._id = UUID.fromTrusted(data.id);
+    this._productId = UUID.fromTrusted(data.productId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._batchId = UUID.create(data.batchId).instance ?? null;
     this._type = data.type;
     this._direction = data.direction;
-    this._quantity = Quantity.create(data.quantity).orThrow();
+    this._quantity = Quantity.fromTrusted(data.quantity);
     this._currency = currency;
+
     this._unitPrice =
       Money.create(data.unitPrice, currency.value).instance ?? null;
-    this._vatRate = data.vatRate && VatRate.create(data?.vatRate).orThrow();
+
+    this._vatRate = data.vatRate && VatRate.fromTrusted(data?.vatRate);
+
     this._vatAmount =
       Money.create(data.vatAmount, currency.value).instance ?? null;
+
     this._totalAmount =
       Money.create(data.totalAmount, currency.value).instance ?? null;
+
     this._financeLedgerId = UUID.create(data.financeLedgerId).instance ?? null;
     this._performedById = UUID.create(data.performedById).instance ?? null;
     this._notes = data.notes;
@@ -145,22 +150,40 @@ export class StockMovement extends AggregateRoot {
       totalAmount = subTotal.add(vatAmount);
     }
 
+    const stockMovementId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
+    const batchId = props.batchId ? UUID.create(props.batchId).orThrow() : null;
+
+    const vatRate = props.vatRate
+      ? VatRate.create(props.vatRate).orThrow()
+      : null;
+
+    const financeLedgerId = props.financeLedgerId
+      ? UUID.create(props.financeLedgerId).orThrow()
+      : null;
+
+    const performedById = props.performedById
+      ? UUID.create(props.performedById).orThrow()
+      : null;
+
     return new StockMovement({
-      id: UUID.create(props.id).instance?.value ?? UUID.generate().value,
+      id: stockMovementId.value,
       productId: props.productId,
       clinicId: props.clinicId,
-      batchId: props.batchId ?? null,
+      batchId: batchId?.value ?? null,
       type: props.type,
       direction: props.direction,
       quantity: Quantity.create(quantity).orThrow().value,
       unitPrice: unitPrice?.amount ?? null,
       currency: unitPrice?.currency ?? Currency.enum.TRY,
-      vatRate: VatRate.create(props.vatRate).instance?.value ?? null,
+      vatRate: vatRate?.value ?? null,
       vatAmount: vatAmount?.amount ?? null,
       totalAmount: totalAmount?.amount ?? null,
 
-      financeLedgerId: props.financeLedgerId ?? null,
-      performedById: props.performedById ?? null,
+      financeLedgerId: financeLedgerId?.value ?? null,
+      performedById: performedById?.value ?? null,
       notes: props.notes ?? null,
       createdAt: DateTimeManager.create(),
     });
@@ -168,22 +191,22 @@ export class StockMovement extends AggregateRoot {
 
   toPersistence(): IStockMovement {
     return {
-      id: this._id.value,
-      productId: this._productId.value,
-      clinicId: this._clinicId.value,
-      batchId: this._batchId?.value ?? null,
-      type: this._type,
-      direction: this._direction,
-      quantity: this._quantity.value,
-      unitPrice: this._unitPrice?.amount ?? null,
-      currency: this._currency.value,
-      vatRate: this._vatRate?.value ?? null,
-      vatAmount: this._vatAmount?.amount ?? null,
-      totalAmount: this._totalAmount?.amount ?? null,
-      financeLedgerId: this._financeLedgerId?.value ?? null,
-      performedById: this._performedById?.value ?? null,
-      notes: this._notes,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      productId: this.productId.value,
+      clinicId: this.clinicId.value,
+      batchId: this.batchId?.value ?? null,
+      type: this.type,
+      direction: this.direction,
+      quantity: this.quantity.value,
+      unitPrice: this.unitPrice?.amount ?? null,
+      currency: this.currency.value,
+      vatRate: this.vatRate?.value ?? null,
+      vatAmount: this.vatAmount?.amount ?? null,
+      totalAmount: this.totalAmount?.amount ?? null,
+      financeLedgerId: this.financeLedgerId?.value ?? null,
+      performedById: this.performedById?.value ?? null,
+      notes: this.notes,
+      createdAt: this.createdAt,
     };
   }
 }

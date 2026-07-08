@@ -9,6 +9,7 @@ import {
 } from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config.repository';
 import { ClinicHealthTourismConfig } from '@modules/crm/health-tourism/config/domain/entities/clinic-health-tourism-config.entity';
 import { ConfigureClinicHealthTourismCommand } from './configure-clinic-health-tourism.command';
+import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
 
 @CommandHandler(ConfigureClinicHealthTourismCommand)
 export class ConfigureClinicHealthTourismHandler
@@ -16,39 +17,42 @@ export class ConfigureClinicHealthTourismHandler
 {
   constructor(
     @Inject(CLINIC_HEALTH_TOURISM_CONFIG_COMMAND_REPOSITORY)
-    private readonly configCommandRepo: IClinicHealthTourismConfigCommandRepository,
+    private readonly clinicHealthTourismConfigCommandRepo: IClinicHealthTourismConfigCommandRepository,
     @Inject(CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY)
-    private readonly configQueryRepo: IClinicHealthTourismConfigQueryRepository,
+    private readonly ClinicHealthTourismConfigQueryRepo: IClinicHealthTourismConfigQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: ConfigureClinicHealthTourismCommand): Promise<string> {
-    const { clinicId, input, ctx } = command;
+    const { clinicId, dto, ctx } = command;
 
-    const existing = await this.configQueryRepo.findByClinicId(clinicId);
+    const existing =
+      await this.ClinicHealthTourismConfigQueryRepo.findByClinicId(clinicId);
+
+    if (!ctx.actor.organizationId) throw new OrganizationNotAssignedException();
 
     const config =
       existing ??
       ClinicHealthTourismConfig.create({
         clinicId,
-        organizationId: ctx.actor.organizationId!,
+        organizationId: ctx.actor.organizationId,
       });
 
     config.updateSettings({
-      isEnabled: input.isEnabled,
-      destinationCode: input.destinationCode,
-      nearbyHotelCodes: input.nearbyHotelCodes,
-      airportIata: input.airportIata,
-      clinicLocationType: input.clinicLocationType,
-      clinicLocationCode: input.clinicLocationCode,
-      pickupAddress: input.pickupAddress,
-      serviceFeePercent: input.serviceFeePercent,
-      defaultCurrency: input.defaultCurrency,
+      isEnabled: dto.isEnabled,
+      destinationCode: dto.destinationCode,
+      nearbyHotelCodes: dto.nearbyHotelCodes,
+      airportIata: dto.airportIata,
+      clinicLocationType: dto.clinicLocationType,
+      clinicLocationCode: dto.clinicLocationCode,
+      pickupAddress: dto.pickupAddress,
+      serviceFeePercent: dto.serviceFeePercent,
+      defaultCurrency: dto.defaultCurrency,
     });
 
-    const saved = await this.txManager.run(() =>
-      this.configCommandRepo.save(config)
+    const sync = await this.txManager.run(() =>
+      this.clinicHealthTourismConfigCommandRepo.sync(config)
     );
-    return saved.id.value;
+    return sync.id.value;
   }
 }

@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
 import { MessageStatus, MessageType } from '@prisma/client';
 import { ENV } from '@common/constants/env.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -24,14 +23,17 @@ import { RecordWhatsappQualityCommand } from '@modules/messaging/channel-config/
 import { toWhatsappMediaRef } from '@modules/messaging/conversation/domain/media-reference';
 import { resolveWhatsappError } from '@modules/messaging/conversation/domain/whatsapp-error.map';
 import { InboundMessagePayload } from '@modules/messaging/conversation/domain/types/create-message.props';
+import { InboundReferral } from '@modules/messaging/conversation/domain/types/inbound-referral';
 import {
-  WhatsappWebhookBody,
-  WhatsappValue,
   WhatsappInboundMessage,
   WhatsappMediaObject,
-  WhatsappStatus,
   WhatsappQualityValue,
+  WhatsappReferral,
+  WhatsappStatus,
+  WhatsappValue,
+  WhatsappWebhookBody,
 } from './whatsapp-webhook.types';
+import { CryptoManager } from '@src/infrastructure/security/crypto/crypto.manager';
 
 /** Webhook'tan çıkarılan kanal-bağımsız mesaj içeriği. */
 interface MappedInboundContent {
@@ -190,11 +192,27 @@ export class WhatsappWebhookController {
         mediaUrl: content.mediaUrl,
         payload: content.payload,
         replyToExternalId: message.context?.id ?? null,
+        referral: this.mapReferral(message.referral),
         occurredAt: message.timestamp
           ? new Date(Number(message.timestamp) * 1000)
           : undefined,
       })
     );
+  }
+
+  /** Click-to-WhatsApp reklam referral'ını kanal-bağımsız InboundReferral'a çevirir. */
+  private mapReferral(
+    referral: WhatsappReferral | undefined
+  ): InboundReferral | undefined {
+    if (!referral) return undefined;
+    return {
+      medium: referral.source_type === 'ad' ? 'AD' : 'ORGANIC',
+      adId: referral.source_id ?? null,
+      sourceUrl: referral.source_url ?? null,
+      ctwaClid: referral.ctwa_clid ?? null,
+      headline: referral.headline ?? null,
+      body: referral.body ?? null,
+    };
   }
 
   /** WhatsApp gelen mesaj tipini kanal-bağımsız içeriğe (type+body+media+payload) çevirir. */
@@ -223,8 +241,7 @@ export class WhatsappWebhookController {
       }
       case 'interactive': {
         const reply =
-          message.interactive?.button_reply ??
-          message.interactive?.list_reply;
+          message.interactive?.button_reply ?? message.interactive?.list_reply;
         const interactiveType = message.interactive?.button_reply
           ? 'button_reply'
           : 'list_reply';
@@ -341,16 +358,6 @@ export class WhatsappWebhookController {
     signature: string,
     appSecret: string
   ): boolean {
-    try {
-      const expected = `sha256=${crypto
-        .createHmac('sha256', appSecret)
-        .update(rawBody)
-        .digest('hex')}`;
-      const a = Buffer.from(expected);
-      const b = Buffer.from(signature);
-      return a.length === b.length && crypto.timingSafeEqual(a, b);
-    } catch {
-      return false;
-    }
+    return CryptoManager.verifyWebhookSignature(rawBody, signature, appSecret);
   }
 }

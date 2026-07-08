@@ -2,49 +2,57 @@ import { PurchaseInvoice as IPurchaseInvoice } from '@model-schema/PurchaseInvoi
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreatePurchaseInvoiceProps } from '../types/create-purchase-invoice.props';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { CurrencyType } from '@input-type-schemas/CurrencySchema';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+import { PurchaseInvoiceStatusSchema } from '@shared';
+import { PurchaseInvoiceStatusType } from '@input-type-schemas/PurchaseInvoiceStatusSchema';
 
 /**
  * Tedarikçiden alınan alış faturası. Satış faturasının kardeşi; dış belge
  * sağlayıcı yoktur — faturayı biz alır kaydederiz. Kayıt sonrası köprü
  * PURCHASE_INVOICE_RECEIVED olayını yazar; posting 150/770 + 191 / 320 fişini üretir.
  */
+
 export class PurchaseInvoice extends AggregateRoot {
   constructor(data: IPurchaseInvoice) {
     super();
     const currency = data.currency;
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._organizationId = data.organizationId;
-    this._supplierId = data.supplierId;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._supplierId = UUID.fromTrusted(data.supplierId);
     this._invoiceNumber = data.invoiceNumber;
     this._invoiceDate = data.invoiceDate;
     this._lineAccountCode = data.lineAccountCode;
-    this._vatRate = data.vatRate;
-    this._netTotal = Money.create(data.netTotal, currency).orThrow();
-    this._vatTotal = Money.create(data.vatTotal, currency).orThrow();
-    this._grandTotal = Money.create(data.grandTotal, currency).orThrow();
+    this._vatRate = VatRate.fromTrusted(data.vatRate);
+    this._netTotal = Money.fromTrusted(data.netTotal, currency);
+    this._vatTotal = Money.fromTrusted(data.vatTotal, currency);
+    this._grandTotal = Money.fromTrusted(data.grandTotal, currency);
     this._status = data.status;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
-  private _supplierId: string;
-  get supplierId(): string {
+  private _supplierId: UUID;
+  get supplierId(): UUID {
     return this._supplierId;
   }
 
@@ -63,8 +71,8 @@ export class PurchaseInvoice extends AggregateRoot {
     return this._lineAccountCode;
   }
 
-  private _vatRate: number;
-  get vatRate(): number {
+  private _vatRate: VatRate;
+  get vatRate(): VatRate {
     return this._vatRate;
   }
 
@@ -83,8 +91,12 @@ export class PurchaseInvoice extends AggregateRoot {
     return this._grandTotal;
   }
 
-  private _status: string;
-  get status(): string {
+  get currency(): CurrencyType {
+    return this.grandTotal.currency;
+  }
+
+  private _status: PurchaseInvoiceStatusType;
+  get status(): PurchaseInvoiceStatusType {
     return this._status;
   }
 
@@ -99,45 +111,48 @@ export class PurchaseInvoice extends AggregateRoot {
   }
 
   public static create(props: CreatePurchaseInvoiceProps): PurchaseInvoice {
-    const now = new Date();
+    const now = DateTimeManager.create();
+
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
 
     return new PurchaseInvoice({
-      id: props.id,
-      clinicId: props.clinicId,
-      organizationId: props.organizationId,
-      supplierId: props.supplierId,
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
+      supplierId: UUID.create(props.supplierId).orThrow().value,
       invoiceNumber: props.invoiceNumber,
       invoiceDate: props.invoiceDate,
       lineAccountCode: props.lineAccountCode,
-      vatRate: props.vatRate,
-      netTotal: props.netTotal,
-      vatTotal: props.vatTotal,
-      grandTotal: props.grandTotal,
-      currency: props.currency,
-      status: 'RECORDED',
+      vatRate: VatRate.create(props.vatRate).orThrow().value.toNumber(),
+      netTotal: Money.create(props.netTotal, props.currency).orThrow().amount,
+      vatTotal: Money.create(props.vatTotal, props.currency).orThrow().amount,
+      grandTotal: Money.create(props.grandTotal, props.currency).orThrow()
+        .amount,
+      currency: Currency.create(props.currency).orThrow().value,
+      status: PurchaseInvoiceStatusSchema.enum.RECORDED,
       createdAt: now,
       updatedAt: now,
     });
   }
 
   /** Repo'nun upsert'ine geçilen ham kayıt. Decimal alanlar Prisma'ya DecimalJsLike olarak gider. */
-  public toPersistence() {
+  public toPersistence(): IPurchaseInvoice {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
-      supplierId: this._supplierId,
-      invoiceNumber: this._invoiceNumber,
-      invoiceDate: this._invoiceDate,
-      lineAccountCode: this._lineAccountCode,
-      vatRate: this._vatRate,
-      netTotal: this._netTotal.amount,
-      vatTotal: this._vatTotal.amount,
-      grandTotal: this._grandTotal.amount,
-      currency: this._grandTotal.currency,
-      status: this._status,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      supplierId: this.supplierId.value,
+      invoiceNumber: this.invoiceNumber,
+      invoiceDate: this.invoiceDate,
+      lineAccountCode: this.lineAccountCode,
+      vatRate: this.vatRate.value.toNumber(),
+      netTotal: this.netTotal.amount,
+      vatTotal: this.vatTotal.amount,
+      grandTotal: this.grandTotal.amount,
+      currency: this.currency,
+      status: this.status,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

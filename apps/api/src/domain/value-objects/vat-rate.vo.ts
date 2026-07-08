@@ -8,7 +8,6 @@ import {
 interface IVatRateValidator {
   hasTax: {
     isValid: boolean;
-    isInvalid: boolean;
     orThrow: (exception?: Error) => VatRate;
   };
 }
@@ -38,14 +37,12 @@ export class VatRate {
   }
 
   public get validate(): IVatRateValidator {
-    // Sinsi 'this' kaybolmalarını önlemek için instance referansını sabitliyoruz
     const self = this;
     const isZeroRate = self.isZero();
 
     return {
       hasTax: {
         isValid: !isZeroRate,
-        isInvalid: isZeroRate,
         orThrow: (exception?: Error): VatRate => {
           if (isZeroRate) {
             throw exception ?? new VatRateMustNotBeZeroException();
@@ -57,15 +54,14 @@ export class VatRate {
   }
 
   /**
-   * 🎯 Güvenilir Kurucu: Persisted (DB) KDV oranından doğrudan VO üretir; yasal-oran
-   * doğrulaması atlanır. Sadece güvendiğin (persisted) veride kullan.
+   * persisted veri için.
    */
   public static fromTrusted(value: number | string | Decimal): VatRate {
     return new VatRate(value instanceof Decimal ? value : new Decimal(value));
   }
 
   /**
-   * 🎯 Akıllı Factory: Yeni "instance" ve "orThrow" standart ordu nizamımız
+   * 🎯 Akıllı Factory:
    */
   public static create(value: number | Decimal | null | undefined) {
     // KDV belirtilmemişse varsayılan olarak %0 (KDV Muaf) nesnesini güvenle hazırlarız

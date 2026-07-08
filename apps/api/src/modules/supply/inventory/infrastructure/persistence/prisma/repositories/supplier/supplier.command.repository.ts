@@ -13,6 +13,18 @@ export class SupplierCommandRepository
     super(prisma);
   }
 
+  async create(supplier: Supplier): Promise<Supplier> {
+    const data = supplier.toPersistence();
+
+    const raw = await this.db.supplier.create({
+      data,
+    });
+
+    supplier.flushEvents();
+
+    return new Supplier(raw);
+  }
+
   async findById(id: string): Promise<Supplier | null> {
     const raw = await this.db.supplier.findUnique({ where: { id } });
     return raw ? new Supplier(raw) : null;
@@ -21,10 +33,9 @@ export class SupplierCommandRepository
   async save(supplier: Supplier): Promise<Supplier> {
     const data = supplier.toPersistence();
 
-    const raw = await this.db.supplier.upsert({
-      where: { id: supplier.id },
-      create: data,
-      update: data,
+    const raw = await this.db.supplier.update({
+      where: { id: data.id },
+      data,
     });
 
     supplier.flushEvents();

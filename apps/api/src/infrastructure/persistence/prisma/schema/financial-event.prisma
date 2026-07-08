@@ -23,9 +23,10 @@ enum FinancialEventType {
 }
 
 model FinancialEvent {
-  id             String @id @default(uuid())
-  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
-  organizationId String @map("organization_id") // denormalize — konsolide raporlama
+  id             String  @id
+  clinicId       String  @map("clinic_id") // defter sahibi şube (source-of-truth)
+  organizationId String  @map("organization_id") // denormalize — konsolide raporlama
+  performedById  String? @map("performed_by_id")
 
   type       FinancialEventType
   occurredAt DateTime           @map("occurred_at") // ekonomik olayın tarihi (vergi tarihi)
@@ -35,8 +36,6 @@ model FinancialEvent {
   sourceModule String  @map("source_module") // 'payment' | 'invoice' | 'pos' | ...
   sourceRefId  String? @map("source_ref_id") // ilgili Payment/Invoice id
   dedupeKey    String? @unique @map("dedupe_key") // idempotent append anahtarı
-
-  performedById String? @map("performed_by_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 

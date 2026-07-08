@@ -16,6 +16,7 @@ export class ProviderShift extends AggregateRoot {
   constructor(data: IProviderShift) {
     super();
     this._id = UUID.fromTrusted(data.id);
+
     this._providerId = UUID.fromTrusted(data.providerId);
     this._date = data.date;
 
@@ -30,13 +31,8 @@ export class ProviderShift extends AggregateRoot {
         data.breakEndMinute
       );
     }
-
-    this.validate.breakConfiguration().orThrow();
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Private Properties & Getters
-  // ────────────────────────────────────────────────────────────────────────────
   private _id: UUID;
   get id(): UUID {
     return this._id;
@@ -76,24 +72,18 @@ export class ProviderShift extends AggregateRoot {
     return this._breakRange?.end.toNumber() ?? null;
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Static Factory
-
   public get validate() {
     return {
-      /**
-       *  Randevu Alınabilirlik Kontrolü
-       *
-       */
       canBook: (requestedRange: DayMinuteRange) => {
         // 1. Kural: Vardiya saatleri içinde mi?
-        const isWithinShift = requestedRange.isCompletelyWithin(
+        const isWithinShift = requestedRange.validate.isCompletelyWithIn(
           this._shiftRange
-        );
+        ).value;
 
         // 2. Kural: Mola saatleriyle çakışıyor mu?
         const overlapsWithBreak = !!(
-          this._breakRange && requestedRange.overlapsWith(this._breakRange)
+          this._breakRange &&
+          requestedRange.validate.overlapsWith(this._breakRange).value
         );
 
         const isValid = isWithinShift && !overlapsWithBreak;
@@ -127,7 +117,7 @@ export class ProviderShift extends AggregateRoot {
 
         // 2. Mola vardiyanın tamamen içinde mi?
         const isBreakWithinShift = this._breakRange
-          ? this._breakRange.isCompletelyWithin(this._shiftRange)
+          ? this._breakRange.validate.isCompletelyWithIn(this._shiftRange).value
           : true;
 
         const isValid = !isConfigIncomplete && isBreakWithinShift;
@@ -197,7 +187,7 @@ export class ProviderShift extends AggregateRoot {
   }
 
   /**
-   * 🎯 Domain Kuralı: Vardiya saatlerini günceller.
+   *  Vardiya saatlerini günceller.
    */
   public updateHours(
     newRange: DayMinuteRange,
@@ -211,32 +201,13 @@ export class ProviderShift extends AggregateRoot {
   // ────────────────────────────────────────────────────────────────────────────
   public toPersistence(): IProviderShift {
     return {
-      id: this._id.value,
-      providerId: this._providerId.value,
-      date: this._date,
+      id: this.id.value,
+      providerId: this.providerId.value,
+      date: this.date,
       startMinute: this.startMinute,
       endMinute: this.endMinute,
       breakStartMinute: this.breakStartMinute,
       breakEndMinute: this.breakEndMinute,
     };
-  }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Mapping to Persistence
-
-  // --- Domain Entity / Value Object İçindeki Metot ---
-
-  /**
-   * 🎯 Domain Kuralı: Talep edilen randevu aralığının bu vardiyada rezerve edilip edilemeyeceğini döner.
-   */
-  private canBook(requestedRange: DayMinuteRange): boolean {
-    const isWithinHours = requestedRange.isCompletelyWithin(this._shiftRange);
-    if (!isWithinHours) return false;
-
-    const hitsBreak = this._breakRange
-      ? requestedRange.overlapsWith(this._breakRange).value
-      : false;
-
-    return !hitsBreak;
   }
 }

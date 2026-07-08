@@ -35,6 +35,7 @@ import { GetHotelBookingByIdQuery } from '@modules/crm/health-tourism/hotel/appl
 import { SearchTransferAvailabilityQuery } from '@modules/crm/health-tourism/transfer/application/queries/search-transfer-availability/search-transfer-availability.query';
 import { GetTransferBookingsQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-bookings/get-transfer-bookings.query';
 import { GetTransferBookingByIdQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-booking-by-id/get-transfer-booking-by-id.query';
+import { ManualBookingOverrideRequiredException } from '@modules/crm/health-tourism/booking-payment/domain/exceptions/booking-payment.exceptions';
 
 @UseGuards(AuthGuard)
 @Controller()
@@ -49,8 +50,14 @@ export class HealthTourismController {
     return this.queryBus.execute(new SearchHotelsQuery(dto, ctx));
   }
 
+  // Direkt (ödeme-önce saga'yı baypas eden) booking. Varsayılan akış: AI/hasta
+  // InitiateBookingPayment ile ödeme linki üretir, ödeme webhook'u rezervasyonu açar.
+  // Bu endpoint yalnızca ödemenin kanal dışı tahsil edildiği MANUEL override içindir.
   @Post('health-tourism/bookings')
   bookHotel(@Body() dto: BookHotelDto, @GetContext() ctx: IGetContext) {
+    if (!dto.manualOverride) {
+      throw new ManualBookingOverrideRequiredException();
+    }
     return this.commandBus.execute(new BookHotelCommand(dto, ctx));
   }
 
@@ -89,8 +96,12 @@ export class HealthTourismController {
     return this.queryBus.execute(new SearchTransferAvailabilityQuery(dto, ctx));
   }
 
+  // Direkt (ödeme-önce saga'yı baypas eden) transfer booking — yalnızca manuel override.
   @Post('health-tourism/transfers/bookings')
   bookTransfer(@Body() dto: BookTransferDto, @GetContext() ctx: IGetContext) {
+    if (!dto.manualOverride) {
+      throw new ManualBookingOverrideRequiredException();
+    }
     return this.commandBus.execute(new BookTransferCommand(dto, ctx));
   }
 

@@ -33,7 +33,7 @@ export class CreateTreatmentPackageHandler
 
     if (!actor.clinicId) throw new ClinicNotAssignedException();
 
-    const pkg = TreatmentPackage.create({
+    const treatmentPackage = TreatmentPackage.create({
       clinicId: actor.clinicId,
       name: dto.name,
       examinationCount: dto.examinationCount,
@@ -44,7 +44,8 @@ export class CreateTreatmentPackageHandler
       items: dto.items,
     });
     return this.txManager.run(async () => {
-      const createdPackage = await this.treatmentPackageCommandRepo.save(pkg);
+      const createdPackage =
+        await this.treatmentPackageCommandRepo.create(treatmentPackage);
       return createdPackage.id.value;
     });
   }

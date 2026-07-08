@@ -53,7 +53,10 @@ export class ProviderSchedule {
       DayMinute.fromNumber(availability.endMinute)
     );
 
-    if (!appointmentMinuteRange.isCompletelyWithin(availableMinuteRange)) {
+    if (
+      !appointmentMinuteRange.validate.isCompletelyWithIn(availableMinuteRange)
+        .value
+    ) {
       return this.returnValue(new ProviderOutsideWorkingHoursException());
     }
 
@@ -63,7 +66,7 @@ export class ProviderSchedule {
         DayMinute.fromNumber(availability.breakEndMinute)
       );
 
-      if (appointmentMinuteRange.overlapsWith(breakTime)) {
+      if (appointmentMinuteRange.validate.overlapsWith(breakTime).value) {
         return this.returnValue(new ProviderOnBreakException());
       }
     }

@@ -48,3 +48,19 @@ export class AppointmentCancellationNotAllowedException extends DomainException<
     );
   }
 }
+
+/**
+ * Klinik ayarında hastanın kendi randevusunu iptal etmesi kapalıyken
+ * (allowPatientCancel = false) fırlatılır. Hasta panelden iptal edemez; klinik
+ * ile iletişime geçmelidir.
+ */
+export class PatientCancellationDisabledException extends DomainException {
+  public readonly errorCode = ERROR_CODES.APPOINTMENT.PATIENT_CANCEL_DISABLED;
+  public override readonly httpStatus = HttpStatus.FORBIDDEN;
+
+  constructor(
+    message = 'Randevunuzu panel üzerinden iptal edemezsiniz. Lütfen klinik ile iletişime geçin.'
+  ) {
+    super(message);
+  }
+}

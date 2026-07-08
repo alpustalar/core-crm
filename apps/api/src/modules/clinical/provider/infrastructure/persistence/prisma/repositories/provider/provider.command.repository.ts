@@ -19,7 +19,26 @@ export class ProviderCommandRepository
     return raw ? new Provider(raw) : null;
   }
 
+  async create(entity: Provider): Promise<Provider> {
+    const data = entity.toPersistence();
+    const raw = await this.db.provider.create({ data });
+    entity.flushEvents();
+    return new Provider(raw);
+  }
+
   async save(entity: Provider) {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
+    const raw = await this.db.provider.upsert({
+      where: { id },
+      create,
+      update,
+    });
+    entity.flushEvents();
+    return new Provider(raw);
+  }
+
+  async sync(entity: Provider) {
     const create = entity.toPersistence();
     const { id, ...update } = create;
     const raw = await this.db.provider.upsert({

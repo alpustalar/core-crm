@@ -15,6 +15,13 @@ export class ProviderShiftCommandRepository
     super(prisma);
   }
 
+  async create(providersShift: ProviderShift): Promise<ProviderShift> {
+    const data = providersShift.toPersistence();
+    const raw = await this.db.providerShift.create({ data });
+    providersShift.flushEvents();
+    return new ProviderShift(raw);
+  }
+
   async findById(id: string): Promise<ProviderShift | null> {
     const raw = await this.db.providerShift.findUnique({ where: { id } });
     return raw ? new ProviderShift(raw) : null;

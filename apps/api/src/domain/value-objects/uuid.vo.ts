@@ -65,10 +65,6 @@ export class UUID {
     return this._value;
   }
 
-  public equals(other: UUID): boolean {
-    return this._value === other.value;
-  }
-
   private validate(value: string): void {
     if (!UUID.schema.safeParse(value).success) {
       throw new InvalidUuidException();

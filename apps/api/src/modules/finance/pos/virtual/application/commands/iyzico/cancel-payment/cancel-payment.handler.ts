@@ -2,7 +2,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CancelPaymentCommand } from './cancel-payment.command';
 import { CancelPaymentCommandResponse } from './cancel-payment.response';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
+import { PaymentGuard } from '@modules/finance/payment/domain/value-objects/payment-guard.vo';
+import { IyzicoResultGuard } from '@modules/finance/pos/virtual/domain/value-objects/iyzico-result-guard.vo';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
@@ -43,7 +44,6 @@ export class CancelPaymentHandler
     private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
-    private readonly paymentDomainService: PaymentDomainService,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
   ) {}
@@ -63,7 +63,7 @@ export class CancelPaymentHandler
       throw new PaymentNotFoundException(paymentId);
     }
 
-    this.paymentDomainService.validate.isComplete(payment).orThrow();
+    PaymentGuard.of(payment).validate.isComplete().orThrow();
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
@@ -88,13 +88,11 @@ export class CancelPaymentHandler
       ip,
     });
 
-    this.paymentDomainService.check
-      .iyzicoSdkStatus({
-        status: sdkResult.status,
-        paymentId,
-        conversationId: conversationId.value,
-        sdkErrorMessage: sdkResult?.errorMessage,
-      })
+    IyzicoResultGuard.of({
+      status: sdkResult.status,
+      errorMessage: sdkResult?.errorMessage,
+    })
+      .assertSuccess()
       .orThrow();
 
     await this.txManager.outboxRun(async () => {

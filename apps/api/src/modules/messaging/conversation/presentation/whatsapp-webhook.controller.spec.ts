@@ -256,6 +256,36 @@ describe('WhatsappWebhookController (public webhook)', () => {
       expect(input.type).toBe('TEXT');
       expect(input.replyToExternalId).toBe('wamid.quoted');
     });
+
+    it('Click-to-WhatsApp referral → InboundReferral map edilir (medium AD)', async () => {
+      const input = (await dispatchMessage({
+        type: 'text',
+        text: { body: 'merhaba' },
+        referral: {
+          source_type: 'ad',
+          source_id: 'ad-123',
+          source_url: 'https://fb.me/x',
+          ctwa_clid: 'ctwa-xyz',
+          headline: 'Saç Ekimi',
+        },
+      })) as unknown as { referral: Record<string, unknown> };
+      expect(input.referral).toEqual({
+        medium: 'AD',
+        adId: 'ad-123',
+        sourceUrl: 'https://fb.me/x',
+        ctwaClid: 'ctwa-xyz',
+        headline: 'Saç Ekimi',
+        body: null,
+      });
+    });
+
+    it('referral yoksa input.referral undefined', async () => {
+      const input = (await dispatchMessage({
+        type: 'text',
+        text: { body: 'merhaba' },
+      })) as unknown as { referral?: unknown };
+      expect(input.referral).toBeUndefined();
+    });
   });
 
   describe('status webhook — FAILED hata-kodu eşleme', () => {

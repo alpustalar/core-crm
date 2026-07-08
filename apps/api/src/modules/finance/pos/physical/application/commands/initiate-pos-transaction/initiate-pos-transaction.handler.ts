@@ -21,12 +21,18 @@ import PaymentMethodSchema from '@input-type-schemas/PaymentMethodSchema';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(InitiatePosTransactionCommand)
-export class InitiatePosTransactionHandler implements ICommandHandler<
-  InitiatePosTransactionCommand,
-  InitiatePosTransactionResponse
-> {
+export class InitiatePosTransactionHandler
+  implements
+    ICommandHandler<
+      InitiatePosTransactionCommand,
+      InitiatePosTransactionResponse
+    >
+{
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
@@ -44,14 +50,16 @@ export class InitiatePosTransactionHandler implements ICommandHandler<
     const { input } = command;
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
+
+    device.validate.status.isActive().orThrow();
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
     const { posTransactionId, transaction } = await this.txManager.outboxRun(
       async () => {
-        const internalPaymentId = input.paymentId ?? crypto.randomUUID();
+        const internalPaymentId = input.paymentId ?? UUID.generate().value;
         let paymentId = input.paymentId;
         if (!paymentId && input.patientId) {
           await this.commandBus.execute(
@@ -74,25 +82,28 @@ export class InitiatePosTransactionHandler implements ICommandHandler<
 
         // TODO: burada logic hatası olabilir tekrar kontrol etmek gerekiyor
 
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
+        const posTransaction = PosTransaction.create({
+          posDeviceId: device.id.value,
           clinicId: input.clinicId,
           patientId: input.patientId,
           appointmentId: input.appointmentId,
           paymentId,
           amount: input.amount,
-          currency: input.currency ?? 'TRY',
+          currency: input.currency ?? Currency.enum.TRY,
         });
-        return { posTransactionId: id, transaction: tx };
+
+        const savedPosTransaction =
+          await this.posTransactionCommandRepo.create(posTransaction);
+        return {
+          posTransactionId: savedPosTransaction.id,
+          transaction: savedPosTransaction,
+        };
       }
     );
 
-    // Faz 2 — sağlayıcı TCP/HTTP çağrısı (transaction dışında)
     const { terminalId, merchantId } = device.getPaxConnection();
     const result = await this.posProvider.initiate({
-      posTransactionId,
+      posTransactionId: posTransactionId.value,
       terminalId,
       merchantId,
       amount: input.amount,
@@ -106,7 +117,7 @@ export class InitiatePosTransactionHandler implements ICommandHandler<
     });
 
     return {
-      posTransactionId,
+      posTransactionId: posTransactionId.value,
       externalRef: result.externalRef,
       status: PosTransactionStatusSchema.enum.PENDING,
     };

@@ -16,6 +16,7 @@ export type InvoiceTrigger = z.infer<typeof InvoiceTriggerSchema>;
 
 export const CreateInvoiceSchema = z.object({
   id: z.uuid(),
+  organizationId: z.uuid(),
   clinicId: z.uuid(),
   patientId: z.uuid(),
   appointmentId: z.uuid().nullable(),

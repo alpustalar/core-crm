@@ -8,7 +8,6 @@ import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
@@ -45,7 +44,6 @@ export class HandlePaymentCallbackHandler
     @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     private readonly txManager: TransactionManager,
-    private readonly paymentDomainService: PaymentDomainService,
     private readonly commandBus: TSCommandBus
   ) {}
 
@@ -65,15 +63,18 @@ export class HandlePaymentCallbackHandler
         throw new IyzicoTransactionNotFoundException(conversationId);
       }
 
-      if (
-        this.paymentDomainService.isAlreadyProcessed(iyzicoTx, conversationId)
-      ) {
+      const transaction = new IyzicoTransaction(iyzicoTx);
+
+      // Idempotency: başarıyla işlenmiş bir işlem callback/webhook yarışında tekrar gelirse yok say.
+      if (transaction.isSuccess()) {
+        this.logger.warn(
+          `Ödeme zaten önceden işlenmiş (Idempotency). conversationId=${conversationId}`
+        );
         return;
       }
 
       const installment = iyzicoTx.installment;
       const payment = installment.payment;
-      const transaction = new IyzicoTransaction(iyzicoTx);
 
       if (sdkResult.isSuccess) {
         transaction.markAsSuccess({

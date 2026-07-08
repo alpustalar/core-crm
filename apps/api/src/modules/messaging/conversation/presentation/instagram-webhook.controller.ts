@@ -12,17 +12,19 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
 import { MessageChannel, MessageType } from '@prisma/client';
 import { ENV } from '@common/constants/env.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindInstagramChannelByIgUserIdQuery } from '@modules/messaging/channel-config/application/queries/find-instagram-channel-by-ig-user-id/find-instagram-channel-by-ig-user-id.query';
 import { ReceiveInboundMessageCommand } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.command';
+import { InboundReferral } from '@modules/messaging/conversation/domain/types/inbound-referral';
 import {
   InstagramWebhookBody,
   InstagramWebhookMessaging,
+  InstagramWebhookReferral,
 } from './instagram-webhook.types';
+import { CryptoManager } from '@src/infrastructure/security/crypto/crypto.manager';
 
 /**
  * Instagram (Messenger Platform) webhook (public — AuthGuard yok). GET: Meta doğrulama
@@ -87,6 +89,14 @@ export class InstagramWebhookController {
     return { status: 'ok' };
   }
 
+  private verifySignature(
+    rawBody: Buffer,
+    signature: string,
+    appSecret: string
+  ): boolean {
+    return CryptoManager.verifyWebhookSignature(rawBody, signature, appSecret);
+  }
+
   /** Bir messaging olayını klinik routing yapıp gelen mesaja dağıtır. */
   private async processMessaging(
     igUserId: string,
@@ -120,11 +130,27 @@ export class InstagramWebhookController {
         externalId: message.mid,
         type: content.type,
         body: content.body,
+        referral: this.mapReferral(messaging.referral ?? message.referral),
         occurredAt: messaging.timestamp
           ? new Date(messaging.timestamp)
           : undefined,
       })
     );
+  }
+
+  /** Instagram reklam referral'ını kanal-bağımsız InboundReferral'a çevirir. */
+  private mapReferral(
+    referral: InstagramWebhookReferral | undefined
+  ): InboundReferral | undefined {
+    if (!referral) return undefined;
+    return {
+      medium: referral.source === 'ADS' || referral.ad_id ? 'AD' : 'ORGANIC',
+      adId: referral.ad_id ?? null,
+      sourceUrl: null,
+      ctwaClid: null,
+      headline: null,
+      body: null,
+    };
   }
 
   /**
@@ -140,23 +166,5 @@ export class InstagramWebhookController {
       return { type: MessageType.TEXT, body: text };
     }
     return { type: MessageType.UNSUPPORTED, body: '[desteklenmeyen mesaj]' };
-  }
-
-  private verifySignature(
-    rawBody: Buffer,
-    signature: string,
-    appSecret: string
-  ): boolean {
-    try {
-      const expected = `sha256=${crypto
-        .createHmac('sha256', appSecret)
-        .update(rawBody)
-        .digest('hex')}`;
-      const a = Buffer.from(expected);
-      const b = Buffer.from(signature);
-      return a.length === b.length && crypto.timingSafeEqual(a, b);
-    } catch {
-      return false;
-    }
   }
 }

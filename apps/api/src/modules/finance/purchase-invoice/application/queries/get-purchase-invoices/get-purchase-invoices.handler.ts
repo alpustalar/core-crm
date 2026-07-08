@@ -1,11 +1,13 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   IPurchaseInvoiceQueryRepository,
   PURCHASE_INVOICE_QUERY_REPOSITORY,
 } from '@modules/finance/purchase-invoice/domain/repositories/purchase-invoice.repository';
 import { GetPurchaseInvoicesQuery } from './get-purchase-invoices.query';
 import { GetPurchaseInvoicesResponse } from './get-purchase-invoices.response';
+import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetPurchaseInvoicesQuery)
 export class GetPurchaseInvoicesHandler
@@ -21,9 +23,7 @@ export class GetPurchaseInvoicesHandler
     query: GetPurchaseInvoicesQuery
   ): Promise<GetPurchaseInvoicesResponse> {
     const clinicId = query.ctx.actor.clinicId;
-    if (!clinicId) {
-      throw new BadRequestException('Aktörün clinic bağlamı yok.');
-    }
+    if (!clinicId) throw new ClinicNotAssignedException();
 
     const { items, total } =
       await this.purchaseInvoiceQueryRepo.findManyByClinic(
@@ -32,21 +32,9 @@ export class GetPurchaseInvoicesHandler
       );
 
     return {
-      data: {
-        items: items.map((invoice) => ({
-          id: invoice.id,
-          supplierId: invoice.supplierId,
-          invoiceNumber: invoice.invoiceNumber,
-          invoiceDate: invoice.invoiceDate,
-          lineAccountCode: invoice.lineAccountCode,
-          vatRate: invoice.vatRate,
-          netTotal: invoice.netTotal.toApiFormat(),
-          vatTotal: invoice.vatTotal.toApiFormat(),
-          grandTotal: invoice.grandTotal.toApiFormat(),
-          currency: invoice.grandTotal.currency,
-          status: invoice.status,
-        })),
-        total,
+      data: items.map((invoice) => invoice.toPersistence()),
+      meta: {
+        pagination: buildPaginationMeta(query.pagination, total),
       },
     };
   }

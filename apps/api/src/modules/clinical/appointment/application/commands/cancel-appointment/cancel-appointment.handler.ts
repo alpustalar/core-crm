@@ -9,9 +9,10 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(CancelAppointmentCommand)
 export class CancelAppointmentHandler
@@ -22,7 +23,8 @@ export class CancelAppointmentHandler
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -46,6 +48,11 @@ export class CancelAppointmentHandler
       .orThrow(APPOINTMENT_EVENTS.CANCELLED);
 
     appointment.cancelSchedule(actor.userId, cancelReason);
-    await this.appointmentCommandRepo.save(appointment);
+
+    // İptal, sağlık turizmi iadesi gibi kritik yan etkileri tetikleyebildiği için
+    // event'ler outbox ile atomik mühürlenir (AppointmentCancelledEvent).
+    await this.txManager.outboxRun(async () => {
+      await this.appointmentCommandRepo.save(appointment);
+    });
   }
 }

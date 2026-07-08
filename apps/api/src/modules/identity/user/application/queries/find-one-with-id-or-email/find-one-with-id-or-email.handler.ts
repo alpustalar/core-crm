@@ -6,7 +6,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindOneWithIdOrEmailQuery } from '@modules/identity/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.query';
 import { FindOneWithIdOrEmailQueryResponse } from '@modules/identity/user/application/queries/find-one-with-id-or-email/find-one-with-id-or-email.response';

@@ -18,7 +18,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
@@ -78,7 +78,7 @@ export class AdjustStockHandler
       if (updatedBatch) {
         await this.productBatchCommandRepo.save(updatedBatch);
       }
-      await this.stockMovementCommandRepo.save(stockMovement);
+      await this.stockMovementCommandRepo.create(stockMovement);
     });
   }
 }

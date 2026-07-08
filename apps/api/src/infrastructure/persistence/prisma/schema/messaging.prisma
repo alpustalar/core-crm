@@ -58,7 +58,9 @@ enum ConversationStatus {
 /// Kliniğin WhatsApp Business kanal config'i (messaging bounded-context) — Clinic'ten
 /// ayrıştırılmış 1:1 satellite. Webhook gelen olayı phoneNumberId ile bu kayda routing eder.
 model ClinicWhatsappChannel {
-  id String @id @default(uuid())
+  id             String @id
+  clinicId       String @unique @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize — Conversation'a taşınır
 
   phoneNumberId      String    @unique @map("phone_number_id") // Meta WhatsApp phone_number_id
   wabaId             String?   @map("waba_id") // WhatsApp Business Account id
@@ -72,9 +74,7 @@ model ClinicWhatsappChannel {
   qualityRating      String?   @map("quality_rating") // GREEN | YELLOW | RED (numara kalitesi)
   messagingTier      String?   @map("messaging_tier") // mesaj limiti tier (ör. TIER_1K)
 
-  clinicId       String @unique @map("clinic_id")
-  organizationId String @map("organization_id") // denormalize — Conversation'a taşınır
-  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -86,7 +86,9 @@ model ClinicWhatsappChannel {
 /// satellite. Hibrit: provider=BOT_API (BotFather token + webhook) veya MTPROTO (numarayla
 /// kullanıcı hesabı, GramJS StringSession). Token/session şifreli (TokenCipherService).
 model ClinicTelegramChannel {
-  id String @id @default(uuid())
+  id             String @id
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize — Conversation'a taşınır
 
   provider TelegramProvider
   status   TelegramChannelStatus @default(PENDING)
@@ -102,9 +104,7 @@ model ClinicTelegramChannel {
 
   lastError String? @map("last_error")
 
-  clinicId       String @map("clinic_id")
-  organizationId String @map("organization_id") // denormalize — Conversation'a taşınır
-  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -117,10 +117,12 @@ model ClinicTelegramChannel {
 /// 1:1 satellite. Meta Graph API (Messenger Platform); igUserId = Instagram profesyonel hesap
 /// id'si (webhook routing + gönderim hedefi). accessToken (Page/IG token) şifreli saklanır.
 model ClinicInstagramChannel {
-  id String @id @default(uuid())
+  id             String  @id
+  clinicId       String  @unique @map("clinic_id")
+  organizationId String  @map("organization_id") // denormalize — Conversation'a taşınır
+  igUserId       String  @unique @map("ig_user_id") // Instagram professional account id (routing + send)
+  pageId         String? @map("page_id") // bağlı Facebook Page id (FB Login akışında)
 
-  igUserId    String  @unique @map("ig_user_id") // Instagram professional account id (routing + send)
-  pageId      String? @map("page_id") // bağlı Facebook Page id (FB Login akışında)
   username    String? @map("username") // IG kullanıcı adı (gösterim)
   accessToken String? @map("access_token") // Page/IG erişim token'ı (şifreli)
   isActive    Boolean @default(true) @map("is_active")
@@ -128,9 +130,7 @@ model ClinicInstagramChannel {
   tokenExpiresAt DateTime? @map("token_expires_at") // token son geçerlilik (reconnect tetikler)
   lastError      String?   @map("last_error")
 
-  clinicId       String @unique @map("clinic_id")
-  organizationId String @map("organization_id") // denormalize — Conversation'a taşınır
-  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -142,20 +142,20 @@ model ClinicInstagramChannel {
 /// 1:1 satellite. Gelen WhatsApp mesajlarına otomatik yanıt için persona + (şifreli) Anthropic
 /// anahtarı + model tutar. Anahtar yoksa platform fallback (ENV.ANTHROPIC_API_KEY) kullanılır.
 model ClinicAiAgentConfig {
-  id String @id @default(uuid())
-
-  isEnabled            Boolean    @default(false) @map("is_enabled")
-  provider             AiProvider @default(ANTHROPIC) // sağlayıcı seçimi (Claude / Gemini)
-  model                String     @default("claude-haiku-4-5") // sağlayıcıya ait model id (override edilebilir)
-  systemPrompt         String?    @map("system_prompt") // klinik personası / talimatları
-  apiKey               String?    @map("api_key") // klinik kendi sağlayıcı anahtarı (şifreli); null → platform
-  maxTokens            Int?    @map("max_tokens") // yanıt üst sınırı (null → varsayılan)
-  replyOnlyWithinWindow Boolean @default(true) @map("reply_only_within_window") // 24s pencere dışında sus
-  businessHours        Json?   @map("business_hours") // opsiyonel çalışma saati kuralı
-
+  id             String @id
   clinicId       String @unique @map("clinic_id")
   organizationId String @map("organization_id") // denormalize
-  clinic         Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  isEnabled             Boolean    @default(false) @map("is_enabled")
+  provider              AiProvider @default(ANTHROPIC) // sağlayıcı seçimi (Claude / Gemini)
+  model                 String     @default("claude-haiku-4-5") // sağlayıcıya ait model id (override edilebilir)
+  systemPrompt          String?    @map("system_prompt") // klinik personası / talimatları
+  apiKey                String?    @map("api_key") // klinik kendi sağlayıcı anahtarı (şifreli); null → platform
+  maxTokens             Int?       @map("max_tokens") // yanıt üst sınırı (null → varsayılan)
+  replyOnlyWithinWindow Boolean    @default(true) @map("reply_only_within_window") // 24s pencere dışında sus
+  businessHours         Json?      @map("business_hours") // opsiyonel çalışma saati kuralı
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -166,24 +166,24 @@ model ClinicAiAgentConfig {
 /// Bir kontak ile yazışma başlığı (thread). clinicId denormalize scalar (bounded-context;
 /// Clinic ilişkisel tablolarına sızılmaz). Kontak hasta/lead ile ilkel id üzerinden eşlenir.
 model Conversation {
-  id String @id @default(uuid())
+  id             String    @id
+  organizationId String    @map("organization_id")
+  clinicId       String    @map("clinic_id")
+  assignedUserId String?   @map("assigned_user_id")
+  lastMessageAt  DateTime? @map("last_message_at")
+  patientId      String?   @map("patient_id")
+  leadId         String?   @map("lead_id")
+  lastInboundAt  DateTime? @map("last_inbound_at") // 24s servis penceresi için son gelen mesaj zamanı
 
-  clinicId       String             @map("clinic_id")
-  organizationId String             @map("organization_id")
-  channel        MessageChannel     @default(WHATSAPP)
-  contactPhone   String             @map("contact_phone")
-  contactName    String?            @map("contact_name")
-  patientId      String?            @map("patient_id")
-  leadId         String?            @map("lead_id")
-  status         ConversationStatus @default(OPEN)
-  assignedUserId String?            @map("assigned_user_id")
-  lastMessageAt  DateTime?          @map("last_message_at")
-  lastInboundAt  DateTime?          @map("last_inbound_at") // 24s servis penceresi için son gelen mesaj zamanı
-  unreadCount    Int                @default(0) @map("unread_count") // ajan görmedi sayacı
-  agentReadAt    DateTime?          @map("agent_read_at") // ajanın son okuduğu an
-  windowExpiresAt DateTime?         @map("window_expires_at") // aktif WhatsApp konuşma penceresi bitişi
-  marketingOptOut Boolean           @default(false) @map("marketing_opt_out") // pazarlama opt-out
-  optOutAt       DateTime?          @map("opt_out_at")
+  status          ConversationStatus @default(OPEN)
+  channel         MessageChannel     @default(WHATSAPP)
+  contactPhone    String             @map("contact_phone")
+  contactName     String?            @map("contact_name")
+  unreadCount     Int                @default(0) @map("unread_count") // ajan görmedi sayacı
+  agentReadAt     DateTime?          @map("agent_read_at") // ajanın son okuduğu an
+  windowExpiresAt DateTime?          @map("window_expires_at") // aktif WhatsApp konuşma penceresi bitişi
+  marketingOptOut Boolean            @default(false) @map("marketing_opt_out") // pazarlama opt-out
+  optOutAt        DateTime?          @map("opt_out_at")
 
   messages Message[]
 
@@ -197,29 +197,29 @@ model Conversation {
 
 /// Yazışma içindeki tek mesaj (gelen/giden).
 model Message {
-  id String @id @default(uuid())
+  id String @id
 
-  conversationId String       @map("conversation_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId    String  @map("conversation_id")
+  externalId        String? @map("external_id") // WhatsApp mesaj id'si
+  sentByUserId      String? @map("sent_by_user_id") // giden mesajı atan personel
+  replyToExternalId String? @map("reply_to_external_id") // alıntılanan mesajın wamid'i
 
-  direction   MessageDirection
-  type        MessageType      @default(TEXT)
-  body        String?
-  mediaUrl    String?          @map("media_url")
-  status      MessageStatus
-  externalId  String?          @map("external_id") // WhatsApp mesaj id'si
-  errorReason String?          @map("error_reason")
-  errorCode   String?          @map("error_code") // WhatsApp hata kodu (ör. 131047)
-  sentByUserId String?         @map("sent_by_user_id") // giden mesajı atan personel
+  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction    MessageDirection
+  type         MessageType      @default(TEXT)
+  body         String?
+  mediaUrl     String?          @map("media_url")
+  status       MessageStatus
+  errorReason  String?          @map("error_reason")
+  errorCode    String?          @map("error_code") // WhatsApp hata kodu (ör. 131047)
 
   // Zengin gelen tipleri (interactive/location/contacts/reaction) yapısal gövdesi
-  payload            Json?   @map("payload")
-  replyToExternalId  String? @map("reply_to_external_id") // alıntılanan mesajın wamid'i
+  payload Json? @map("payload")
 
   // Giden medya alt-tipi + maliyet/pricing (webhook status'tan)
-  mediaType          String?  @map("media_type") // image | document | video | audio | sticker
-  pricingCategory    String?  @map("pricing_category") // marketing | utility | authentication | service
-  billable           Boolean? @map("billable")
+  mediaType       String?  @map("media_type") // image | document | video | audio | sticker
+  pricingCategory String?  @map("pricing_category") // marketing | utility | authentication | service
+  billable        Boolean? @map("billable")
 
   // TEMPLATE (HSM) gönderimleri — 24s pencere kapalıyken proaktif mesaj
   templateName     String? @map("template_name")

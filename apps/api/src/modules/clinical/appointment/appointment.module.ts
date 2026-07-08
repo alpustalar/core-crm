@@ -2,12 +2,14 @@ import { AppointmentQueryModule } from '@modules/clinical/appointment/applicatio
 import { AppointmentCommandModule } from '@modules/clinical/appointment/application/commands/command.module';
 import { Module } from '@nestjs/common';
 import { AppointmentPresentationModule } from '@modules/clinical/appointment/presentation/appointment-presentation.module';
+import { AppointmentEventListenersModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event-listeners.module';
 
 @Module({
   imports: [
     AppointmentQueryModule,
     AppointmentCommandModule,
     AppointmentPresentationModule,
+    AppointmentEventListenersModule,
   ],
 })
 export class AppointmentModule {}

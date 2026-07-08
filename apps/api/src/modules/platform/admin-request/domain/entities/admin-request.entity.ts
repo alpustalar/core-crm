@@ -3,7 +3,6 @@ import {
   AdminRequestStatusSchema,
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { BadRequestException } from '@nestjs/common';
 import { AdminRequestCreatedEvent } from '@modules/platform/admin-request/domain/events/admin-request-created.event';
 import { AdminRequestReviewedEvent } from '@modules/platform/admin-request/domain/events/admin-request-reviewed.event';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
@@ -11,6 +10,7 @@ import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/
 import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
 import { AdminRequestStatusType as AdminRequestStatus } from '@input-type-schemas/AdminRequestStatusSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class AdminRequest extends AggregateRoot {
   constructor(data: IAdminRequest) {
@@ -98,6 +98,8 @@ export class AdminRequest extends AggregateRoot {
   static create(props: CreateAdminRequestProps): AdminRequest {
     const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
 
+    const now = DateTimeManager.create();
+
     const entity = new AdminRequest({
       id: id.value,
       type: props.type,
@@ -118,8 +120,8 @@ export class AdminRequest extends AggregateRoot {
       reviewedBy: null,
       reviewedAt: null,
       reviewNote: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
 
     entity.addDomainEvent(
@@ -136,14 +138,9 @@ export class AdminRequest extends AggregateRoot {
   }
 
   public approve(reviewedBy: string, reviewNote?: string): void {
-    if (this._status !== AdminRequestStatusSchema.enum.PENDING) {
-      throw new BadRequestException(
-        'Yalnızca bekleyen istekler onaylanabilir.'
-      );
-    }
     this._status = AdminRequestStatusSchema.enum.APPROVED;
     this._reviewedBy = reviewedBy;
-    this._reviewedAt = new Date();
+    this._reviewedAt = DateTimeManager.create();
     this._reviewNote = reviewNote ?? null;
 
     this.addDomainEvent(
@@ -161,14 +158,9 @@ export class AdminRequest extends AggregateRoot {
   }
 
   public reject(reviewedBy: string, reviewNote?: string): void {
-    if (this._status !== AdminRequestStatusSchema.enum.PENDING) {
-      throw new BadRequestException(
-        'Yalnızca bekleyen istekler reddedilebilir.'
-      );
-    }
     this._status = AdminRequestStatusSchema.enum.REJECTED;
     this._reviewedBy = reviewedBy;
-    this._reviewedAt = new Date();
+    this._reviewedAt = DateTimeManager.create();
     this._reviewNote = reviewNote ?? null;
 
     this.addDomainEvent(
@@ -203,7 +195,7 @@ export class AdminRequest extends AggregateRoot {
       reviewedAt: this._reviewedAt,
       reviewNote: this._reviewNote,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

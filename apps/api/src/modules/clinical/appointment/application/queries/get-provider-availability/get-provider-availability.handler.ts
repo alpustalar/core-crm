@@ -10,7 +10,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ProviderCalendarDayResponse, ProviderException } from '@shared';
 import { DateTimeManager } from '@common/utils';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -61,8 +61,6 @@ export class GetProviderAvailabilityHandler
       endDate
     ).orThrow();
 
-    // TODO: bu file'da logic hataları olabilir tekrar kontrol edilecek
-
     const [
       { data: clinicSchedule },
       { data: providerSchedule },
@@ -102,8 +100,14 @@ export class GetProviderAvailabilityHandler
       ])
     );
     const days: ProviderCalendarDayResponse[] = [];
-    const cursor = new Date(providerAvailabilityQueryDateRange.startDate);
-    cursor.setUTCHours(0, 0, 0, 0);
+    // Gün gün ilerlerken haftanın günü (dayOfWeek), tarih anahtarı (dateKey) ve
+    // gün sınırları hepsi aynı timezone'da (klinik yereli — DEFAULT_TZ) hesaplanır.
+    // Native getDay()/setUTCDate karışımı kaldırıldı; aksi halde sunucu UTC iken
+    // dateKey ile dayOfWeek farklı güne düşüp yanlış klinik müsaitliği eşleşiyordu.
+    const rangeStart = DateTimeManager.startOfDay(
+      providerAvailabilityQueryDateRange.startDate
+    );
+    const rangeEnd = providerAvailabilityQueryDateRange.endDate;
 
     if (providerSchedule.operationMode === OperationModeSchema.enum.SHIFT) {
       const shiftByDate = new Map(
@@ -113,9 +117,13 @@ export class GetProviderAvailabilityHandler
         ])
       );
 
-      while (cursor <= providerAvailabilityQueryDateRange.endDate) {
+      for (
+        let cursor = rangeStart;
+        cursor <= rangeEnd;
+        cursor = DateTimeManager.addDays(cursor, 1)
+      ) {
         const dateKey = DateTimeManager.toDateKey(cursor);
-        const dayOfWeek = cursor.getDay();
+        const dayOfWeek = DateTimeManager.getDayOfWeek(cursor);
 
         const clinicAvailability = clinicAvailabilityByDay.get(dayOfWeek);
         const clinicException = clinicExceptionByDate.get(dateKey);
@@ -133,7 +141,6 @@ export class GetProviderAvailabilityHandler
             providerExceptions: [],
             occupiedSlots: [],
           });
-          cursor.setUTCDate(cursor.getUTCDate() + 1);
           continue;
         }
 
@@ -174,7 +181,6 @@ export class GetProviderAvailabilityHandler
             })),
             occupiedSlots: [],
           });
-          cursor.setUTCDate(cursor.getUTCDate() + 1);
           continue;
         }
 
@@ -215,8 +221,6 @@ export class GetProviderAvailabilityHandler
             status: occupiedSlot.status,
           })),
         });
-
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
       }
     } else {
       const providerAvailByDay = new Map(
@@ -226,9 +230,13 @@ export class GetProviderAvailabilityHandler
         ])
       );
 
-      while (cursor <= providerAvailabilityQueryDateRange.endDate) {
+      for (
+        let cursor = rangeStart;
+        cursor <= rangeEnd;
+        cursor = DateTimeManager.addDays(cursor, 1)
+      ) {
         const dateKey = DateTimeManager.toDateKey(cursor);
-        const dayOfWeek = cursor.getDay();
+        const dayOfWeek = DateTimeManager.getDayOfWeek(cursor);
 
         const clinicAvailability = clinicAvailabilityByDay.get(dayOfWeek);
         const clinicException = clinicExceptionByDate.get(dateKey);
@@ -246,7 +254,6 @@ export class GetProviderAvailabilityHandler
             providerExceptions: [],
             occupiedSlots: [],
           });
-          cursor.setUTCDate(cursor.getUTCDate() + 1);
           continue;
         }
 
@@ -288,7 +295,6 @@ export class GetProviderAvailabilityHandler
             })),
             occupiedSlots: [],
           });
-          cursor.setUTCDate(cursor.getUTCDate() + 1);
           continue;
         }
 
@@ -329,8 +335,6 @@ export class GetProviderAvailabilityHandler
             status: occupiedSlot.status,
           })),
         });
-
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
       }
     }
 

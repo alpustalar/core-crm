@@ -1,36 +1,44 @@
 import { ProductCategory as IProductCategory } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { randomUUID } from 'crypto';
-import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/supply.contracts';
+import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/contracts/product-category.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class ProductCategory extends AggregateRoot {
   private constructor(data: IProductCategory) {
     super();
-    this._id = data.id;
-    this._name = data.name;
-    this._organizationId = data.organizationId;
-    this._parentId = data.parentId;
+    this._id = UUID.fromTrusted(data.id);
+    this._name = Name.fromTrusted(data.name);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._parentId = UUID.create(data.parentId).instance ?? null;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
-  private _parentId: string | null;
-  get parentId(): string | null {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
+    return this._clinicId;
+  }
+
+  private _parentId: UUID | null;
+  get parentId(): UUID | null {
     return this._parentId;
   }
 
@@ -48,48 +56,41 @@ export class ProductCategory extends AggregateRoot {
    * Domain kurallarına uygun olarak yeni bir Ürün Kategorisi (Aggregate) oluşturur.
    */
   public static create(props: CreateProductCategoryProps): ProductCategory {
-    if (!props.name || props.name.trim().length === 0) {
-      throw new Error('Kategori ismi boş olamaz.');
-    }
+    const now = DateTimeManager.create();
 
-    // (self-referencing loop)
-    const id = randomUUID();
-    if (props.parentId && props.parentId === id) {
-      throw new Error('Kategori kendisinin üst kategorisi olamaz.');
-    }
-
-    const now = new Date();
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const name = Name.create(props.name).orThrow();
 
     return new ProductCategory({
-      id,
-      name: props.name.trim(),
-      organizationId: props.organizationId,
-      parentId: props.parentId ?? null,
+      id: id.value,
+      name: name.value,
+
+      organizationId: UUID.create(props.organizationId).orThrow().value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+
+      parentId: props.parentId
+        ? UUID.create(props.parentId).orThrow().value
+        : null,
+
       createdAt: now,
       updatedAt: now,
     });
   }
 
-  /**
-   * Veritabanından (Prisma) dönen ham veriyi domain nesnesine güvenle eşler.
-   */
-
   public rename(name: string): void {
-    if (!name || name.trim().length === 0) {
-      throw new Error('Kategori ismi boş olamaz.');
-    }
-    this._name = name.trim();
-    this._updatedAt = new Date();
+    this._name = Name.create(name).orThrow();
+    this._updatedAt = DateTimeManager.create();
   }
 
   toPersistence(): IProductCategory {
     return {
-      id: this._id,
-      name: this._name,
-      organizationId: this._organizationId,
-      parentId: this._parentId,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      name: this.name.value,
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId.value,
+      parentId: this.parentId?.value ?? null,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

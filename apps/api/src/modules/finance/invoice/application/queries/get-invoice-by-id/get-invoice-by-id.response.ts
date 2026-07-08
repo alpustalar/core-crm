@@ -5,6 +5,7 @@ import { Decimal } from 'decimal.js';
 
 export interface InvoiceView {
   id: string;
+  organizationId: string;
   clinicId: string;
   patientId: string;
   netTotal: string;

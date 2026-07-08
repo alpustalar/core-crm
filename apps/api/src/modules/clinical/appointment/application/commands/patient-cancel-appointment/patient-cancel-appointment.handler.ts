@@ -15,12 +15,17 @@ import {
 } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/utils';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
-import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import {
+  AppointmentNotFoundException,
+  PatientCancellationDisabledException,
+} from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.query';
+import {
+  IPatientPolicyFactory,
+  PATIENT_POLICY_FACTORY,
+} from '@modules/platform/policy/patient/domain/interfaces/patient-policy-factory.interface';
 
 @CommandHandler(PatientCancelAppointmentCommand)
 export class PatientCancelAppointmentHandler
@@ -35,8 +40,9 @@ export class PatientCancelAppointmentHandler
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(APPOINTMENT_EVENT_PUBLISHER)
     private readonly eventPublisher: IAppointmentEventPublisher,
-    @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
+    @Inject(PATIENT_POLICY_FACTORY)
+    private readonly patientPolicyFactory: IPatientPolicyFactory,
+    private readonly queryBus: TSQueryBus,
     private readonly transactionManager: TransactionManager
   ) {}
 
@@ -51,24 +57,34 @@ export class PatientCancelAppointmentHandler
       await this.appointmentCommandRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
-    this.policyFactory
+    this.patientPolicyFactory
       .appointment(actor)
       .evaluator.systemBypass(source)
       .check(
-        (p) =>
-          p.canCancelOwnBooking({
-            patientId: appointment.patientId?.value ?? null,
-            patientEmail: appointment.patientEmail?.value ?? null,
-          }),
+        (p) => p.canCancelOwnBooking(appointment.toPersistence()),
         'Bu randevuyu iptal etme yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.CANCELLED);
 
-    const isWithinTwoHours =
-      appointment.startTime <= DateTimeManager.addHours(new Date(), 2);
+    // Klinik randevu ayarları (satır yoksa DB default'ları: 24 saat sınır,
+    // patient iptal açık) — iptal penceresi ve izin buradan gelir.
+    const { data: settings } = await this.queryBus.execute(
+      new GetClinicAppointmentSettingsQuery(appointment.clinicId.value)
+    );
 
-    if (isWithinTwoHours) {
-      return this.transactionManager.run(async () => {
+    // Hasta panelden iptal edemiyorsa engelle — klinik ile iletişime geçmeli.
+    if (!settings.allowPatientCancel) {
+      throw new PatientCancellationDisabledException();
+    }
+
+    // Randevuya klinik sınırından (cancelLimitHours) daha az kaldıysa hasta
+    // doğrudan iptal edemez; sekreter onayına düşen "iptal talebi" oluşturulur.
+    const isWithinCancelWindow =
+      appointment.startTime <=
+      DateTimeManager.addHours(new Date(), settings.cancelLimitHours);
+
+    if (isWithinCancelWindow) {
+      return this.transactionManager.outboxRun(async () => {
         this.eventPublisher.cancellationRequested({
           appointmentId: appointment.id.value,
           clinicId: appointment.clinicId.value,
@@ -82,7 +98,7 @@ export class PatientCancelAppointmentHandler
     }
 
     appointment.cancelBooking(actor.patientId ?? actor.email, cancelReason);
-    return this.transactionManager.run(async () => {
+    return this.transactionManager.outboxRun(async () => {
       await this.appointmentCommandRepo.save(appointment);
       return { status: CancelAppointmentStatus.CANCELLED };
     });

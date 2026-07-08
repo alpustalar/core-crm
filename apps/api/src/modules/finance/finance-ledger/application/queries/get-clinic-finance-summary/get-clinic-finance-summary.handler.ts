@@ -9,7 +9,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 

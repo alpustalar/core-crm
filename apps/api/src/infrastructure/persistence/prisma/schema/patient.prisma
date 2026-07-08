@@ -13,8 +13,9 @@ enum PatientType {
 }
 
 model PatientGroup {
-  id          String  @id @default(uuid())
-  clinicId    String? @map("clinic_id")
+  id       String  @id
+  clinicId String? @map("clinic_id")
+
   name        String
   description String? @db.Text
   color       String?
@@ -31,7 +32,7 @@ model PatientGroup {
 }
 
 model Patient {
-  id          String  @id @default(uuid())
+  id          String  @id
   firebaseUid String? @unique
 
   organizationId String  @map("organization_id")

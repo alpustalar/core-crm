@@ -28,7 +28,7 @@ export class UpdateSupplierHandler
 
     if (!supplier) throw new SupplierNotFoundException(supplierId);
 
-    // TODO: supplier'ın organizationId'sine göre policy işlemi yapılacak. orgaizationPolicy'e actorCanAccessOrganzation gibi bi method yazılacak
+    // TODO: supplier'ın clinicId'sine göre policy işlemi yapılacak.
 
     supplier.update(dto);
 

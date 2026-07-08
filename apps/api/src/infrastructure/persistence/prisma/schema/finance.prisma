@@ -26,7 +26,7 @@ enum LedgerCategory {
 }
 
 model FinanceLedger {
-  id             String  @id @default(uuid())
+  id             String  @id
   organizationId String  @map("organization_id")
   clinicId       String  @map("clinic_id")
   patientId      String? @map("patient_id")
@@ -92,7 +92,7 @@ enum InstallmentStatus {
 }
 
 model Payment {
-  id            String  @id @default(uuid())
+  id            String  @id
   clinicId      String  @map("clinic_id")
   patientId     String  @map("patient_id")
   appointmentId String? @unique @map("appointment_id")
@@ -119,17 +119,17 @@ model Payment {
 }
 
 model PaymentInstallment {
-  id            String @id @default(uuid())
-  paymentId     String @map("payment_id")
-  installmentNo Int    @map("installment_no")
+  id        String @id
+  paymentId String @map("payment_id")
 
-  amount   Decimal           @db.Decimal(10, 2)
-  currency Currency          @default(TRY)
-  method   PaymentMethod     @default(CREDIT_CARD)
-  dueDate  DateTime?         @map("due_date")
-  paidAt   DateTime?         @map("paid_at")
-  note     String?
-  status   InstallmentStatus @default(PENDING)
+  installmentNo Int               @map("installment_no")
+  amount        Decimal           @db.Decimal(10, 2)
+  currency      Currency          @default(TRY)
+  method        PaymentMethod     @default(CREDIT_CARD)
+  dueDate       DateTime?         @map("due_date")
+  paidAt        DateTime?         @map("paid_at")
+  note          String?
+  status        InstallmentStatus @default(PENDING)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -151,13 +151,13 @@ enum IyzicoTransactionStatus {
 }
 
 model IyzicoTransaction {
-  id            String @id @default(uuid())
-  installmentId String @unique @map("installment_id")
-
+  id                         String  @id
+  installmentId              String  @unique @map("installment_id")
   conversationId             String  @unique @map("conversation_id")
-  token                      String? @map("token")
   iyzicoPaymentId            String? @map("iyzico_payment_id")
   iyzicoPaymentTransactionId String? @map("iyzico_payment_transaction_id")
+
+  token String? @map("token")
 
   rawResponse Json? @map("raw_response")
 

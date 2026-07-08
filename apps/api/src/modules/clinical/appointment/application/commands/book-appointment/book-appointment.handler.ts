@@ -91,7 +91,7 @@ export class BookAppointmentHandler
     });
 
     return this.transactionManager.run(async () => {
-      const saved = await this.appointmentCommandRepo.save(appointment);
+      const saved = await this.appointmentCommandRepo.create(appointment);
       return saved.id.value;
     });
   }

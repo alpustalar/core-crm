@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ITreatmentPackageCommandRepository } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
+import {
+  ITreatmentPackageCommandRepository
+} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { randomUUID } from 'crypto';
@@ -13,6 +15,13 @@ export class TreatmentPackageCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async create(entity: TreatmentPackage): Promise<TreatmentPackage> {
+    const data = entity.toPersistence();
+    const raw = await this.db.treatmentPackage.create({ data });
+    entity.flushEvents();
+    return new TreatmentPackage(raw);
   }
 
   async findById(id: string): Promise<TreatmentPackage | null> {
@@ -72,7 +81,6 @@ export class TreatmentPackageCommandRepository
     };
 
     let rawResult;
-    // Aktif bir transaction (Saga / Unit of Work) kontrolü
     if (txStorage.getStore()?.tx) {
       rawResult = await executeQueries(this.db);
     } else {
@@ -81,7 +89,6 @@ export class TreatmentPackageCommandRepository
       });
     }
 
-    // Domain event'leri fırlat ve taze entity dön
     treatmentPackage.flushEvents();
     return new TreatmentPackage(rawResult);
   }

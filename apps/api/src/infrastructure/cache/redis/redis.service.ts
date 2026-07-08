@@ -2,10 +2,11 @@ import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
-import { ActorContext } from '@common/interfaces';
+import { ActorContext, TenantEntitlements } from '@common/interfaces';
 import { REDIS_KEYS } from './constants';
 
 const ACTOR_CACHE_TTL_SECONDS = 300;
+const ENTITLEMENTS_CACHE_TTL_SECONDS = 300;
 
 @Injectable()
 export class RedisService {
@@ -54,6 +55,43 @@ export class RedisService {
     if (userIds.length === 0) return;
     const keys = userIds.map((id) => REDIS_KEYS.AUTH.ACTOR_CACHE(id));
     await this.redis.unlink(...keys);
+  }
+
+  // ─── Subscription: Tenant Entitlements Cache ──────────────────────────────
+
+  async setTenantEntitlements(
+    organizationId: string,
+    clinicId: string | null,
+    entitlements: TenantEntitlements
+  ): Promise<void> {
+    await this.redis.set(
+      REDIS_KEYS.SUBSCRIPTION.ENTITLEMENTS(organizationId, clinicId),
+      JSON.stringify(entitlements),
+      'EX',
+      ENTITLEMENTS_CACHE_TTL_SECONDS
+    );
+  }
+
+  async getTenantEntitlements(
+    organizationId: string,
+    clinicId: string | null
+  ): Promise<TenantEntitlements | null> {
+    const raw = await this.redis.get(
+      REDIS_KEYS.SUBSCRIPTION.ENTITLEMENTS(organizationId, clinicId)
+    );
+    return raw ? (JSON.parse(raw) as TenantEntitlements) : null;
+  }
+
+  /** Bir org'a ait tüm entitlement anahtarlarını (org + tüm klinikleri) toplu bust eder. */
+  async deleteTenantEntitlementsByOrg(organizationId: string): Promise<void> {
+    const pattern =
+      REDIS_KEYS.SUBSCRIPTION.ENTITLEMENTS_ORG_PATTERN(organizationId);
+    const stream = this.redis.scanStream({ match: pattern, count: 100 });
+    const keys: string[] = [];
+    for await (const batch of stream) {
+      keys.push(...(batch as string[]));
+    }
+    if (keys.length > 0) await this.redis.unlink(...keys);
   }
 
   // ─── Auth: Token Blocklist ────────────────────────────────────────────────

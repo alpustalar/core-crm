@@ -8,6 +8,10 @@ import {
   SubMerchantResult,
   UpdateSubMerchantRequest,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/create-submerchant.request';
+import {
+  ChargeWithSavedCardRequest,
+  ChargeWithSavedCardResult,
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/charge-with-saved-card.request';
 
 export const IYZICO_PROVIDER = Symbol('IIyzicoProvider');
 export interface IIyzicoProvider {
@@ -24,6 +28,10 @@ export interface IIyzicoProvider {
   ): Promise<WithIyzicoError<Iyzipay.RefundResult>>;
 
   retrieveCheckoutForm(token: string): Promise<RetrieveCheckoutFormResult>;
+
+  chargeWithSavedCard(
+    request: ChargeWithSavedCardRequest
+  ): Promise<ChargeWithSavedCardResult>;
 
   getInstallmentInfo(
     data: Iyzipay.InstallmentInfoRequestData

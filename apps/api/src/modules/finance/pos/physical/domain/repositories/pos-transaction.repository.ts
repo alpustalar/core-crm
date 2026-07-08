@@ -1,8 +1,6 @@
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
-import {
-  CreatePosTransactionProps,
-  PendingTransactionForReconcile,
-} from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const POS_TRANSACTION_COMMAND_REPOSITORY = Symbol(
   'IPosTransactionCommandRepository'
@@ -11,12 +9,8 @@ export const POS_TRANSACTION_QUERY_REPOSITORY = Symbol(
   'IPosTransactionQueryRepository'
 );
 
-export interface IPosTransactionCommandRepository {
-  /** İlk kayıt — Json/ilişki alanlarının kurulumu için ayrı tutulur. */
-  create(data: CreatePosTransactionProps): Promise<PosTransaction>;
-  /** Durum geçişleri entity üzerinden yapılır; save tüm mutable alanları yazar. */
-  save(entity: PosTransaction): Promise<PosTransaction>;
-}
+export type IPosTransactionCommandRepository =
+  IBaseCommandRepository<PosTransaction>;
 
 export interface IPosTransactionQueryRepository {
   findById(id: string): Promise<PosTransaction | null>;

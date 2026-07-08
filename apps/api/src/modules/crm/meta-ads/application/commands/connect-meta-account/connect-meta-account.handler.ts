@@ -1,6 +1,5 @@
 import { ConflictException, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { randomUUID } from 'crypto';
 import { ConnectMetaAccountCommand } from './connect-meta-account.command';
 import { ConnectMetaAccountResponse } from './connect-meta-account.response';
 import {
@@ -14,16 +13,12 @@ import {
   META_ADS_EVENT_PUBLISHER,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
-import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
 import { META_ADS_EVENTS } from '@src/domain/constants/events';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
 
 @CommandHandler(ConnectMetaAccountCommand)
 export class ConnectMetaAccountHandler
@@ -32,7 +27,7 @@ export class ConnectMetaAccountHandler
 {
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
+    private readonly metaAdAccountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
     private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
@@ -50,26 +45,26 @@ export class ConnectMetaAccountHandler
 
     this.policyFactory
       .clinic(actor)
-      .evaluator.check(
+      .evaluator.systemBypass(source)
+      .check(
         (p) => p.actorCanManageTargetClinic(clinicId),
         'Bu klinik için Meta hesabı bağlama yetkiniz yok.'
       )
       .orThrow(META_ADS_EVENTS.ACCOUNT_CONNECTED);
 
-    const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
-      clinicId,
-      dto.adAccountId
-    );
+    const metaAdAccount =
+      await this.accountQueryRepo.findByClinicAndAdAccountId(
+        clinicId,
+        dto.adAccountId
+      );
 
-    if (existing) {
+    if (metaAdAccount) {
       throw new ConflictException('Bu klinik için bu Meta hesabı zaten bağlı.');
     }
 
     const encryptedToken = this.tokenCipher.encrypt(dto.accessToken);
 
-    // TODO: accountCommandRepo'da save ve saveMany methodları oluşacak. entity'e create methodu gelecek. event entity'de ayarlanacak. repo'da flush ile fırlatılacak
-    const account = await this.accountCommandRepo.create({
-      id: randomUUID(),
+    const account = MetaAdAccount.create({
       clinicId,
       adAccountId: dto.adAccountId,
       accessToken: encryptedToken,
@@ -77,19 +72,10 @@ export class ConnectMetaAccountHandler
       businessName: dto.businessName,
     });
 
-    this.eventPublisher.accountConnected({
-      metaAdAccountId: account.id.value,
-      clinicId,
-      adAccountId: dto.adAccountId,
-      actorId: actor.userId,
-      source: LogSource.WEB,
-      action: LogAction.META_ADS_ACCOUNT_CONNECTED,
-      type: LogType.INFO,
-      details: `Meta hesap bağlandı: ${dto.adAccountId}`,
-    });
+    const savedAccount = await this.metaAdAccountCommandRepo.create(account);
 
     return {
-      id: account.id.value,
+      id: savedAccount.id.value,
       adAccountId: account.adAccountId,
       businessName: account.businessName?.value ?? null,
     };

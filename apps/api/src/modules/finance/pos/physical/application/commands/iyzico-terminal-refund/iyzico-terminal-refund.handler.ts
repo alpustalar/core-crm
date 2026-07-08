@@ -16,33 +16,32 @@ import {
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
+  IYZICO_TERMINAL_RETRYABLE_GROUPS,
   IyzicoTerminalAuthError,
   IyzicoTerminalOperationError,
-  IYZICO_TERMINAL_RETRYABLE_GROUPS,
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
+import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
 
 @CommandHandler(IyzicoTerminalRefundCommand)
-export class IyzicoTerminalRefundHandler implements ICommandHandler<
-  IyzicoTerminalRefundCommand,
-  IyzicoTerminalRefundResponse
-> {
+export class IyzicoTerminalRefundHandler
+  implements
+    ICommandHandler<IyzicoTerminalRefundCommand, IyzicoTerminalRefundResponse>
+{
   private readonly logger = new Logger(IyzicoTerminalRefundHandler.name);
 
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
@@ -56,7 +55,7 @@ export class IyzicoTerminalRefundHandler implements ICommandHandler<
   ): Promise<IyzicoTerminalRefundResponse> {
     const { input } = command;
 
-    const originalTx = await this.posTransactionQueryRepo.findById(
+    const originalTx = await this.posTransactionCommandRepo.findById(
       input.originalPosTransactionId
     );
     if (!originalTx) {
@@ -82,26 +81,27 @@ export class IyzicoTerminalRefundHandler implements ICommandHandler<
     const device = await this.posDeviceQueryRepo.findById(
       originalTx.posDeviceId
     );
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
 
-    const deviceUniqueId = device.getIyzicoDeviceUniqueId();
+    device.validate.status.isActive().orThrow();
+
+    const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
     const credentials = await this.credentialsResolver.resolve(input.clinicId);
 
-    // Faz 1 — PENDING iade kaydı atomik olarak oluşturulur (HTTP öncesi)
+    const posTransaction = PosTransaction.create({
+      posDeviceId: device.id.value,
+      clinicId: input.clinicId,
+      paymentId: originalTx.paymentId ?? undefined,
+      amount: refundAmount,
+      currency: originalTx.amount.currency,
+    });
+
     const { refundTransactionId, refundTx } = await this.txManager.outboxRun(
       async () => {
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
-          clinicId: input.clinicId,
-          paymentId: originalTx.paymentId ?? undefined,
-          amount: refundAmount,
-          currency: originalTx.amount.currency,
-        });
-        return { refundTransactionId: id, refundTx: tx };
+        const tx = await this.posTransactionCommandRepo.create(posTransaction);
+        return { refundTransactionId: tx.id.value, refundTx: tx };
       }
     );
 
@@ -117,7 +117,9 @@ export class IyzicoTerminalRefundHandler implements ICommandHandler<
         paymentDate,
       });
 
-      const approved = result.status === 'SUCCESS';
+      const approved =
+        result.status === IyzicoTerminalStatusSchema.enum.SUCCESS;
+
       const externalRef = result.refundHostReference ?? result.paymentId;
 
       // Faz 3 — sonuç + orijinal ödemeyi iade işaretle atomik (outboxRun)
@@ -189,10 +191,4 @@ export class IyzicoTerminalRefundHandler implements ICommandHandler<
       throw err;
     }
   }
-}
-
-/** Orijinal satış işleminin ham yanıtından iyzico paymentDate'ini çıkarır. */
-function extractIyzicoPaymentDate(rawResponse: unknown): string | undefined {
-  const raw = rawResponse as { paymentDate?: unknown } | null;
-  return typeof raw?.paymentDate === 'string' ? raw.paymentDate : undefined;
 }

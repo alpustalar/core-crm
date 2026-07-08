@@ -28,6 +28,7 @@ export class Invoice extends AggregateRoot {
   constructor(data: IInvoice) {
     super();
     this._id = UUID.fromTrusted(data.id);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._clinicId = UUID.fromTrusted(data.clinicId);
     this._patientId = UUID.fromTrusted(data.patientId);
     this._appointmentId = UUID.create(data.appointmentId).instance ?? null;
@@ -58,6 +59,12 @@ export class Invoice extends AggregateRoot {
 
   get id(): UUID {
     return this._id;
+  }
+
+  private _organizationId: UUID;
+
+  get organizationId(): UUID {
+    return this._organizationId;
   }
 
   private _clinicId: UUID;
@@ -192,6 +199,7 @@ export class Invoice extends AggregateRoot {
     this.addDomainEvent(
       new InvoiceIssuedEvent({
         invoiceId: this._id.value,
+        organizationId: this._organizationId.value,
         clinicId: this._clinicId.value,
         patientId: this._patientId.value,
         appointmentId: this._appointmentId?.value ?? null,
@@ -228,6 +236,7 @@ export class Invoice extends AggregateRoot {
     this.addDomainEvent(
       new InvoiceFailedEvent({
         invoiceId: this._id.value,
+        organizationId: this._organizationId.value,
         clinicId: this._clinicId.value,
         patientId: this._patientId.value,
         appointmentId: this._appointmentId?.value ?? null,
@@ -244,6 +253,7 @@ export class Invoice extends AggregateRoot {
   public toPersistence(): IInvoice {
     return {
       id: this._id.value,
+      organizationId: this._organizationId.value,
       clinicId: this._clinicId.value,
       patientId: this._patientId.value,
       appointmentId: this._appointmentId?.value ?? null,

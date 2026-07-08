@@ -7,6 +7,7 @@ import { ROLE_SLUGS } from '@src/domain/constants/db/role/role-slugs';
 import { CreateUserCommand } from '@modules/identity/user/application/commands/create-user';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { CreateOrganizationCommand } from '@modules/organization/organization/application/commands/create-organization/create-organization.command';
+import { StartTrialCommand } from '@modules/platform/subscription/application/commands/start-trial/start-trial.command';
 import { GetRoleBySlugQuery } from '@modules/identity/role/application/queries/get-role-by-slug/get-role-by-slug.query';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -61,6 +62,9 @@ export class RegisterOrganizationAccountHandler
           ownedOrganizationIds: [organizationId],
         })
       );
+
+      // Yeni kiracıya otomatik ücretsiz deneme aboneliği (org-billed, 10 gün, BASIC entitlement).
+      await this.commandBus.execute(new StartTrialCommand(organizationId));
 
       // NOT: Muhasebe defteri (hesap planı + dönem) artık clinic seviyesinde kurulur.
       // Bu akışta klinik oluşturulmadığından muhasebe kurulumu, klinik açılışına

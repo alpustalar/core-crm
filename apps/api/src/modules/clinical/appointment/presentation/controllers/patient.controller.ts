@@ -2,7 +2,7 @@ import { Body, Controller, Patch, Post, UseGuards } from '@nestjs/common';
 import { PatientGuard } from '@modules/identity/auth/patient-auth/guards/patient.guard';
 import {
   GetContext,
-  IGetContext,
+  IGetPatientContext,
 } from '@common/decorators/get-context.decorator';
 import { PatientCancelAppointmentCommand } from '@modules/clinical/appointment/application/commands/patient-cancel-appointment/patient-cancel-appointment.command';
 import { PatientBookAppointmentCommand } from '@modules/clinical/appointment/application/commands/patient-book-appointment/patient-book-appointment.command';
@@ -42,7 +42,7 @@ export class PatientController {
   @UseGuards(PatientGuard)
   cancelAppointment(
     @Body() dto: CancelAppointmentDto,
-    @GetContext() ctx: IGetContext
+    @GetContext() ctx: IGetPatientContext
   ) {
     return this.commandBus.execute(
       new PatientCancelAppointmentCommand(dto, ctx)

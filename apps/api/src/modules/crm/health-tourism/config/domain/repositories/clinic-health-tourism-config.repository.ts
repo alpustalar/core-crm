@@ -11,7 +11,7 @@ export const CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY = Symbol(
 export interface IClinicHealthTourismConfigCommandRepository
   extends IBaseCommandRepository<ClinicHealthTourismConfig> {
   /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicHealthTourismConfig): Promise<ClinicHealthTourismConfig>;
+  sync(entity: ClinicHealthTourismConfig): Promise<ClinicHealthTourismConfig>;
 }
 
 export interface IClinicHealthTourismConfigQueryRepository {

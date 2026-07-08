@@ -18,6 +18,7 @@ export class InvoiceCommandRepository
     const raw = await this.db.invoice.create({
       data: {
         id: props.id,
+        organizationId: props.organizationId,
         clinicId: props.clinicId,
         patientId: props.patientId,
         appointmentId: props.appointmentId,

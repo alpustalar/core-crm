@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { PolicyFactory } from '@modules/platform/policy/application/policy-factory';
+import { PolicyFactory } from '@modules/platform/policy/staff/application/policy-factory';
 import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,

@@ -1,48 +1,67 @@
 import { Supplier as ISupplier } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { randomUUID } from 'crypto';
-import { CreateSupplierProps } from '@modules/supply/inventory/domain/supply.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import {
+  CreateSupplierProps,
+  UpdateSupplierProps,
+} from '@modules/supply/inventory/domain/contracts/supplier.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class Supplier extends AggregateRoot {
   constructor(data: ISupplier) {
     super();
-    this._id = data.id;
-    this._name = data.name;
-    this._contactName = data.contactName;
-    this._phone = data.phone;
-    this._email = data.email;
+    this._id = UUID.fromTrusted(data.id);
+    this._name = Name.fromTrusted(data.name);
+
+    this._contactName = data.contactName
+      ? Name.fromTrusted(data.contactName)
+      : null;
+
+    this._phone = Phone.create(data.phone).instance ?? null;
+    this._email = Email.create(data.email).instance ?? null;
     this._address = data.address;
     this._taxNumber = data.taxNumber;
     this._taxOffice = data.taxOffice;
-    this._organizationId = data.organizationId;
+
+    this._organizationId = UUID.fromTrusted(data.organizationId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._isActive = data.isActive;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
-  private _contactName: string | null;
-  get contactName(): string | null {
+  private _contactName: Name | null;
+  get contactName(): Name | null {
     return this._contactName;
   }
 
-  private _phone: string | null;
-  get phone(): string | null {
+  private _phone: Phone | null;
+  get phone(): Phone | null {
     return this._phone;
   }
 
-  private _email: string | null;
-  get email(): string | null {
+  private _email: Email | null;
+  get email(): Email | null {
     return this._email;
+  }
+
+  private _clinicId: UUID;
+  get clinicId(): UUID {
+    return this._clinicId;
   }
 
   private _address: string | null;
@@ -60,8 +79,8 @@ export class Supplier extends AggregateRoot {
     return this._taxOffice;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
@@ -81,41 +100,53 @@ export class Supplier extends AggregateRoot {
   }
 
   public static create(props: CreateSupplierProps): Supplier {
-    const now = new Date();
+    const now = DateTimeManager.create();
+
+    const supplierId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
     return new Supplier({
-      id: props.id ?? randomUUID(),
-      name: props.name.trim(),
-      contactName: props.contactName ?? null,
-      phone: props.phone ?? null,
-      email: props.email ?? null,
+      id: supplierId.value,
+      organizationId: props.organizationId,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      name: Name.create(props.name).orThrow().value,
+
+      contactName: props.contactName
+        ? Name.create(props.contactName).orThrow().value
+        : null,
+
+      phone: props.phone ? Phone.create(props.phone).orThrow().value : null,
+
+      email: props.email ? Email.create(props.email).orThrow().value : null,
+
       address: props.address ?? null,
       taxNumber: props.taxNumber ?? null,
       taxOffice: props.taxOffice ?? null,
-      organizationId: props.organizationId,
       isActive: true,
       createdAt: now,
       updatedAt: now,
     });
   }
 
-  public update(
-    props: Partial<{
-      name: string;
-      contactName: string | null;
-      phone: string | null;
-      email: string | null;
-      address: string | null;
-      taxNumber: string | null;
-      taxOffice: string | null;
-    }>
-  ): void {
-    if (props.name !== undefined) this._name = props.name;
-    if (props.contactName !== undefined) this._contactName = props.contactName;
-    if (props.phone !== undefined) this._phone = props.phone;
-    if (props.email !== undefined) this._email = props.email;
-    if (props.address !== undefined) this._address = props.address;
-    if (props.taxNumber !== undefined) this._taxNumber = props.taxNumber;
-    if (props.taxOffice !== undefined) this._taxOffice = props.taxOffice;
+  public update(props: UpdateSupplierProps): void {
+    if (isNotUndefined(props.name))
+      this._name = Name.create(props.name).orThrow();
+
+    if (isNotUndefined(props.contactName))
+      this._contactName = props.contactName
+        ? Name.create(props.contactName).orThrow()
+        : null;
+
+    if (isNotUndefined(props.phone))
+      this._phone = props.phone ? Phone.create(props.phone).orThrow() : null;
+
+    if (isNotUndefined(props.email))
+      this._email = props.email ? Email.create(props.email).orThrow() : null;
+
+    if (isNotUndefined(props.address)) this._address = props.address;
+    if (isNotUndefined(props.taxNumber)) this._taxNumber = props.taxNumber;
+    if (isNotUndefined(props.taxOffice)) this._taxOffice = props.taxOffice;
   }
 
   public activate(): void {
@@ -128,18 +159,19 @@ export class Supplier extends AggregateRoot {
 
   toPersistence(): ISupplier {
     return {
-      id: this._id,
-      name: this._name,
-      contactName: this._contactName,
-      phone: this._phone,
-      email: this._email,
-      address: this._address,
-      taxNumber: this._taxNumber,
-      taxOffice: this._taxOffice,
-      organizationId: this._organizationId,
-      isActive: this._isActive,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      name: this.name.value,
+      contactName: this.contactName?.value ?? null,
+      phone: this.phone?.value ?? null,
+      email: this.email?.value ?? null,
+      address: this.address,
+      taxNumber: this.taxNumber,
+      taxOffice: this.taxOffice,
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId.value,
+      isActive: this.isActive,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

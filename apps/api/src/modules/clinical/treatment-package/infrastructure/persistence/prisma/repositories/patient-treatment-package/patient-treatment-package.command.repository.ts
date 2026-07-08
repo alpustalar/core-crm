@@ -16,14 +16,31 @@ export class PatientTreatmentPackageCommandRepository
   async save(
     patientTreatmentPackage: PatientTreatmentPackage
   ): Promise<PatientTreatmentPackage> {
-    const raw = patientTreatmentPackage.toPersistence();
-    await this.db.patientTreatmentPackage.upsert({
-      where: { id: raw.id },
-      create: raw,
-      update: raw,
+    const persistenceData = patientTreatmentPackage.toPersistence();
+    const { id, ...data } = persistenceData;
+    await this.db.patientTreatmentPackage.update({
+      where: { id },
+      data,
     });
     patientTreatmentPackage.flushEvents();
 
+    return new PatientTreatmentPackage(persistenceData);
+  }
+
+  async create(
+    patientTreatmentPackage: PatientTreatmentPackage
+  ): Promise<PatientTreatmentPackage> {
+    const data = patientTreatmentPackage.toPersistence();
+    const raw = await this.db.patientTreatmentPackage.create({ data });
+    patientTreatmentPackage.flushEvents();
+
     return new PatientTreatmentPackage(raw);
+  }
+
+  async findById(id: string) {
+    const raw = await this.db.patientTreatmentPackage.findUnique({
+      where: { id },
+    });
+    return raw ? new PatientTreatmentPackage(raw) : null;
   }
 }

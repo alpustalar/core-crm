@@ -1,10 +1,24 @@
+enum PayoutTrigger {
+  ON_PAYMENT
+  ON_TREATMENT_COMPLETED
+}
+
+enum RoundingDirection {
+  NONE
+  UP
+  DOWN
+  NEAREST
+}
+
 model Clinic {
-  id   String @id @default(uuid())
+  id             String @id
+  organizationId String @map("organization_id")
+  sectorId       String @map("sector_id")
+
   name String
   slug String @unique
 
-  sectorId String @map("sector_id")
-  sector   Sector @relation(fields: [sectorId], references: [id])
+  sector Sector @relation(fields: [sectorId], references: [id])
 
   phone     String?
   email     String?
@@ -14,6 +28,7 @@ model Clinic {
   latitude  Float?
   longitude Float?
 
+  // TODO: appointment settings'e alınabilir
   consultationSlotDuration Int @default(15)
 
   status   GlobalStatus @default(ACTIVE)
@@ -21,8 +36,11 @@ model Clinic {
 
   logo String?
 
-  organizationId String       @map("organization_id")
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   managers             User[]                      @relation("clinic_managers")
   staffs               User[]                      @relation("clinic_staff")
@@ -43,10 +61,9 @@ model Clinic {
   telegramChannels     ClinicTelegramChannel[]
   instagramChannel     ClinicInstagramChannel?
   healthTourismConfig  ClinicHealthTourismConfig?
+  products             Product[]
+  subscriptions        Subscription[]
 
-  createdAt            DateTime             @default(now()) @map("created_at")
-  updatedAt            DateTime             @updatedAt @map("updated_at")
-  deletedAt            DateTime?            @map("deleted_at")
   clinicAvailabilities ClinicAvailability[]
   clinicExceptions     ClinicException[]
   productBatches       ProductBatch[]
@@ -70,7 +87,8 @@ model Clinic {
 }
 
 model ClinicAvailability {
-  id String @id @default(uuid())
+  id       String @id
+  clinicId String @map("clinic_id")
 
   dayOfWeek   Int @map("day_of_week") // 0-6
   startMinute Int @map("start_minute") // Örn: 540 (09:00)
@@ -78,23 +96,29 @@ model ClinicAvailability {
 
   isClosed Boolean @default(false) @map("is_closed")
 
-  clinicId String @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   @@unique([clinicId, dayOfWeek])
   @@map("clinic_availabilities")
 }
 
 model ClinicPortalSettings {
-  id String @id @default(uuid())
+  id       String @id
+  clinicId String @unique @map("clinic_id")
 
-  apiKey String @unique @default(uuid()) @map("api_key")
+  apiKey String @unique @map("api_key")
+
+  customDomain String? @unique @map("custom_domain") // Örn: portal.dentistalp.com (Premium SaaS özelliği)
 
   primaryColor String  @default("#00bcd4") @map("primary_color")
   customTitle  String? @map("custom_title") // Örn: "Acıbadem Diş Özel Hasta Paneli"
 
-  clinicId String @unique @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  allowOnlineBooking Boolean @default(true) @map("allow_online_booking") // Hastalar portaldan kendi randevu alabilsin mi?
+  showMedicalRecords Boolean @default(true) @map("show_medical_records") // Reçete, tanı ve anamnez formları hastaya açık olsun mu?
+  showFinancials     Boolean @default(false) @map("show_financials") // Hasta kendi kalan borç/alacak tablosunu görsün mü?
+  showRaysAndImages  Boolean @default(true) @map("show_rays_and_images") // Röntgen ve klinik içi fotoğraflar portala düşsün mu?
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -103,20 +127,28 @@ model ClinicPortalSettings {
 }
 
 model ClinicAppointmentSettings {
-  id String @id @default(uuid())
+  id       String @id
+  clinicId String @unique @map("clinic_id")
 
   // Hastanın iptal/erteleme kuralları
   rescheduleLimitHours Int     @default(6) @map("reschedule_limit_hours") // Kaç saat kalana kadar erteleyebilir
   cancelLimitHours     Int     @default(24) @map("cancel_limit_hours") // Kaç saat kalana kadar iptal edebilir
   allowPatientCancel   Boolean @default(true) @map("allow_patient_cancel") // Hasta panelden kendi iptal edebilsin mi?
 
+  staffAllowOverbooking Boolean @default(true) @map("allow_overbooking") // Çalışanlar hekime veya koltuğa aynı anda çift randevu yazılabilsin mi?
+
+  sendSmsReminderHours Int @default(24) @map("send_sms_reminder_hours") // Randevuya kaç saat kala hatırlatma gitsin
+
+  maxActivePatientBookings Int @default(3) @map("max_active_patient_bookings") // Bir hastanın aynı anda gelecekte sahip olabileceği max randevu sayısı
+
+  requireReminderResponse Boolean @default(false) @map("require_reminder_response") // Hastadan WhatsApp üzerinden "GELECEĞİM/GELEMEYECEĞİM" onayı zorunlu kılınsın mı?
+
   // Çift rezervasyon / Onay kuralları
   requireConfirmation  Boolean @default(false) @map("require_confirmation") // Randevu alındığında sekreter onayı gereksin mi?
   maxFutureBookingDays Int     @default(90) @map("max_future_booking_days") // En fazla kaç gün sonrasına randevu açılabilir?
 
   // İlişki (One-to-One)
-  clinicId String @unique @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -125,25 +157,40 @@ model ClinicAppointmentSettings {
 }
 
 model ClinicFinanceSettings {
-  id String @id @default(uuid())
+  id       String @id
+  clinicId String @unique @map("clinic_id")
 
-  // --- Genel Finansal Davranış ---
-  defaultCurrency   Currency @default(TRY) @map("default_currency")
-  autoCreateInvoice Boolean  @default(true) @map("auto_invoice_on_payment") // Ödeme alındığında fatura otomatik oluşsun mu?
+  defaultCurrency Currency @default(TRY) @map("default_currency")
+
+  roundingType RoundingDirection @default(NONE) @map("rounding_type") // küsürat yuvarlama yönü
+
+  invoicePrefix String @default("KLN") @map("invoice_prefix") // Fatura ön eki (Örn: AAA)
+
+  // TODO: subscription module e göre burda değişim yapılacak. e-fatura modülü satın alındığında
+
+  autoCreateInvoice Boolean @default(true) @map("auto_invoice_on_payment") // Ödeme alındığında fatura otomatik oluşsun mu?
+
+  autoSendDebtReminder Boolean @default(false) @map("auto_send_debt_reminder") // Borç hatırlatma mesajları otomatik gitsin mi?
 
   // --- Vergi/Maliyet Kuraları ---
   defaultVatRate  Decimal @default(20) @map("default_vat_rate") @db.Decimal(5, 2) // Varsayılan KDV oranı
   useCostTracking Boolean @default(true) @map("use_cost_tracking") // Stok maliyeti randevuya işlensin mi?
 
   // --- Borç/Alacak Kuraları ---
-  allowNegativeBalance Boolean @default(false) @map("allow_negative_balance") // Hasta borçlu kalabilir mi?
-  maxInstallmentCount  Int     @default(12) @map("max_installment_count") // Maksimum taksit sayısı (Klinik sınırı)
+  allowNegativeBalance     Boolean @default(false) @map("allow_negative_balance") // Hasta borçlu kalabilir mi?
+  maxNegativeBalanceAmount Decimal @default(0) @map("max_negative_balance_amount") @db.Decimal(12, 2) // Maksimum borçlanma limiti
+  maxInstallmentCount      Int     @default(12) @map("max_installment_count") // Maksimum taksit sayısı (Klinik sınırı)
 
   // --- Entegrasyon/Raporlama ---
+
+  isEInvoiceActive Boolean @default(false) @map("is_e_invoice_active") // E-Fatura/E-Arşiv entegrasyonu aktif mi?
+
   fiscalYearStartMonth Int @default(1) @map("fiscal_year_start_month") // Mali yıl başlangıcı (Genelde 1)
 
-  clinicId String @unique @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  // Doktor hak ediş "ON_PAYMENT" (Ödeme Alındıkça) veya "ON_TREATMENT_COMPLETED" (Tedavi Bittikçe)
+  providerPayoutTrigger PayoutTrigger @default(ON_PAYMENT) @map("provider_payout_trigger")
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -151,14 +198,14 @@ model ClinicFinanceSettings {
 }
 
 model ClinicException {
-  id String @id @default(uuid())
+  id       String @id
+  clinicId String @map("clinic_id")
 
   date     DateTime
-  isClosed Boolean  @default(true)
+  isClosed Boolean  @default(true) @map("is_closed")
   reason   String?
 
-  clinicId String
-  clinic   Clinic @relation(fields: [clinicId], references: [id])
+  clinic Clinic @relation(fields: [clinicId], references: [id])
 
   @@unique([clinicId, date])
   @@map("clinic_exceptions")

@@ -14,9 +14,9 @@ import {
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
+  IYZICO_TERMINAL_RETRYABLE_GROUPS,
   IyzicoTerminalAuthError,
   IyzicoTerminalOperationError,
-  IYZICO_TERMINAL_RETRYABLE_GROUPS,
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
@@ -28,12 +28,18 @@ import { ExecutionContextFactory } from '@src/domain/common/execution/execution-
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import {
+  IyzicoTerminalSalesTypeSchema,
+  IyzicoTerminalStatusSchema,
+} from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
 
 @CommandHandler(IyzicoTerminalSaleCommand)
-export class IyzicoTerminalSaleHandler implements ICommandHandler<
-  IyzicoTerminalSaleCommand,
-  IyzicoTerminalSaleResponse
-> {
+export class IyzicoTerminalSaleHandler
+  implements
+    ICommandHandler<IyzicoTerminalSaleCommand, IyzicoTerminalSaleResponse>
+{
   private readonly logger = new Logger(IyzicoTerminalSaleHandler.name);
 
   constructor(
@@ -54,12 +60,16 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
     const { input } = command;
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
 
+    device.validate.status.isActive().orThrow();
+
     // Provider doğrulaması + kimlik çözümleme (yanlış provider'da domain hatası fırlatır)
-    const deviceUniqueId = device.getIyzicoDeviceUniqueId();
+
+    const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
+
     const credentials = await this.credentialsResolver.resolve(input.clinicId);
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (HTTP öncesi)
@@ -67,7 +77,8 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
       await this.txManager.outboxRun(async () => {
         let resolvedPaymentId = input.paymentId;
 
-        const newPaymentId = crypto.randomUUID();
+        const newPaymentId = UUID.generate().value;
+
         if (!resolvedPaymentId && input.patientId) {
           await this.commandBus.execute(
             new CreatePaymentCommand(
@@ -85,10 +96,8 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
           resolvedPaymentId = newPaymentId;
         }
 
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
+        const posTransaction = PosTransaction.create({
+          posDeviceId: device.id.value,
           clinicId: input.clinicId,
           patientId: input.patientId,
           appointmentId: input.appointmentId,
@@ -96,8 +105,10 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
           amount: input.amount,
           currency: input.currency,
         });
+
+        const tx = await this.posTransactionCommandRepo.create(posTransaction);
         return {
-          posTransactionId: id,
+          posTransactionId: posTransaction.id.value,
           transaction: tx,
           paymentId: resolvedPaymentId,
         };
@@ -112,11 +123,12 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
         transactionReferenceId: posTransactionId,
         price: input.amount,
         currency: input.currency,
-        salesType: 'SALE',
+        salesType: IyzicoTerminalSalesTypeSchema.enum.SALE,
         installment: input.installment ?? 0,
       });
 
-      const approved = result.status === 'SUCCESS';
+      const approved =
+        result.status === IyzicoTerminalStatusSchema.enum.SUCCESS;
       const iyzicoPaymentId = result.paymentId ?? posTransactionId;
 
       // Faz 3 — sonuç + payment senkron + ledger atomik (outboxRun)
@@ -237,6 +249,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
         )
       );
 
+      // TODO: burda string kısımlar bi sabitte gerekli yerlerde modüler şekilde tutulacak
       await this.commandBus.execute(
         new RecordFinancialEventCommand(
           {

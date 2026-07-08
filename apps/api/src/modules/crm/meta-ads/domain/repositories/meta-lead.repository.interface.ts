@@ -1,19 +1,13 @@
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
-import {
-  CreateMetaLeadData,
-  FindMetaLeadsFilter,
-} from '@modules/crm/meta-ads/domain/meta-ads.contracts';
+import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 
 export const META_LEAD_COMMAND_REPOSITORY = Symbol(
   'IMetaLeadCommandRepository'
 );
 export const META_LEAD_QUERY_REPOSITORY = Symbol('IMetaLeadQueryRepository');
 
-export interface IMetaLeadCommandRepository
-  extends IBaseCommandRepository<MetaLead> {
-  create(data: CreateMetaLeadData): Promise<MetaLead>;
-}
+export type IMetaLeadCommandRepository = IBaseCommandRepository<MetaLead>;
 
 export interface IMetaLeadQueryRepository {
   findById(id: string): Promise<MetaLead | null>;

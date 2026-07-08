@@ -20,6 +20,13 @@ export class ClinicCommandRepository
     return raw ? new Clinic(raw) : null;
   }
 
+  async create(entity: Clinic): Promise<Clinic> {
+    const data = entity.toPersistence();
+    const raw = await this.db.clinic.create({ data });
+    entity.flushEvents();
+    return new Clinic(raw);
+  }
+
   async softDeleteManyClinicWithAnOrganizationId(
     organizationId: string
   ): Promise<{ deletedCount: number }> {

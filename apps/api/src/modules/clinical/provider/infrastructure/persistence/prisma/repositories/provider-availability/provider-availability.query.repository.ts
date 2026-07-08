@@ -13,7 +13,7 @@ export class ProviderAvailabilityQueryRepository
     super(prisma);
   }
 
-  findByProviderId(providerId: string) {
+  findManyByProviderId(providerId: string) {
     return this.db.providerAvailability.findMany({
       where: { providerId },
       orderBy: { dayOfWeek: 'asc' },

@@ -6,6 +6,7 @@ type PreparedClinicCreateInput = Omit<
 >;
 
 export const clinicCreateInput: PreparedClinicCreateInput & { slug: string } = {
+  id: crypto.randomUUID(),
   slug: 'test-dis-klinigi',
   name: 'Test Diş Kliniği',
   phone: '02241234567',

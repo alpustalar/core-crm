@@ -18,6 +18,13 @@ export class AccountingPeriodCommandRepository
     return raw ? new AccountingPeriod(raw) : null;
   }
 
+  async create(period: AccountingPeriod): Promise<AccountingPeriod> {
+    const data = period.toPersistence();
+    const raw = await this.db.accountingPeriod.create({ data });
+    period.flushEvents();
+    return new AccountingPeriod(raw);
+  }
+
   async save(period: AccountingPeriod): Promise<AccountingPeriod> {
     const data = period.toPersistence();
     const raw = await this.db.accountingPeriod.upsert({

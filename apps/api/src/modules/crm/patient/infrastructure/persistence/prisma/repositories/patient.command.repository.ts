@@ -19,13 +19,31 @@ export class PatientCommandRepository
     return raw ? new Patient(raw) : null;
   }
 
-  async save(entity: Patient) {
+  async create(entity: Patient): Promise<Patient> {
+    const data = entity.toPersistence();
+    const raw = await this.db.patient.create({ data });
+    entity.flushEvents();
+    return new Patient(raw);
+  }
+
+  async sync(entity: Patient) {
     const create = entity.toPersistence();
     const { id, ...update } = create;
     const raw = await this.db.patient.upsert({
       where: { id },
       create,
       update,
+    });
+    entity.flushEvents();
+    return new Patient(raw);
+  }
+
+  async save(entity: Patient) {
+    const persistenceData = entity.toPersistence();
+    const { id, ...data } = persistenceData;
+    const raw = await this.db.patient.update({
+      where: { id },
+      data,
     });
     entity.flushEvents();
     return new Patient(raw);

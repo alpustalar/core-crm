@@ -1,7 +1,3 @@
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
   IProductBatchCommandRepository,
@@ -17,11 +13,12 @@ import {
   IStockMovementCommandRepository,
   STOCK_MOVEMENT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { RecordProductUsageCommand } from './record-product-usage.command';
 import { Decimal } from 'decimal.js';
+import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(RecordProductUsageCommand)
 export class RecordProductUsageHandler
@@ -36,8 +33,6 @@ export class RecordProductUsageHandler
     private readonly productBatchCommandRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
     private readonly stockMovementCommandRepo: IStockMovementCommandRepository,
-    @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -45,15 +40,13 @@ export class RecordProductUsageHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    // TODO: capability guard
-
     const product = await this.productQueryRepo.findById(dto.productId);
-    if (!product) throw new NotFoundException('Ürün bulunamadı.');
+    if (!product) throw new ProductNotFoundException();
 
     const quantity = new Decimal(dto.quantity);
 
     let batch = dto.batchId
-      ? await this.productBatchQueryRepo.findById(dto.batchId)
+      ? await this.productBatchCommandRepo.findById(dto.batchId)
       : null;
 
     if (!batch) {
@@ -78,7 +71,7 @@ export class RecordProductUsageHandler
 
     await this.txManager.run(async () => {
       await this.productBatchCommandRepo.save(batch);
-      await this.stockMovementCommandRepo.save(stockMovement);
+      await this.stockMovementCommandRepo.create(stockMovement);
     });
   }
 }

@@ -1,3 +1,5 @@
+import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
 import {
   CLINIC_COMMAND_REPOSITORY,
   IClinicCommandRepository,
@@ -5,15 +7,14 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
-import { CreateClinicCommand } from './create-clinic.command';
-import { CLINIC_EVENTS } from '@src/domain/constants/events';
-import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
-import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
 import { TimeZoneSchema } from '@shared';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { CLINIC_EVENTS } from '@src/domain/constants/events';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { CreateClinicCommand } from './create-clinic.command';
 
 @CommandHandler(CreateClinicCommand)
 export class CreateClinicHandler
@@ -23,7 +24,8 @@ export class CreateClinicHandler
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateClinicCommand) {
@@ -42,7 +44,7 @@ export class CreateClinicHandler
     const { evaluator } = this.policyFactory.organization(actor);
     if (organizationId) {
       evaluator
-        .bypassIf(ExecutionPolicy.isSystemInitiated(source))
+        .systemBypass(source)
         .check((p) => p.isOwnOrganization(organizationId), 'Yetki ihlali')
         .orThrow(CLINIC_EVENTS.CREATED);
     }
@@ -50,12 +52,12 @@ export class CreateClinicHandler
     const actorId = ExecutionPolicy.isUserInitiated(source)
       ? actor.userId
       : undefined;
-    return this.persistClinic(props, actorId);
-  }
 
-  private async persistClinic(props: CreateClinicProps, actorId?: string) {
     const clinic = Clinic.create(props, actorId);
-    const saved = await this.clinicCommandRepo.save(clinic);
-    return saved.id.value;
+
+    return this.txManager.run(async () => {
+      const saved = await this.clinicCommandRepo.create(clinic);
+      return saved.id.value;
+    });
   }
 }

@@ -184,7 +184,11 @@ export class User extends AggregateRoot {
   get isActive(): Guard<boolean> {
     const isValid =
       this._status === GlobalStatusSchema.enum.ACTIVE && !this.isDeleted;
-    return Guard.monitor(isValid, isValid, new Error('Kullanıcı aktif değil'));
+    return Guard.monitor(
+      isValid,
+      isValid,
+      () => new Error('Kullanıcı aktif değil')
+    );
   }
 
   static create(props: CreateUserProps): User {

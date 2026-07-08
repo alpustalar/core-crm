@@ -39,7 +39,7 @@ export class UpdateLeadStatusHandler
     const { actor } = ctx;
 
     await this.txManager.run(async () => {
-      const lead = await this.leadQueryRepo.findById(leadId);
+      const lead = await this.leadCommandRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       const previousStatus = lead.status;
@@ -55,8 +55,8 @@ export class UpdateLeadStatusHandler
       const saved = await this.leadCommandRepo.save(lead);
 
       this.eventPublisher.leadStatusChanged({
-        leadId: lead.id,
-        clinicId: lead.clinicId,
+        leadId: lead.id.value,
+        clinicId: lead.clinicId.value,
         previousStatus,
         newStatus: saved.status,
         actorId: actor.userId,

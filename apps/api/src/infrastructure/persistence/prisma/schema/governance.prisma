@@ -9,7 +9,8 @@ enum ClinicLegalType {
 // Clinic'ten ayrıştırılmış 1:1 satellite. SKRS tesis kodu, USS şifresi ve
 // kliniğin kendi vergi numarası (fatura için) burada yaşar.
 model ClinicGovernmentSpecs {
-  id String @id @default(uuid())
+  id       String @id
+  clinicId String @unique @map("clinic_id")
 
   // Sağlık Bakanlığı SKRS tesis kodu — e-Nabız için zorunlu
   healthFacilityCode String          @unique @map("health_facility_code")
@@ -17,8 +18,7 @@ model ClinicGovernmentSpecs {
   companyTaxNumber   String?         @map("company_tax_number") // Kliniğin VKN'si (fatura)
   legalType          ClinicLegalType @default(KURUM) @map("legal_type") // mükellefiyet tipi
 
-  clinicId String @unique @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

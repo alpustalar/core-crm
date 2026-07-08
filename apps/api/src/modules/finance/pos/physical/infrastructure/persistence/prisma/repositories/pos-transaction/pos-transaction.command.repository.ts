@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
-import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PosTransactionCommandRepository
@@ -14,28 +14,30 @@ export class PosTransactionCommandRepository
     super(prisma);
   }
 
-  async create(props: CreatePosTransactionProps): Promise<PosTransaction> {
-    const raw = await this.db.posTransaction.create({
-      data: {
-        id: props.id,
-        posDeviceId: props.posDeviceId,
-        clinicId: props.clinicId,
-        patientId: props.patientId,
-        appointmentId: props.appointmentId,
-        paymentId: props.paymentId,
-        amount: props.amount,
-        currency: props.currency,
-        externalRef: props.externalRef,
-        rawRequest: props.rawRequest ?? undefined,
-      },
-    });
+  async findById(id: string) {
+    const data = await this.db.posTransaction.findUnique({ where: { id } });
+    return data ? new PosTransaction(data) : null;
+  }
+
+  async create(posTransaction: PosTransaction): Promise<PosTransaction> {
+    const persistenceData = posTransaction.toPersistence();
+
+    const data = {
+      ...persistenceData,
+      rawRequest: (persistenceData.rawRequest ??
+        Prisma.DbNull) as Prisma.InputJsonValue,
+      rawResponse: (persistenceData.rawResponse ??
+        Prisma.DbNull) as Prisma.InputJsonValue,
+    };
+    const raw = await this.db.posTransaction.create({ data });
+    posTransaction.flushEvents();
     return new PosTransaction(raw);
   }
 
   async save(entity: PosTransaction): Promise<PosTransaction> {
-    const data = entity.toPersistence();
+    const { id, ...data } = entity.toPersistence();
     const raw = await this.db.posTransaction.update({
-      where: { id: data.id },
+      where: { id },
       data: {
         status: data.status,
         externalRef: data.externalRef,

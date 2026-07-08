@@ -15,6 +15,7 @@ import { CreatePaymentProps } from '@modules/finance/payment/domain/payment.cont
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 import { Guard } from '@common/domain/guards';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export type PaymentWithInstallmentsData = IPayment & {
   installments: PaymentInstallment[];
@@ -187,7 +188,7 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       installment,
       has,
-      new Error('Ödemesi tamamlanmış taksit bulunamadı')
+      () => new Error('Ödemesi tamamlanmış taksit bulunamadı')
     );
   }
 
@@ -265,7 +266,7 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       isCompleted,
       isCompleted,
-      new Error('Ödeme durumu "tamamlanmış" değil')
+      () => new Error('Ödeme durumu "tamamlanmış" değil')
     );
   }
 
@@ -274,7 +275,7 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       isCancelled,
       isCancelled,
-      new Error('Ödeme durumu "iptal edilmiş" değil')
+      () => new Error('Ödeme durumu "iptal edilmiş" değil')
     );
   }
 
@@ -283,7 +284,7 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       isRefunded,
       isRefunded,
-      new Error('Ödeme durumu "iade edilmiş" değil')
+      () => new Error('Ödeme durumu "iade edilmiş" değil')
     );
   }
 
@@ -292,7 +293,7 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       isPending,
       isPending,
-      new Error('Ödeme durumu "beklemede" değil')
+      () => new Error('Ödeme durumu "beklemede" değil')
     );
   }
 
@@ -301,7 +302,7 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       isPartial,
       isPartial,
-      new Error('Ödeme durumu "kısmi" değil')
+      () => new Error('Ödeme durumu "kısmi" değil')
     );
   }
 
@@ -310,9 +311,10 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       can,
       can,
-      new Error(
-        `İptal edilmiş veya bekleyen ödemeler iade edilemez. Mevcut durum: ${this._status}`
-      )
+      () =>
+        new Error(
+          `İptal edilmiş veya bekleyen ödemeler iade edilemez. Mevcut durum: ${this._status}`
+        )
     );
   }
 
@@ -322,9 +324,10 @@ export class Payment extends AggregateRoot {
     return Guard.monitor(
       can,
       can,
-      new Error(
-        `Tamamlanmış veya iade süreci başlamış ödemeler iptal edilemez. İade metodunu kullanın. Mevcut durum: ${this._status}`
-      )
+      () =>
+        new Error(
+          `Tamamlanmış veya iade süreci başlamış ödemeler iptal edilemez. İade metodunu kullanın. Mevcut durum: ${this._status}`
+        )
     );
   }
 
@@ -332,7 +335,7 @@ export class Payment extends AggregateRoot {
     installmentId: string,
     patch: Partial<PaymentInstallment>
   ): void {
-    const now = new Date();
+    const now = DateTimeManager.create();
     this._installments = this._installments.map((i) =>
       i.id === installmentId ? { ...i, ...patch, updatedAt: now } : i
     );
@@ -380,9 +383,7 @@ export class Payment extends AggregateRoot {
 
     const hasInstallment = !!installment;
 
-    return Guard.monitor(
-      installment,
-      hasInstallment,
+    return Guard.monitor(installment, hasInstallment, () =>
       Error(`Taksit bulunamadı: installmentId=${installmentId}`)
     );
   }

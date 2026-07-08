@@ -4,14 +4,15 @@ enum ResourceType {
 }
 
 model Resource {
-  id          String       @id @default(uuid())
+  id       String @id
+  clinicId String @map("clinic_id")
+
   name        String
   type        ResourceType
   description String?
   isActive    Boolean      @default(true) @map("is_active")
 
-  clinicId String @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id])
+  clinic Clinic @relation(fields: [clinicId], references: [id])
 
   appointments           Appointment[]
   resourceAvailabilities ResourceAvailability[]
@@ -25,15 +26,15 @@ model Resource {
 }
 
 model ResourceAvailability {
-  id String @id @default(uuid())
+  id         String @id
+  resourceId String @map("resource_id")
 
   dayOfWeek   Int     @map("day_of_week") // 0-6
   startMinute Int     @map("start_minute")
   endMinute   Int     @map("end_minute")
   isClosed    Boolean @default(false) @map("is_closed")
 
-  resourceId String   @map("resource_id")
-  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@unique([resourceId, dayOfWeek])
   @@map("resource_availabilities")

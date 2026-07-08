@@ -1,4 +1,9 @@
-import { ActorContext, IRequestWithActor, IRequestWithPatient, PatientActorContext } from '@common/interfaces';
+import {
+  ActorContext,
+  IRequestWithActor,
+  IRequestWithPatient,
+  PatientActorContext,
+} from '@common/interfaces';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import {
   ExecutionSource,
@@ -17,7 +22,7 @@ export const GetContext = createParamDecorator(
     const request = ctx.switchToHttp().getRequest<IRequestWithActor>();
 
     return {
-      actor: request.actor as ActorContext,
+      actor: request.actor,
       source: request.executionSource || ExecutionSources.USER_ACTION,
       ip: request.ip,
       userAgent: request.headers['user-agent'],
@@ -25,9 +30,17 @@ export const GetContext = createParamDecorator(
   }
 );
 
+export interface IGetPatientContext {
+  actor: PatientActorContext;
+  source: ExecutionSource;
+}
+
 export const GetPatientContext = createParamDecorator(
-  (_: unknown, ctx: ExecutionContext): PatientActorContext => {
+  (_: unknown, ctx: ExecutionContext): IGetPatientContext => {
     const request = ctx.switchToHttp().getRequest<IRequestWithPatient>();
-    return request.patientActor;
+    return {
+      actor: request.patientActor,
+      source: ExecutionSources.USER_ACTION,
+    };
   }
 );

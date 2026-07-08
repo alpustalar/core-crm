@@ -2,7 +2,8 @@ export class Guard<T> {
   private constructor(
     private readonly _value: T,
     private readonly condition: boolean,
-    private readonly exception: Error
+    // 🚀 Doğrudan Error yerine, Error dönen bir fonksiyon (Thunk/Callback) saklıyoruz
+    private readonly exceptionFactory: () => Error
   ) {}
 
   get value(): T {
@@ -12,19 +13,19 @@ export class Guard<T> {
   public static monitor<K>(
     value: K,
     condition: boolean,
-    exception: Error
+    exceptionFactory: () => Error // 🚀 Hata fabrikası
   ): Guard<K> {
-    return new Guard(value, condition, exception);
+    return new Guard(value, condition, exceptionFactory);
   }
 
   /**
-   *  Exclude<T, undefined> kullanarak
-   *
+   * Koşul sağlanmadıysa hatayı fırlatır, sağlandıysa tipi null/undefined'dan arındırarak döner.
    */
-  public orThrow(): Exclude<T, undefined> {
+  public orThrow(): Exclude<T, undefined | null> {
     if (!this.condition) {
-      throw this.exception;
+      // 🚀 Sadece ve sadece hata varsa fonksiyon tetiklenir ve Error nesnesi belleğe alınır!
+      throw this.exceptionFactory();
     }
-    return this._value as Exclude<T, undefined>;
+    return this._value as Exclude<T, undefined | null>;
   }
 }

@@ -1,6 +1,21 @@
 enum LeadSource {
   WHATSAPP
+  INSTAGRAM
+  MESSENGER
+  TELEGRAM
+  META_FORM
+  GOOGLE_ADS
+  WEBSITE
   MANUAL
+}
+
+/// Lead'in kanal içindeki geliş şekli — reklamdan mı (AD), organik mi (ORGANIC),
+/// yoksa Lead Ads formundan mı (FORM). `LeadSource` kanalı, `LeadMedium` reklam/organik
+/// ayrımını taşır (attribution alanlarıyla birlikte).
+enum LeadMedium {
+  ORGANIC
+  AD
+  FORM
 }
 
 enum LeadStatus {
@@ -12,26 +27,39 @@ enum LeadStatus {
 }
 
 model Lead {
-  id       String     @id @default(uuid())
-  clinicId String
-  source   LeadSource
-  status   LeadStatus @default(NEW)
+  id            String  @id
+  clinicId      String
+  assignedToId  String?
+  patientId     String?
+  appointmentId String?
+  metaLeadId    String? @unique // Meta Lead Ads (form) huni köprüsü — MetaLead kaydına referans
+  campaignId    String?
+  adId          String?
+  adsetId       String?
+  ctwaClid      String? // Click-to-WhatsApp click id (ileride Conversions API için)
+
+  whatsAppConversationId String? @unique
+
+  source LeadSource
+  status LeadStatus @default(NEW)
 
   name  String?
   phone String?
   email String?
   notes String? @db.Text
 
-  assignedToId String?
-
-  patientId     String?
-  appointmentId String?
-  convertedAt   DateTime?
+  convertedAt DateTime?
 
   lostReason String?
   lostAt     DateTime?
 
-  whatsAppConversationId String? @unique
+  campaignName String?
+
+  // Attribution — lead'in reklam/kaynak kökeni. `medium` reklam/organik/form ayrımı;
+  // kampanya/reklam id'leri hem CTWA referral'ından hem Meta Lead Ads formundan doldurulur.
+  medium LeadMedium?
+
+  sourceUrl String? // referral kaynak URL'i
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -40,5 +68,7 @@ model Lead {
 
   @@index([clinicId, status])
   @@index([phone])
+  @@index([adId])
+  @@index([campaignId])
   @@map("leads")
 }

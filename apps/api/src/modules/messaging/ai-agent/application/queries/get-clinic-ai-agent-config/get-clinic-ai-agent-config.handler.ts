@@ -25,8 +25,8 @@ export class GetClinicAiAgentConfigHandler
 
     return {
       data: {
-        id: config.id,
-        clinicId: config.clinicId,
+        id: config.id.value,
+        clinicId: config.clinicId.value,
         isEnabled: config.isEnabled,
         provider: config.provider,
         model: config.model,

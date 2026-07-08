@@ -1,7 +1,4 @@
-import {
-  CreateProviderAvailabilityData,
-  ProviderAvailabilityWithAcceptsConsultation,
-} from '@modules/clinical/provider/domain/contracts/provider.contracts';
+import { ProviderAvailabilityWithAcceptsConsultation } from '@modules/clinical/provider/domain/contracts/provider.contracts';
 import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
@@ -19,12 +16,12 @@ export const PROVIDER_AVAILABILITY_COMMAND_REPOSITORY = Symbol(
 
 export interface IProviderAvailabilityCommandRepository
   extends IBaseCommandRepository<ProviderAvailability> {
-  createMany(data: CreateProviderAvailabilityData[]): Promise<void>;
-  deleteByProviderId(providerId: string): Promise<{ deletedCount: number }>;
+  createMany(data: ProviderAvailability[]): Promise<void>;
+  deleteManyByProviderId(providerId: string): Promise<{ deletedCount: number }>;
 }
 
 export interface IProviderAvailabilityQueryRepository {
-  findByProviderId(
+  findManyByProviderId(
     providerId: string
   ): Promise<ProviderAvailabilityWithAcceptsConsultation[]>;
   findByProviderAndDay(

@@ -27,15 +27,15 @@ export class RefundBookingPaymentHandler
     @Inject(STRIPE_PAYMENT_LINK)
     private readonly stripeLink: IPaymentLinkProvider,
     @Inject(BOOKING_PAYMENT_QUERY_REPOSITORY)
-    private readonly queryRepo: IBookingPaymentQueryRepository,
+    private readonly bookingPaymentQueryRepo: IBookingPaymentQueryRepository,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly commandRepo: IBookingPaymentCommandRepository
+    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository
   ) {}
 
   async execute(command: RefundBookingPaymentCommand): Promise<void> {
     const { bookingId, reason } = command;
 
-    const bp = await this.queryRepo.findByBookingId(bookingId);
+    const bp = await this.bookingPaymentQueryRepo.findByBookingId(bookingId);
     // B7 öncesi/ödemesiz rezervasyonda kayıt olmayabilir → iptal akışını bozmadan geç.
     if (!bp) {
       this.logger.warn(
@@ -79,7 +79,7 @@ export class RefundBookingPaymentHandler
     });
 
     bp.markRefunded(reason ?? 'Rezervasyon iptal edildi.');
-    await this.commandRepo.save(bp);
+    await this.bookingPaymentCommandRepo.save(bp);
     this.logger.log(
       `İade tamamlandı (bp=${bp.id.value}, provider=${bp.paidProvider}, amount=${amount} ${currency}).`
     );

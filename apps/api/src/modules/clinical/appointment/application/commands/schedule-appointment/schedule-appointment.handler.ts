@@ -7,8 +7,8 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { POLICY_FACTORY } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
-import { PolicyFactory } from '@modules/platform/policy/application/policy-factory';
+import { POLICY_FACTORY } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { PolicyFactory } from '@modules/platform/policy/staff/application/policy-factory';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
@@ -103,7 +103,7 @@ export class ScheduleAppointmentHandler
     });
 
     return this.transactionManager.run(async () => {
-      const saved = await this.appointmentRepo.save(appointment);
+      const saved = await this.appointmentRepo.create(appointment);
       return saved.id.value;
     });
   }

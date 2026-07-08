@@ -45,7 +45,7 @@ export class InitiateBookingPaymentHandler
     @Inject(FX_RATE_PROVIDER)
     private readonly fx: IFxRateProvider,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly repo: IBookingPaymentCommandRepository,
+    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -113,7 +113,11 @@ export class InitiateBookingPaymentHandler
         });
         links.stripeSessionId = r.sessionId;
         links.stripeUrl = r.url;
-        stripeOption = { url: r.url, amount: saleAmount, currency: saleCurrency };
+        stripeOption = {
+          url: r.url,
+          amount: saleAmount,
+          currency: saleCurrency,
+        };
       } catch (err) {
         this.logger.warn(
           `Stripe linki üretilemedi: ${err instanceof Error ? err.message : err}`
@@ -143,7 +147,7 @@ export class InitiateBookingPaymentHandler
     entity.attachLinks(links);
 
     await this.txManager.run(async () => {
-      await this.repo.save(entity);
+      await this.bookingPaymentCommandRepo.create(entity);
     });
 
     return {

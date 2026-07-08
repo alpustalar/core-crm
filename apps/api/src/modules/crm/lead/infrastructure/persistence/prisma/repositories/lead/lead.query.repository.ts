@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { ILeadQueryRepository } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
-import { FindLeadsFilter } from '@modules/crm/lead/domain/lead-contracts';
+import { FindLeadsFilter } from '@modules/crm/lead/domain/contracts/lead-contracts';
 
 @Injectable()
 export class LeadQueryRepository

@@ -12,9 +12,9 @@ enum TaxParameterKey {
 }
 
 model TaxParameter {
-  id             String @id @default(uuid())
-  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
+  id             String @id
   organizationId String @map("organization_id") // denormalize — konsolide raporlama
+  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
 
   key  TaxParameterKey
   rate Decimal         @db.Decimal(5, 2) // yüzde oran (ör. 10.00, 20.00)

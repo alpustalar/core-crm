@@ -20,3 +20,20 @@ export class BookingPaymentLinkGenerationException extends DomainException {
     super(message);
   }
 }
+
+/**
+ * Rezervasyon varsayılan olarak ödeme-önce (payment-first) saga üzerinden açılır:
+ * müşteri ödemeden HotelBeds'e rezervasyon (dolayısıyla acente maliyeti/borcu) oluşmaz.
+ * Direkt booking endpoint'i yalnızca ödemenin kanal dışı tahsil edildiği MANUEL override
+ * ile kullanılabilir (personel bilinçli tercihi). Bunun için `manualOverride: true` gönderilir.
+ */
+export class ManualBookingOverrideRequiredException extends DomainException {
+  public readonly errorCode = ERROR_CODES.BOOKING_PAYMENT.MANUAL_OVERRIDE_REQUIRED;
+  public override readonly httpStatus = HttpStatus.PAYMENT_REQUIRED;
+
+  constructor(
+    message = 'Rezervasyon için önce ödeme alınmalıdır. Ödemesi kanal dışı tahsil edildiyse manuel booking için manualOverride=true gönderin.'
+  ) {
+    super(message);
+  }
+}

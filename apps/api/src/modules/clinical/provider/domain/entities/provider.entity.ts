@@ -162,8 +162,12 @@ export class Provider extends AggregateRoot {
   // --- Factory Method ---
   public static create(props: CreateProviderProps): Provider {
     const now = DateTimeManager.create();
+
     const provider = new Provider({
-      id: UUID.create(props.id).orThrow().value,
+      id: props.id
+        ? UUID.create(props.id).orThrow().value
+        : UUID.generate().value,
+
       userId: UUID.create(props.userId).orThrow().value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
 
@@ -278,22 +282,22 @@ export class Provider extends AggregateRoot {
   // --- Mapping ---
   public toPersistence(): IProvider {
     return {
-      id: this._id.value,
-      providerTitleId: this._providerTitleId?.value ?? null,
-      providerSpecialtyId: this._providerSpecialtyId?.value ?? null,
-      publicPhone: this._publicPhone?.value ?? null,
-      publicEmail: this._publicEmail?.value ?? null,
-      diplomaNo: this._diplomaNo,
-      hlrNo: this._hlrNo,
-      isActive: this._isActive,
-      acceptsConsultation: this._acceptsConsultation,
-      operationMode: this._operationMode,
-      clinicId: this._clinicId.value,
-      userId: this._userId.value,
-      sectorId: this._sectorId?.value ?? null,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      providerTitleId: this.providerTitleId?.value ?? null,
+      providerSpecialtyId: this.providerSpecialtyId?.value ?? null,
+      publicPhone: this.publicPhone?.value ?? null,
+      publicEmail: this.publicEmail?.value ?? null,
+      diplomaNo: this.diplomaNo,
+      hlrNo: this.hlrNo,
+      isActive: this.isActive,
+      acceptsConsultation: this.acceptsConsultation,
+      operationMode: this.operationMode,
+      clinicId: this.clinicId.value,
+      userId: this.userId.value,
+      sectorId: this.sectorId?.value ?? null,
+      createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
-      deletedAt: this._deletedAt,
+      deletedAt: this.deletedAt,
     };
   }
 
@@ -303,20 +307,20 @@ export class Provider extends AggregateRoot {
     return Guard.monitor(
       isStatic,
       isStatic,
-      new ProviderNotStaticModeException()
+      () => new ProviderNotStaticModeException()
     );
   }
 
   private _isShiftMode() {
     const is = this._operationMode === OperationModeSchema.enum.SHIFT;
-    return Guard.monitor(is, is, new ProviderNotShiftModeException());
+    return Guard.monitor(is, is, () => new ProviderNotShiftModeException());
   }
 
   private _isDeleted(): Guard<boolean> {
     return Guard.monitor(
       this.isDeleted,
       this.isDeleted,
-      new ProviderAlreadyDeleted()
+      () => new ProviderAlreadyDeleted()
     );
   }
 
@@ -324,15 +328,15 @@ export class Provider extends AggregateRoot {
     return Guard.monitor(
       this.isActive,
       this.isActive,
-      new Error('Uzman aktif değil')
+      () => new Error('Uzman aktif değil')
     );
   }
 
   private canAcceptConsultation(): Guard<boolean> {
     return Guard.monitor(
-      this._acceptsConsultation,
-      this._acceptsConsultation,
-      new ProviderNotAcceptingExaminationException()
+      this.acceptsConsultation,
+      this.acceptsConsultation,
+      () => new ProviderNotAcceptingExaminationException()
     );
   }
 }

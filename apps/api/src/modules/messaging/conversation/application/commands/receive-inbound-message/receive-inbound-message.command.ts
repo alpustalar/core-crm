@@ -1,5 +1,6 @@
 import { MessageChannel, MessageType } from '@prisma/client';
 import { InboundMessagePayload } from '@modules/messaging/conversation/domain/types/create-message.props';
+import { InboundReferral } from '@modules/messaging/conversation/domain/types/inbound-referral';
 
 export interface ReceiveInboundMessageInput {
   /** Hangi kanaldan geldiği; verilmezse WHATSAPP varsayılır (geriye dönük uyumluluk). */
@@ -25,6 +26,11 @@ export interface ReceiveInboundMessageInput {
   payload?: InboundMessagePayload | null;
   /** Alıntılanan mesajın wamid'i (context.id). */
   replyToExternalId?: string | null;
+  /**
+   * Click-to-Chat reklam referral'ı (yalnız reklamdan gelen ilk mesajda). Doluysa ve reklamsa
+   * (medium=AD) yeni yazışmada attribution'lı Lead üretilir.
+   */
+  referral?: InboundReferral;
   occurredAt?: Date;
 }
 

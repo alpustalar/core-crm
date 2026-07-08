@@ -1,5 +1,5 @@
 import { MetaCampaignMetric } from '@modules/crm/meta-ads/domain/entities/meta-campaign-metric.entity';
-import { UpsertCampaignMetricData } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
+import { UpsertCampaignMetricData } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 
 export const META_CAMPAIGN_METRIC_COMMAND_REPOSITORY = Symbol(
   'IMetaCampaignMetricCommandRepository'

@@ -8,7 +8,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
@@ -30,7 +30,9 @@ export class CompleteAppointmentHandler
     const { appointmentId, ctx } = command;
     const { actor } = ctx;
 
-    await this.txManager.run(async () => {
+    // Tamamlanma, ödeme kilidi (geri alınamaz) gibi kritik yan etkiler tetikler
+    // (AppointmentCompletedEvent) — event'ler outbox ile atomik mühürlenir.
+    await this.txManager.outboxRun(async () => {
       const appointment =
         await this.appointmentCommandRepo.findById(appointmentId);
 

@@ -1,7 +1,6 @@
 import { Inject, Logger, UnauthorizedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
-import { randomUUID } from 'crypto';
 import { HandleMetaOAuthCallbackCommand } from './handle-meta-oauth-callback.command';
 import { HandleMetaOAuthCallbackResponse } from './handle-meta-oauth-callback.response';
 import {
@@ -21,12 +20,8 @@ import {
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { ENV } from '@common/constants/env.constant';
-import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
 
 interface OAuthStatePayload {
   clinicId: string;
@@ -45,13 +40,13 @@ export class HandleMetaOAuthCallbackHandler
 
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
+    private readonly metaAdAccountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
+    private readonly metaAdAccountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
     @Inject(META_MARKETING_API_SERVICE)
-    private readonly metaApi: IMetaMarketingApiService,
+    private readonly metaMarketingApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
     private readonly redis: RedisService,
     private readonly config: ConfigService,
@@ -79,21 +74,21 @@ export class HandleMetaOAuthCallbackHandler
       ENV.META_OAUTH_REDIRECT_URI
     );
 
-    const shortLived = await this.metaApi.exchangeCodeForToken(
+    const shortLived = await this.metaMarketingApi.exchangeCodeForToken(
       code,
       appId,
       appSecret,
       redirectUri
     );
-    const longLived = await this.metaApi.extendToLongLivedToken(
+    const longLived = await this.metaMarketingApi.extendToLongLivedToken(
       shortLived.accessToken,
       appId,
       appSecret
     );
 
     const [adAccounts, pages] = await Promise.all([
-      this.metaApi.getAdAccounts(longLived.accessToken),
-      this.metaApi.getPages(longLived.accessToken),
+      this.metaMarketingApi.getAdAccounts(longLived.accessToken),
+      this.metaMarketingApi.getPages(longLived.accessToken),
     ]);
 
     const encryptedToken = this.tokenCipher.encrypt(longLived.accessToken);
@@ -102,33 +97,24 @@ export class HandleMetaOAuthCallbackHandler
     let connectedAccounts = 0;
 
     for (const adAccount of adAccounts) {
-      const existing = await this.accountQueryRepo.findByClinicAndAdAccountId(
-        clinicId,
-        adAccount.id
-      );
+      const existing =
+        await this.metaAdAccountQueryRepo.findByClinicAndAdAccountId(
+          clinicId,
+          adAccount.id
+        );
       if (existing) continue;
 
-      await this.txManager.run(async () => {
-        const account = await this.accountCommandRepo.create({
-          id: randomUUID(),
-          clinicId,
-          adAccountId: adAccount.id,
-          accessToken: encryptedToken,
-          tokenExpiresAt: longLived.expiresAt,
-          pageId: firstPage?.id ?? null,
-          businessName: adAccount.name ?? null,
-        });
+      const metaAdAccount = MetaAdAccount.create({
+        clinicId,
+        adAccountId: adAccount.id,
+        accessToken: encryptedToken,
+        tokenExpiresAt: longLived.expiresAt,
+        pageId: firstPage?.id ?? null,
+        businessName: adAccount.name ?? null,
+      });
 
-        this.eventPublisher.accountConnected({
-          metaAdAccountId: account.id.value,
-          clinicId,
-          adAccountId: adAccount.id,
-          actorId: userId,
-          source: LogSource.WEB,
-          action: LogAction.META_ADS_ACCOUNT_CONNECTED,
-          type: LogType.INFO,
-          details: `Meta hesap OAuth ile bağlandı: ${adAccount.id}`,
-        });
+      await this.txManager.run(async () => {
+        await this.metaAdAccountCommandRepo.create(metaAdAccount);
       });
 
       connectedAccounts++;

@@ -7,6 +7,11 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { Inject } from '@nestjs/common';
 import { InternalOnly } from '@common/decorators';
+import {
+  APPOINTMENT_EVENT_PUBLISHER,
+  IAppointmentEventPublisher,
+} from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(SoftDeleteAppointmentsByOrganizationIdCommand)
 export class SoftDeleteAppointmentsByOrganizationIdHandler
@@ -18,7 +23,10 @@ export class SoftDeleteAppointmentsByOrganizationIdHandler
 {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentRepo: IAppointmentCommandRepository
+    private readonly appointmentRepo: IAppointmentCommandRepository,
+    @Inject(APPOINTMENT_EVENT_PUBLISHER)
+    private readonly eventPublisher: IAppointmentEventPublisher,
+    private readonly txManager: TransactionManager
   ) {}
   @InternalOnly()
   async execute(
@@ -26,8 +34,20 @@ export class SoftDeleteAppointmentsByOrganizationIdHandler
   ): Promise<SoftDeleteAppointmentsByOrganizationIdCommandResponse> {
     const { organizationId } = command;
 
-    await this.appointmentRepo.softDeleteAllByOrganizationId(organizationId);
+    // Bulk soft-delete (domain bypass, N+1 önlenir) + tek toplu event, veri
+    // bütünlüğü için outbox ile atomik mühürlenir. Bildirim/Redis temizliği
+    // event'i tüketen listener + processor tarafından asenkron yürütülür.
+    await this.txManager.outboxRun(async () => {
+      const { count } =
+        await this.appointmentRepo.softDeleteAllByOrganizationId(
+          organizationId
+        );
 
-    // TODO: burda event tetiklenecek. organization Id ile appointmentlar bulunur işlem başarılı olursa appointment idleri fırlatılır. processorde de appointmenti olan patientlara mail mesaj vs bi şeyler yollanır. redisle ilgili işlemler varsa onlar halledilir.
+      this.eventPublisher.bulkSoftDeleted({
+        scope: 'ORGANIZATION',
+        organizationId,
+        affectedCount: count,
+      });
+    });
   }
 }

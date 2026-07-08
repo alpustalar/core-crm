@@ -43,6 +43,40 @@ export class UserCommandRepository
     });
   }
 
+  async create(entity: User): Promise<User> {
+    const data = entity.toPersistence();
+    const raw = await this.db.user.create({
+      data: {
+        ...(data as Prisma.UserUncheckedCreateInput),
+        ...(entity.managedClinicIds?.length && {
+          managedClinics: {
+            connect: entity.managedClinicIds.map((id) => ({ id: id.value })),
+          },
+        }),
+        ...(entity.ownedOrganizationIds?.length && {
+          ownedOrganizations: {
+            connect: entity.ownedOrganizationIds.map((id) => ({
+              id: id.value,
+            })),
+          },
+        }),
+      },
+    });
+    entity.flushEvents();
+    return new User({
+      ...raw,
+      role: entity.role,
+      workingClinic: entity.workingClinic,
+      managedClinicIds: entity.managedClinicIds
+        ? entity.managedClinicIds.map((id) => id.value)
+        : [],
+      ownedOrganizationIds: entity.ownedOrganizationIds
+        ? entity.ownedOrganizationIds.map((id) => id.value)
+        : [],
+      providerProfileId: entity.providerProfileId?.value ?? null,
+    });
+  }
+
   async save(entity: User): Promise<User> {
     const create = entity.toPersistence();
     const { id, ...update } = create;

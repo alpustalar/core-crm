@@ -14,13 +14,14 @@ import {
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
+import { Name } from '@src/domain/value-objects/name.vo';
 
-export class PosDevice extends AggregateRoot implements IPosDevice {
+export class PosDevice extends AggregateRoot {
   constructor(data: IPosDevice) {
     super();
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._label = data.label;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._label = Name.create(data.label).value;
     this._provider = data.provider;
     this._terminalId = data.terminalId;
     this._merchantId = data.merchantId;
@@ -33,18 +34,18 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _label: string;
-  get label(): string {
+  private _label: Name;
+  get label(): Name {
     return this._label;
   }
 
@@ -104,7 +105,34 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
         isPax: this._isPax,
         isIyzicoTerminal: this._isIyzicoTerminal,
       },
+      status: {
+        isActive: () => {
+          const isActive = this._isActive;
+          return {
+            isValid: isActive,
+            orThrow: () => {
+              if (!isActive) throw new Error('Pos cihazı aktif değil.');
+            },
+          };
+        },
+      },
     };
+  }
+
+  /**
+   * iyzico Terminal cihaz benzersiz kimliğini null-güvenli döner. Cihaz iyzico
+   * terminal değilse veya deviceUniqueId yoksa domain hatası fırlatır.
+   */
+  public get iyzicoDeviceUniqueId() {
+    this._isIyzicoTerminal.orThrow();
+
+    const isInvalid = this._deviceUniqueId === null;
+
+    return Guard.monitor(
+      this.deviceUniqueId ?? undefined,
+      !isInvalid,
+      () => new PosDeviceMissingDeviceUniqueIdException()
+    );
   }
 
   private get _isPax(): Guard<boolean> {
@@ -112,10 +140,11 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
     return Guard.monitor(
       isPax,
       isPax,
-      new PosDeviceProviderMismatchException(
-        PosProviderSchema.enum.PAX,
-        this._provider
-      )
+      () =>
+        new PosDeviceProviderMismatchException(
+          PosProviderSchema.enum.PAX,
+          this._provider
+        )
     );
   }
 
@@ -124,21 +153,23 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
     return Guard.monitor(
       isIyzico,
       isIyzico,
-      new PosDeviceProviderMismatchException(
-        PosProviderSchema.enum.IYZICO_TERMINAL,
-        this._provider
-      )
+      () =>
+        new PosDeviceProviderMismatchException(
+          PosProviderSchema.enum.IYZICO_TERMINAL,
+          this._provider
+        )
     );
   }
 
   public static create(props: CreatePosDeviceProps): PosDevice {
     const now = DateTimeManager.create();
     const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
     return new PosDevice({
       id: id.value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
-      label: props.label,
       provider: props.provider,
+      label: Name.create(props.label).orThrow().value,
       terminalId: props.terminalId ?? null,
       merchantId: props.merchantId ?? null,
       host: props.host ?? null,
@@ -178,35 +209,22 @@ export class PosDevice extends AggregateRoot implements IPosDevice {
     };
   }
 
-  /**
-   * iyzico Terminal cihaz benzersiz kimliğini null-güvenli döner. Cihaz iyzico
-   * terminal değilse veya deviceUniqueId yoksa domain hatası fırlatır.
-   */
-  public getIyzicoDeviceUniqueId(): string {
-    this._isIyzicoTerminal.orThrow();
-
-    if (this._deviceUniqueId === null) {
-      throw new PosDeviceMissingDeviceUniqueIdException();
-    }
-    return this._deviceUniqueId;
-  }
-
   public deactivate(): void {
     this._isActive = false;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public softDelete(): void {
     this._isActive = false;
     this._isDeleted = true;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public toPersistence(): IPosDevice {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      label: this._label,
+      id: this._id.value,
+      clinicId: this._clinicId.value,
+      label: this._label.value,
       provider: this._provider,
       terminalId: this._terminalId,
       merchantId: this._merchantId,

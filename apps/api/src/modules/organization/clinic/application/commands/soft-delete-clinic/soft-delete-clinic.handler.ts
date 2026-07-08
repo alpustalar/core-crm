@@ -6,11 +6,12 @@ import {
   IClinicQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  SoftDeleteClinicCommand
-} from '@modules/organization/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.command';
+import { SoftDeleteClinicCommand } from '@modules/organization/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.command';
 import { Inject } from '@nestjs/common';
-import { IPolicyFactory, POLICY_FACTORY, } from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import {

@@ -75,7 +75,7 @@ export class GetProviderScheduleHandler
     }
 
     const availabilities =
-      await this.providerAvailabilityQueryRepo.findByProviderId(providerId);
+      await this.providerAvailabilityQueryRepo.findManyByProviderId(providerId);
     return {
       data: {
         operationMode: OperationModeSchema.enum.STATIC,

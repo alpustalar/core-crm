@@ -17,13 +17,13 @@ enum AccountSide {
 }
 
 model Account {
-  id             String @id @default(uuid())
-  clinicId       String @map("clinic_id")
-  organizationId String @map("organization_id") // denormalize — konsolide raporlama
+  id             String  @id
+  clinicId       String  @map("clinic_id")
+  organizationId String  @map("organization_id") // denormalize — konsolide raporlama
+  parentId       String? @map("parent_id")
 
-  code     String // '120', '600.04', '120.01.0001'
-  name     String
-  parentId String? @map("parent_id")
+  code String // '120', '600.04', '120.01.0001'
+  name String
 
   type       AccountType
   normalSide AccountSide @map("normal_side")
@@ -37,7 +37,8 @@ model Account {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
   parent       Account?      @relation("AccountTree", fields: [parentId], references: [id])
   children     Account[]     @relation("AccountTree")
   journalLines JournalLine[]
@@ -55,7 +56,7 @@ enum AccountingPeriodStatus {
 }
 
 model AccountingPeriod {
-  id             String @id @default(uuid())
+  id             String @id
   clinicId       String @map("clinic_id")
   organizationId String @map("organization_id") // denormalize — konsolide raporlama
 

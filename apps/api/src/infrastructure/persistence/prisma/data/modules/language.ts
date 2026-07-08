@@ -16,4 +16,7 @@ export const languageCreateManyInputs: Prisma.LanguageCreateInput[] = [
     code: AR,
     direction: LanguageDirection.RTL,
   },
-];
+].map((language) => ({
+  ...language,
+  id: crypto.randomUUID(),
+}));

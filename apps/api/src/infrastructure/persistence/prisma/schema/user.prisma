@@ -1,5 +1,7 @@
 model User {
-  id String @id
+  id       String  @id
+  roleId   String
+  clinicId String? @map("clinic_id")
 
   displayName String @map("display_name")
 
@@ -8,14 +10,12 @@ model User {
 
   status GlobalStatus @default(ACTIVE)
 
-  roleId   String
-  clinicId String? @map("clinic_id")
-
   picture     String?
   phoneNumber String? @map("phone_number")
 
-  role               Role           @relation(fields: [roleId], references: [id])
-  workingClinic      Clinic?        @relation("clinic_staff", fields: [clinicId], references: [id])
+  role          Role    @relation(fields: [roleId], references: [id])
+  workingClinic Clinic? @relation("clinic_staff", fields: [clinicId], references: [id])
+
   managedClinics     Clinic[]       @relation("clinic_managers")
   ownedOrganizations Organization[] @relation("organization_owners")
 

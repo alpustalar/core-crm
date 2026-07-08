@@ -9,7 +9,7 @@ import { GetClinicScheduleQueryResponse } from '@modules/organization/clinic/app
 import {
   CLINIC_EXCEPTION_QUERY_REPOSITORY,
   IClinicExceptionQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinix-exception.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-exception.repository.interface';
 
 @QueryHandler(GetClinicScheduleQuery)
 export class GetClinicScheduleHandler
@@ -39,8 +39,8 @@ export class GetClinicScheduleHandler
 
     return {
       data: {
-        availabilities,
-        exceptions,
+        availabilities: availabilities.map((a) => a.toPersistence()),
+        exceptions: exceptions.map((e) => e.toPersistence()),
       },
     };
   }

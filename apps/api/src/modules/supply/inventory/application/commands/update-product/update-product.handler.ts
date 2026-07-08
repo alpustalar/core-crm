@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UpdateProductCommand } from './update-product.command';
 import {
   IProductCommandRepository,
@@ -10,10 +10,9 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { Quantity } from '@src/domain/value-objects/quantity.vo';
-import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
+import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(UpdateProductCommand)
 export class UpdateProductHandler
@@ -33,16 +32,14 @@ export class UpdateProductHandler
     const { productId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const { policy } = this.policyFactory.organization(actor);
-    if (
-      !policy.isSystemAdmin() &&
-      !policy.isOwnOrganization(actor.organizationId)
-    ) {
-      throw new ForbiddenException('Ürün güncelleme yetkiniz yok.');
-    }
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.systemBypass(ctx.source)
+      .check((p) => p.actorCanAccessTargetClinic(dto.clinicId))
+      .orThrow();
 
-    const product = await this.productQueryRepo.findById(productId);
-    if (!product) throw new NotFoundException('Ürün bulunamadı.');
+    const product = await this.productCommandRepo.findById(productId);
+    if (!product) throw new ProductNotFoundException();
 
     product.update({
       name: dto.name,
@@ -50,15 +47,9 @@ export class UpdateProductHandler
       brand: dto.brand,
       description: dto.description,
       unit: dto.unit,
-      vatRate: VatRate.create(dto.vatRate)?.instance,
-      criticalStockQty: dto.criticalStockQty
-        ? Quantity.create(dto.criticalStockQty, 'Kritik stok miktarı').orThrow()
-        : undefined,
-
-      reorderQty: dto.reorderQty
-        ? Quantity.create(dto.reorderQty).orThrow()
-        : undefined,
-
+      vatRate: dto.vatRate,
+      criticalStockQty: dto.criticalStockQty,
+      reorderQty: dto.reorderQty,
       categoryId: dto.categoryId,
       supplierId: dto.supplierId,
     });

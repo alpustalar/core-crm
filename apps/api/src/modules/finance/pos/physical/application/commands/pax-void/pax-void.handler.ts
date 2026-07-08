@@ -26,12 +26,12 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler implements ICommandHandler<
-  PaxVoidCommand,
-  PaxVoidResponse
-> {
+export class PaxVoidHandler
+  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
+{
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
@@ -55,32 +55,37 @@ export class PaxVoidHandler implements ICommandHandler<
     if (!originalTx) {
       throw new OriginalPosTransactionNotFoundException();
     }
-    if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
-      throw new PosTransactionNotVoidableException();
-    }
-    if (!originalTx.externalRef) {
-      throw new PosTransactionMissingExternalRefException();
-    }
+
+    originalTx.validate.status
+      .isSuccess(new PosTransactionNotVoidableException())
+      .orThrow();
+
+    const originalTransactionExternalRef = originalTx.validate.has
+      .externalRef(new PosTransactionMissingExternalRefException())
+      .orThrow();
 
     const device = await this.posDeviceQueryRepo.findById(
       originalTx.posDeviceId
     );
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
+
+    device.validate.status.isActive().orThrow();
+
+    const posTransaction = PosTransaction.create({
+      posDeviceId: device.id.value,
+      clinicId: input.clinicId,
+      paymentId: originalTx.paymentId ?? undefined,
+      amount: Number(originalTx.amount),
+      currency: originalTx.amount.currency,
+    });
 
     // Faz 1 — PENDING void kaydı atomik olarak oluşturulur (TCP öncesi)
     const { voidTransactionId, voidTx } = await this.txManager.outboxRun(
       async () => {
         const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
-          clinicId: input.clinicId,
-          paymentId: originalTx.paymentId ?? undefined,
-          amount: Number(originalTx.amount),
-          currency: originalTx.amount.currency,
-        });
+        const tx = await this.posTransactionCommandRepo.create(posTransaction);
         return { voidTransactionId: id, voidTx: tx };
       }
     );
@@ -91,7 +96,7 @@ export class PaxVoidHandler implements ICommandHandler<
         device: device.getPaxConnection(),
         amountInMinorUnits: Math.round(Number(originalTx.amount) * 100),
         ecReferenceNumber: voidTransactionId,
-        originalReferenceNumber: originalTx.externalRef,
+        originalReferenceNumber: originalTransactionExternalRef,
       });
 
       // Faz 3 — sonuç + orijinal ödemeyi iade işaretle + ledger atomik (outboxRun)

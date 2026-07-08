@@ -2,7 +2,6 @@ import {
   BookingPayment as IBookingPayment,
   BookingPaymentStatusSchema,
 } from '@shared/generated-zod';
-import { Prisma } from '@prisma/client';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   BookingIntent,
@@ -18,8 +17,11 @@ import { Url } from '@src/domain/value-objects/url.vo';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Currency } from '@src/domain/value-objects/currency.vo';
-
-type Decimal = IBookingPayment['saleAmount'];
+import { Decimal } from 'decimal.js';
+import { Guard } from '@common/domain/guards';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { shouldValidate } from '@common/domain/utils/should-validate';
+import { isNotSystemOverride } from '@common/domain/utils/is-not-system-override';
 
 /**
  * Sağlık turizmi ödeme-önce (payment-first) tahsilat saga kaydı. Hasta ödeme yapmadan
@@ -202,17 +204,99 @@ export class BookingPayment extends AggregateRoot {
 
   // ------------------------------------------------------------------ factory
 
+  public get validate() {
+    return {
+      status: {
+        isPaid: this._isPaid,
+        isPending: this._isPending,
+        isSettled: this._isSettled,
+        can: {
+          markPaid: this._businessRulesValidator.markPaid(),
+          markBooked: this._businessRulesValidator.markBooked(),
+          markExpired: this._businessRulesValidator.markExpired(),
+        },
+      },
+    };
+  }
+
+  private get _businessRulesValidator() {
+    return {
+      markPaid: () => {
+        const isInvalid = !this._isPending.value;
+        return {
+          isValid: !isInvalid,
+          isInvalid,
+          orThrow: () => {
+            throw new Error(
+              `Ödeme yalnız PENDING durumunda işaretlenebilir (mevcut: ${this._status}).`
+            );
+          },
+        };
+      },
+      markBooked: () => {
+        const isInvalid = this._status !== BookingPaymentStatusSchema.enum.PAID;
+        return {
+          isValid: !isInvalid,
+          isInvalid,
+          orThrow: () => {
+            throw new Error(
+              `Rezervasyon yalnız PAID durumunda tamamlanabilir (mevcut: ${this._status}).`
+            );
+          },
+        };
+      },
+      markExpired: () => {
+        const isInvalid =
+          this._status !== BookingPaymentStatusSchema.enum.PENDING;
+
+        return {
+          isValid: !isInvalid,
+          isInvalid,
+          orThrow: () => {
+            throw new Error(
+              `Yalnız PENDING durumundaki kayıt expire edilebilir (mevcut: ${this._status}).`
+            );
+          },
+        };
+      },
+    };
+  }
+
+  // ------------------------------------------------------------ state machine
+
+  private get _isPaid() {
+    const is = this._status === BookingPaymentStatusSchema.enum.PAID;
+    return Guard.monitor(is, is, () => new Error('Ödeme tamamlanmamış'));
+  }
+
+  private get _isPending() {
+    const is = this._status === BookingPaymentStatusSchema.enum.PENDING;
+    return Guard.monitor(
+      is,
+      is,
+      () => new Error('Rezervasyon beklemede değil')
+    );
+  }
+
+  private get _isSettled() {
+    const is =
+      this._status === BookingPaymentStatusSchema.enum.PAID ||
+      this._status === BookingPaymentStatusSchema.enum.BOOKED;
+    return Guard.monitor(is, is, () => new Error('Rezervasyon tamamlanmamış'));
+  }
+
   public static create(props: CreateBookingPaymentProps): BookingPayment {
-    const now = new Date();
+    const now = DateTimeManager.create();
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     return new BookingPayment({
-      id: props.id ?? crypto.randomUUID(),
+      id: id.value,
       bookingType: props.bookingType,
       status: BookingPaymentStatusSchema.enum.PENDING,
       saleCurrency: props.saleCurrency,
-      saleAmount: new Prisma.Decimal(props.saleAmount),
-      tryAmount: new Prisma.Decimal(props.tryAmount),
-      netAmount: new Prisma.Decimal(props.netAmount),
-      fxRate: props.fxRate === null ? null : new Prisma.Decimal(props.fxRate),
+      saleAmount: new Decimal(props.saleAmount),
+      tryAmount: new Decimal(props.tryAmount),
+      netAmount: new Decimal(props.netAmount),
+      fxRate: props.fxRate === null ? null : new Decimal(props.fxRate),
       intent: props.intent as unknown as IBookingPayment['intent'],
       iyzicoConversationId: null,
       iyzicoToken: null,
@@ -237,10 +321,11 @@ export class BookingPayment extends AggregateRoot {
     });
   }
 
-  // ------------------------------------------------------------ state machine
-
   /** initiate sırasında üretilen sağlayıcı link bilgilerini saklar. */
-  public attachLinks(links: BookingPaymentLinks): void {
+  public attachLinks(
+    links: BookingPaymentLinks,
+    options = DefaultValidateOptions
+  ): void {
     if (isNotUndefined(links.iyzicoConversationId)) {
       this._iyzicoConversationId = links.iyzicoConversationId;
     }
@@ -248,48 +333,41 @@ export class BookingPayment extends AggregateRoot {
       this._iyzicoToken = links.iyzicoToken;
 
     if (isNotUndefined(links.iyzicoUrl))
-      this._iyzicoUrl = links.iyzicoUrl
-        ? Url.create(links.iyzicoUrl).orThrow()
-        : null;
+      if (isNotSystemOverride(options)) {
+        this._iyzicoUrl = links.iyzicoUrl
+          ? Url.create(links.iyzicoUrl).orThrow()
+          : null;
+      } else {
+        this._iyzicoUrl = Url.fromTrusted(links.iyzicoUrl);
+      }
 
     if (isNotUndefined(links.stripeSessionId)) {
       this._stripeSessionId = links.stripeSessionId;
     }
-    if (isNotUndefined(links.stripeUrl))
-      this._stripeUrl = links.stripeUrl
-        ? Url.create(links.stripeUrl).orThrow()
-        : null;
+    if (isNotUndefined(links.stripeUrl)) {
+      if (isNotSystemOverride(options)) {
+        this._stripeUrl = links.stripeUrl
+          ? Url.create(links.stripeUrl).orThrow()
+          : null;
+      } else {
+        this._stripeUrl = Url.fromTrusted(links.stripeUrl);
+      }
+    }
 
     this._updatedAt = DateTimeManager.create();
-  }
-
-  public isPending(): boolean {
-    return this._status === BookingPaymentStatusSchema.enum.PENDING;
-  }
-
-  public isPaid(): boolean {
-    return this._status === BookingPaymentStatusSchema.enum.PAID;
-  }
-
-  public isSettled(): boolean {
-    return (
-      this._status === BookingPaymentStatusSchema.enum.PAID ||
-      this._status === BookingPaymentStatusSchema.enum.BOOKED
-    );
   }
 
   /** PENDING → PAID. providerRef iade için saklanır. */
   public markPaid(
     provider: BookingPaymentProviderValue,
-    providerRef: string
+    providerRef: string,
+    options = DefaultValidateOptions
   ): void {
-    if (this._status !== BookingPaymentStatusSchema.enum.PENDING) {
-      throw new Error(
-        `Ödeme yalnız PENDING durumunda işaretlenebilir (mevcut: ${this._status}).`
-      );
-    }
+    if (shouldValidate(options))
+      this._businessRulesValidator.markPaid().orThrow();
 
     const now = DateTimeManager.create();
+
     this._status = BookingPaymentStatusSchema.enum.PAID;
     this._paidProvider = provider;
     this._paidProviderRef = providerRef;
@@ -298,72 +376,72 @@ export class BookingPayment extends AggregateRoot {
   }
 
   /** PAID → BOOKED. HotelBeds rezervasyonu tamamlandı. */
-  public markBooked(reference: string, bookingId?: string | null): void {
-    if (this._status !== BookingPaymentStatusSchema.enum.PAID) {
-      throw new Error(
-        `Rezervasyon yalnız PAID durumunda tamamlanabilir (mevcut: ${this._status}).`
-      );
-    }
+  public markBooked(
+    reference: string,
+    bookingId?: string | null,
+    options = DefaultValidateOptions
+  ): void {
+    if (shouldValidate(options))
+      this._businessRulesValidator.markBooked().orThrow();
+
     this._status = BookingPaymentStatusSchema.enum.BOOKED;
     this._bookingReference = reference;
     this._bookingId = bookingId ?? null;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   /** Ödeme alındı ama HotelBeds book başarısız → iade beklenir. */
   public markFailed(reason: string): void {
     this._status = BookingPaymentStatusSchema.enum.FAILED;
     this._failureReason = reason;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   /** PENDING → EXPIRED (link süresi doldu, ödeme yapılmadı). */
-  public markExpired(): void {
-    if (this._status !== BookingPaymentStatusSchema.enum.PENDING) {
-      throw new Error(
-        `Yalnız PENDING durumundaki kayıt expire edilebilir (mevcut: ${this._status}).`
-      );
-    }
+  public markExpired(options = DefaultValidateOptions): void {
+    if (shouldValidate(options))
+      this._businessRulesValidator.markExpired().orThrow();
+
     this._status = BookingPaymentStatusSchema.enum.EXPIRED;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public markRefunded(reason?: string): void {
     this._status = BookingPaymentStatusSchema.enum.REFUNDED;
     if (reason) this._failureReason = reason;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   // --------------------------------------------------------------- persistence
 
   public toPersistence(): IBookingPayment {
     return {
-      id: this._id.value,
-      bookingType: this._bookingType,
-      status: this._status,
-      saleCurrency: this._saleCurrency.value,
-      saleAmount: this._saleAmount.amount,
-      tryAmount: this._tryAmount.amount,
-      netAmount: this._netAmount.amount,
-      fxRate: this._fxRate,
-      intent: this._intent,
-      iyzicoConversationId: this._iyzicoConversationId,
-      iyzicoToken: this._iyzicoToken,
-      iyzicoUrl: this._iyzicoUrl?.value ?? null,
-      stripeSessionId: this._stripeSessionId,
-      stripeUrl: this._stripeUrl?.value ?? null,
-      paidProvider: this._paidProvider,
-      paidProviderRef: this._paidProviderRef,
-      paidAt: this._paidAt,
-      bookingReference: this._bookingReference,
-      bookingId: this._bookingId,
-      failureReason: this._failureReason,
-      clinicId: this._clinicId.value,
-      organizationId: this._organizationId.value,
-      patientId: this._patientId?.value ?? null,
-      leadId: this._leadId?.value ?? null,
-      conversationId: this._conversationId,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      bookingType: this.bookingType,
+      status: this.status,
+      saleCurrency: this.saleCurrency.value,
+      saleAmount: this.saleAmount.amount,
+      tryAmount: this.tryAmount.amount,
+      netAmount: this.netAmount.amount,
+      fxRate: this.fxRate,
+      intent: this.intent,
+      iyzicoConversationId: this.iyzicoConversationId,
+      iyzicoToken: this.iyzicoToken,
+      iyzicoUrl: this.iyzicoUrl?.value ?? null,
+      stripeSessionId: this.stripeSessionId,
+      stripeUrl: this.stripeUrl?.value ?? null,
+      paidProvider: this.paidProvider,
+      paidProviderRef: this.paidProviderRef,
+      paidAt: this.paidAt,
+      bookingReference: this.bookingReference,
+      bookingId: this.bookingId,
+      failureReason: this.failureReason,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      patientId: this.patientId?.value ?? null,
+      leadId: this.leadId?.value ?? null,
+      conversationId: this.conversationId,
+      createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
     };
   }

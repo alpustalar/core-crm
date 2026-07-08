@@ -11,6 +11,7 @@ export type SectorSlug = (typeof sectorSlugs)[keyof typeof sectorSlugs];
 
 export const sectorCreateInputs: Prisma.SectorCreateInput[] = [
   {
+    id: crypto.randomUUID(),
     name: 'DENTAL',
     slug: sectorSlugs['DENTAL'],
   },

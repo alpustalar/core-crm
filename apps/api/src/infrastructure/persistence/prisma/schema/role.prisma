@@ -1,5 +1,5 @@
 model Role {
-  id           String  @id @default(uuid())
+  id           String  @id
   name         String
   slug         String
   priority     Int
@@ -15,13 +15,12 @@ model Role {
 }
 
 model RoleCapability {
-  id String @id @default(uuid())
-
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId String
-
-  capability   Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  id           String @id
+  roleId       String
   capabilityId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  capability Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -29,7 +28,7 @@ model RoleCapability {
 }
 
 model Capability {
-  id     String @id @default(uuid())
+  id     String @id
   name   String
   module String
   action String

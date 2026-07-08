@@ -1,76 +1,201 @@
-import { randomUUID } from 'crypto';
-import { Prisma } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 import { ClinicFinanceSettings as IClinicFinanceSettings } from '@shared';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
 import { CreateClinicFinanceSettingsProps } from '@modules/organization/clinic/domain/contracts/clinic-finance-settings.contracts';
+import {
+  RoundingDirectionSchema,
+  RoundingDirectionType as RoundingDirection,
+} from '@input-type-schemas/RoundingDirectionSchema';
+import {
+  PayoutTriggerSchema,
+  PayoutTriggerType as PayoutTrigger,
+} from '@input-type-schemas/PayoutTriggerSchema';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+
+interface FinanceSettingsInvariants {
+  maxNegativeBalanceAmount: Decimal;
+  maxInstallmentCount: number;
+  fiscalYearStartMonth: number;
+}
 
 /**
  * Kliniğin finansal davranış ayarları (1:1 satellite). `defaultCurrency` defterin
  * fonksiyonel para birimidir — muhasebe raporları ve posting bu birim üzerinden çalışır.
+ * Para/oran alanları VO ile zırhlıdır; constructor persisted veriyi `fromTrusted` ile
+ * yeniden kurar, `create` ise girişleri doğrular.
  */
 export class ClinicFinanceSettings {
   constructor(data: IClinicFinanceSettings) {
-    this._id = data.id;
-    this._clinicId = data.clinicId;
-    this._defaultCurrency = Currency.create(data.defaultCurrency).orThrow();
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._defaultCurrency = Currency.fromTrusted(data.defaultCurrency);
+    this._roundingType = data.roundingType;
+    this._providerPayoutTrigger = data.providerPayoutTrigger;
+    this._invoicePrefix = data.invoicePrefix;
     this._autoCreateInvoice = data.autoCreateInvoice;
-    this._defaultVatRate = data.defaultVatRate;
+    this._autoSendDebtReminder = data.autoSendDebtReminder;
+    this._defaultVatRate = VatRate.fromTrusted(data.defaultVatRate);
     this._useCostTracking = data.useCostTracking;
     this._allowNegativeBalance = data.allowNegativeBalance;
+    this._maxNegativeBalanceAmount = new Decimal(data.maxNegativeBalanceAmount);
     this._maxInstallmentCount = data.maxInstallmentCount;
+    this._isEInvoiceActive = data.isEInvoiceActive;
     this._fiscalYearStartMonth = data.fiscalYearStartMonth;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  /** Girişlerin iş kuralı barikatı — create sırasında koşulur. */
+  private static get businessRulesValidator() {
+    return {
+      create: (input: FinanceSettingsInvariants) => {
+        const monthInvalid =
+          input.fiscalYearStartMonth < 1 || input.fiscalYearStartMonth > 12;
+        const installmentInvalid = input.maxInstallmentCount < 1;
+        const negativeLimitInvalid = input.maxNegativeBalanceAmount.isNeg();
+        const isInvalid =
+          monthInvalid || installmentInvalid || negativeLimitInvalid;
+
+        return {
+          isValid: !isInvalid,
+          orThrow: () => {
+            if (monthInvalid) {
+              throw new Error('Mali yıl başlangıç ayı 1-12 aralığında olmalı.');
+            }
+            if (installmentInvalid) {
+              throw new Error('Maksimum taksit sayısı en az 1 olmalı.');
+            }
+            if (negativeLimitInvalid) {
+              throw new Error('Maksimum borçlanma limiti negatif olamaz.');
+            }
+          },
+        };
+      },
+    };
+  }
+
+  private _id: UUID;
+
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
   private _defaultCurrency: Currency;
+
   get defaultCurrency(): Currency {
     return this._defaultCurrency;
   }
 
+  private _roundingType: RoundingDirection;
+
+  /** Küsürat yuvarlama yönü. */
+  get roundingType(): RoundingDirection {
+    return this._roundingType;
+  }
+
+  private _providerPayoutTrigger: PayoutTrigger;
+
+  /** Hekim hakedişi ne zaman tetiklenir (ödemede mi, tedavi tamamlanınca mı). */
+  get providerPayoutTrigger(): PayoutTrigger {
+    return this._providerPayoutTrigger;
+  }
+
+  private _invoicePrefix: string;
+
+  /** Fatura numarası ön eki (ör. "KLN"). */
+  get invoicePrefix(): string {
+    return this._invoicePrefix;
+  }
+
   private _autoCreateInvoice: boolean;
+
   get autoCreateInvoice(): boolean {
     return this._autoCreateInvoice;
   }
 
-  private _defaultVatRate: Prisma.Decimal;
-  get defaultVatRate(): Prisma.Decimal {
+  private _autoSendDebtReminder: boolean;
+
+  /** Borç hatırlatma mesajları otomatik gönderilsin mi? */
+  get autoSendDebtReminder(): boolean {
+    return this._autoSendDebtReminder;
+  }
+
+  private _defaultVatRate: VatRate;
+
+  get defaultVatRate(): VatRate {
     return this._defaultVatRate;
   }
 
   private _useCostTracking: boolean;
+
   get useCostTracking(): boolean {
     return this._useCostTracking;
   }
 
   private _allowNegativeBalance: boolean;
+
   get allowNegativeBalance(): boolean {
     return this._allowNegativeBalance;
   }
 
+  private _maxNegativeBalanceAmount: Decimal;
+
+  /** İzin verilen maksimum borçlanma (negatif bakiye) limiti (fonksiyonel para birimi). */
+  get maxNegativeBalanceAmount(): Decimal {
+    return this._maxNegativeBalanceAmount;
+  }
+
   private _maxInstallmentCount: number;
+
   get maxInstallmentCount(): number {
     return this._maxInstallmentCount;
   }
 
+  private _isEInvoiceActive: boolean;
+
+  /** E-Fatura/E-Arşiv entegrasyonu aktif mi? */
+  get isEInvoiceActive(): boolean {
+    return this._isEInvoiceActive;
+  }
+
   private _fiscalYearStartMonth: number;
+
   get fiscalYearStartMonth(): number {
     return this._fiscalYearStartMonth;
   }
 
   private _updatedAt: Date;
+
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  /** Durum sorguları (Guard tabanlı). */
+  public get validate() {
+    return {
+      eInvoice: {
+        isActive: Guard.monitor(
+          this.isEInvoiceActive,
+          this.isEInvoiceActive,
+          () => new Error('E-Fatura entegrasyonu aktif değil.')
+        ),
+      },
+      negativeBalance: {
+        isAllowed: Guard.monitor(
+          this.allowNegativeBalance,
+          this.allowNegativeBalance,
+          () => new Error('Klinik ayarında negatif bakiyeye izin verilmiyor.')
+        ),
+      },
+    };
   }
 
   /** Klinik için DB default'larıyla birebir varsayılan finans ayarları. */
@@ -81,32 +206,67 @@ export class ClinicFinanceSettings {
   public static create(
     props: CreateClinicFinanceSettingsProps
   ): ClinicFinanceSettings {
+    const currency = Currency.create(
+      props.defaultCurrency ?? Currency.enum.TRY
+    ).orThrow();
+    const vatRate = VatRate.create(props.defaultVatRate ?? 20).orThrow();
+
+    const maxNegativeBalanceAmount =
+      props.maxNegativeBalanceAmount ?? new Decimal(0);
+    const maxInstallmentCount = props.maxInstallmentCount ?? 12;
+    const fiscalYearStartMonth = props.fiscalYearStartMonth ?? 1;
+
+    ClinicFinanceSettings.businessRulesValidator
+      .create({
+        maxNegativeBalanceAmount,
+        maxInstallmentCount,
+        fiscalYearStartMonth,
+      })
+      .orThrow();
+
+    const settingsId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
     return new ClinicFinanceSettings({
-      id: props.id ?? randomUUID(),
-      clinicId: props.clinicId,
-      defaultCurrency: props.defaultCurrency ?? Currency.enum.TRY,
+      id: settingsId.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      defaultCurrency: currency.value,
+      roundingType: props.roundingType ?? RoundingDirectionSchema.enum.NONE,
+      providerPayoutTrigger:
+        props.providerPayoutTrigger ?? PayoutTriggerSchema.enum.ON_PAYMENT,
+      invoicePrefix: props.invoicePrefix ?? 'KLN',
       autoCreateInvoice: props.autoCreateInvoice ?? true,
-      defaultVatRate: props.defaultVatRate ?? new Prisma.Decimal(20),
+      autoSendDebtReminder: props.autoSendDebtReminder ?? false,
+      defaultVatRate: vatRate.value,
       useCostTracking: props.useCostTracking ?? true,
       allowNegativeBalance: props.allowNegativeBalance ?? false,
-      maxInstallmentCount: props.maxInstallmentCount ?? 12,
-      fiscalYearStartMonth: props.fiscalYearStartMonth ?? 1,
+      maxNegativeBalanceAmount,
+      maxInstallmentCount,
+      isEInvoiceActive: props.isEInvoiceActive ?? false,
+      fiscalYearStartMonth,
       updatedAt: DateTimeManager.create(),
     });
   }
 
   toPersistence(): IClinicFinanceSettings {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      defaultCurrency: this._defaultCurrency.value,
-      autoCreateInvoice: this._autoCreateInvoice,
-      defaultVatRate: this._defaultVatRate,
-      useCostTracking: this._useCostTracking,
-      allowNegativeBalance: this._allowNegativeBalance,
-      maxInstallmentCount: this._maxInstallmentCount,
-      fiscalYearStartMonth: this._fiscalYearStartMonth,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      defaultCurrency: this.defaultCurrency.value,
+      roundingType: this.roundingType,
+      providerPayoutTrigger: this.providerPayoutTrigger,
+      invoicePrefix: this.invoicePrefix,
+      autoCreateInvoice: this.autoCreateInvoice,
+      autoSendDebtReminder: this.autoSendDebtReminder,
+      defaultVatRate: this.defaultVatRate.value,
+      useCostTracking: this.useCostTracking,
+      allowNegativeBalance: this.allowNegativeBalance,
+      maxNegativeBalanceAmount: this.maxNegativeBalanceAmount,
+      maxInstallmentCount: this.maxInstallmentCount,
+      isEInvoiceActive: this.isEInvoiceActive,
+      fiscalYearStartMonth: this.fiscalYearStartMonth,
+      updatedAt: this.updatedAt,
     };
   }
 }

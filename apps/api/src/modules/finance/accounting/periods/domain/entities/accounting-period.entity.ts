@@ -89,30 +89,38 @@ export class AccountingPeriod extends AggregateRoot {
     return Guard.monitor(
       isOpen,
       isOpen,
-      new Error('Sadece açık döneme fiş atılabilir')
+      () => new Error('Sadece açık döneme fiş atılabilir')
     );
   }
 
   private get isOpen(): Guard<boolean> {
     const isOpen = this._status === AccountingPeriodStatusSchema.enum.OPEN;
-    return Guard.monitor(isOpen, isOpen, new Error('Dönem açık değil'));
+    return Guard.monitor(isOpen, isOpen, () => new Error('Dönem açık değil'));
   }
 
   private get isLocked(): Guard<boolean> {
     const isLocked = this._status === AccountingPeriodStatusSchema.enum.LOCKED;
-    return Guard.monitor(isLocked, isLocked, new Error('Dönem kilitli değil.'));
+    return Guard.monitor(
+      isLocked,
+      isLocked,
+      () => new Error('Dönem kilitli değil.')
+    );
   }
 
   private get isClosed(): Guard<boolean> {
     const isClosed = this._status === AccountingPeriodStatusSchema.enum.CLOSED;
-    return Guard.monitor(isClosed, isClosed, new Error('Dönem kapalı değil.'));
+    return Guard.monitor(
+      isClosed,
+      isClosed,
+      () => new Error('Dönem kapalı değil.')
+    );
   }
 
   private get validateIsOpenOrLocked(): Guard<boolean> {
     return Guard.monitor(
       !this.isClosed.value,
       !this.isClosed.value,
-      new PeriodAlreadyClosedException(this.id.value, this.year)
+      () => new PeriodAlreadyClosedException(this.id.value, this.year)
     );
   }
 

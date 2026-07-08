@@ -11,12 +11,8 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TimeZoneSchema } from '@shared';
-import {
-  AssertClinicCanBookQuery
-} from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
-import {
-  AssertProviderCanBookQuery
-} from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
+import { AssertClinicCanBookQuery } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
+import { AssertProviderCanBookQuery } from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
 
 @CommandHandler(PatientBookAppointmentCommand)
 export class PatientBookAppointmentHandler
@@ -85,7 +81,7 @@ export class PatientBookAppointmentHandler
     });
 
     return this.transactionManager.run(async () => {
-      const saved = await this.appointmentCommandRepo.save(appointment);
+      const saved = await this.appointmentCommandRepo.create(appointment);
       return saved.id.value;
     });
   }

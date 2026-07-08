@@ -73,6 +73,6 @@ export class BookTransferHandler
       return this.bookingCommandRepo.save(transferBooking);
     });
 
-    return booking.id;
+    return booking.id.value;
   }
 }

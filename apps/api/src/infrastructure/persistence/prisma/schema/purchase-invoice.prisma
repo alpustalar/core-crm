@@ -2,8 +2,17 @@
 // (invoice.prisma) kardeşi; dış belge sağlayıcı yok — faturayı biz alır kaydederiz.
 // clinicId/organizationId denormalize scalar (Invoice deseni — Clinic navigation yok).
 // Kayıt sonrası PURCHASE_INVOICE_RECEIVED olayı yazılır → posting 150/770 + 191 / 320.
+
+enum PurchaseInvoiceStatus {
+  DRAFT // Taslak: Fatura bilgileri giriliyor, henüz resmiyet kazanmadı, muhasebeleşmedi (posting tetiklenmez).
+  RECORDED // Kaydedildi/Onaylandı: Fatura sisteme işlendi. Bahsettiğin "PURCHASE_INVOICE_RECEIVED" olayı tetiklenir ve borç/gider posting işlemleri (150/770 vs) gerçekleşir.
+  PAID // Ödendi: Faturanın bakiyesi tamamen kapatıldı (Kasa/Banka entegrasyonu tamamlandı).
+  PARTIALLY_PAID // Kısmen Ödendi: Faturanın grandTotal değerinin bir kısmı ödendi, kalan borç var.
+  CANCELLED // İptal Edildi: Fatura hatalı girildi ve ters kayıtla (storno) hükümsüz kılındı.
+}
+
 model PurchaseInvoice {
-  id             String @id @default(uuid())
+  id             String @id
   clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
   organizationId String @map("organization_id") // denormalize — konsolide raporlama
   supplierId     String @map("supplier_id") // tedarikçi (bounded-context: navigation yok)
@@ -12,13 +21,13 @@ model PurchaseInvoice {
   invoiceDate   DateTime @map("invoice_date")
 
   // Karşı borç/gider hesabı: 150 (stok) | 770/760/740 (gider). Çağıran belirler.
-  lineAccountCode String   @map("line_account_code")
-  vatRate         Int      @map("vat_rate")
-  netTotal        Decimal  @map("net_total") @db.Decimal(12, 2) // matrah
-  vatTotal        Decimal  @map("vat_total") @db.Decimal(12, 2) // indirilecek KDV
-  grandTotal      Decimal  @map("grand_total") @db.Decimal(12, 2) // KDV dahil toplam
-  currency        Currency @default(TRY)
-  status          String   @default("RECORDED")
+  lineAccountCode String                @map("line_account_code")
+  vatRate         Int                   @map("vat_rate")
+  netTotal        Decimal               @map("net_total") @db.Decimal(12, 2) // matrah
+  vatTotal        Decimal               @map("vat_total") @db.Decimal(12, 2) // indirilecek KDV
+  grandTotal      Decimal               @map("grand_total") @db.Decimal(12, 2) // KDV dahil toplam
+  currency        Currency              @default(TRY)
+  status          PurchaseInvoiceStatus @default(RECORDED)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

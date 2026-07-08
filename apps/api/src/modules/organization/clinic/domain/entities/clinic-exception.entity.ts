@@ -1,12 +1,13 @@
-import { randomUUID } from 'crypto';
 import { ClinicException as IClinicException } from '@shared';
 import { ClinicExceptionCreateProps } from '@modules/organization/clinic/domain/contracts/clinic-exception.contracts';
+import { Guard } from '@common/domain/guards';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class ClinicException {
   // 🎯 Proje standardına uygun olarak PUBLIC constructor kalıyor
   constructor(data: IClinicException) {
-    this._id = data.id;
-    this._clinicId = data.clinicId;
+    this._id = UUID.fromTrusted(data.id);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
 
     // Tarihi saat/dakika karmaşasından kurtarmak için saf güne (00:00:00) eşitliyoruz
     this._date = this.normalizeDate(data.date);
@@ -15,13 +16,13 @@ export class ClinicException {
     this._reason = data.reason ?? null;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _clinicId: string;
-  get clinicId(): string {
+  private _clinicId: UUID;
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
@@ -45,25 +46,48 @@ export class ClinicException {
   // ────────────────────────────────────────────────────────────────────────────
 
   /**
-   * 🎯 Yeni bir klinik istisnası (Resmi tatil, özel kapatma vs.) oluşturma kapısı
+   * Bu istisna gününün geçmişte kalıp kalmadığını söyler
    */
-  public static create(props: ClinicExceptionCreateProps): ClinicException {
-    return new ClinicException({
-      id: props.id ?? randomUUID(),
-      clinicId: props.clinicId,
-      date: props.date,
-      isClosed: props.isClosed ?? true,
-      reason: props.reason ?? null,
-    });
+  public get isPast() {
+    const today = this.normalizeDate(new Date());
+    const isPast = this._date.getTime() < today.getTime();
+    return Guard.monitor(
+      isPast,
+      isPast,
+      () => new Error('Gün geçmişte kalmamış')
+    );
   }
 
   // ────────────────────────────────────────────────────────────────────────────
   // 🎯 İş Kuralları (Business Logic)
   // ────────────────────────────────────────────────────────────────────────────
 
+  public get validate() {
+    return {
+      isMatch: (checkDate: Date) => this.isMatch(checkDate),
+      isPast: this.isPast,
+    };
+  }
+
+  /**
+   * 🎯 Yeni bir klinik istisnası (Resmi tatil, özel kapatma vs.) oluşturma kapısı
+   */
+  public static create(props: ClinicExceptionCreateProps): ClinicException {
+    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
+    return new ClinicException({
+      id: id.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      date: props.date,
+      isClosed: props.isClosed ?? true,
+      reason: props.reason ?? null,
+    });
+  }
+
   /**
    * İstisnanın nedenini ve kapatılma durumunu günceller
    */
+
   public updateReason(reason: string | null, isClosed?: boolean): void {
     this._reason = reason;
     if (isClosed !== undefined) {
@@ -74,17 +98,15 @@ export class ClinicException {
   /**
    * 🎯 Verilen bir randevu tarihinin bu istisna gününe denk gelip gelmediğini kontrol eder
    */
-  public isMatch(checkDate: Date): boolean {
-    const target = this.normalizeDate(checkDate);
-    return this._date.getTime() === target.getTime();
-  }
 
-  /**
-   * Bu istisna gününün geçmişte kalıp kalmadığını söyler
-   */
-  public isPast(): boolean {
-    const today = this.normalizeDate(new Date());
-    return this._date.getTime() < today.getTime();
+  public isMatch(checkDate: Date) {
+    const target = this.normalizeDate(checkDate);
+    const isMatch = this._date.getTime() === target.getTime();
+    return Guard.monitor(
+      isMatch,
+      isMatch,
+      () => new Error('Randevu tarihi istisna gününe denk gelmiyor.')
+    );
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -93,11 +115,11 @@ export class ClinicException {
 
   toPersistence(): IClinicException {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      date: this._date,
-      isClosed: this._isClosed,
-      reason: this._reason,
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      date: this.date,
+      isClosed: this.isClosed,
+      reason: this.reason,
     };
   }
 

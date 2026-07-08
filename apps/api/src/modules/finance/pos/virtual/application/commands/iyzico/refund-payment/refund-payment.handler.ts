@@ -7,7 +7,8 @@ import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { PaymentDomainService } from '@modules/finance/payment/domain/services/payment-domain.service';
+import { PaymentGuard } from '@modules/finance/payment/domain/value-objects/payment-guard.vo';
+import { IyzicoResultGuard } from '@modules/finance/pos/virtual/domain/value-objects/iyzico-result-guard.vo';
 import {
   IIyzicoTransactionCommandRepository,
   IIyzicoTransactionQueryRepository,
@@ -45,7 +46,6 @@ export class RefundPaymentHandler
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
-    private readonly paymentDomainService: PaymentDomainService,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
@@ -61,7 +61,7 @@ export class RefundPaymentHandler
     );
     if (!payment) throw new PaymentNotFoundException(paymentId);
 
-    this.paymentDomainService.validate.refundEligibility(payment).orThrow();
+    PaymentGuard.of(payment).validate.refundEligibility().orThrow();
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
@@ -90,13 +90,11 @@ export class RefundPaymentHandler
       currency: 'TRY',
     });
 
-    this.paymentDomainService.check
-      .iyzicoSdkStatus({
-        paymentId,
-        conversationId,
-        sdkErrorMessage: sdkResult.errorMessage,
-        status: sdkResult.status,
-      })
+    IyzicoResultGuard.of({
+      status: sdkResult.status,
+      errorMessage: sdkResult.errorMessage,
+    })
+      .assertSuccess()
       .orThrow();
 
     await this.txManager.outboxRun(async () => {

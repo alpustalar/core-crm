@@ -2,7 +2,7 @@ import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { UpdateUserByStaffResponse } from '@modules/identity/user/application/commands/update-user-by-staff/update-user-by-staff.response';
 import {
   IUserEventPublisher,

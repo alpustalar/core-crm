@@ -23,9 +23,10 @@ enum PartyOriginType {
 }
 
 model Party {
-  id             String @id @default(uuid())
-  clinicId       String @map("clinic_id")
-  organizationId String @map("organization_id") // denormalize — konsolide raporlama
+  id             String  @id
+  clinicId       String  @map("clinic_id")
+  organizationId String  @map("organization_id") // denormalize — konsolide raporlama
+  originId       String? @map("origin_id")
 
   type  PartyType
   roles PartyRole[]
@@ -49,7 +50,6 @@ model Party {
 
   // kaynak kayıt eşlemesi (join yok)
   originType PartyOriginType @map("origin_type")
-  originId   String?         @map("origin_id")
 
   isActive Boolean @default(true) @map("is_active")
 

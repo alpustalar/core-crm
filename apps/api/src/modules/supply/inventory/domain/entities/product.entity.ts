@@ -4,37 +4,41 @@ import {
   StockMovementTypeSchema,
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { randomUUID } from 'crypto';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
 import { Decimal } from 'decimal.js';
 import { ProductConditionType as ProductCondition } from '@input-type-schemas/ProductConditionSchema';
 import { ProductUnitType as ProductUnit } from '@input-type-schemas/ProductUnitSchema';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
-import {
-  CreateProductProps,
-  CreateStockMovementProps,
-  UpdateProductProps,
-} from '@modules/supply/inventory/domain/supply.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Barcode } from '@src/domain/value-objects/barcode.vo';
+import { StockCode } from '@src/domain/value-objects/stock-code.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Img } from '@src/domain/value-objects/img.vo';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import {
+  CreateProductProps,
+  UpdateProductProps,
+} from '@modules/supply/inventory/domain/contracts/product.contracts';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
 
 export class Product extends AggregateRoot {
   constructor(data: IProduct) {
     super();
-    this._id = UUID.create(data.id).orThrow();
-    this._name = data.name;
-    this._stockCode = data.stockCode;
+    this._id = UUID.fromTrusted(data.id);
+    this._name = Name.fromTrusted(data.name);
+    this._stockCode = StockCode.fromTrusted(data.stockCode);
     this._barcode = Barcode.create(data.barcode).instance ?? null;
     this._brand = data.brand;
     this._description = data.description;
-    this._imageUrl = data.imageUrl;
+    this._imageUrl = Img.create(data.imageUrl).instance ?? null;
     this._unit = data.unit;
     this._condition = data.condition;
-    this._vatRate = VatRate.create(data.vatRate).orThrow();
-    this._criticalStockQty = Quantity.create(data.criticalStockQty).orThrow();
-    this._reorderQty = Quantity.create(data.reorderQty).orThrow();
-    this._organizationId = UUID.create(data.organizationId).orThrow();
+    this._vatRate = VatRate.fromTrusted(data.vatRate);
+    this._criticalStockQty = Quantity.fromTrusted(data.criticalStockQty);
+    this._reorderQty = Quantity.fromTrusted(data.reorderQty);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._categoryId = UUID.create(data.categoryId).instance ?? null;
     this._supplierId = UUID.create(data.supplierId).instance ?? null;
     this._isActive = data.isActive;
@@ -48,13 +52,13 @@ export class Product extends AggregateRoot {
     return this._id;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
-  private _stockCode: string;
-  get stockCode(): string {
+  private _stockCode: StockCode;
+  get stockCode(): StockCode {
     return this._stockCode;
   }
 
@@ -73,8 +77,8 @@ export class Product extends AggregateRoot {
     return this._description;
   }
 
-  private _imageUrl: string | null;
-  get imageUrl(): string | null {
+  private _imageUrl: Img | null;
+  get imageUrl(): Img | null {
     return this._imageUrl;
   }
 
@@ -106,6 +110,11 @@ export class Product extends AggregateRoot {
   private _organizationId: UUID;
   get organizationId(): UUID {
     return this._organizationId;
+  }
+
+  private _clinicId: UUID;
+  get clinicId(): UUID {
+    return this._clinicId;
   }
 
   private _categoryId: UUID | null;
@@ -162,24 +171,45 @@ export class Product extends AggregateRoot {
         : props.reorderQty;
 
     vatRate.validate.hasTax.orThrow();
-    const now = new Date();
+    const now = DateTimeManager.create();
+
+    const productId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
+    const barcode = props.barcode
+      ? Barcode.create(props.barcode).orThrow()
+      : null;
+
+    const imageUrl = props.imageUrl
+      ? Img.create(props.imageUrl).orThrow()
+      : null;
+
+    const categoryId = props.categoryId
+      ? UUID.create(props.categoryId).orThrow()
+      : null;
+
+    const supplierId = props.supplierId
+      ? UUID.create(props.supplierId).orThrow()
+      : null;
 
     return new Product({
-      id: props.id ?? randomUUID(),
-      name: props.name.trim(),
-      stockCode: props.stockCode.trim().toUpperCase(),
-      barcode: props.barcode ?? null,
+      id: productId.value,
+      name: Name.create(props.name).orThrow().value,
+      stockCode: StockCode.create(props.stockCode).orThrow().value,
+      barcode: barcode?.value ?? null,
       brand: props.brand ?? null,
       description: props.description ?? null,
-      imageUrl: props.imageUrl ?? null,
+      imageUrl: imageUrl?.value ?? null,
       unit: props.unit,
       condition: props.condition ?? null,
       vatRate: vatRate.value,
       criticalStockQty: criticalStock.value,
       reorderQty: reorderQty.value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
       organizationId: props.organizationId,
-      categoryId: props.categoryId ?? null,
-      supplierId: props.supplierId ?? null,
+      categoryId: categoryId?.value ?? null,
+      supplierId: supplierId?.value ?? null,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -189,49 +219,60 @@ export class Product extends AggregateRoot {
 
   public activate(): void {
     this._isActive = true;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public deactivate(): void {
     this._isActive = false;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public update(props: UpdateProductProps): void {
-    if (props.name !== undefined) {
-      if (!props.name || props.name.trim().length === 0)
-        throw new Error('Ürün ismi boş olamaz..');
-      this._name = props.name.trim();
-    }
-    if (props.barcode)
+    if (isNotUndefined(props.name))
+      this._name = Name.create(props.name).orThrow();
+
+    if (isNotUndefined(props.barcode))
       this._barcode = Barcode.create(props.barcode).instance ?? null;
-    if (props.brand !== undefined) this._brand = props.brand;
-    if (props.description !== undefined) this._description = props.description;
-    if (props.imageUrl !== undefined) this._imageUrl = props.imageUrl;
-    if (props.unit !== undefined) this._unit = props.unit;
-    if (props.vatRate !== undefined) {
-      props.vatRate.validate.hasTax.orThrow();
-      this._vatRate = props.vatRate;
+
+    if (isNotUndefined(props.brand)) this._brand = props.brand;
+
+    if (isNotUndefined(props.description))
+      this._description = props.description;
+
+    if (isNotUndefined(props.imageUrl))
+      this._imageUrl = Img.create(props.imageUrl).orThrow();
+
+    if (isNotUndefined(props.unit)) this._unit = props.unit;
+
+    if (isNotUndefined(props.vatRate)) {
+      const vatRate = VatRate.create(props.vatRate).orThrow();
+      vatRate.validate.hasTax.orThrow();
+      this._vatRate = vatRate;
     }
-    if (props.criticalStockQty !== undefined) {
-      this._criticalStockQty = props.criticalStockQty;
+
+    if (isNotUndefined(props.criticalStockQty)) {
+      this._criticalStockQty = Quantity.create(
+        props.criticalStockQty
+      ).orThrow();
     }
-    if (props.reorderQty !== undefined) {
-      this._reorderQty = props.reorderQty;
+    if (isNotUndefined(props.reorderQty)) {
+      this._reorderQty = Quantity.create(props.reorderQty).orThrow();
     }
-    if (props.categoryId !== undefined)
+    if (isNotUndefined(props.categoryId))
       this._categoryId = UUID.create(props.categoryId).instance ?? null;
-    if (props.supplierId !== undefined)
+
+    if (isNotUndefined(props.supplierId))
       this._supplierId = UUID.create(props.supplierId).instance ?? null;
 
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public softDelete(): void {
     if (this._deletedAt) return;
-    this._deletedAt = new Date();
+    const now = DateTimeManager.create();
+    this._deletedAt = now;
+    this._updatedAt = now;
     this._isActive = false;
-    this._updatedAt = new Date();
   }
 
   public handleStockChange(props: {
@@ -300,25 +341,26 @@ export class Product extends AggregateRoot {
 
   toPersistence(): IProduct {
     return {
-      id: this._id.value,
-      name: this._name,
-      stockCode: this._stockCode,
-      barcode: this._barcode?.value ?? null,
-      brand: this._brand,
-      description: this._description,
-      imageUrl: this._imageUrl,
-      unit: this._unit,
-      condition: this._condition,
-      vatRate: this._vatRate.value,
-      criticalStockQty: this._criticalStockQty.value,
-      reorderQty: this._reorderQty.value,
-      organizationId: this._organizationId.value,
-      categoryId: this._categoryId?.value ?? null,
-      supplierId: this._supplierId?.value ?? null,
-      isActive: this._isActive,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
-      deletedAt: this._deletedAt,
+      id: this.id.value,
+      name: this.name.value,
+      stockCode: this.stockCode.value,
+      clinicId: this.clinicId.value,
+      barcode: this.barcode?.value ?? null,
+      brand: this.brand,
+      description: this.description,
+      imageUrl: this.imageUrl?.value ?? null,
+      unit: this.unit,
+      condition: this.condition,
+      vatRate: this.vatRate.value,
+      criticalStockQty: this.criticalStockQty.value,
+      reorderQty: this.reorderQty.value,
+      organizationId: this.organizationId.value,
+      categoryId: this.categoryId?.value ?? null,
+      supplierId: this.supplierId?.value ?? null,
+      isActive: this.isActive,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
     };
   }
 }

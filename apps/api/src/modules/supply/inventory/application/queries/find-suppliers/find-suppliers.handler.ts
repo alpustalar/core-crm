@@ -9,7 +9,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindSuppliersQuery)
@@ -41,7 +41,7 @@ export class FindSuppliersHandler
     );
 
     return {
-      data: result.items,
+      data: result.items.map((item) => item.toPersistence()),
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
       },

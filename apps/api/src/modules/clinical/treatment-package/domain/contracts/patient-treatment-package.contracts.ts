@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { PatientPackageStatusSchema } from '@shared'; // Projendeki tam import yoluna göre ayarlarsın
 
 /////////////////////////////////////////
 // CREATE PATIENT TREATMENT PACKAGE SCHEMA
@@ -23,7 +22,6 @@ export type CreatePatientTreatmentPackageProps = z.infer<
 export const UpdatePatientTreatmentPackageSchema = z
   .object({
     providerId: z
-      .string()
       .uuid({ message: 'Geçerli bir provider ID girmelisiniz.' })
       .optional(),
     startDate: z.coerce
@@ -36,7 +34,6 @@ export const UpdatePatientTreatmentPackageSchema = z
       .string()
       .max(1000, { message: 'Not alanı en fazla 1000 karakter olabilir.' })
       .nullish(),
-    status: PatientPackageStatusSchema.optional(),
   })
   .refine(
     (data) => {

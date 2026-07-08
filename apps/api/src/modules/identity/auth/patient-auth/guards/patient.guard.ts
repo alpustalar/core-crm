@@ -25,6 +25,9 @@ export class PatientGuard implements CanActivate {
     request.patientActor = {
       patientId: patient.id,
       organizationId: patient.organizationId,
+      phone: patient.phone,
+      email: patient.email ?? undefined,
+      clinicId: patient.clinicId ?? undefined,
     };
 
     return true;

@@ -21,6 +21,20 @@ export class HotelbedsTransferBookingCommandRepository
     return raw ? new HotelbedsTransferBooking(raw) : null;
   }
 
+  async create(
+    booking: HotelbedsTransferBooking
+  ): Promise<HotelbedsTransferBooking> {
+    const data = booking.toPersistence();
+    const raw = await this.db.hotelbedsTransferBooking.create({
+      data: {
+        ...data,
+        transfers: data.transfers as Prisma.InputJsonValue,
+      },
+    });
+    booking.flushEvents();
+    return new HotelbedsTransferBooking(raw);
+  }
+
   async save(
     booking: HotelbedsTransferBooking
   ): Promise<HotelbedsTransferBooking> {

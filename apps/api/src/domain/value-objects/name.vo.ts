@@ -27,7 +27,7 @@ export class Name {
     return Guard.monitor(
       name,
       value.trim().length > 0,
-      new Error(throwMessage)
+      () => new Error(throwMessage)
     );
   }
 

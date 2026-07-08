@@ -1,14 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { DeleteTreatmentPackageCommand } from './delete-treatment-package.command';
 import type { DeleteTreatmentPackageResponse } from './delete-treatment-package.response';
 import {
   ITreatmentPackageCommandRepository,
-  ITreatmentPackageQueryRepository,
   TREATMENT_PACKAGE_COMMAND_REPO,
-  TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { TreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 
 @CommandHandler(DeleteTreatmentPackageCommand)
 export class DeleteTreatmentPackageHandler
@@ -21,8 +20,6 @@ export class DeleteTreatmentPackageHandler
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
-    @Inject(TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -32,9 +29,9 @@ export class DeleteTreatmentPackageHandler
     const { packageId } = command;
 
     const treatmentPackage =
-      await this.treatmentPackageQueryRepo.findById(packageId);
+      await this.treatmentPackageCommandRepo.findById(packageId);
     if (!treatmentPackage)
-      throw new NotFoundException('Tedavi paketi bulunamadı');
+      throw new TreatmentPackageNotFoundException(packageId);
 
     await this.txManager.run(async () => {
       treatmentPackage.softDelete();

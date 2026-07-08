@@ -15,6 +15,18 @@ export class AppointmentCommandRepository
     super(prisma);
   }
 
+  async create(appointment: Appointment): Promise<Appointment> {
+    const data = appointment.toPersistence();
+
+    const raw = await this.db.appointment.create({
+      data,
+    });
+
+    appointment.flushEvents();
+
+    return new Appointment(raw);
+  }
+
   async findById(id: string): Promise<Appointment | null> {
     const raw = await this.db.appointment.findUnique({ where: { id } });
     return raw ? new Appointment(raw) : null;

@@ -7,28 +7,26 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { StockPurchasedEvent } from '../events/stock-purchased.event';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 import {
   AddQuantityProps,
   CreateBatchFromPurchaseProps,
-  CreateStockMovementProps,
   DeductQuantityProps,
-} from '@modules/supply/inventory/domain/supply.contracts';
-import { UUID } from '@src/domain/value-objects/uuid.vo';
+} from '@modules/supply/inventory/domain/contracts/product-batch.contracts';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class ProductBatch extends AggregateRoot {
   constructor(data: IProductBatch) {
     super();
-    this._id = UUID.create(data.id).orThrow();
-    this._productId = UUID.create(data.productId).orThrow();
-    this._clinicId = UUID.create(data.clinicId).orThrow();
+    this._id = UUID.fromTrusted(data.id);
+    this._productId = UUID.fromTrusted(data.productId);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._supplierId = UUID.create(data.supplierId).instance ?? null;
     this._lotNumber = data.lotNumber;
     this._expiresAt = data.expiresAt;
-    this._quantity = Quantity.create(data.quantity).orThrow();
-    this._purchasePrice = Money.create(
-      data.purchasePrice,
-      data.currency
-    ).orThrow();
+    this._quantity = Quantity.fromTrusted(data.quantity);
+    this._purchasePrice = Money.fromTrusted(data.purchasePrice, data.currency);
     this._receivedAt = data.receivedAt;
     this._notes = data.notes;
     this._createdAt = data.createdAt;
@@ -98,7 +96,7 @@ export class ProductBatch extends AggregateRoot {
   public static createFromPurchase(
     props: CreateBatchFromPurchaseProps
   ): ProductBatch {
-    if (props.expiresAt && props.expiresAt <= new Date()) {
+    if (props.expiresAt && props.expiresAt <= DateTimeManager.create()) {
       throw new Error(
         '[Stok Disiplini] Son kullanma tarihi geçmiş bir ürün partisi (batch) oluşturulamaz.'
       );
@@ -106,8 +104,12 @@ export class ProductBatch extends AggregateRoot {
 
     const totalAmount = props.purchasePrice.multiply(props.quantity.value);
 
+    const batchId = props.id
+      ? UUID.create(props.id).orThrow()
+      : UUID.generate();
+
     const batch = new ProductBatch({
-      id: UUID.create(props.id).instance?.value ?? UUID.generate().value,
+      id: batchId.value,
       productId: UUID.create(props.productId).orThrow().value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       supplierId: UUID.create(props.supplierId).orThrow().value,
@@ -116,16 +118,16 @@ export class ProductBatch extends AggregateRoot {
       quantity: props.quantity.value,
       purchasePrice: props.purchasePrice.amount,
       currency: props.purchasePrice.currency,
-      receivedAt: new Date(),
+      receivedAt: DateTimeManager.create(),
       notes: props.notes,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: DateTimeManager.create(),
+      updatedAt: DateTimeManager.create(),
     });
 
     batch.addDomainEvent(
       new StockPurchasedEvent({
         ...props.eventPayload,
-        batchId: props.id,
+        batchId: batchId.value,
         productId: props.productId,
         clinicId: props.clinicId,
         organizationId: props.organizationId,
@@ -139,6 +141,7 @@ export class ProductBatch extends AggregateRoot {
     return batch;
   }
 
+  // TODO: burası event driven olacak. geriye hiçbir şey dönülmeyecek
   public deductQuantity({
     qty,
     movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
@@ -153,12 +156,12 @@ export class ProductBatch extends AggregateRoot {
     incomingQuantity.validate.greaterThanZero.orThrow();
 
     this._quantity = this._quantity.sub(incomingQuantity);
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
 
     return {
-      productId: this._productId.value,
-      clinicId: this._clinicId.value,
-      batchId: this._id.value,
+      productId: this.productId.value,
+      clinicId: this.clinicId.value,
+      batchId: this.id.value,
       type: movementType,
       direction: StockMovementDirectionSchema.enum.OUT,
       quantity: incomingQuantity.value,
@@ -167,6 +170,7 @@ export class ProductBatch extends AggregateRoot {
     };
   }
 
+  // TODO: burası event driven olacak. geriye hiçbir şey dönülmeyecek
   public addQuantity({
     qty,
     movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
@@ -181,7 +185,7 @@ export class ProductBatch extends AggregateRoot {
     incomingQuantity.validate.greaterThanZero.orThrow();
 
     this._quantity = this._quantity.add(incomingQuantity);
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
 
     return {
       productId: this._productId.value,
@@ -196,19 +200,19 @@ export class ProductBatch extends AggregateRoot {
   }
   toPersistence(): IProductBatch {
     return {
-      id: this._id.value,
-      productId: this._productId.value,
-      clinicId: this._clinicId.value,
-      supplierId: this._supplierId?.value ?? null,
-      lotNumber: this._lotNumber,
-      expiresAt: this._expiresAt,
-      quantity: this._quantity.value,
-      purchasePrice: this._purchasePrice.amount,
-      currency: this._purchasePrice.currency,
-      receivedAt: this._receivedAt,
-      notes: this._notes,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      productId: this.productId.value,
+      clinicId: this.clinicId.value,
+      supplierId: this.supplierId?.value ?? null,
+      lotNumber: this.lotNumber,
+      expiresAt: this.expiresAt,
+      quantity: this.quantity.value,
+      purchasePrice: this.purchasePrice.amount,
+      currency: this.purchasePrice.currency,
+      receivedAt: this.receivedAt,
+      notes: this.notes,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

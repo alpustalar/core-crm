@@ -5,7 +5,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IMetaLeadQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
-import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/meta-ads.contracts';
+import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 
 @Injectable()
 export class MetaLeadQueryRepository

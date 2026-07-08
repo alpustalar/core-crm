@@ -6,13 +6,23 @@ import { ConfigService } from '@nestjs/config';
 import Iyzipay from 'iyzipay';
 import { IIyzicoProvider } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
 import type { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/payment-initialize.request';
-import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/retrieve-checkout-form.result';
+import {
+  RetrieveCheckoutFormResult,
+  RetrieveCheckoutFormBuyer,
+  RetrieveCheckoutFormSavedCard,
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/retrieve-checkout-form.result';
 import { CancelPaymentRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/cancel-payment.request';
 import type {
   CreateSubMerchantRequest,
   SubMerchantResult,
   UpdateSubMerchantRequest,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/create-submerchant.request';
+import type {
+  ChargeWithSavedCardRequest,
+  ChargeWithSavedCardResult,
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/charge-with-saved-card.request';
+
+const PLACEHOLDER_IDENTITY_NUMBER = '11111111111';
 
 @Injectable()
 export class IyzicoProvider implements IIyzicoProvider {
@@ -51,7 +61,123 @@ export class IyzicoProvider implements IIyzicoProvider {
       paymentTransactionId: sdkResult.paymentItems?.[0]?.paymentTransactionId,
       errorCode: sdkResult.errorCode,
       errorMessage: sdkResult.errorMessage,
+      savedCard: this.extractSavedCard(sdkResult),
+      buyer: this.extractBuyer(sdkResult),
       rawResponse: sdkResult as unknown,
+    };
+  }
+
+  /**
+   * Kayıtlı kartla (cardUserKey + cardToken) non-3DS otomatik tahsilat — abonelik yenilemesi.
+   * Müşteri etkileşimi gerektirmez; ilk ödemede saklanan kart üzerinden çeker.
+   */
+  async chargeWithSavedCard(
+    request: ChargeWithSavedCardRequest
+  ): Promise<ChargeWithSavedCardResult> {
+    const address = {
+      contactName: `${request.buyer.name} ${request.buyer.surname}`,
+      city: request.buyer.city || 'Istanbul',
+      country: 'Turkey',
+      address: request.buyer.address || 'Turkiye',
+    };
+
+    const sdkResult = await this.client.createPayment({
+      locale: 'TR',
+      conversationId: request.conversationId,
+      price: request.price,
+      paidPrice: request.price,
+      currency: request.currency as Iyzipay.PaymentRequestData['currency'],
+      installments: 1,
+      basketId: request.basketId,
+      paymentChannel: Iyzipay.PAYMENT_CHANNEL.WEB,
+      paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
+      paymentCard: {
+        cardUserKey: request.savedCard.cardUserKey,
+        cardToken: request.savedCard.cardToken,
+      },
+      buyer: {
+        id: request.buyer.id,
+        name: request.buyer.name,
+        surname: request.buyer.surname,
+        email: request.buyer.email,
+        gsmNumber: request.buyer.gsmNumber,
+        identityNumber: PLACEHOLDER_IDENTITY_NUMBER,
+        registrationAddress: address.address,
+        ip: request.buyer.ip,
+        city: address.city,
+        country: 'Turkey',
+      },
+      shippingAddress: address,
+      billingAddress: address,
+      basketItems: [
+        {
+          id: request.basketId,
+          name: request.basketItemLabel,
+          category1: 'Abonelik',
+          itemType: Iyzipay.BASKET_ITEM_TYPE.VIRTUAL,
+          price: request.price,
+        },
+      ],
+    });
+
+    return {
+      isSuccess: sdkResult.status === 'success',
+      paymentId: sdkResult.paymentId,
+      errorCode: sdkResult.errorCode,
+      errorMessage: sdkResult.errorMessage,
+      rawResponse: sdkResult as unknown,
+    };
+  }
+
+  /** Checkout retrieve yanıtından kart saklama token'larını çıkarır (SDK tipinde cardUserKey yok). */
+  private extractSavedCard(
+    sdkResult: Iyzipay.CheckoutFormRetrieveResult
+  ): RetrieveCheckoutFormSavedCard | undefined {
+    const raw = sdkResult as unknown as {
+      cardUserKey?: string;
+      cardToken?: string;
+      paymentCard?: {
+        cardToken?: string;
+        cardUserKey?: string;
+        binNumber?: string;
+        lastFourDigits?: string;
+        cardAssociation?: string;
+        cardFamily?: string;
+      };
+    };
+
+    const cardUserKey = raw.cardUserKey ?? raw.paymentCard?.cardUserKey;
+    const cardToken = raw.cardToken ?? raw.paymentCard?.cardToken;
+
+    if (!cardUserKey || !cardToken) return undefined;
+
+    return {
+      cardUserKey,
+      cardToken,
+      binNumber: raw.paymentCard?.binNumber,
+      lastFourDigits: raw.paymentCard?.lastFourDigits,
+      cardAssociation: raw.paymentCard?.cardAssociation,
+      cardFamily: raw.paymentCard?.cardFamily,
+    };
+  }
+
+  /** Checkout retrieve yanıtından alıcı bilgisini çıkarır (yenileme snapshot'ı için). */
+  private extractBuyer(
+    sdkResult: Iyzipay.CheckoutFormRetrieveResult
+  ): RetrieveCheckoutFormBuyer | undefined {
+    const buyer = sdkResult.buyer;
+    if (!buyer) return undefined;
+
+    return {
+      id: buyer.id,
+      name: buyer.name,
+      surname: buyer.surname,
+      email: buyer.email,
+      gsmNumber: buyer.gsmNumber,
+      ip: buyer.ip,
+      city: sdkResult.billingAddress?.city ?? buyer.city,
+      address:
+        sdkResult.billingAddress?.address ?? buyer.registrationAddress,
     };
   }
 

@@ -24,6 +24,7 @@ export class GetInvoiceByIdHandler
     return {
       data: {
         id: invoice.id.value,
+        organizationId: invoice.organizationId.value,
         clinicId: invoice.clinicId.value,
         patientId: invoice.patientId.value,
         netTotal: tax.netAmount.amount.toFixed(2),

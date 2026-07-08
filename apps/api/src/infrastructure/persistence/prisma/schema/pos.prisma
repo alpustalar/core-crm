@@ -12,19 +12,19 @@ enum PosProvider {
 }
 
 model PosDevice {
-  id       String      @id @default(uuid())
-  clinicId String      @map("clinic_id")
+  id             String  @id
+  clinicId       String  @map("clinic_id")
+  terminalId     String? @map("terminal_id")
+  merchantId     String? @map("merchant_id")
+  deviceUniqueId String? @map("device_unique_id")
+
   label    String
   provider PosProvider @default(PAX)
-
   // PAX (POSLINK / TCP) — provider = PAX için doldurulur
-  terminalId String? @map("terminal_id")
-  merchantId String? @map("merchant_id")
-  host       String?
-  port       Int?
+  host     String?
+  port     Int?
 
   // iyzico Terminal (Host API) — provider = IYZICO_TERMINAL için doldurulur
-  deviceUniqueId String? @map("device_unique_id")
 
   isActive  Boolean  @default(true) @map("is_active")
   isDeleted Boolean  @default(false) @map("is_deleted")
@@ -41,15 +41,16 @@ model PosDevice {
 // Kliniğin iyzico Terminal (Host API) merchant kimlikleri — finance bounded-context
 // 1:1 satellite. Sırlar klinik başına tek yerde yaşar; cihazlar deviceUniqueId ile bağlanır.
 model ClinicIyzicoTerminalConfig {
-  id String @id @default(uuid())
+  id String @id
 
-  clientId     String @map("client_id")
+  clientId String @map("client_id")
+  clinicId String @unique @map("clinic_id")
+
   clientSecret String @map("client_secret")
   username     String
   password     String
 
-  clinicId String @unique @map("clinic_id")
-  clinic   Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -58,7 +59,7 @@ model ClinicIyzicoTerminalConfig {
 }
 
 model PosTransaction {
-  id            String  @id @default(uuid())
+  id            String  @id
   posDeviceId   String  @map("pos_device_id")
   clinicId      String  @map("clinic_id")
   patientId     String? @map("patient_id")

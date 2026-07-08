@@ -3,6 +3,8 @@ import {
   InvalidLatitudeException,
   InvalidLongitudeException,
 } from '@src/domain/exceptions/vo/coordinates.exceptions';
+import { Guard } from '@common/domain/guards';
+import { isDefined } from '@common/utils';
 
 export class Coordinates {
   private readonly _latitude: number;
@@ -12,6 +14,35 @@ export class Coordinates {
     this._latitude = latitude;
     this._longitude = longitude;
     Object.freeze(this);
+  }
+
+  public static get validate() {
+    return {
+      params: {
+        /**
+         * 🚧 Enlem ve boylam çiftinden birinin eksik gelip gelmediğini kontrol eder
+         */
+        hasMissingPair: (
+          latitude?: number | null,
+          longitude?: number | null
+        ) => {
+          const latDefined = isDefined(latitude);
+          const lonDefined = isDefined(longitude);
+
+          // XOR
+          const isMissing = latDefined !== lonDefined;
+
+          return Guard.monitor(
+            isMissing,
+            !isMissing,
+            () =>
+              new InvalidCoordinatesFormatException(
+                'Enlem ve boylam değerleri birlikte verilmelidir.'
+              )
+          );
+        },
+      },
+    };
   }
 
   get latitude(): number {
@@ -109,18 +140,18 @@ export class Coordinates {
   }
 
   /**
-   * İki koordinat arasındaki kuş uçuşu mesafeyi Haversine formülü ile hesaplar.
+   * İki koordinat arasındaki kuş uçuşu mesafe için Haversine formülü
    */
   public distanceTo(other: Coordinates): number {
     const EARTH_RADIUS_METERS = 6371000;
 
-    const dLat = this.toRadians(other.latitude - this._latitude);
-    const dLon = this.toRadians(other.longitude - this._longitude);
+    const dLat = this._toRadians(other.latitude - this._latitude);
+    const dLon = this._toRadians(other.longitude - this._longitude);
 
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(this._latitude)) *
-        Math.cos(this.toRadians(other.latitude)) *
+      Math.cos(this._toRadians(this._latitude)) *
+        Math.cos(this._toRadians(other.latitude)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
 
@@ -144,7 +175,7 @@ export class Coordinates {
     };
   }
 
-  private toRadians(degree: number): number {
+  private _toRadians(degree: number): number {
     return (degree * Math.PI) / 180;
   }
 }

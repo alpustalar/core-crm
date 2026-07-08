@@ -138,6 +138,12 @@ export type RescheduleAppointmentProps = {
   treatmentId?: string;
 };
 
+// Hasta (Patient) erteleme girişi — klinik ayarındaki (ClinicAppointmentSettings)
+// erteleme saat sınırı entity'ye handler tarafından geçirilir.
+export type RescheduleByPatientProps = RescheduleAppointmentProps & {
+  rescheduleLimitHours: number;
+};
+
 export type FindProviderCalendarData = {
   providerId: string;
   startDate: Date;
@@ -145,9 +151,12 @@ export type FindProviderCalendarData = {
   pagination: Pagination;
 };
 
+// eslint-disable-next-line
+const { DATA_OWNER, ...Groups } = ResponseGroups;
 export const AppointmentsResponseGroups = {
-  ...ResponseGroups,
-  PROVIDER: 'PROVIDER',
+  ...Groups,
+  PROVIDER_DATA_OWNER: 'PROVIDER_DATA_OWNER',
+  PATIENT_DATA_OWNER: 'PATIENT_DATA_OWNER',
 } as const;
 
 export type AppointmentResponseGroup =

@@ -45,15 +45,10 @@ export class ReceiveStockHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    // TODO: capability guard
-
     const product = await this.productQueryRepo.findById(dto.productId);
     if (!product) throw new ProductNotFoundException();
 
-    const batchId = UUID.generate();
-
     const batch = ProductBatch.createFromPurchase({
-      id: batchId.value,
       productId: product.id.value,
       clinicId,
       organizationId: UUID.create(actor.organizationId).orThrow().value,
@@ -74,7 +69,7 @@ export class ReceiveStockHandler
     const stockMovement = StockMovement.create({
       productId: product.id.value,
       clinicId,
-      batchId: batchId.value,
+      batchId: batch.id.value,
       type: StockMovementTypeSchema.enum.PURCHASE,
       direction: StockMovementDirectionSchema.enum.IN,
       quantity: dto.quantity,
@@ -85,9 +80,9 @@ export class ReceiveStockHandler
     });
 
     return this.txManager.run(async () => {
-      await this.productBatchCommandRepo.save(batch);
-      await this.stockMovementCommandRepo.save(stockMovement);
-      return batchId.value;
+      await this.productBatchCommandRepo.create(batch);
+      await this.stockMovementCommandRepo.create(stockMovement);
+      return batch.id.value;
     });
   }
 }

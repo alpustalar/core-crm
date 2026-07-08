@@ -7,7 +7,7 @@ import { UserModule } from '@modules/identity/user/user.module';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
 import { FinanceLedgerModule } from '@modules/finance/finance-ledger/finance-ledger.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
-import { SubscriptionModule } from '@modules/finance/subscription/subscription.module';
+import { SubscriptionModule } from '@modules/platform/subscription/subscription.module';
 import { PosModule } from '@modules/finance/pos/pos.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';
 import { AccountingModule } from '@modules/finance/accounting/accounting.module';

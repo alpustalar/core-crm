@@ -1,4 +1,3 @@
-import * as crypto from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   IMetaMarketingApiService,
@@ -8,6 +7,7 @@ import {
   MetaPageInfo,
   MetaTokenResult,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
+import { CryptoManager } from '@src/infrastructure/security/crypto/crypto.manager';
 
 const META_API_BASE = 'https://graph.facebook.com/v20.0';
 const META_OAUTH_BASE = 'https://www.facebook.com/v20.0/dialog/oauth';
@@ -169,18 +169,7 @@ export class MetaMarketingApiService implements IMetaMarketingApiService {
     signature: string,
     appSecret: string
   ): boolean {
-    try {
-      const expected = `sha256=${crypto
-        .createHmac('sha256', appSecret)
-        .update(rawBody)
-        .digest('hex')}`;
-      return crypto.timingSafeEqual(
-        Buffer.from(expected),
-        Buffer.from(signature)
-      );
-    } catch {
-      return false;
-    }
+    return CryptoManager.verifyWebhookSignature(rawBody, signature, appSecret);
   }
 
   private expiresInToDate(expiresInSeconds: number): Date {

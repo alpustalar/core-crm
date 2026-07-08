@@ -7,7 +7,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ConvertUserToProviderCommand } from '@modules/clinical/provider/application/commands';
 import { CreateUserCommand } from '@modules/identity/user/application/commands/create-user/create-user.command';
 import { CreateUserResponse } from '@modules/identity/user/application/commands/create-user/create-user.response';

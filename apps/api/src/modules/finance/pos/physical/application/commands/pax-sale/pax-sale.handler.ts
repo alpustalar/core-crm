@@ -26,12 +26,12 @@ import { ExecutionContextFactory } from '@src/domain/common/execution/execution-
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @CommandHandler(PaxSaleCommand)
-export class PaxSaleHandler implements ICommandHandler<
-  PaxSaleCommand,
-  PaxSaleResponse
-> {
+export class PaxSaleHandler
+  implements ICommandHandler<PaxSaleCommand, PaxSaleResponse>
+{
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
@@ -49,9 +49,11 @@ export class PaxSaleHandler implements ICommandHandler<
     const { input } = command;
 
     const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
+
+    device.validate.status.isActive().orThrow();
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
     const { posTransactionId, transaction, paymentId } =
@@ -76,10 +78,8 @@ export class PaxSaleHandler implements ICommandHandler<
           resolvedPaymentId = paymentId;
         }
 
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
+        const posTransaction = PosTransaction.create({
+          posDeviceId: device.id.value,
           clinicId: input.clinicId,
           patientId: input.patientId,
           appointmentId: input.appointmentId,
@@ -87,8 +87,10 @@ export class PaxSaleHandler implements ICommandHandler<
           amount: input.amount,
           currency: input.currency,
         });
+
+        const tx = await this.posTransactionCommandRepo.create(posTransaction);
         return {
-          posTransactionId: id,
+          posTransactionId: tx.id.value,
           transaction: tx,
           paymentId: resolvedPaymentId,
         };

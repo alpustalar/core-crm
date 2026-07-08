@@ -1,5 +1,5 @@
 model Outbox {
-  id          String    @id @default(uuid())
+  id          String    @id
   type        String // Olayın adı (örn: "AppointmentCancelled")
   payload     Json // Olayın içeriği (appointmentId, userId vb.)
   createdAt   DateTime  @default(now())

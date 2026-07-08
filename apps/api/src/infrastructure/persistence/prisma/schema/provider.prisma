@@ -9,7 +9,7 @@ enum ExceptionType {
 }
 
 model Provider {
-  id String @id @default(uuid())
+  id String @id
 
   title     ProviderTitle?     @relation(fields: [providerTitleId], references: [id])
   specialty ProviderSpecialty? @relation(fields: [providerSpecialtyId], references: [id])
@@ -21,7 +21,7 @@ model Provider {
   diplomaNo String? @map("diploma_no")
   hlrNo     String? @map("hlr_no")
 
-  isActive             Boolean @default(true) @map("is_active")
+  isActive            Boolean @default(true) @map("is_active")
   acceptsConsultation Boolean @default(true)
 
   operationMode OperationMode @default(STATIC)
@@ -56,7 +56,8 @@ model Provider {
 }
 
 model ProviderTreatment {
-  id String @id @default(uuid())
+  id         String @id
+  providerId String @map("provider_id")
 
   customPrice    Decimal? @map("custom_price") @db.Decimal(10, 2)
   customDuration Int?     @map("custom_duration")
@@ -66,7 +67,6 @@ model ProviderTreatment {
   updatedAt DateTime? @updatedAt @map("updated_at")
   createdAt DateTime? @default(now()) @map("created_at")
 
-  providerId  String @map("provider_id")
   treatmentId String @map("treatment_id")
 
   provider  Provider  @relation(fields: [providerId], references: [id])
@@ -77,7 +77,7 @@ model ProviderTreatment {
 }
 
 model ProviderShift {
-  id         String @id @default(uuid())
+  id         String @id
   providerId String @map("provider_id")
 
   date        DateTime @map("date")
@@ -95,7 +95,8 @@ model ProviderShift {
 }
 
 model ProviderAvailability {
-  id String @id @default(uuid())
+  id         String @id
+  providerId String @map("provider_id")
 
   dayOfWeek   Int @map("day_of_week")
   startMinute Int @map("start_minute")
@@ -107,15 +108,15 @@ model ProviderAvailability {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at")
 
-  providerId String   @map("provider_id")
-  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, dayOfWeek])
   @@map("provider_availabilities")
 }
 
 model ProviderException {
-  id String @id @default(uuid())
+  id         String @id
+  providerId String @map("provider_id")
 
   startTime DateTime @map("start_time")
   endTime   DateTime @map("end_time")
@@ -123,8 +124,7 @@ model ProviderException {
   type   ExceptionType @default(OFF)
   reason String?
 
-  providerId String   @map("provider_id")
-  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -133,7 +133,7 @@ model ProviderException {
 }
 
 model ProviderTitle {
-  id        String @id @default(uuid())
+  id        String @id
   slug      String @unique
   sortOrder Int    @default(0) @map("sort_order")
 
@@ -144,7 +144,7 @@ model ProviderTitle {
 }
 
 model ProviderTitleTranslation {
-  id         String @id @default(uuid())
+  id         String @id
   titleId    String @map("title_id")
   languageId String @map("language_id")
 
@@ -159,10 +159,10 @@ model ProviderTitleTranslation {
 }
 
 model ProviderSpecialty {
-  id       String @id @default(uuid())
-  slug     String @unique
+  id       String @id
   sectorId String @map("sector_id")
 
+  slug         String                         @unique
   sector       Sector                         @relation(fields: [sectorId], references: [id])
   providers    Provider[]
   translations ProviderSpecialtyTranslation[]
@@ -171,7 +171,7 @@ model ProviderSpecialty {
 }
 
 model ProviderSpecialtyTranslation {
-  id          String @id @default(uuid())
+  id          String @id
   specialtyId String @map("specialty_id")
   languageId  String @map("language_id")
 

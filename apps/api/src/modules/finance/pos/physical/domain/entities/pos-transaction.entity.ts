@@ -14,6 +14,10 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { shouldValidate } from '@common/domain/utils/should-validate';
+import { JsonValue } from '@common/interfaces';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
 
 /**
  * Fiziksel POS işlemini temsil eden domain entity.
@@ -134,22 +138,23 @@ export class PosTransaction extends AggregateRoot {
     return this._updatedAt;
   }
 
-  private get _isPending(): Guard<boolean> {
-    const isPending = this._status === PosTransactionStatusSchema.enum.PENDING;
-    return Guard.monitor(
-      isPending,
-      isPending,
-      new Error('Pos işlemi beklemede değil')
-    );
-  }
-
-  private get _isSuccess(): Guard<boolean> {
-    const isSuccess = this._status === PosTransactionStatusSchema.enum.SUCCESS;
-    return Guard.monitor(
-      isSuccess,
-      isSuccess,
-      new Error('Pos işlemi başarılı değil')
-    );
+  public get validate() {
+    return {
+      status: {
+        isPending: (error: Error) => this._isPending(error),
+        isSuccess: (error: Error) => this._isSuccess(error),
+      },
+      has: {
+        externalRef: (error: Error) => {
+          const exRef = this._externalRef;
+          return Guard.monitor(
+            exRef,
+            !!exRef,
+            () => error ?? new Error('externalRef mevcut değil')
+          );
+        },
+      },
+    };
   }
 
   public static create(props: CreatePosTransactionProps): PosTransaction {
@@ -170,7 +175,7 @@ export class PosTransaction extends AggregateRoot {
       currency: money.currency,
       status: PosTransactionStatusSchema.enum.PENDING,
       externalRef: props.externalRef ?? null,
-      rawRequest: props.rawRequest,
+      rawRequest: props.rawRequest as JsonValue,
       rawResponse: null,
       initiatedAt: now,
       completedAt: null,
@@ -182,26 +187,27 @@ export class PosTransaction extends AggregateRoot {
   /** Terminalin döndürdüğü referansı/ham isteği işler (durum değiştirmez). */
   public setExternalRef(externalRef: string, rawRequest?: unknown): void {
     this._externalRef = externalRef;
-    if (rawRequest !== undefined) {
-      this._rawRequest = rawRequest;
+    if (isNotUndefined(rawRequest)) {
+      this._rawRequest = rawRequest as JsonValue;
     }
   }
 
   public markSuccess(
     externalRef?: string,
     rawResponse?: unknown,
-    options = {
-      businessRulesEnabled: true,
-    }
+    options = DefaultValidateOptions
   ): void {
-    if (options.businessRulesEnabled) this._isPending.orThrow();
+    if (shouldValidate(options)) this._isPending().orThrow();
 
     this._status = PosTransactionStatusSchema.enum.SUCCESS;
+
     if (externalRef) this._externalRef = externalRef;
-    if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse;
+
+    if (isNotUndefined(rawResponse)) {
+      this._rawResponse = rawResponse as JsonValue;
     }
     this._completedAt = DateTimeManager.create();
+
     this.addDomainEvent(
       new PosTransactionSucceededEvent({
         posTransactionId: this._id.value,
@@ -216,15 +222,13 @@ export class PosTransaction extends AggregateRoot {
 
   public markFailed(
     rawResponse?: unknown,
-    options = {
-      businessRulesEnabled: true,
-    }
+    options = DefaultValidateOptions
   ): void {
-    if (options.businessRulesEnabled) this._isPending.orThrow();
+    if (shouldValidate(options)) this._isPending().orThrow();
 
     this._status = PosTransactionStatusSchema.enum.FAILED;
-    if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse;
+    if (isNotUndefined(rawResponse)) {
+      this._rawResponse = rawResponse as JsonValue;
     }
     this._completedAt = DateTimeManager.create();
     this.addDomainEvent(
@@ -238,14 +242,12 @@ export class PosTransaction extends AggregateRoot {
 
   public markCancelled(
     rawResponse?: unknown,
-    options = {
-      businessRulesEnabled: true,
-    }
+    options = DefaultValidateOptions
   ): void {
-    if (options.businessRulesEnabled) this._isPending.orThrow();
+    if (shouldValidate(options)) this._isPending().orThrow();
     this._status = PosTransactionStatusSchema.enum.CANCELLED;
-    if (rawResponse !== undefined) {
-      this._rawResponse = rawResponse;
+    if (isNotUndefined(rawResponse)) {
+      this._rawResponse = rawResponse as JsonValue;
     }
     this._completedAt = DateTimeManager.create();
     this.addDomainEvent(
@@ -257,12 +259,8 @@ export class PosTransaction extends AggregateRoot {
     );
   }
 
-  public markTimeout(
-    options = {
-      businessRulesEnabled: true,
-    }
-  ): void {
-    if (options.businessRulesEnabled) this._isPending.orThrow();
+  public markTimeout(options = DefaultValidateOptions): void {
+    if (shouldValidate(options)) this._isPending().orThrow();
 
     this._status = PosTransactionStatusSchema.enum.TIMEOUT;
     this._completedAt = DateTimeManager.create();
@@ -293,5 +291,23 @@ export class PosTransaction extends AggregateRoot {
       createdAt: this._createdAt,
       updatedAt: DateTimeManager.create(),
     };
+  }
+
+  private _isSuccess(error?: Error): Guard<boolean> {
+    const isSuccess = this._status === PosTransactionStatusSchema.enum.SUCCESS;
+    return Guard.monitor(
+      isSuccess,
+      isSuccess,
+      () => error ?? new Error('Pos işlemi başarılı değil')
+    );
+  }
+
+  private _isPending(error?: Error): Guard<boolean> {
+    const isPending = this._status === PosTransactionStatusSchema.enum.PENDING;
+    return Guard.monitor(
+      isPending,
+      isPending,
+      () => error ?? new Error('Pos işlemi beklemede değil')
+    );
   }
 }

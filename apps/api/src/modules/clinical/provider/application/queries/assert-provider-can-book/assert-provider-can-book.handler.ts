@@ -94,7 +94,7 @@ export class AssertProviderCanBookHandler
     }
 
     const availabilities =
-      await this.providerAvailabilityQueryRepo.findByProviderId(providerId);
+      await this.providerAvailabilityQueryRepo.findManyByProviderId(providerId);
 
     const providerSchedule = ProviderSchedule.create(
       availabilities,

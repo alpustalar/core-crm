@@ -17,6 +17,14 @@ export const REDIS_KEYS = {
     ACTOR_CACHE: (userId: string) => `auth:actor-cache:${userId}`,
     TOKEN_BLOCKLIST: (tokenHash: string) => `auth:token-blocklist:${tokenHash}`,
   },
+  SUBSCRIPTION: {
+    // Kiracı (org/klinik) entitlement cache'i — abonelik event'lerinde bust edilir.
+    ENTITLEMENTS: (organizationId: string, clinicId?: string | null) =>
+      `subscription:entitlements:${organizationId}:${clinicId ?? 'ORG'}`,
+    // Bir org'a ait tüm entitlement anahtarlarını (org + klinikleri) toplu bust için desen.
+    ENTITLEMENTS_ORG_PATTERN: (organizationId: string) =>
+      `subscription:entitlements:${organizationId}:*`,
+  },
   TRANSFER: {
     AVAILABILITY: (paramsHash: string) =>
       `transfer:availability:${paramsHash}`,

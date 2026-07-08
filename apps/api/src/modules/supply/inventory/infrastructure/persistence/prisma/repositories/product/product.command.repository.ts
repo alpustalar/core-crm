@@ -3,7 +3,6 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProductCommandRepository } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
 @Injectable()
 export class ProductCommandRepository
@@ -19,7 +18,27 @@ export class ProductCommandRepository
     return raw ? new Product(raw) : null;
   }
 
+  async create(product: Product): Promise<Product> {
+    const data = product.toPersistence();
+    const raw = await this.db.product.create({ data });
+    product.flushEvents();
+    return new Product(raw);
+  }
+
   async save(product: Product): Promise<Product> {
+    const create = product.toPersistence();
+    const { id, ...data } = create;
+
+    const raw = await this.db.product.update({
+      where: { id },
+      data,
+    });
+
+    product.flushEvents();
+    return new Product(raw);
+  }
+
+  async sync(product: Product): Promise<Product> {
     const create = product.toPersistence();
     const { id, ...update } = create;
 
@@ -31,25 +50,5 @@ export class ProductCommandRepository
 
     product.flushEvents();
     return new Product(raw);
-  }
-
-  async saveMany(products: Product[]): Promise<void> {
-    const prismaQueries = products.map((product) => {
-      const create = product.toPersistence();
-      const { id, ...update } = create;
-      return this.db.product.upsert({
-        where: { id },
-        create,
-        update,
-      });
-    });
-
-    if (txStorage.getStore()?.tx) {
-      await Promise.all(prismaQueries);
-    } else {
-      await this.prisma.$transaction(prismaQueries);
-    }
-
-    products.forEach((product) => product.flushEvents());
   }
 }

@@ -204,6 +204,14 @@ export class DateTimeManager {
     return this.tz(date, tz).subtract(days, 'day').toDate();
   }
 
+  static addMonths(
+    date: Date,
+    months: number,
+    tz: TimeZoneType = DEFAULT_TZ
+  ): Date {
+    return this.tz(date, tz).add(months, 'month').toDate();
+  }
+
   // YYYY-MM-DD formatında string döner
   static toDateString(date: Date, tz: TimeZoneType = DEFAULT_TZ): string {
     return this.tz(date, tz).format('YYYY-MM-DD');

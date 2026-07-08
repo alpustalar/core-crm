@@ -11,7 +11,7 @@ import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/help
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 

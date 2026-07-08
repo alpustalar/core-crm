@@ -10,7 +10,7 @@ import { FindAllUsersForManagerQueryResponse } from '@modules/identity/user/appl
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { SerializationOptions } from '@shared';
 import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
 

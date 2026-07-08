@@ -9,7 +9,7 @@ import { FindClinicAvailabilityByDayQueryResponse } from '@modules/organization/
 import {
   CLINIC_EXCEPTION_QUERY_REPOSITORY,
   IClinicExceptionQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinix-exception.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-exception.repository.interface';
 
 @QueryHandler(FindClinicAvailabilityByDayQuery)
 export class FindClinicAvailabilityByDayHandler

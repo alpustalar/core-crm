@@ -10,4 +10,6 @@ export const QUEUES = {
   E_DOCUMENT: 'e-document-queue',
   MESSAGING: 'messaging-queue',
   MESSAGING_AI: 'messaging-ai-queue',
+  APPOINTMENT: 'appointment-queue',
+  SUBSCRIPTION: 'subscription-queue',
 } as const;

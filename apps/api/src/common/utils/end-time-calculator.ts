@@ -18,6 +18,6 @@ export function endTimeCalculator(
   return Guard.monitor(
     returnTime,
     !!returnTime,
-    new Error('Bitiş zamanı belirlenemedi.')
+    () => new Error('Bitiş zamanı belirlenemedi.')
   );
 }

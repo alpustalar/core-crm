@@ -12,9 +12,7 @@ import {
 } from '@src/infrastructure/payment/links/payment-link.port';
 import {
   BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  BOOKING_PAYMENT_QUERY_REPOSITORY,
   IBookingPaymentCommandRepository,
-  IBookingPaymentQueryRepository,
 } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import {
@@ -51,16 +49,14 @@ export class ConfirmBookingPaymentHandler
     private readonly iyzicoLink: IPaymentLinkProvider,
     @Inject(STRIPE_PAYMENT_LINK)
     private readonly stripeLink: IPaymentLinkProvider,
-    @Inject(BOOKING_PAYMENT_QUERY_REPOSITORY)
-    private readonly queryRepo: IBookingPaymentQueryRepository,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly commandRepo: IBookingPaymentCommandRepository
+    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository
   ) {}
 
   async execute(command: ConfirmBookingPaymentCommand): Promise<void> {
     const { bookingPaymentId, provider, providerRef } = command.input;
 
-    const bp = await this.queryRepo.findById(bookingPaymentId);
+    const bp = await this.bookingPaymentCommandRepo.findById(bookingPaymentId);
     if (!bp) {
       throw new BookingPaymentNotFoundException(
         `Ödeme kaydı bulunamadı: ${bookingPaymentId}`
@@ -69,8 +65,8 @@ export class ConfirmBookingPaymentHandler
 
     // Idempotency: PENDING değilse tekrar işlenmez. Zaten ödenmiş bir kayda ikinci ödeme
     // gelirse (iki link de ödendi) → çift-çekim → ikinci ödemeyi iade et.
-    if (!bp.isPending()) {
-      if (bp.isSettled()) {
+    if (!bp.validate.status.isPending.value) {
+      if (bp.validate.status.isSettled.value) {
         this.logger.warn(
           `Çift ödeme tespit edildi (bp=${bookingPaymentId}, provider=${provider}). İkinci ödeme iade ediliyor.`
         );
@@ -81,7 +77,7 @@ export class ConfirmBookingPaymentHandler
 
     // PENDING → PAID
     bp.markPaid(provider, providerRef);
-    await this.commandRepo.save(bp);
+    await this.bookingPaymentCommandRepo.save(bp);
 
     // Diğer linki geçersiz kıl (best-effort).
     await this.expireOtherLink(provider, bp);
@@ -90,7 +86,7 @@ export class ConfirmBookingPaymentHandler
     try {
       const bookingId = await this.book(bp);
       bp.markBooked(bookingId, bookingId);
-      await this.commandRepo.save(bp);
+      await this.bookingPaymentCommandRepo.save(bp);
       this.logger.log(
         `Rezervasyon tamamlandı (bp=${bookingPaymentId}, bookingId=${bookingId}).`
       );
@@ -105,12 +101,12 @@ export class ConfirmBookingPaymentHandler
         `HotelBeds rezervasyonu başarısız (bp=${bookingPaymentId}): ${reason}`
       );
       bp.markFailed(reason);
-      await this.commandRepo.save(bp);
+      await this.bookingPaymentCommandRepo.save(bp);
       // Tahsil edildi ama rezervasyon açılamadı → ödemeyi iade et.
       try {
         await this.refundCharge(provider, providerRef, bp);
         bp.markRefunded(reason);
-        await this.commandRepo.save(bp);
+        await this.bookingPaymentCommandRepo.save(bp);
       } catch (refundErr) {
         this.logger.error(
           `İade de başarısız (bp=${bookingPaymentId}); manuel müdahale gerekli: ${

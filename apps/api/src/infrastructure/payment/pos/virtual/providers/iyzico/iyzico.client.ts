@@ -30,6 +30,9 @@ export class IyzicoClient {
   readonly retrieveInstallmentInfo: (
     request: Iyzipay.InstallmentInfoRequestData
   ) => Promise<WithIyzicoError<Iyzipay.InstallmentInfoResult>>;
+  readonly createPayment: (
+    request: Iyzipay.PaymentRequestData
+  ) => Promise<WithIyzicoError<Iyzipay.PaymentResult>>;
   readonly refundPayment: (
     request: Iyzipay.RefundRequestData
   ) => Promise<WithIyzicoError<Iyzipay.RefundResult>>;
@@ -60,6 +63,9 @@ export class IyzicoClient {
     this.retrieveInstallmentInfo = promisify(
       iyzipay.installmentInfo.retrieve
     ).bind(iyzipay.installmentInfo);
+    this.createPayment = promisify(iyzipay.payment.create).bind(
+      iyzipay.payment
+    );
     this.createSubMerchant = promisify(iyzipay.subMerchant.create).bind(
       iyzipay.subMerchant
     );

@@ -11,7 +11,7 @@ import { CreateOrganizationResponse } from '@modules/organization/organization/a
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
 
 // REGISTER İŞLEMLERİ BURADAN YAPILMIYOR. BU SADECE CREATE HANDLERI.

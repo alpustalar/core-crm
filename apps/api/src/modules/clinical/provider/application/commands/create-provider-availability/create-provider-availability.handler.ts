@@ -10,7 +10,7 @@ import {
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { CreateProviderAvailabilityCommand } from './create-provider-availability.command';
 import {
   IProviderQueryRepository,
@@ -20,6 +20,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { AssertTimeWithinClinicHoursQuery } from '@modules/organization/clinic/application/queries/assert-time-within-clinic-hours/assert-time-within-clinic-hours.query';
+import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
 
 @CommandHandler(CreateProviderAvailabilityCommand)
 export class CreateProviderAvailabilityHandler
@@ -61,16 +62,20 @@ export class CreateProviderAvailabilityHandler
       .check((p) => p.isTargetInActorsSameClinic(provider.clinicId.value))
       .orThrow(PROVIDER_EVENTS.AVAILABILITY_CREATED);
 
+    const providerAvailabilities = dto.availabilities.map((item) =>
+      ProviderAvailability.create({
+        providerId: dto.providerId,
+        dayOfWeek: DateTimeManager.getDayOfWeek(item.date),
+        startMinute: item.startMinute,
+        endMinute: item.endMinute,
+        breakStartMinute: item.breakStartMinute,
+        breakEndMinute: item.breakEndMinute,
+      })
+    );
+
     await this.transactionManager.run(async () => {
       await this.providerAvailabilityCommandRepo.createMany(
-        dto.availabilities.map((item) => ({
-          providerId: dto.providerId,
-          dayOfWeek: DateTimeManager.getDayOfWeek(item.date),
-          startMinute: item.startMinute,
-          endMinute: item.endMinute,
-          breakStartMinute: item.breakStartMinute,
-          breakEndMinute: item.breakEndMinute,
-        }))
+        providerAvailabilities
       );
     });
   }

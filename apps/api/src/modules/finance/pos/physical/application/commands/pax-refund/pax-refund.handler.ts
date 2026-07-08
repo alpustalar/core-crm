@@ -15,9 +15,7 @@ import {
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
@@ -27,19 +25,17 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @CommandHandler(PaxRefundCommand)
-export class PaxRefundHandler implements ICommandHandler<
-  PaxRefundCommand,
-  PaxRefundResponse
-> {
+export class PaxRefundHandler
+  implements ICommandHandler<PaxRefundCommand, PaxRefundResponse>
+{
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
@@ -50,7 +46,7 @@ export class PaxRefundHandler implements ICommandHandler<
   async execute(command: PaxRefundCommand): Promise<PaxRefundResponse> {
     const { input } = command;
 
-    const originalTx = await this.posTransactionQueryRepo.findById(
+    const originalTx = await this.posTransactionCommandRepo.findById(
       input.originalPosTransactionId
     );
     if (!originalTx) {
@@ -72,22 +68,25 @@ export class PaxRefundHandler implements ICommandHandler<
     const device = await this.posDeviceQueryRepo.findById(
       originalTx.posDeviceId
     );
-    if (!device || !device.isActive) {
+    if (!device) {
       throw new PosDeviceNotFoundException();
     }
+
+    device.validate.status.isActive().orThrow();
+
+    const posTransaction = PosTransaction.create({
+      posDeviceId: device.id.value,
+      clinicId: input.clinicId,
+      paymentId: originalTx.paymentId ?? undefined,
+      amount: refundAmount,
+      currency: originalTx.amount.currency,
+    });
 
     // Faz 1 — PENDING iade kaydı atomik olarak oluşturulur (TCP öncesi)
     const { refundTransactionId, refundTx } = await this.txManager.outboxRun(
       async () => {
         const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create({
-          id,
-          posDeviceId: device.id,
-          clinicId: input.clinicId,
-          paymentId: originalTx.paymentId ?? undefined,
-          amount: refundAmount,
-          currency: originalTx.amount.currency,
-        });
+        const tx = await this.posTransactionCommandRepo.create(posTransaction);
         return { refundTransactionId: id, refundTx: tx };
       }
     );

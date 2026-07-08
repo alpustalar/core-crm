@@ -15,6 +15,7 @@ export class OutboxRepository extends BaseRepository {
       data: events.map((event) => ({
         type: event.name,
         payload: event.payload as Prisma.InputJsonValue,
+        id: crypto.randomUUID(),
       })),
     });
   }

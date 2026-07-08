@@ -22,6 +22,37 @@ export class PaymentCommandRepository
     return raw ? new Payment(raw) : null;
   }
 
+  async create(entity: Payment): Promise<Payment> {
+    const data = entity.toPersistence();
+
+    const paymentOp = this.db.payment.create({ data });
+    const installmentOps = entity.installments.map((inst) =>
+      this.db.paymentInstallment.create({
+        data: {
+          id: inst.id,
+          paymentId: inst.paymentId,
+          installmentNo: inst.installmentNo,
+          amount: inst.amount,
+          currency: inst.currency,
+          method: inst.method,
+          status: inst.status,
+          dueDate: inst.dueDate,
+          paidAt: inst.paidAt,
+          note: inst.note,
+        },
+      })
+    );
+
+    if (txStorage.getStore()?.tx) {
+      await Promise.all([paymentOp, ...installmentOps]);
+    } else {
+      await this.prisma.$transaction([paymentOp, ...installmentOps]);
+    }
+
+    entity.flushEvents();
+    return entity;
+  }
+
   async save(entity: Payment): Promise<Payment> {
     const create = entity.toPersistence();
 

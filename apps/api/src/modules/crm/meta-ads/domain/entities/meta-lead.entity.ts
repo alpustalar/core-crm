@@ -9,6 +9,8 @@ import { MetaLeadStatusType as MetaLeadStatus } from '@input-type-schemas/MetaLe
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Phone } from '@src/domain/value-objects/phone.vo';
 import { Email } from '@src/domain/value-objects/email.vo';
+import { CreateMetaLeadProps } from '@modules/crm/meta-ads/domain/contracts/meta-lead.contracts';
+import { DateTimeManager, isEmpty } from '@common/utils';
 
 export class MetaLead extends AggregateRoot {
   constructor(data: IMetaLead) {
@@ -128,6 +130,42 @@ export class MetaLead extends AggregateRoot {
   // Prisma relation stub
   get metaAdAccount(): MetaAdAccount {
     return {} as MetaAdAccount;
+  }
+
+  public static create(props: CreateMetaLeadProps): MetaLead {
+    const leadId = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+
+    const phoneVO = props.phone ? Phone.create(props.phone).orThrow() : null;
+    const emailVO = props.email ? Email.create(props.email).orThrow() : null;
+
+    if (isEmpty(props.metaLeadId)) {
+      throw new Error(
+        'Meta Lead ID (metaLeadId) olmadan ham kayıt oluşturulamaz.'
+      );
+    }
+
+    const now = DateTimeManager.create();
+
+    return new MetaLead({
+      id: leadId.value,
+      metaAdAccountId: props.metaAdAccountId,
+      metaLeadId: props.metaLeadId,
+      formId: props.formId ?? null,
+      campaignId: props.campaignId ?? null,
+      campaignName: props.campaignName ?? null,
+      adsetId: props.adsetId ?? null,
+      adId: props.adId ?? null,
+      name: props.name ?? null,
+      phone: phoneVO ? phoneVO.value : null,
+      email: emailVO ? emailVO.value : null,
+      rawData: props.rawData,
+      status: MetaLeadStatusSchema.enum.NEW,
+      matchedPatientId: null,
+      matchedAppointmentId: null,
+      matchedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 
   public matchToPatient(patientId: string): void {

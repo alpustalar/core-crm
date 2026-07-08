@@ -25,9 +25,10 @@ enum EDocumentStatus {
 }
 
 model Invoice {
-  id            String  @id @default(uuid())
-  clinicId      String  @map("clinic_id")
-  patientId     String  @map("patient_id")
+  id             String  @id
+  organizationId String  @map("organization_id")
+  clinicId       String  @map("clinic_id")
+  patientId      String  @map("patient_id")
   appointmentId String? @unique @map("appointment_id")
   paymentId     String? @unique @map("payment_id")
 
@@ -58,6 +59,7 @@ model Invoice {
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   payment     Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
+  @@index([organizationId])
   @@index([clinicId])
   @@index([patientId])
   @@index([appointmentId])

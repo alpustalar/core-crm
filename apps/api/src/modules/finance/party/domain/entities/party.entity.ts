@@ -299,6 +299,6 @@ export class Party extends AggregateRoot {
 
   private hasRole(role: PartyRole): Guard<boolean> {
     const has = this._roles.includes(role);
-    return Guard.monitor(has, has, new Error('Parti bu rolü içermiyor'));
+    return Guard.monitor(has, has, () => new Error('Parti bu rolü içermiyor'));
   }
 }

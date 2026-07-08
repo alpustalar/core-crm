@@ -11,15 +11,14 @@ import { ClinicIyzicoTerminalConfig } from '@modules/finance/pos/physical/domain
 import {
   IPolicyFactory,
   POLICY_FACTORY,
-} from '@modules/platform/policy/domain/interfaces/policy-factory.interface';
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(RegisterClinicIyzicoTerminalConfigCommand)
-export class RegisterClinicIyzicoTerminalConfigHandler implements ICommandHandler<
-  RegisterClinicIyzicoTerminalConfigCommand,
-  string
-> {
+export class RegisterClinicIyzicoTerminalConfigHandler
+  implements ICommandHandler<RegisterClinicIyzicoTerminalConfigCommand, string>
+{
   constructor(
     @Inject(CLINIC_IYZICO_TERMINAL_CONFIG_QUERY_REPOSITORY)
     private readonly configQueryRepo: IClinicIyzicoTerminalConfigQueryRepository,

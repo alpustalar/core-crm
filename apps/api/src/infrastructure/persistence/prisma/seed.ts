@@ -12,7 +12,6 @@ import {
 import { PrismaClient, SectorType } from '@prisma/client';
 import { LANGUAGE_CODES, LanguageCode } from '@src/domain/constants/db';
 
-
 import { treatmentCategories } from '@src/infrastructure/persistence/prisma/data/modules/treatment-categories/treatment-categories';
 
 const prisma = new PrismaClient();
@@ -64,6 +63,7 @@ async function main() {
 
     await tx.capability.createMany({
       data: capabilitiesCreateManyInputs.map(({ module, action, name }) => ({
+        id: crypto.randomUUID(),
         module,
         action,
         name,
@@ -82,6 +82,7 @@ async function main() {
           isSystemRole: role.isSystemRole,
         },
         create: {
+          id: crypto.randomUUID(),
           slug: role.slug,
           name: role.name,
           priority: role.priority,
@@ -112,6 +113,7 @@ async function main() {
         data: capabilityRecords.map((cap) => ({
           roleId: savedRole.id,
           capabilityId: cap.id,
+          id: crypto.randomUUID(),
         })),
       });
     }
@@ -123,6 +125,7 @@ async function main() {
         name: language.name,
         code: language.code,
         direction: language.direction,
+        id: crypto.randomUUID(),
       })),
     });
 
@@ -145,6 +148,7 @@ async function main() {
           },
           update: {},
           create: {
+            id: crypto.randomUUID(),
             slug: categoryData.slug,
             sectorId: sectorIds[sectorSlug],
             translations: {
@@ -153,6 +157,7 @@ async function main() {
                   languageId: languageIds[code],
                   name: categoryData.translations.name[code],
                   description: categoryData.translations.description[code],
+                  id: crypto.randomUUID(),
                 })),
               },
             },
@@ -173,6 +178,7 @@ async function main() {
           where: { slug: treatment.slug },
           update: {},
           create: {
+            id: crypto.randomUUID(),
             slug: treatment.slug,
             treatmentCategoryId:
               categoryIdsBySlug[treatment.treatmentCategorySlug],
@@ -180,6 +186,7 @@ async function main() {
             translations: {
               createMany: {
                 data: Object.values(LANGUAGE_CODES).map((code) => ({
+                  id: crypto.randomUUID(),
                   languageId: languageIds[code],
                   name: treatment.translations.name[code] ?? '',
                   description: treatment.translations.description[code] ?? '',

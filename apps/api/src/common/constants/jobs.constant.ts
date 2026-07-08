@@ -11,6 +11,11 @@ export const ORGANIZATION_JOBS = {
   CLEAN_UP: 'organization-clean-up',
 } as const;
 
+export const APPOINTMENT_JOBS = {
+  /** Toplu iptal/silme sonrası ilgili hastalara bildirim + Redis temizliği. */
+  NOTIFY_BULK_SOFT_DELETED: 'appointment-notify-bulk-soft-deleted',
+} as const;
+
 export const USER_JOBS = {
   FIREBASE_ROLLBACK: 'firebase-rollback',
 } as const;
@@ -60,3 +65,18 @@ export const MESSAGING_AI_MAX_ATTEMPTS = 3;
  */
 export const MESSAGING_AI_RATE_MAX = 10;
 export const MESSAGING_AI_RATE_DURATION_MS = 1000;
+
+export const SUBSCRIPTION_JOBS = {
+  /** Dönemi geçmiş aktif abonelikleri yeniler (cancelAtPeriodEnd ise iptal, değilse PAST_DUE). */
+  RENEW_DUE: 'subscription-renew-due',
+  /** Grace süresi dolan PAST_DUE abonelikleri EXPIRED yapar. */
+  EXPIRE_PAST_DUE: 'subscription-expire-past-due',
+  /** Deneme süresi (trialEndsAt) dolan FREE_TRIAL abonelikleri EXPIRED yapar (grace yok). */
+  EXPIRE_TRIALS: 'subscription-expire-trials',
+} as const;
+
+/** PAST_DUE aboneliğin süresi bitmeden önceki ödeme bekleme (grace) süresi. */
+export const SUBSCRIPTION_GRACE_DAYS = 7;
+
+/** Yeni kiracının otomatik ücretsiz deneme süresi (gün). */
+export const SUBSCRIPTION_TRIAL_DAYS = 10;

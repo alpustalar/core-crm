@@ -4,6 +4,7 @@ import { INVOICE_EVENTS } from '@src/domain/constants/events/invoice.constants';
 
 export interface InvoiceFailedEventPayload extends IAuditLog {
   invoiceId: string;
+  organizationId: string;
   clinicId: string;
   patientId: string;
   appointmentId: string | null;
@@ -15,6 +16,7 @@ export class InvoiceFailedEvent extends BaseEvent {
   static readonly NAME = INVOICE_EVENTS.FAILED;
 
   public readonly invoiceId: string;
+  public readonly organizationId: string;
   public readonly clinicId: string;
   public readonly patientId: string;
   public readonly appointmentId: string | null;
@@ -24,6 +26,7 @@ export class InvoiceFailedEvent extends BaseEvent {
   constructor(payload: InvoiceFailedEventPayload) {
     super(payload);
     this.invoiceId = payload.invoiceId;
+    this.organizationId = payload.organizationId;
     this.clinicId = payload.clinicId;
     this.patientId = payload.patientId;
     this.appointmentId = payload.appointmentId;

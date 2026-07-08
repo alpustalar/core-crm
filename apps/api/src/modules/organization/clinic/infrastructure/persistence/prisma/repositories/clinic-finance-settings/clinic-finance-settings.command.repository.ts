@@ -20,6 +20,14 @@ export class ClinicFinanceSettingsCommandRepository
     return raw ? new ClinicFinanceSettings(raw) : null;
   }
 
+  async create(
+    entity: ClinicFinanceSettings
+  ): Promise<ClinicFinanceSettings> {
+    const data = entity.toPersistence();
+    const raw = await this.db.clinicFinanceSettings.create({ data });
+    return new ClinicFinanceSettings(raw);
+  }
+
   async save(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
     const data = entity.toPersistence();
     // 1:1 satellite → upsert anahtarı clinicId (unique). id PK olduğu için

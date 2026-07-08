@@ -20,6 +20,20 @@ export class AdminRequestCommandRepository
     return raw ? new AdminRequest(raw) : null;
   }
 
+  async create(entity: AdminRequest): Promise<AdminRequest> {
+    const data = entity.toPersistence();
+
+    const raw = await this.db.adminRequest.create({
+      data: {
+        ...(data as Prisma.AdminRequestUncheckedCreateInput),
+        metadata: data.metadata as Prisma.InputJsonValue,
+      },
+    });
+
+    entity.flushEvents();
+    return new AdminRequest(raw);
+  }
+
   async save(entity: AdminRequest): Promise<AdminRequest> {
     const data = entity.toPersistence();
 

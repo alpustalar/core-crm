@@ -18,12 +18,18 @@ export class StockMovementCommandRepository
     return raw ? new StockMovement(raw) : null;
   }
 
+  async create(entity: StockMovement): Promise<StockMovement> {
+    const data = entity.toPersistence();
+    const raw = await this.db.stockMovement.create({ data });
+    entity.flushEvents();
+    return new StockMovement(raw);
+  }
+
   async save(entity: StockMovement): Promise<StockMovement> {
     const data = entity.toPersistence();
-    const raw = await this.db.stockMovement.upsert({
+    const raw = await this.db.stockMovement.update({
       where: { id: data.id },
-      create: data,
-      update: data,
+      data,
     });
     entity.flushEvents();
     return new StockMovement(raw);

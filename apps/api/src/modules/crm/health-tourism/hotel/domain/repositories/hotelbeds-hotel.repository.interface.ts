@@ -1,7 +1,11 @@
 import { HotelbedsHotel } from '../entities/hotelbeds-hotel.entity';
 
-export const HOTELBEDS_HOTEL_COMMAND_REPOSITORY = Symbol('IHotelbedsHotelCommandRepository');
-export const HOTELBEDS_HOTEL_QUERY_REPOSITORY = Symbol('IHotelbedsHotelQueryRepository');
+export const HOTELBEDS_HOTEL_COMMAND_REPOSITORY = Symbol(
+  'IHotelbedsHotelCommandRepository'
+);
+export const HOTELBEDS_HOTEL_QUERY_REPOSITORY = Symbol(
+  'IHotelbedsHotelQueryRepository'
+);
 
 export interface UpsertHotelbedsHotelInput {
   id: string;

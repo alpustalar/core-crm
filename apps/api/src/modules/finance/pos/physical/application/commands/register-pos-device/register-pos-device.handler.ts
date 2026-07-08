@@ -47,9 +47,9 @@ export class RegisterPosDeviceHandler
     const saved = await this.posDeviceCommandRepo.save(device);
 
     return {
-      id: saved.id,
-      clinicId: saved.clinicId,
-      label: saved.label,
+      id: saved.id.value,
+      clinicId: saved.clinicId.value,
+      label: saved.label.value,
       terminalId: saved.terminalId,
     };
   }

@@ -8,8 +8,7 @@ enum FileType {
 }
 
 model MedicalFile {
-  id String @id @default(uuid())
-
+  id            String  @id
   clinicId      String  @map("clinic_id")
   patientId     String  @map("patient_id")
   providerId    String  @map("provider_id")

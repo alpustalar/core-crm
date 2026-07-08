@@ -14,6 +14,7 @@ export const APPOINTMENT_EVENTS = {
   SCHEDULED: 'appointment.scheduled',
   CANCELLATION_REQUESTED: 'appointment.cancellation-requested',
   RESCHEDULE: 'appointment.reschedule',
+  BULK_SOFT_DELETED: 'appointment.bulk-soft-deleted',
 } as const;
 
 export type AppointmentEvent =

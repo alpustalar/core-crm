@@ -9,20 +9,18 @@ enum JournalEntryStatus {
 }
 
 model JournalEntry {
-  id             String @id @default(uuid())
-  clinicId       String @map("clinic_id") // defter sahibi şube (source-of-truth)
-  organizationId String @map("organization_id") // denormalize — konsolide raporlama
-  periodId       String @map("period_id")
+  id             String  @id
+  clinicId       String  @map("clinic_id") // defter sahibi şube (source-of-truth)
+  organizationId String  @map("organization_id") // denormalize — konsolide raporlama
+  periodId       String  @map("period_id")
+  eventId        String? @unique @map("event_id") // idempotentlik
+  reversedById   String? @map("reversed_by_id")
+  performedById  String? @map("performed_by_id")
 
   entryNo     BigInt?            @map("entry_no") // POSTED olunca atanır, boşluksuz sıralı
   entryDate   DateTime           @map("entry_date")
   description String?
   status      JournalEntryStatus @default(DRAFT)
-
-  eventId      String? @unique @map("event_id") // idempotentlik
-  reversedById String? @map("reversed_by_id")
-
-  performedById String? @map("performed_by_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -41,7 +39,7 @@ model JournalEntry {
 }
 
 model JournalLine {
-  id        String  @id @default(uuid())
+  id        String  @id
   entryId   String  @map("entry_id")
   accountId String  @map("account_id")
   partyId   String? @map("party_id") // 120/320 satırlarında zorunlu (alt defter)

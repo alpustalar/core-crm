@@ -7,6 +7,11 @@ import {
 } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
+import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateSupplierCommand)
 export class CreateSupplierHandler
@@ -15,6 +20,8 @@ export class CreateSupplierHandler
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
     private readonly supplierCommandRepo: ISupplierCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -22,21 +29,29 @@ export class CreateSupplierHandler
     const { dto, ctx } = command;
     const { actor } = ctx;
 
-    // TODO: capability guard ile kullan + DTO ile clinicId eklensin. policy check yapılsın
+    if (!actor.organizationId) throw new OrganizationNotAssignedException();
+
+    this.policyFactory
+      .clinic(actor)
+      .evaluator.systemBypass(ctx.source)
+      .check((p) => p.actorCanAccessTargetClinic(dto.clinicId))
+      .orThrow();
+
+    const supplier = Supplier.create({
+      name: dto.name,
+      contactName: dto.contactName ?? null,
+      phone: dto.phone ?? null,
+      email: dto.email ?? null,
+      address: dto.address ?? null,
+      taxNumber: dto.taxNumber ?? null,
+      taxOffice: dto.taxOffice ?? null,
+      organizationId: actor.organizationId,
+      clinicId: dto.clinicId,
+    });
 
     return this.txManager.run(async () => {
-      const supplier = Supplier.create({
-        name: dto.name,
-        contactName: dto.contactName ?? null,
-        phone: dto.phone ?? null,
-        email: dto.email ?? null,
-        address: dto.address ?? null,
-        taxNumber: dto.taxNumber ?? null,
-        taxOffice: dto.taxOffice ?? null,
-        organizationId: actor.organizationId!,
-      });
-      const saved = await this.supplierCommandRepo.save(supplier);
-      return saved.id;
+      const saved = await this.supplierCommandRepo.create(supplier);
+      return saved.id.value;
     });
   }
 }

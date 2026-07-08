@@ -27,9 +27,11 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
     this._clinicLocationType = data.clinicLocationType;
     this._clinicLocationCode = data.clinicLocationCode;
     this._pickupAddress = data.pickupAddress;
+
     this._serviceFeePercent = data.serviceFeePercent
       ? Decimal(data.serviceFeePercent)
       : null;
+
     this._defaultCurrency = Currency.fromTrusted(data.defaultCurrency);
     this._clinicId = UUID.fromTrusted(data.clinicId);
     this._organizationId = UUID.fromTrusted(data.organizationId);
@@ -163,7 +165,7 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
     if (isNotUndefined(props.airportIata))
       this._airportIata = props.airportIata;
 
-    if (props.clinicLocationType !== undefined) {
+    if (isNotUndefined(props.clinicLocationType)) {
       this._clinicLocationType = props.clinicLocationType;
     }
     if (isNotUndefined(props.clinicLocationCode)) {
@@ -172,7 +174,7 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
     if (isNotUndefined(props.pickupAddress)) {
       this._pickupAddress = props.pickupAddress;
     }
-    // null = temizle, undefined = dokunma (diğer nullable alanlarla simetrik).
+
     if (isNotUndefined(props.serviceFeePercent)) {
       this._serviceFeePercent =
         props.serviceFeePercent === null
@@ -194,19 +196,19 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
 
   public toPersistence(): IClinicHealthTourismConfig {
     return {
-      id: this._id.value,
-      isEnabled: this._isEnabled,
-      destinationCode: this._destinationCode,
-      nearbyHotelCodes: this._nearbyHotelCodes,
-      airportIata: this._airportIata,
-      clinicLocationType: this._clinicLocationType,
-      clinicLocationCode: this._clinicLocationCode,
-      pickupAddress: this._pickupAddress,
-      serviceFeePercent: this._serviceFeePercent,
-      defaultCurrency: this._defaultCurrency.value,
-      clinicId: this._clinicId.value,
-      organizationId: this._organizationId.value,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      isEnabled: this.isEnabled,
+      destinationCode: this.destinationCode,
+      nearbyHotelCodes: this.nearbyHotelCodes,
+      airportIata: this.airportIata,
+      clinicLocationType: this.clinicLocationType,
+      clinicLocationCode: this.clinicLocationCode,
+      pickupAddress: this.pickupAddress,
+      serviceFeePercent: this.serviceFeePercent,
+      defaultCurrency: this.defaultCurrency.value,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
     };
   }
