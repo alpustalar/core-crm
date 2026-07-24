@@ -41,7 +41,8 @@ export class AssertProviderCanBookHandler
   ) {}
 
   async execute(query: AssertProviderCanBookQuery): Promise<void> {
-    const { providerId, startTime, endTime, isConsultation } = query;
+    const { payload } = query;
+    const { providerId, startTime, endTime, isConsultation } = payload;
 
     const bookingTimeRange = DateRange.create(startTime, endTime).orThrow();
 
@@ -76,9 +77,9 @@ export class AssertProviderCanBookHandler
       if (!providerShift) throw new ProviderShiftNotFoundException();
 
       const requestedRange = DayMinuteRange.create(
-        DayMinute.fromDate(startTime),
-        DayMinute.fromDate(endTime)
-      );
+        DayMinute.fromDate(startTime).orThrow(),
+        DayMinute.fromDate(endTime).orThrow()
+      ).orThrow();
 
       // mola çakışması veya vardiya dışına taşma kontrolü
       providerShift.validate.canBook(requestedRange).orThrow();
@@ -86,7 +87,10 @@ export class AssertProviderCanBookHandler
       exceptions.forEach((exception) => {
         if (exception.validate.type.isOff.value)
           exception.dateRange.validate
-            .overlapping(bookingTimeRange, 'Uzmanın bu saatte izni bulunuyor')
+            .isOverlappingWith(
+              bookingTimeRange,
+              'Uzmanın bu saatte izni bulunuyor'
+            )
             .orThrow();
       });
 

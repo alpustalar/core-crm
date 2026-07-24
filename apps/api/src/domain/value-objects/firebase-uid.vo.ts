@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { InvalidFirebaseUidException } from '@src/domain/exceptions/vo/firebase-uid.exceptions';
+import { InvalidFirebaseUidException } from '@src/domain/exceptions';
 
 export class FirebaseUid {
   // Firebase UID'leri tam 28 karakterli alfanümerik yapılardır
@@ -17,15 +17,15 @@ export class FirebaseUid {
     this._value = value;
   }
 
+  get value(): string {
+    return this._value;
+  }
+
   /**
    * 🎯 Güvenilir Kurucu: Persisted (DB) veriden doğrudan VO üretir; doğrulamayı atlar.
    */
   public static fromTrusted(value: string): FirebaseUid {
     return new FirebaseUid(value, true);
-  }
-
-  get value(): string {
-    return this._value;
   }
 
   /**
@@ -34,22 +34,13 @@ export class FirebaseUid {
   public static create(value: string | null | undefined) {
     const isBlank = !value || value.trim().length === 0;
 
-    let instance: FirebaseUid | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        instance = new FirebaseUid(value);
-      } catch {
-        error = new InvalidFirebaseUidException();
-      }
-    }
+    const instance = !isBlank ? new FirebaseUid(value) : undefined;
 
     return {
-      instance: error ? undefined : instance,
+      instance,
       orThrow(exception?: Error): FirebaseUid {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidFirebaseUidException();
+        if (!instance) {
+          throw exception ?? new InvalidFirebaseUidException();
         }
         return instance;
       },

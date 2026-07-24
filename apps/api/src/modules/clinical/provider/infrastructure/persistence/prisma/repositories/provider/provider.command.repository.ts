@@ -27,12 +27,11 @@ export class ProviderCommandRepository
   }
 
   async save(entity: Provider) {
-    const create = entity.toPersistence();
-    const { id, ...update } = create;
-    const raw = await this.db.provider.upsert({
+    const data = entity.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.provider.update({
       where: { id },
-      create,
-      update,
+      data: update,
     });
     entity.flushEvents();
     return new Provider(raw);

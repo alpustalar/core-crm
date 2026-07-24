@@ -1,4 +1,3 @@
-import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetProviderAvailabilityQuery } from './get-provider-availability.query';
 import { GetProviderAvailabilityQueryResponse } from './get-provider-availability.response';
@@ -17,9 +16,10 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetProviderScheduleQuery } from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.query';
 import { GetClinicScheduleQuery } from '@modules/organization/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.query';
 import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 import { ExceptionTypeSchema } from '@input-type-schemas/ExceptionTypeSchema';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @QueryHandler(GetProviderAvailabilityQuery)
 export class GetProviderAvailabilityHandler
@@ -40,21 +40,18 @@ export class GetProviderAvailabilityHandler
   async execute(
     query: GetProviderAvailabilityQuery
   ): Promise<GetProviderAvailabilityQueryResponse> {
-    const { dto, ctx } = query;
-    const { actor, source } = ctx;
+    const { actor, source } = query.ctx;
+    const { providerId, startDate, endDate } = query.filter;
 
-    const { providerId, clinicId, startDate, endDate } = dto;
+    const internalCtx = ExecutionContextFactory.createInternal();
 
-    if (!actor.clinicId) throw new ClinicNotAssignedException();
+    const { clinicId } = await this.queryBus.execute(
+      new FindClinicIdByProviderIdQuery(providerId)
+    );
 
-    this.policyFactory
-      .appointment(actor)
-      .evaluator.systemBypass(source)
-      .check(
-        (p) => p.canScheduleAppointmentInClinic(clinicId),
-        'Bu kliniğe ait takvime erişim yetkiniz yok.'
-      )
-      .orThrow(APPOINTMENT_EVENTS.PROVIDER_AVAILABILITY);
+    const serializationOptions = this.policyFactory
+      .appointment(actor, source)
+      .policy.getSerializationOptions({ clinicId, providerId });
 
     const providerAvailabilityQueryDateRange = DateRange.create(
       startDate,
@@ -67,18 +64,19 @@ export class GetProviderAvailabilityHandler
       occupiedSlots,
     ] = await Promise.all([
       this.queryBus.execute(
-        new GetClinicScheduleQuery(
+        new GetClinicScheduleQuery({
           clinicId,
-          providerAvailabilityQueryDateRange.startDate,
-          providerAvailabilityQueryDateRange.endDate
-        )
+          startDate: providerAvailabilityQueryDateRange.startDate,
+          endDate: providerAvailabilityQueryDateRange.endDate,
+        })
       ),
       this.queryBus.execute(
-        new GetProviderScheduleQuery(
+        new GetProviderScheduleQuery({
           providerId,
-          providerAvailabilityQueryDateRange.startDate,
-          providerAvailabilityQueryDateRange.endDate
-        )
+          startDate: providerAvailabilityQueryDateRange.startDate,
+          endDate: providerAvailabilityQueryDateRange.endDate,
+          ctx: internalCtx,
+        })
       ),
       this.appointmentQueryRepository.findProviderOccupiedSlots(
         providerId,
@@ -157,8 +155,9 @@ export class GetProviderAvailabilityHandler
               exception.startTime,
               exception.endTime
             );
-            return exceptionRange.validate.overlapping(cursorRange)
-              .isOverlapping;
+            // Guard.value = "çakışma yok"; gün ile çakışan istisnaları tutmak için tersle.
+            return !exceptionRange.validate.isOverlappingWith(cursorRange)
+              .value;
           }
         );
 
@@ -271,8 +270,9 @@ export class GetProviderAvailabilityHandler
               exception.endTime
             );
 
-            return exceptionRange.validate.overlapping(cursorRange)
-              .isOverlapping;
+            // Guard.value = "çakışma yok"; gün ile çakışan istisnaları tutmak için tersle.
+            return !exceptionRange.validate.isOverlappingWith(cursorRange)
+              .value;
           }
         );
 
@@ -338,7 +338,7 @@ export class GetProviderAvailabilityHandler
       }
     }
 
-    return { data: days };
+    return { data: days, meta: { serializationOptions } };
   }
 
   private hasFullDayOf(exceptions: ProviderException[], dateRange: DateRange) {
@@ -349,7 +349,7 @@ export class GetProviderAvailabilityHandler
         exception.startTime,
         exception.endTime
       );
-      return dateRange.validate.enclosing(exceptionRange).isValid;
+      return dateRange.validate.isEnclosingWith(exceptionRange).value;
     });
   }
 }

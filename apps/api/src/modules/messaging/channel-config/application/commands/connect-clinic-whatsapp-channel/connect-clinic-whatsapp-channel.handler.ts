@@ -13,6 +13,7 @@ import {
 } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
 import { ConnectClinicWhatsappChannelCommand } from './connect-clinic-whatsapp-channel.command';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(ConnectClinicWhatsappChannelCommand)
 export class ConnectClinicWhatsappChannelHandler
@@ -59,12 +60,12 @@ export class ConnectClinicWhatsappChannelHandler
       accessToken: this.cipher.encrypt(accessToken),
       tokenExpiresAt: expiresAt,
       registrationPin: this.cipher.encrypt(pin),
-      registeredAt: new Date(),
+      registeredAt: DateTimeManager.create(),
       isActive: true,
     });
 
     const saved = await this.txManager.run(() =>
-      this.channelCommandRepo.save(channel)
+      this.channelCommandRepo.upsertByClinicId(channel)
     );
     return saved.id;
   }

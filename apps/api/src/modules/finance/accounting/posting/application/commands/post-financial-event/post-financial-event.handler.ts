@@ -111,9 +111,11 @@ export class PostFinancialEventHandler
 
     const lines: CreateJournalEntryLineProps[] = draft.lines.map((line) => {
       const account = resolver.resolve(line.accountCode);
+
       if (!account.isPostable) {
         throw new Error(`Yaprak olmayan hesaba fiş atılamaz: ${account.code}`);
       }
+
       if (account.requiresParty && !line.partyId) {
         throw new Error(
           `${account.code} hesabında alt defter (party) zorunludur.`
@@ -195,7 +197,7 @@ export class PostFinancialEventHandler
     // 3. Mühürlenmiş entity'yi kaydet.
     try {
       return await this.txManager.outboxRun(async () => {
-        const saved = await this.journalCommandRepo.save(entry);
+        const saved = await this.journalCommandRepo.create(entry);
         return saved.id;
       });
     } catch (error) {

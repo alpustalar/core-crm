@@ -26,22 +26,21 @@ export class GetStockMovementsHandler
   async execute(
     query: GetStockMovementsQuery
   ): Promise<GetStockMovementsResponse> {
-    const { clinicId, dto, ctx, pagination } = query;
-    const { actor } = ctx;
+    const { payload } = query;
+    const { clinicId, data, ctx, pagination } = payload;
+    const { actor, source } = ctx;
 
     this.policyFactory
-      .clinic(actor)
+      .clinic(actor, source)
       .evaluator.check(
         (p) => p.actorCanAccessTargetClinic(clinicId),
         'Bu kliniğin stok hareketlerine erişim yetkiniz yok.'
       )
       .orThrow();
 
-    // TODO: hascapability guard gelecek
-
-    const result = dto.productId
+    const result = data.productId
       ? await this.stockMovementQueryRepo.findManyByProduct(
-          dto.productId,
+          data.productId,
           clinicId,
           pagination
         )

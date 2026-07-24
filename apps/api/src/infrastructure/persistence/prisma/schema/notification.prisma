@@ -1,0 +1,62 @@
+// Personel (staff) in-app bildirim merkezi. Hasta bildirimleri dış kanallardan
+// (messaging/mail) gider; burada yalnız panel içi (zil/unread) kayıtları tutulur.
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL // Örn: randevu son 5 dk kala iptal edildi → ekranda toast patlat
+}
+
+enum NotificationType {
+  APPOINTMENT_REQUESTED // Yeni online randevu talebi
+  APPOINTMENT_CONFIRMED // Randevu onaylandı
+  APPOINTMENT_CANCELLED // Randevu iptal edildi
+  APPOINTMENT_CANCELLED_LATE // Son dakika iptali (CRITICAL senaryosu)
+  APPOINTMENT_RESCHEDULED // Randevu ertelendi
+  SYSTEM_ANNOUNCEMENT // Genel duyuru / broadcast
+}
+
+enum NotificationDeliveryStatus {
+  PENDING // Henüz gönderilmedi (kuyrukta / henüz denenmedi)
+  SENT // Gateway üzerinden push edildi
+  FAILED // Push denendi ama başarısız oldu (kullanıcı offline vs.)
+}
+
+model StaffNotification {
+  id       String @id
+  clinicId String @map("clinic_id")
+  staffId  String @map("staff_id") // bildirimin sahibi personel
+
+  type NotificationType @map("type")
+
+  title String
+  body  String
+
+  // İleride i18n / template yeniden-render için ham parametreler.
+  paramsJson Json? @map("params_json")
+
+  // Frontend derin link: tıklayınca nereye gidilecek?
+  // Örn: { "page": "appointments", "id": "uuid", "action": "open_modal" }
+  deepLink Json? @map("deep_link")
+
+  priority NotificationPriority @default(MEDIUM)
+
+  isRead Boolean   @default(false) @map("is_read")
+  readAt DateTime? @map("read_at")
+
+  // Gerçek zamanlı push (WebSocket/SSE) teslimat takibi. isRead ile karıştırma:
+  // bu "gönderildi mi", o "okundu mu".
+  deliveryStatus NotificationDeliveryStatus @default(PENDING) @map("delivery_status")
+  deliveredAt    DateTime?                  @map("delivered_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  staff User @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  // "Okunmamışları en yeniden eskiye getir" için kritik composite index.
+  @@index([staffId, isRead, createdAt])
+  @@index([clinicId])
+  @@map("staff_notifications")
+}

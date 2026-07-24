@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { CreateOrganizationSchema } from '@shared/modules/organization/schemas';
-import { CreateUserSchema } from '@shared/modules/user/schemas/commands';
+import { RegisterUserOrProviderAccountSchema } from '@shared/modules/user/schemas/commands';
+import { CreateClinicSchema } from '@shared/modules/clinic/schemas';
 
 export const RegisterOrganizationAccountSchema = z.object({
   organization: CreateOrganizationSchema,
-  owner: CreateUserSchema.omit({ roleId: true, organizationId: true, clinicId: true, providerProfile: true }),
+  clinic: CreateClinicSchema,
+  owner: RegisterUserOrProviderAccountSchema.omit({ roleId: true, organizationId: true, clinicId: true }),
 });

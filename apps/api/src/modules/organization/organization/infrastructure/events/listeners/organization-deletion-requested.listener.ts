@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   IMailService,
   MAIL_SERVICE,
-} from '@modules/platform/mail/domain/interfaces/mail.service.interface';
+} from '@src/infrastructure/mail/interfaces/mail.service.interface';
 import { OrganizationDeletionRequestedEvent } from '@modules/organization/organization/domain/events';
 
 @Injectable()

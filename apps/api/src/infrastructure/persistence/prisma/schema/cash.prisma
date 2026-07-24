@@ -1,0 +1,112 @@
+// Kasa (Cash Register): fiziki nakit kasası + günlük oturum (aç/kapa) + nakit hareketleri.
+// `finance/cash-register` modülü. Operasyonel nakit custody katmanı — muhasebe
+// posting'i (100 Kasa) ayrı köprü olarak sonraki turda eklenecek. Banka hesabı da
+// sonraki tur. clinicId/organizationId denormalize scalar (bounded-context: navigation yok).
+
+enum CashRegisterStatus {
+  ACTIVE // kullanımda
+  ARCHIVED // arşivlendi (yeni oturum açılamaz)
+}
+
+enum CashSessionStatus {
+  OPEN // açık — hareket kaydedilebilir
+  CLOSED // kapatıldı — sayım yapıldı, fark hesaplandı
+}
+
+enum CashMovementType {
+  OPENING_FLOAT // açılış devri / kasa başlangıç bakiyesi (IN)
+  SALE_COLLECTION // nakit tahsilat (IN)
+  REFUND_PAYOUT // nakit iade ödemesi (OUT)
+  EXPENSE // nakit gider (OUT)
+  CASH_IN // manuel nakit girişi (IN)
+  CASH_OUT // manuel nakit çıkışı (OUT)
+  BANK_DEPOSIT // bankaya yatırma (OUT)
+}
+
+enum CashMovementDirection {
+  IN // kasaya giriş
+  OUT // kasadan çıkış
+}
+
+model CashRegister {
+  id             String @id
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+
+  name     String
+  currency Currency           @default(TRY)
+  status   CashRegisterStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sessions CashSession[]
+
+  @@index([clinicId, status])
+  @@index([organizationId])
+  @@map("cash_registers")
+}
+
+model CashSession {
+  id             String @id
+  cashRegisterId String @map("cash_register_id")
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+
+  status   CashSessionStatus @default(OPEN)
+  currency Currency          @default(TRY)
+
+  openingFloat   Decimal  @map("opening_float") @db.Decimal(14, 2) // açılış nakdi
+  expectedAmount Decimal? @map("expected_amount") @db.Decimal(14, 2) // openingFloat + net hareket (kapanışta)
+  countedAmount  Decimal? @map("counted_amount") @db.Decimal(14, 2) // fiziki sayım (kapanışta)
+  difference     Decimal? @db.Decimal(14, 2) // countedAmount - expectedAmount (+ fazla / - açık)
+
+  openedById String    @map("opened_by_id")
+  closedById String?   @map("closed_by_id")
+  openedAt   DateTime  @default(now()) @map("opened_at")
+  closedAt   DateTime? @map("closed_at")
+
+  // Muhasebe köprüsü izi — kapanışta üretilen FinancialEvent id'si (null = postlanmadı).
+  // Journal fişi bu olaydan (sourceRefId = session id) türetilir; idempotency dedupeKey ile.
+  accountingEventId    String?   @map("accounting_event_id")
+  postedToAccountingAt DateTime? @map("posted_to_accounting_at")
+
+  note String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cashRegister CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)
+  movements    CashMovement[]
+
+  @@index([cashRegisterId, status])
+  @@index([clinicId, openedAt])
+  @@map("cash_sessions")
+}
+
+model CashMovement {
+  id             String @id
+  cashSessionId  String @map("cash_session_id")
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+
+  type      CashMovementType
+  direction CashMovementDirection
+  amount    Decimal               @db.Decimal(14, 2) // her zaman pozitif; yön 'direction' ile
+  currency  Currency              @default(TRY)
+
+  description   String?
+  referenceType String? @map("reference_type") // ör. "PAYMENT", "PAYMENT_INSTALLMENT"
+  referenceId   String? @map("reference_id")
+
+  performedById String @map("performed_by_id")
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  session CashSession @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+
+  @@index([cashSessionId])
+  @@index([clinicId, occurredAt])
+  @@map("cash_movements")
+}

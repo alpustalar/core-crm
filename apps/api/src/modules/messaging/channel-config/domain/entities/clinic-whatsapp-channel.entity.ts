@@ -1,6 +1,8 @@
 import { ClinicWhatsappChannel as IClinicWhatsappChannel } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicWhatsappChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
  * Kliniğin WhatsApp Business kanal config'i (messaging bounded-context). Clinic'ten
@@ -114,9 +116,9 @@ export class ClinicWhatsappChannel
   public static create(
     props: CreateClinicWhatsappChannelProps
   ): ClinicWhatsappChannel {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new ClinicWhatsappChannel({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       phoneNumberId: props.phoneNumberId,
@@ -154,12 +156,12 @@ export class ClinicWhatsappChannel
 
   /** accessToken'ın geçerlilik süresi dolmuş mu? (reconnect gerekir) */
 
-  public isTokenExpired(now: Date = new Date()): boolean {
+  public isTokenExpired(now: Date = DateTimeManager.create()): boolean {
     return this._tokenExpiresAt !== null && this._tokenExpiresAt <= now;
   }
 
   /** Aktif ama token yok/expired → FE yeniden bağlama (reconnect) istemeli. */
-  public needsReauth(now: Date = new Date()): boolean {
+  public needsReauth(now: Date = DateTimeManager.create()): boolean {
     return (
       this._isActive && (this._accessToken === null || this.isTokenExpired(now))
     );
@@ -182,7 +184,7 @@ export class ClinicWhatsappChannel
       clinicId: this._clinicId,
       organizationId: this._organizationId,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

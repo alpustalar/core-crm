@@ -33,7 +33,7 @@ export class SendMessageHandler
   ) {}
 
   async execute(command: SendMessageCommand): Promise<string> {
-    const { clinicId, input, ctx } = command;
+    const { clinicId, input, ctx } = command.payload;
 
     const conversation = await this.conversationQueryRepo.findById(
       input.conversationId
@@ -67,7 +67,7 @@ export class SendMessageHandler
       mediaType: input.mediaType,
       sentByUserId: ctx.actor.userId,
     });
-    const saved = await this.messageCommandRepo.save(message);
+    const saved = await this.messageCommandRepo.create(message);
 
     await this.sendMessageProducer.enqueueSend(saved.id);
 

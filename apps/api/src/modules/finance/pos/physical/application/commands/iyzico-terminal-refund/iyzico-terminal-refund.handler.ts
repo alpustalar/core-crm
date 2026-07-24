@@ -73,8 +73,8 @@ export class IyzicoTerminalRefundHandler
       throw new PosTransactionMissingPaymentDateException();
     }
 
-    const refundAmount = input.amount ?? Number(originalTx.amount.amount);
-    if (refundAmount > Number(originalTx.amount.amount)) {
+    const refundAmount = input.amount ?? Number(originalTx.amount.value);
+    if (refundAmount > Number(originalTx.amount.value)) {
       throw new RefundAmountExceedsOriginalException();
     }
 
@@ -85,7 +85,7 @@ export class IyzicoTerminalRefundHandler
       throw new PosDeviceNotFoundException();
     }
 
-    device.validate.status.isActive().orThrow();
+    device.validate.status.isActive.orThrow();
 
     const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
     const credentials = await this.credentialsResolver.resolve(input.clinicId);

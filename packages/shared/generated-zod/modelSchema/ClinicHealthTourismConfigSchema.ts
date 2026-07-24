@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
@@ -23,7 +22,6 @@ export const ClinicHealthTourismConfigSchema = z.object({
   clinicLocationType: z.string().nullable(),
   clinicLocationCode: z.string().nullable(),
   pickupAddress: z.string().nullable(),
-  serviceFeePercent: z.instanceof(Prisma.Decimal, { message: "Field 'serviceFeePercent' must be a Decimal. Location: ['Models', 'ClinicHealthTourismConfig']"}).nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

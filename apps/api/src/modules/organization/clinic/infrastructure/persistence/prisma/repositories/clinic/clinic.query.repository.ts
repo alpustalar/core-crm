@@ -52,6 +52,22 @@ export class ClinicQueryRepository
     return raw ? new ClinicEntity(raw) : null;
   }
 
+  async findIdByPatientId(patientId: string): Promise<string | null> {
+    const raw = await this.db.clinic.findFirst({
+      where: { patients: { some: { id: patientId } } },
+      select: { id: true },
+    });
+    return raw ? raw.id : null;
+  }
+
+  async findIdByProviderId(providerId: string): Promise<string | null> {
+    const raw = await this.db.clinic.findFirst({
+      where: { providers: { some: { id: providerId } } },
+      select: { id: true },
+    });
+    return raw ? raw.id : null;
+  }
+
   async findByIdAsManager(
     id: string,
     userId: string

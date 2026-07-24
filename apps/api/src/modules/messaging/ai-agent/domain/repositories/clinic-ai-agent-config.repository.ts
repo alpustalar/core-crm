@@ -8,8 +8,10 @@ export const CLINIC_AI_AGENT_CONFIG_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IClinicAiAgentConfigCommandRepository {
-  /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicAiAgentConfig): Promise<ClinicAiAgentConfig>;
+  /** clinicId unique → get-or-create (upsert). */
+  upsertByClinicId(
+    entity: ClinicAiAgentConfig
+  ): Promise<ClinicAiAgentConfig>;
 }
 
 export interface IClinicAiAgentConfigQueryRepository {

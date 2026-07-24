@@ -1,5 +1,5 @@
 import { BaseEvent } from '@common/interfaces/base-event.interface';
-import { SECURITY_EVENTS } from '@src/domain/constants/events/security.constants';
+import { SECURITY_EVENTS } from '@src/domain/constants/events/security.constant';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 export interface PatientPolicyAccessDeniedEventPayload {

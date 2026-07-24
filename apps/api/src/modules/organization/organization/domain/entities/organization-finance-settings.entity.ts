@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { OrganizationFinanceSettings as IOrganizationFinanceSettings } from '@shared';
 import {
   BillingTargetSchema,
@@ -6,6 +5,7 @@ import {
 } from '@input-type-schemas/BillingTargetSchema';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { CreateOrganizationFinanceSettingsProps } from '@modules/organization/organization/domain/contracts/organization-finance-settings.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
  * Organizasyonun finansal davranış ayarları (1:1 satellite) — ClinicFinanceSettings'in
@@ -14,19 +14,19 @@ import { CreateOrganizationFinanceSettingsProps } from '@modules/organization/or
  */
 export class OrganizationFinanceSettings {
   constructor(data: IOrganizationFinanceSettings) {
-    this._id = data.id;
-    this._organizationId = data.organizationId;
+    this._id = UUID.fromTrusted(data.id);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._subscriptionBillingTarget = data.subscriptionBillingTarget;
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _organizationId: string;
-  get organizationId(): string {
+  private _organizationId: UUID;
+  get organizationId(): UUID {
     return this._organizationId;
   }
 
@@ -51,8 +51,8 @@ export class OrganizationFinanceSettings {
     props: CreateOrganizationFinanceSettingsProps
   ): OrganizationFinanceSettings {
     return new OrganizationFinanceSettings({
-      id: props.id ?? randomUUID(),
-      organizationId: props.organizationId,
+      id: UUID.createOrGenerate(props.id).value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
       subscriptionBillingTarget:
         props.subscriptionBillingTarget ??
         BillingTargetSchema.enum.ORGANIZATION,
@@ -67,10 +67,10 @@ export class OrganizationFinanceSettings {
 
   toPersistence(): IOrganizationFinanceSettings {
     return {
-      id: this._id,
-      organizationId: this._organizationId,
-      subscriptionBillingTarget: this._subscriptionBillingTarget,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      organizationId: this.organizationId.value,
+      subscriptionBillingTarget: this.subscriptionBillingTarget,
+      updatedAt: this.updatedAt,
     };
   }
 }

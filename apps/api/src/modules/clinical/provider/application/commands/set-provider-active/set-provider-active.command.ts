@@ -1,10 +1,12 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { SetProviderActiveDto } from '@shared/modules/provider/dto/set-provider-active.dto';
+import { SetProviderActive } from '@shared';
 
 export class SetProviderActiveCommand {
   constructor(
-    public readonly providerId: string,
-    public readonly dto: SetProviderActiveDto,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      readonly providerId: string;
+      readonly data: SetProviderActive;
+      readonly ctx: IGetContext;
+    }
   ) {}
 }

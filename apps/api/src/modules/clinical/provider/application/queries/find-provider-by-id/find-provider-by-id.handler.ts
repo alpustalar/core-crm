@@ -23,19 +23,24 @@ export class FindProviderByIdHandler
   async execute(
     query: FindProviderByIdQuery
   ): Promise<FindProviderByIdQueryResponse> {
-    const {
-      providerId,
-      ctx: { actor },
-    } = query;
+    const { providerId, ctx } = query;
 
     const provider = await this.providerQueryRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
     const serializationOptions = this.policyFactory
-      .user(actor)
-      .policy.getSerializeOptions(provider.id.value, provider.clinicId.value);
+      .provider(ctx.actor, ctx.source)
+      .policy.getSerializationOptions(
+        provider.clinicId.value,
+        provider.id.value
+      );
 
-    return { data: provider.toPersistence(), meta: serializationOptions };
+    return {
+      data: provider.toPersistence(),
+      meta: {
+        serializationOptions,
+      },
+    };
   }
 }

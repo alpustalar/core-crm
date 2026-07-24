@@ -30,11 +30,10 @@ export class UpsertClinicGovernmentSpecsHandler
   ) {}
 
   async execute(command: UpsertClinicGovernmentSpecsCommand): Promise<void> {
-    const { clinicId, dto, ctx } = command;
-    const { actor } = ctx;
+    const { clinicId, data, ctx } = command.payload;
 
     this.policyFactory
-      .clinic(actor)
+      .clinic(ctx.actor, ctx.source)
       .evaluator.check(
         (p) => p.actorCanAccessTargetClinic(clinicId),
         'Bu kliniğin resmi/regülasyon bilgilerini yönetme yetkiniz yok.'
@@ -45,10 +44,10 @@ export class UpsertClinicGovernmentSpecsHandler
       const existing = await this.specsQueryRepo.findByClinicId(clinicId);
       if (existing) {
         existing.update({
-          healthFacilityCode: dto.healthFacilityCode,
-          ussPassword: dto.ussPassword ?? null,
-          companyTaxNumber: dto.companyTaxNumber ?? null,
-          legalType: dto.legalType,
+          healthFacilityCode: data.healthFacilityCode,
+          ussPassword: data.ussPassword ?? null,
+          companyTaxNumber: data.companyTaxNumber ?? null,
+          legalType: data.legalType,
         });
         await this.specsCommandRepo.save(existing);
         return;
@@ -56,12 +55,12 @@ export class UpsertClinicGovernmentSpecsHandler
 
       const entity = ClinicGovernmentSpecs.create({
         clinicId,
-        healthFacilityCode: dto.healthFacilityCode,
-        ussPassword: dto.ussPassword ?? null,
-        companyTaxNumber: dto.companyTaxNumber ?? null,
-        legalType: dto.legalType,
+        healthFacilityCode: data.healthFacilityCode,
+        ussPassword: data.ussPassword ?? null,
+        companyTaxNumber: data.companyTaxNumber ?? null,
+        legalType: data.legalType,
       });
-      await this.specsCommandRepo.save(entity);
+      await this.specsCommandRepo.create(entity);
     });
   }
 }

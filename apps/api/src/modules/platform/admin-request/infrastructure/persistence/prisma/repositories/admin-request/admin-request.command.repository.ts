@@ -37,13 +37,9 @@ export class AdminRequestCommandRepository
   async save(entity: AdminRequest): Promise<AdminRequest> {
     const data = entity.toPersistence();
 
-    const raw = await this.db.adminRequest.upsert({
+    const raw = await this.db.adminRequest.update({
       where: { id: entity.id.value },
-      create: {
-        ...(data as Prisma.AdminRequestUncheckedCreateInput),
-        metadata: data.metadata as Prisma.InputJsonValue,
-      },
-      update: {
+      data: {
         ...(data as Prisma.AdminRequestUncheckedUpdateInput),
         metadata: data.metadata as Prisma.InputJsonValue,
       },

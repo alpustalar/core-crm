@@ -30,13 +30,10 @@ export class ClinicFinanceSettingsCommandRepository
 
   async save(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
     const data = entity.toPersistence();
-    // 1:1 satellite → upsert anahtarı clinicId (unique). id PK olduğu için
-    // update payload'ından çıkarılır (PK güncellenmez).
-    const { id: _id, ...update } = data;
-    const raw = await this.db.clinicFinanceSettings.upsert({
-      where: { clinicId: data.clinicId },
-      create: data,
-      update,
+    const { id, ...update } = data;
+    const raw = await this.db.clinicFinanceSettings.update({
+      where: { id },
+      data: update,
     });
     return new ClinicFinanceSettings(raw);
   }

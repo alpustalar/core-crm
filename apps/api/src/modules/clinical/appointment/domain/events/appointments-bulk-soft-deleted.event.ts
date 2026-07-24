@@ -9,10 +9,15 @@ import { APPOINTMENT_EVENTS } from '@src/domain/constants/events/appointment.con
  * Yan etkiler (ilgili hastalara bildirim + Redis temizliği) listener tarafından
  * kuyruğa (APPOINTMENT queue) devredilir; ağır/asenkron iş processor'da yapılır.
  */
-export type AppointmentBulkScope = 'CLINIC' | 'ORGANIZATION';
+export const AppointmentEventBulkScopes = {
+  CLINIC: 'CLINIC',
+  ORGANIZATION: 'ORGANIZATION',
+} as const;
+export type AppointmentEventBulkScope =
+  (typeof AppointmentEventBulkScopes)[keyof typeof AppointmentEventBulkScopes];
 
 export interface AppointmentsBulkSoftDeletedEventPayload {
-  scope: AppointmentBulkScope;
+  scope: AppointmentEventBulkScope;
   /** scope === 'CLINIC' iken dolu. */
   clinicId?: string;
   /** scope === 'ORGANIZATION' iken dolu. */
@@ -24,7 +29,7 @@ export interface AppointmentsBulkSoftDeletedEventPayload {
 export class AppointmentsBulkSoftDeletedEvent extends BaseEvent {
   static readonly NAME = APPOINTMENT_EVENTS.BULK_SOFT_DELETED;
 
-  public readonly scope: AppointmentBulkScope;
+  public readonly scope: AppointmentEventBulkScope;
   public readonly clinicId?: string;
   public readonly organizationId?: string;
   public readonly affectedCount: number;

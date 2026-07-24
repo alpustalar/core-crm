@@ -28,7 +28,7 @@ export class GetBookingPaymentHandler
         bookingType: bp.bookingType,
         status: bp.status,
         bookingReference: bp.bookingReference,
-        saleAmount: bp.saleAmount.amount.toNumber(),
+        saleAmount: bp.saleAmount.value.toNumber(),
         saleCurrency: bp.saleCurrency.value,
       },
     };

@@ -14,7 +14,10 @@ export class ClinicAiAgentConfigCommandRepository
     super(prisma);
   }
 
-  async save(entity: ClinicAiAgentConfig): Promise<ClinicAiAgentConfig> {
+  // 1:1 satellite (clinicId unique) → get-or-create (upsert).
+  async upsertByClinicId(
+    entity: ClinicAiAgentConfig
+  ): Promise<ClinicAiAgentConfig> {
     const data = entity.toPersistence();
     // Prisma nullable Json: JS null yerine Prisma.JsonNull beklenir.
     const businessHours =

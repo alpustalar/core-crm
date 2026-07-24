@@ -15,7 +15,8 @@ import {
   AuthUserResponse,
   FindUsersByClinicIdsFilter,
   FindUsersByOrganizationIdsFilter,
-} from '@modules/identity/user/domain/user.contracts';
+} from '@modules/identity/user/domain/contracts/user.contracts';
+import { Priority } from '@src/domain/value-objects/priority.vo';
 
 const USER_ENTITY_INCLUDE = {
   role: { select: { id: true, priority: true } },
@@ -28,9 +29,14 @@ const USER_ENTITY_INCLUDE = {
 function toUserEntity(
   raw: Prisma.UserGetPayload<{ include: typeof USER_ENTITY_INCLUDE }>
 ): User {
-  const { managedClinics, ownedOrganizations, providerProfile, ...rest } = raw;
+  const { managedClinics, ownedOrganizations, providerProfile, role, ...rest } =
+    raw;
   return new User({
     ...rest,
+    role: {
+      priority: Priority.fromTrusted(role.priority),
+      id: role.id,
+    },
     managedClinicIds: managedClinics.map((c) => c.id),
     ownedOrganizationIds: ownedOrganizations.map((o) => o.id),
     providerProfileId: providerProfile?.id ?? null,
@@ -79,6 +85,19 @@ export class UserQueryRepository
     });
     const items = raws.map(toUserEntity);
     return { items, total: items.length };
+  }
+
+  async findActiveStaffUserIdsByClinicId(clinicId: string): Promise<string[]> {
+    // Bildirim alacak personel: klinikte çalışan (workingClinic) VEYA yöneten
+    // (managedClinics) aktif kullanıcılar. Ağır entity yüklemeden sadece id döner.
+    const rows = await this.db.user.findMany({
+      where: {
+        status: GlobalStatus.ACTIVE,
+        OR: [{ clinicId }, { managedClinics: { some: { id: clinicId } } }],
+      },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
   }
 
   async findAllByStatusWithClinicId(

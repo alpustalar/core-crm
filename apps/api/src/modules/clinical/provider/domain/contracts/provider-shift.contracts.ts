@@ -36,3 +36,10 @@ export const CreateShiftPropsSchema = z
   );
 
 export type CreateShiftProps = z.infer<typeof CreateShiftPropsSchema>;
+
+export const UpdateHoursAndDateSchema = CreateShiftPropsSchema.omit({
+  id: true,
+  providerId: true,
+}).partial();
+
+export type UpdateHoursAndDateProps = z.infer<typeof UpdateHoursAndDateSchema>;

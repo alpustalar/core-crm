@@ -1,73 +1,69 @@
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { InvalidUuidException } from '@src/domain/exceptions/vo/uuid.exceptions';
+import { InvalidUuidException } from '@src/domain/exceptions/uuid.exceptions';
 
 export class UUID {
-  private static readonly schema = z.uuid('Geçersiz UUID değeri sağlandı.');
+  private static readonly schema = z.uuid('Geçersiz UUID formatı.');
   private readonly _value: string;
 
-  private constructor(value: string, trusted = false) {
-    if (!trusted) this.validate(value);
+  private constructor(value: string) {
     this._value = value;
+    Object.freeze(this);
   }
 
-  get value(): string {
+  public static get validate() {
+    return {
+      input: (value: string | null | undefined) => {
+        const result = UUID.schema.safeParse(value);
+        return {
+          isValid: result.success,
+          error: result.success ? undefined : result.error.issues[0]?.message,
+          data: result.success ? result.data : undefined,
+        };
+      },
+    };
+  }
+
+  public get value(): string {
     return this._value;
   }
 
-  /**
-   * 🎯 Akıllı Factory: Geriye doğrudan sarmalanmış bir nesne döner.
-   * Bu nesne hem saf değeri taşır hem de orThrow yeteneğine sahiptir.
-   * Boş VEYA geçersiz değerde `instance` undefined olur; akış kesilmez.
-   */
+  // 3. Disiplinli Factory
   public static create(value: string | null | undefined) {
-    const isBlank = !value || value.trim().length === 0;
-
-    let instance: UUID | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        instance = new UUID(value);
-      } catch {
-        error = new InvalidUuidException();
-      }
-    }
+    const validation = UUID.validate.input(value);
+    const instance = validation.isValid
+      ? new UUID(validation.data!)
+      : undefined;
 
     return {
-      instance: error ? undefined : instance,
+      instance,
       orThrow(exception?: Error): UUID {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidUuidException();
+        if (!instance) {
+          throw exception ?? new InvalidUuidException(validation.error);
         }
         return instance;
       },
     };
   }
 
-  /**
-   * 🎯 Güvenilir Kurucu: Daha önce doğrulanmış/normalize edilmiş veriden (DB,
-   * `toPersistence()` çıktısı) doğrudan VO üretir. Yeniden doğrulama maliyetini ve
-   * Result sarmalayıcısını atlar. Sadece güvendiğin (persisted) veride kullan.
-   */
   public static fromTrusted(value: string): UUID {
-    return new UUID(value, true);
+    return new UUID(value);
   }
 
-  /**
-   * 🎯 Sıfırdan güvenli bir UUID v4 üretir.
-   */
   public static generate(): UUID {
     return new UUID(randomUUID());
   }
 
-  public toString(): string {
-    return this._value;
+  public static createOrGenerate(value: string | null | undefined): UUID {
+    const { instance } = UUID.create(value);
+    return instance ?? UUID.generate();
   }
 
-  private validate(value: string): void {
-    if (!UUID.schema.safeParse(value).success) {
-      throw new InvalidUuidException();
-    }
+  public equals(other: UUID): boolean {
+    return this._value === other.value;
+  }
+
+  public toString(): string {
+    return this._value;
   }
 }

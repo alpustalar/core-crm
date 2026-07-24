@@ -9,6 +9,8 @@ import {
 } from '@input-type-schemas/TelegramChannelStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicTelegramBotChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
  * Kliniğin Telegram kanal config'i (messaging bounded-context). Clinic'ten ayrıştırılmış
@@ -114,9 +116,9 @@ export class ClinicTelegramChannel
   public static connectBot(
     props: CreateClinicTelegramBotChannelProps
   ): ClinicTelegramChannel {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new ClinicTelegramChannel({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       provider: TelegramProviderSchema.enum.BOT_API,
@@ -171,7 +173,7 @@ export class ClinicTelegramChannel
       clinicId: this._clinicId,
       organizationId: this._organizationId,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

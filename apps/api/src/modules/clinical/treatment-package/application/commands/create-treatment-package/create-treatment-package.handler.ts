@@ -9,7 +9,10 @@ import {
 import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateTreatmentPackageCommand)
 export class CreateTreatmentPackageHandler
@@ -22,31 +25,35 @@ export class CreateTreatmentPackageHandler
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(
     command: CreateTreatmentPackageCommand
   ): Promise<CreateTreatmentPackageResponse> {
-    const { dto, ctx } = command;
-    const { actor } = ctx;
+    const { data, ctx } = command;
 
-    if (!actor.clinicId) throw new ClinicNotAssignedException();
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(data.clinicId))
+      .orThrow();
 
     const treatmentPackage = TreatmentPackage.create({
-      clinicId: actor.clinicId,
-      name: dto.name,
-      examinationCount: dto.examinationCount,
-      controlCount: dto.controlCount,
-      validityDays: dto.validityDays,
-      price: Money.create(dto.price, dto.currency).orThrow(),
-      providerIds: dto.providerIds,
-      items: dto.items,
+      clinicId: data.clinicId,
+      name: data.name,
+      examinationCount: data.examinationCount,
+      controlCount: data.controlCount,
+      validityDays: data.validityDays,
+      price: Money.create(data.price, data.currency).orThrow(),
+      providerIds: data.providerIds,
+      items: data.items,
     });
+
     return this.txManager.run(async () => {
-      const createdPackage =
-        await this.treatmentPackageCommandRepo.create(treatmentPackage);
-      return createdPackage.id.value;
+      await this.treatmentPackageCommandRepo.create(treatmentPackage);
+      return treatmentPackage.id.value;
     });
   }
 }

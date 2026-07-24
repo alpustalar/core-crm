@@ -30,6 +30,8 @@ export class DisconnectClinicInstagramChannelHandler
     if (!channel) throw new NotFoundException('Instagram kanalı bulunamadı.');
 
     channel.deactivate();
-    await this.txManager.run(() => this.channelCommandRepo.save(channel));
+    await this.txManager.run(() =>
+      this.channelCommandRepo.upsertByClinicId(channel)
+    );
   }
 }

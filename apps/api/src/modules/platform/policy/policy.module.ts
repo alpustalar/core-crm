@@ -5,8 +5,6 @@ import { PolicyEventModule } from '@modules/platform/policy/staff/infrastructure
 import { PATIENT_POLICY_FACTORY } from '@modules/platform/policy/patient/domain/interfaces/patient-policy-factory.interface';
 import { PatientPolicyFactory } from '@modules/platform/policy/patient/application/patient-policy-factory';
 import { PatientPolicyEventModule } from '@modules/platform/policy/patient/infrastructure/events/patient-policy-event.module';
-import { ENTITY_POLICY } from '@modules/platform/policy/entity/domain/interfaces/entity-policy.interface';
-import { EntityPolicy } from '@modules/platform/policy/entity/application/entity.policy';
 
 @Global()
 @Module({
@@ -20,11 +18,7 @@ import { EntityPolicy } from '@modules/platform/policy/entity/application/entity
       provide: PATIENT_POLICY_FACTORY,
       useClass: PatientPolicyFactory,
     },
-    {
-      provide: ENTITY_POLICY,
-      useClass: EntityPolicy,
-    },
   ],
-  exports: [POLICY_FACTORY, PATIENT_POLICY_FACTORY, ENTITY_POLICY],
+  exports: [POLICY_FACTORY, PATIENT_POLICY_FACTORY],
 })
 export class PolicyModule {}

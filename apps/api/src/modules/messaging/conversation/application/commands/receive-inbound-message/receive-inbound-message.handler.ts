@@ -87,7 +87,7 @@ export class ReceiveInboundMessageHandler
         replyToExternalId: input.replyToExternalId,
       });
 
-      const savedMessage = await this.messageCommandRepo.save(message);
+      const savedMessage = await this.messageCommandRepo.create(message);
 
       conversation.recordInboundMessage({
         messageId: savedMessage.id,
@@ -100,7 +100,12 @@ export class ReceiveInboundMessageHandler
       if (intent === 'opt_out') conversation.optOutMarketing();
       else if (intent === 'opt_in') conversation.resumeMarketing();
 
-      await this.conversationCommandRepo.save(conversation);
+      // Yeni yazışma INSERT, mevcut olan UPDATE.
+      if (isNew) {
+        await this.conversationCommandRepo.create(conversation);
+      } else {
+        await this.conversationCommandRepo.save(conversation);
+      }
 
       return savedMessage.id;
     });
@@ -124,7 +129,7 @@ export class ReceiveInboundMessageHandler
 
     try {
       const { data: patient } = await this.queryBus.execute(
-        new FindPatientByContactQuery(input.clinicId, phone)
+        new FindPatientByContactQuery({ clinicId: input.clinicId, phone })
       );
       return patient?.id ?? null;
     } catch {
@@ -189,14 +194,14 @@ export class ReceiveInboundMessageHandler
 
     try {
       return await this.commandBus.execute(
-        new CreateLeadCommand(
-          dto,
-          input.clinicId,
-          this.buildSystemContext(input.clinicId, input.organizationId)
-        )
+        new CreateLeadCommand({
+          data: dto,
+          clinicId: input.clinicId,
+          ctx: this.buildSystemContext(input.clinicId, input.organizationId),
+        })
       );
     } catch {
-      // Lead üretimi mesaj işlemeyi bloklamamalı (attribution best-effort).
+      // Lead üretimi mesaj işlemeyi bloklamaz (attribution best-effort).
       return null;
     }
   }

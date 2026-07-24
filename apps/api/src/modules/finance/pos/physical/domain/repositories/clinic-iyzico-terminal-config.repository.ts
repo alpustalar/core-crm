@@ -8,8 +8,10 @@ export const CLINIC_IYZICO_TERMINAL_CONFIG_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IClinicIyzicoTerminalConfigCommandRepository {
-  /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicIyzicoTerminalConfig): Promise<ClinicIyzicoTerminalConfig>;
+  /** clinicId unique → get-or-create (upsert). */
+  upsertByClinicId(
+    entity: ClinicIyzicoTerminalConfig
+  ): Promise<ClinicIyzicoTerminalConfig>;
 }
 
 export interface IClinicIyzicoTerminalConfigQueryRepository {

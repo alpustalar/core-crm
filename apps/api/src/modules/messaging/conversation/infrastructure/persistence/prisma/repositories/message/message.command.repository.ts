@@ -14,7 +14,7 @@ export class MessageCommandRepository
     super(prisma);
   }
 
-  async save(entity: Message): Promise<Message> {
+  async create(entity: Message): Promise<Message> {
     const data = entity.toPersistence();
     // Prisma nullable Json: JS null yerine Prisma.JsonNull beklenir.
     const templateParams =
@@ -26,10 +26,19 @@ export class MessageCommandRepository
         ? Prisma.JsonNull
         : (data.payload as Prisma.InputJsonValue);
 
-    const raw = await this.db.message.upsert({
+    const raw = await this.db.message.create({
+      data: { ...data, templateParams, payload },
+    });
+    entity.flushEvents();
+    return new Message(raw);
+  }
+
+  async save(entity: Message): Promise<Message> {
+    const data = entity.toPersistence();
+
+    const raw = await this.db.message.update({
       where: { id: data.id },
-      create: { ...data, templateParams, payload },
-      update: {
+      data: {
         status: data.status,
         externalId: data.externalId,
         errorReason: data.errorReason,

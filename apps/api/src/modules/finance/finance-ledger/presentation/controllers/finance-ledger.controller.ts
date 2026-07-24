@@ -14,6 +14,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetLedgerByClinicIdQuery } from '@modules/finance/finance-ledger/application/queries/get-ledger-by-clinic-id/get-ledger-by-clinic-id.query';
 import { GetClinicFinanceSummaryQuery } from '@modules/finance/finance-ledger/application/queries/get-clinic-finance-summary/get-clinic-finance-summary.query';
 import { GetPatientFinanceSummaryQuery } from '@modules/finance/finance-ledger/application/queries/get-patient-finance-summary/get-patient-finance-summary.query';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @UseGuards(AuthGuard)
 @Controller('finance-ledger')
@@ -42,12 +43,12 @@ export class FinanceLedgerController {
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetClinicFinanceSummaryQuery(
+      new GetClinicFinanceSummaryQuery({
         clinicId,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 

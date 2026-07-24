@@ -28,6 +28,7 @@ export class Product extends AggregateRoot {
     super();
     this._id = UUID.fromTrusted(data.id);
     this._name = Name.fromTrusted(data.name);
+    this._clinicId = UUID.fromTrusted(data.clinicId);
     this._stockCode = StockCode.fromTrusted(data.stockCode);
     this._barcode = Barcode.create(data.barcode).instance ?? null;
     this._brand = data.brand;
@@ -151,9 +152,6 @@ export class Product extends AggregateRoot {
     return !!this._deletedAt;
   }
 
-  /**
-   * Domain kurallarına uygun olarak yeni bir Ürün (Aggregate) oluşturur.
-   */
   public static create(props: CreateProductProps): Product {
     const vatRate =
       typeof props.vatRate === 'number'
@@ -173,10 +171,6 @@ export class Product extends AggregateRoot {
     vatRate.validate.hasTax.orThrow();
     const now = DateTimeManager.create();
 
-    const productId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     const barcode = props.barcode
       ? Barcode.create(props.barcode).orThrow()
       : null;
@@ -194,7 +188,7 @@ export class Product extends AggregateRoot {
       : null;
 
     return new Product({
-      id: productId.value,
+      id: UUID.createOrGenerate(props.id).value,
       name: Name.create(props.name).orThrow().value,
       stockCode: StockCode.create(props.stockCode).orThrow().value,
       barcode: barcode?.value ?? null,
@@ -268,7 +262,7 @@ export class Product extends AggregateRoot {
   }
 
   public softDelete(): void {
-    if (this._deletedAt) return;
+    if (this.deletedAt) return;
     const now = DateTimeManager.create();
     this._deletedAt = now;
     this._updatedAt = now;
@@ -286,6 +280,11 @@ export class Product extends AggregateRoot {
     updatedBatch: ProductBatch | null;
     stockMovementProps: CreateStockMovementProps;
   } {
+    if (props.clinicId !== this.clinicId.value) {
+      throw new Error(
+        'Ürünün ait olduğu şube ile işlem yapılmak istenen şube uyuşmuyor.'
+      );
+    }
     const isIncrease = Quantity.isDeltaAnIncrease(props.quantityDelta);
     const absQty = Quantity.createAbsFromDelta(props.quantityDelta);
 
@@ -322,7 +321,7 @@ export class Product extends AggregateRoot {
       }
     } else {
       stockMovementProps = {
-        productId: this._id.value,
+        productId: this.id.value,
         clinicId: props.clinicId,
         batchId: null,
         type: StockMovementTypeSchema.enum.ADJUSTMENT,

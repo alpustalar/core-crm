@@ -4,9 +4,10 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 import { HandleBookingPaymentIyzicoCallbackCommand } from './handle-iyzico-callback.command';
 import { ConfirmBookingPaymentCommand } from '../confirm-booking-payment/confirm-booking-payment.command';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(HandleBookingPaymentIyzicoCallbackCommand)
 export class HandleBookingPaymentIyzicoCallbackHandler
@@ -42,6 +43,7 @@ export class HandleBookingPaymentIyzicoCallbackHandler
         bookingPaymentId: conversationId,
         provider: 'IYZICO',
         providerRef: result.paymentTransactionId,
+        ctx: ExecutionContextFactory.createInternal(),
       })
     );
   }

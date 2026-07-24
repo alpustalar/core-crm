@@ -24,17 +24,12 @@ export class GetProductStockHandler
 
   async execute(query: GetProductStockQuery): Promise<GetProductStockResponse> {
     const { clinicId, ctx } = query;
-    const { actor } = ctx;
 
-    this.policyFactory
-      .clinic(actor)
-      .evaluator.check(
-        (p) => p.actorCanAccessTargetClinic(clinicId),
-        'Bu kliniğin stok bilgisine erişim yetkiniz yok.'
-      )
-      .orThrow();
+    const serializationOptions = this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .policy.getSerializationOptions({ clinicId });
 
     const levels = await this.productQueryRepo.getStockLevels(clinicId);
-    return { data: levels };
+    return { data: levels, meta: { serializationOptions } };
   }
 }

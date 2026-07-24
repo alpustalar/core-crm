@@ -4,8 +4,10 @@ import { IQuery } from '@nestjs/cqrs';
 export class GetClinicScheduleQuery implements IQuery {
   readonly __responseType!: GetClinicScheduleQueryResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly startDate: Date,
-    public readonly endDate: Date
+    public readonly payload: {
+      clinicId: string;
+      startDate: Date;
+      endDate: Date;
+    }
   ) {}
 }

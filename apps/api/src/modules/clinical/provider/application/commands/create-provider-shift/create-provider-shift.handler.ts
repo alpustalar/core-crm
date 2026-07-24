@@ -39,16 +39,17 @@ export class CreateProviderShiftHandler
   async execute(command: CreateProviderShiftCommand): Promise<void> {
     const {
       ctx: { actor, source },
-      dto: { providerId, shifts },
+      data: { providerId, shifts },
     } = command;
 
     const provider = await this.providerQueryRepo.findById(providerId);
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
-      .provider(actor)
-      .evaluator.systemBypass(source)
-      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId.value))
+      .provider(actor, source)
+      .evaluator.check((p) =>
+        p.isTargetInActorsSameClinic(provider.clinicId.value)
+      )
       .orThrow(PROVIDER_EVENTS.SHIFT_CREATED);
 
     provider.validate.operationMode.isShift.orThrow();

@@ -1,10 +1,12 @@
-import { UpdateOrganizationDto } from '@shared';
 import { IGetContext } from '@common/decorators';
+import { UpdateOrganization } from '@shared/modules/organization/types';
 
 export class UpdateOrganizationInfoCommand {
   constructor(
-    public readonly ctx: IGetContext,
-    public readonly dto: UpdateOrganizationDto,
-    public readonly organizationId?: string
+    public readonly payload: {
+      ctx: IGetContext;
+      data: UpdateOrganization;
+      organizationId: string;
+    }
   ) {}
 }

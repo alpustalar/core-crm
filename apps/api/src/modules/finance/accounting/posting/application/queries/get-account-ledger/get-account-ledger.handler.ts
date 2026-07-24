@@ -33,7 +33,7 @@ export class GetAccountLedgerHandler
   async execute(
     query: GetAccountLedgerQuery
   ): Promise<GetAccountLedgerResponse> {
-    const { clinicId, accountCode, ctx, dateFrom, dateTo } = query;
+    const { clinicId, accountCode, ctx, dateFrom, dateTo } = query.payload;
 
     // Hesap şubenin planından çözülür (kod → id/ad/yön)
     const { data: accounts } = await this.queryBus.execute(

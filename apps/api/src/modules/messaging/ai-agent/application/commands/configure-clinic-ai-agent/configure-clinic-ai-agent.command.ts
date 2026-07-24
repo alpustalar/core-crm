@@ -8,8 +8,10 @@ import { ConfigureAiAgent } from '@shared/modules/messaging/types/commands';
 export class ConfigureClinicAiAgentCommand {
   readonly __responseType!: string;
   constructor(
-    public readonly clinicId: string,
-    public readonly input: ConfigureAiAgent,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      input: ConfigureAiAgent;
+      ctx: IGetContext;
+    }
   ) {}
 }

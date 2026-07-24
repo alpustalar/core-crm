@@ -7,6 +7,10 @@ import {
   META_LEAD_COMMAND_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MatchLeadToPatientCommand)
 export class MatchLeadToPatientHandler
@@ -15,18 +19,20 @@ export class MatchLeadToPatientHandler
 {
   constructor(
     @Inject(META_LEAD_COMMAND_REPOSITORY)
-    private readonly metaLeadCommandRepository: IMetaLeadCommandRepository
+    private readonly metaLeadCommandRepository: IMetaLeadCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
-
-  // TODO lead module oluşturuldu. handler oraya geçirilecek
 
   async execute(
     command: MatchLeadToPatientCommand
   ): Promise<MatchLeadToPatientResponse> {
-    const { leadId, patientId } = command;
+    const { leadId, patientId, ctx } = command.payload;
 
     const lead = await this.metaLeadCommandRepository.findById(leadId);
     if (!lead) throw new LeadNotFoundException();
+
+    // TODO: leadid ya da başka bi FK ile clinic id çekmek için handler oluşturulacak. clinic id çekilip policy uygulanacak
 
     lead.matchToPatient(patientId);
 

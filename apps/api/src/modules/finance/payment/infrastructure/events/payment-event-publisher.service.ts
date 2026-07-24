@@ -23,7 +23,7 @@ import { IPaymentEventPublisher } from '@modules/finance/payment/domain/interfac
 import {
   CONTEXT_SERVICE,
   IContextService,
-} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+} from '@src/infrastructure/context/context.service.interface';
 
 @Injectable()
 export class PaymentEventPublisher implements IPaymentEventPublisher {

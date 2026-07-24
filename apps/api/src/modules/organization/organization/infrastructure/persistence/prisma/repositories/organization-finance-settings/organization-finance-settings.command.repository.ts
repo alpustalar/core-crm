@@ -34,10 +34,9 @@ export class OrganizationFinanceSettingsCommandRepository
     const data = entity.toPersistence();
     // 1:1 satellite → upsert anahtarı organizationId (unique). PK update payload'ından çıkar.
     const { id: _id, ...update } = data;
-    const raw = await this.db.organizationFinanceSettings.upsert({
+    const raw = await this.db.organizationFinanceSettings.update({
       where: { organizationId: data.organizationId },
-      create: data,
-      update,
+      data: update,
     });
     return new OrganizationFinanceSettings(raw);
   }

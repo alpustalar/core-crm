@@ -4,13 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { ENV } from '@common/constants/env.constant';
 import Iyzipay from 'iyzipay';
 import { promisify } from 'node:util';
-import { WithIyzicoError } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/with-iyzico-error.type';
-import { CreateCheckoutFormRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/create-checkout-form.request';
+import { WithIyzicoError } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/with-iyzico-error.type';
+import { CreateCheckoutFormRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/create-checkout-form.request';
 import {
   CreateSubMerchantRequest,
   SubMerchantResult,
   UpdateSubMerchantRequest,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/create-submerchant.request';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/create-submerchant.request';
 
 @Injectable()
 export class IyzicoClient {

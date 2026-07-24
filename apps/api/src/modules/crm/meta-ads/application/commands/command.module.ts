@@ -12,7 +12,13 @@ import { MetaCampaignMetricRepositoryModule } from '@modules/crm/meta-ads/infras
 import { MetaAdsEventModule } from '@modules/crm/meta-ads/infrastructure/events/meta-ads-event.module';
 import { MetaMarketingApiModule } from '@modules/crm/meta-ads/infrastructure/http/meta-marketing-api.module';
 import { PatientQueryModule } from '@modules/crm/patient/application/queries/query.module';
-import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
+import { MetaAdsCacheService } from '@modules/crm/meta-ads/infrastructure/cache/meta-ads-cache.service';
+import {
+  IMetaAdsConfig,
+  META_ADS_CONFIG,
+} from '@modules/crm/meta-ads/domain/interfaces/meta-ads-config.interface';
+import { ConfigService } from '@nestjs/config';
+import { ENV } from '@common/constants';
 
 export const META_ADS_COMMAND_HANDLERS = [
   ConnectMetaAccountHandler,
@@ -32,9 +38,20 @@ export const META_ADS_COMMAND_HANDLERS = [
     MetaAdsEventModule,
     MetaMarketingApiModule,
     PatientQueryModule,
-    RedisModule,
   ],
-  providers: META_ADS_COMMAND_HANDLERS,
+  providers: [
+    ...META_ADS_COMMAND_HANDLERS,
+    MetaAdsCacheService,
+    {
+      provide: META_ADS_CONFIG,
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService): IMetaAdsConfig => ({
+        appId: configService.getOrThrow(ENV.META_APP_ID),
+        appSecret: configService.getOrThrow(ENV.META_APP_SECRET),
+        redirectUri: configService.getOrThrow(ENV.META_OAUTH_REDIRECT_URI),
+      }),
+    },
+  ],
   exports: META_ADS_COMMAND_HANDLERS,
 })
 export class MetaAdsCommandModule {}

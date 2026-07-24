@@ -51,7 +51,7 @@ export class CreatePaymentPlanHandler
       installments: installmentsData,
     });
 
-    const savedPayment = await this.paymentCommandRepo.save(payment);
+    const savedPayment = await this.paymentCommandRepo.create(payment);
     return savedPayment.id;
   }
 }

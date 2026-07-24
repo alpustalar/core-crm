@@ -1,15 +1,13 @@
 import { PhoneNumberFormat, PhoneNumberUtil } from 'google-libphonenumber';
-import { InvalidPhoneException } from '@src/domain/exceptions/vo/phone.exceptions';
+import { InvalidPhoneException } from '@src/domain/exceptions/phone.exceptions';
+import { isEmpty } from '@common/utils';
 
 export class Phone {
   private static readonly phoneUtil = PhoneNumberUtil.getInstance();
   private readonly _value: string; // E.164 formatında saklanır (+905321234567)
 
-  private constructor(rawValue: string, defaultRegion?: string, trusted = false) {
-    // Güvenilir (persisted) veri zaten E.164 formatındadır; yeniden parse/format etme.
-    this._value = trusted
-      ? rawValue
-      : this.validateAndFormat(rawValue, defaultRegion);
+  private constructor(value: string) {
+    this._value = value;
   }
 
   get value(): string {
@@ -21,7 +19,7 @@ export class Phone {
    * doğrulama/formatlama maliyetini atlar. Sadece güvendiğin (DB) veride kullan.
    */
   public static fromTrusted(value: string): Phone {
-    return new Phone(value, undefined, true);
+    return new Phone(value);
   }
 
   /**
@@ -29,50 +27,27 @@ export class Phone {
    * defaultRegion: Eğer numaranın başında +90 gibi bir kod yoksa varsayılan olarak hangi ülke sayılsın (Örn: 'TR', 'US')
    */
   public static create(value: string | null | undefined, defaultRegion = 'TR') {
-    const isBlank = !value || value.trim().length === 0;
+    const isBlank = isEmpty(value);
 
-    let instance: Phone | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        instance = new Phone(value, defaultRegion);
-      } catch (e) {
-        error = e instanceof Error ? e : new InvalidPhoneException();
-      }
-    }
+    const instance = !isBlank
+      ? new Phone(this.validateAndFormat(value, defaultRegion))
+      : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Geçersizse veya boşsa undefined döner (Validasyon hatası fırlatmaz)
-       */
-      instance: error ? undefined : instance,
-
-      /**
-       * ➔ Zorunlu Senaryo: Boşsa veya validasyondan geçemediyse küt diye fırlatır.
-       * Başarılıysa kesin olarak temizlenmiş "Phone" nesnesini teslim eder.
-       */
+      instance,
       orThrow(exception?: Error): Phone {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidPhoneException();
+        if (!instance) {
+          throw exception ?? new InvalidPhoneException();
         }
         return instance;
       },
     };
   }
 
-  public equals(other: Phone): boolean {
-    return this._value === other.value;
-  }
-
-  public toString(): string {
-    return this._value;
-  }
-
   /**
    * 🛠️ Libphonenumber motoru ile doğrulama ve formatlama
    */
-  private validateAndFormat(rawValue: string, defaultRegion?: string): string {
+  static validateAndFormat(rawValue: string, defaultRegion?: string): string {
     try {
       // Numarayı parse et (Başında + yoksa defaultRegion'a göre yorumlar)
       const parsedNumber = Phone.phoneUtil.parseAndKeepRawInput(
@@ -96,5 +71,13 @@ export class Phone {
       if (error instanceof InvalidPhoneException) throw error;
       throw new InvalidPhoneException('Telefon numarası ayrıştırılamadı.');
     }
+  }
+
+  public equals(other: Phone): boolean {
+    return this._value === other.value;
+  }
+
+  public toString(): string {
+    return this._value;
   }
 }

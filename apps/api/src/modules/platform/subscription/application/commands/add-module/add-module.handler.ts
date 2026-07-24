@@ -41,7 +41,8 @@ export class AddModuleHandler
   ) {}
 
   async execute(command: AddModuleCommand): Promise<AddModuleResult> {
-    const { organizationId, moduleKey, buyer, externalPriceId } = command;
+    const { organizationId, moduleKey, buyer, externalPriceId } =
+      command.payload;
 
     if (!buyer) {
       throw new SubscriptionBuyerRequiredException();

@@ -7,6 +7,13 @@ import {
   PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { PatientTreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import { PATIENT_TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdatePatientPackageCommand)
 export class UpdatePatientPackageHandler
@@ -15,13 +22,17 @@ export class UpdatePatientPackageHandler
 {
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository
+    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
     command: UpdatePatientPackageCommand
   ): Promise<UpdatePatientPackageResponse> {
-    const { patientPackageId, dto } = command;
+    const { payload, ctx } = command;
+    const { patientPackageId, data } = payload;
 
     const patientTreatmentPackage =
       await this.patientTreatmentPackageCommandRepo.findById(patientPackageId);
@@ -29,7 +40,18 @@ export class UpdatePatientPackageHandler
     if (!patientTreatmentPackage)
       throw new PatientTreatmentPackageNotFoundException();
 
-    patientTreatmentPackage.update(dto);
+    const { clinicId } = await this.queryBus.execute(
+      new FindClinicIdByProviderIdQuery(
+        patientTreatmentPackage.providerId.value
+      )
+    );
+
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(clinicId))
+      .orThrow(PATIENT_TREATMENT_PACKAGE_EVENTS.UPDATED);
+
+    patientTreatmentPackage.update(data);
 
     await this.patientTreatmentPackageCommandRepo.save(patientTreatmentPackage);
 

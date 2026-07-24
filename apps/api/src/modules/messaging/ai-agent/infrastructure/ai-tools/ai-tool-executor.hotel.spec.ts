@@ -1,14 +1,22 @@
 import { AiToolExecutor } from './ai-tool-executor.service';
+import { AiToolRegistry } from './ai-tool.registry';
+import { AiToolSupport } from './ai-tool.support';
+import { DiscoveryService } from '@nestjs/core';
+import { SearchHotelsTool } from '@modules/crm/health-tourism/hotel/application/ai-tools/search-hotels.tool';
+import { BookHotelTool } from '@modules/crm/health-tourism/hotel/application/ai-tools/book-hotel.tool';
+import { GetHotelBookingsTool } from '@modules/crm/health-tourism/hotel/application/ai-tools/get-hotel-bookings.tool';
+import { CancelHotelBookingTool } from '@modules/crm/health-tourism/hotel/application/ai-tools/cancel-hotel-booking.tool';
 import { AI_TOOL_NAMES } from './ai-tool.definitions';
 import { AiToolContext } from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { GetClinicHealthTourismConfigQuery } from '@modules/crm/health-tourism/config/application/queries/get-clinic-health-tourism-config/get-clinic-health-tourism-config.query';
 import { SearchHotelsQuery } from '@modules/crm/health-tourism/hotel/application/queries/search-hotels/search-hotels.query';
 import { GetHotelBookingsQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-bookings/get-hotel-bookings.query';
+import { GetHotelRateOptionQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-rate-option/get-hotel-rate-option.query';
+import { CacheHotelRateOptionCommand } from '@modules/crm/health-tourism/hotel/application/commands/cache-hotel-rate-option/cache-hotel-rate-option.command';
 import { InitiateBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.command';
-import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 
 describe('AiToolExecutor — otel araçları (B2)', () => {
   const context: AiToolContext = {
@@ -62,16 +70,9 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
     bookings?: unknown[];
     config?: unknown;
   }) => {
-    const redisStore = new Map<string, unknown>();
-    const redis = {
-      setHotelRateOption: jest.fn((token: string, data: unknown) => {
-        redisStore.set(token, data);
-        return Promise.resolve();
-      }),
-      getHotelRateOption: jest.fn((token: string) =>
-        Promise.resolve(redisStore.get(token) ?? null)
-      ),
-    } as unknown as RedisService;
+    // Rate-option cache artık Redis'e doğrudan değil, hotel modülünün bus'ına gider:
+    // CacheHotelRateOptionCommand (yaz) + GetHotelRateOptionQuery (oku).
+    const rateOptionStore = new Map<string, unknown>();
 
     const queryBus = {
       execute: jest.fn((q: unknown) => {
@@ -88,24 +89,53 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
             data: overrides?.bookings ?? [],
           });
         }
+        if (q instanceof GetHotelRateOptionQuery) {
+          return Promise.resolve({
+            data: rateOptionStore.get(q.optionId) ?? null,
+          });
+        }
         throw new Error('beklenmeyen query');
       }),
     } as unknown as TSQueryBus;
 
     const commandBus = {
-      execute: jest.fn().mockResolvedValue({
-        bookingPaymentId: 'bp-1',
-        saleAmount: 120,
-        saleCurrency: 'EUR',
-        iyzico: { url: 'https://iyzi/pay/bp-1', amount: 4200, currency: 'TRY' },
-        stripe: { url: 'https://stripe/pay/bp-1', amount: 120, currency: 'EUR' },
+      execute: jest.fn((c: unknown) => {
+        if (c instanceof CacheHotelRateOptionCommand) {
+          rateOptionStore.set(c.optionId, c.token);
+          return Promise.resolve(undefined);
+        }
+        return Promise.resolve({
+          bookingPaymentId: 'bp-1',
+          saleAmount: 120,
+          saleCurrency: 'EUR',
+          iyzico: {
+            url: 'https://iyzi/pay/bp-1',
+            amount: 4200,
+            currency: 'TRY',
+          },
+          stripe: {
+            url: 'https://stripe/pay/bp-1',
+            amount: 120,
+            currency: 'EUR',
+          },
+        });
       }),
     } as unknown as TSCommandBus;
 
+    // Command+Strategy: araçlar registry'de; executor yalnız dispatch eder.
+    const support = new AiToolSupport(commandBus, queryBus);
+    const registry = new AiToolRegistry({} as DiscoveryService);
+    registry.registerAll([
+      new SearchHotelsTool(commandBus, queryBus, support),
+      new BookHotelTool(commandBus, queryBus, support),
+      new GetHotelBookingsTool(support),
+      new CancelHotelBookingTool(commandBus, support),
+    ]);
+
     return {
-      executor: new AiToolExecutor(commandBus, queryBus, redis),
+      executor: new AiToolExecutor(registry),
       commandBus,
-      redisStore,
+      rateOptionStore,
     };
   };
 
@@ -114,8 +144,8 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
     input,
   });
 
-  it('search_hotels: kapsam allowlist ile aranır, rate Redis’e mühürlenir, kısa optionId döner', async () => {
-    const { executor, redisStore } = build();
+  it('search_hotels: kapsam allowlist ile aranır, rate cache’e mühürlenir, kısa optionId döner', async () => {
+    const { executor, rateOptionStore } = build();
     const res = await executor.execute(
       call(AI_TOOL_NAMES.SEARCH_HOTELS, {
         checkIn: '2026-07-01',
@@ -129,16 +159,18 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
     expect(body.options).toHaveLength(1);
     const optionId = body.options[0].optionId;
     expect(optionId).toMatch(/^ht_/);
-    // Opak rateKey LLM'e SIZMAZ; yalnız Redis'te durur.
+    // Opak rateKey LLM'e SIZMAZ; yalnız cache'te (bus üzerinden) durur.
     expect(res.content).not.toContain('RK-LONG-OPAQUE-1');
-    expect(redisStore.get(optionId)).toMatchObject({
+    expect(rateOptionStore.get(optionId)).toMatchObject({
       rateKey: 'RK-LONG-OPAQUE-1',
       hotelCode: 'H1',
     });
   });
 
   it('config kapalıysa arama yapılmaz', async () => {
-    const { executor } = build({ config: { ...enabledConfig, isEnabled: false } });
+    const { executor } = build({
+      config: { ...enabledConfig, isEnabled: false },
+    });
     const res = await executor.execute(
       call(AI_TOOL_NAMES.SEARCH_HOTELS, {
         checkIn: '2026-07-01',
@@ -179,8 +211,12 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
     // Opak rateKey LLM'e SIZMAZ.
     expect(res.content).not.toContain('RK-LONG-OPAQUE-1');
 
-    const cmd = (commandBus.execute as jest.Mock).mock
-      .calls[0][0] as InitiateBookingPaymentCommand;
+    // Arama adımı CacheHotelRateOptionCommand da dispatch eder; ödeme komutunu ayıkla.
+    const cmd = (commandBus.execute as jest.Mock).mock.calls
+      .map((c) => c[0])
+      .find(
+        (c) => c instanceof InitiateBookingPaymentCommand
+      ) as InitiateBookingPaymentCommand;
     expect(cmd).toBeInstanceOf(InitiateBookingPaymentCommand);
     expect(cmd.input.bookingType).toBe('HOTEL');
     expect(cmd.input.netAmount).toBe(100);
@@ -191,7 +227,7 @@ describe('AiToolExecutor — otel araçları (B2)', () => {
     expect(cmd.input.patientId).toBeNull();
   });
 
-  it('book_hotel: optionId Redis’te yoksa süresi doldu mesajı', async () => {
+  it('book_hotel: optionId cache’te yoksa süresi doldu mesajı', async () => {
     const { executor, commandBus } = build();
     const res = await executor.execute(
       call(AI_TOOL_NAMES.BOOK_HOTEL, {

@@ -218,14 +218,10 @@ export class Clinic extends AggregateRoot {
       ).orThrow();
     }
 
-    const clinicId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     const name = Name.create(props.name).orThrow();
 
     const clinic = new Clinic({
-      id: clinicId.value,
+      id: UUID.createOrGenerate(props.id).value,
       name: name.value,
       slug: name.toSlug().value,
 

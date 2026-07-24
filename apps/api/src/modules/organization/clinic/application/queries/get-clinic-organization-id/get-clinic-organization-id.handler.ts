@@ -6,24 +6,44 @@ import {
   CLINIC_QUERY_REPOSITORY,
   IClinicQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
+import {
+  CLINIC_CACHE_SERVICE,
+  IClinicCacheService,
+} from '@modules/organization/clinic/domain/interfaces/clinic-cache.service.interface';
 
 @QueryHandler(GetClinicOrganizationIdQuery)
 export class GetClinicOrganizationIdHandler
   implements
-    IQueryHandler<GetClinicOrganizationIdQuery, GetClinicOrganizationIdResponse>
+    IQueryHandler<
+      GetClinicOrganizationIdQuery,
+      GetClinicOrganizationIdResponse
+    >
 {
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
-    private readonly clinicQueryRepo: IClinicQueryRepository
+    private readonly clinicQueryRepo: IClinicQueryRepository,
+    @Inject(CLINIC_CACHE_SERVICE)
+    private readonly cacheService: IClinicCacheService
   ) {}
 
   async execute(
     query: GetClinicOrganizationIdQuery
   ): Promise<GetClinicOrganizationIdResponse> {
+    const cached = await this.cacheService
+      .clinicOrganizationId()
+      .get(query.clinicId);
+
+    if (cached) return { data: cached.clinicId };
+
     const clinic = await this.clinicQueryRepo.findById(query.clinicId);
     if (!clinic) {
       throw new Error(`Klinik bulunamadı: ${query.clinicId}`);
     }
+
+    await this.cacheService
+      .clinicOrganizationId()
+      .set(query.clinicId, { clinicId: clinic.organizationId.value });
+
     return { data: clinic.organizationId.value };
   }
 }

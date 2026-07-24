@@ -4,56 +4,63 @@ import {
 } from '@input-type-schemas/GlobalStatusSchema';
 import { Organization as IOrganization } from '@model-schema/OrganizationSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { slugIt } from '@common/utils';
+import { DateTimeManager, slugIt } from '@common/utils';
 import { OrganizationSoftDeleteEvent } from '@modules/organization/organization/domain/events/organization-soft-delete.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   CreateOrganizationProps,
   UpdateOrganizationInfoProps,
-} from '@modules/organization/organization/domain/organization.contracts';
+} from '@modules/organization/organization/domain/contracts/organization.contracts';
 import { TimeZone } from '@src/domain/value-objects/timezone.vo';
 import { TimeZoneSchema } from '@shared';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Slug } from '@src/domain/value-objects/slug.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
 
 export class Organization extends AggregateRoot {
   constructor(data: IOrganization) {
+    const name = Name.fromTrusted(data.name);
     super();
-    this._id = data.id;
-    this._name = data.name;
-    this._slug = data.slug;
-    this._phone = data.phone;
-    this._email = data.email;
+    this._id = UUID.fromTrusted(data.id);
+    this._name = name;
+    this._slug = name.toSlug();
+    this._phone = Phone.create(data.phone).instance ?? null;
+    this._email = Email.create(data.email).instance ?? null;
     this._address = data.address;
     this._city = data.city;
     this._district = data.district;
     this._status = data.status;
-    this._timezone = TimeZone.create(data.timezone).orThrow();
+    this._timezone = TimeZone.fromTrusted(data.timezone);
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
-  private _name: string;
-  get name(): string {
+  private _name: Name;
+  get name(): Name {
     return this._name;
   }
 
-  private _slug: string;
-  get slug(): string {
+  private _slug: Slug;
+  get slug(): Slug {
     return this._slug;
   }
 
-  private _phone: string | null;
-  get phone(): string | null {
+  private _phone: Phone | null;
+  get phone(): Phone | null {
     return this._phone;
   }
 
-  private _email: string | null;
-  get email(): string | null {
+  private _email: Email | null;
+  get email(): Email | null {
     return this._email;
   }
 
@@ -98,9 +105,10 @@ export class Organization extends AggregateRoot {
   }
 
   public static create(props: CreateOrganizationProps): Organization {
-    const now = new Date();
+    const now = DateTimeManager.create();
+
     return new Organization({
-      id: props.id,
+      id: UUID.createOrGenerate(props.id).value,
       name: props.name,
       slug: slugIt(props.name),
       phone: props.phone ?? null,
@@ -117,15 +125,20 @@ export class Organization extends AggregateRoot {
   }
 
   public updateInfo(props: UpdateOrganizationInfoProps): void {
-    if (props.name !== undefined) {
-      this._name = props.name;
-      this._slug = slugIt(props.name);
+    if (isNotUndefined(props.name)) {
+      const name = Name.create(props.name).orThrow();
+      this._name = name;
+      this._slug = name.toSlug();
     }
-    if (props.phone !== undefined) this._phone = props.phone ?? null;
-    if (props.email !== undefined) this._email = props.email ?? null;
-    if (props.address !== undefined) this._address = props.address ?? null;
-    if (props.city !== undefined) this._city = props.city ?? null;
-    if (props.district !== undefined) this._district = props.district ?? null;
+    if (isNotUndefined(props.phone))
+      this._phone = props.phone ? Phone.create(props.phone).orThrow() : null;
+
+    if (isNotUndefined(props.email))
+      this._email = props.email ? Email.create(props.email).orThrow() : null;
+
+    if (isNotUndefined(props.address)) this._address = props.address ?? null;
+    if (isNotUndefined(props.city)) this._city = props.city ?? null;
+    if (isNotUndefined(props.district)) this._district = props.district ?? null;
   }
 
   public isActive(): boolean {
@@ -148,15 +161,15 @@ export class Organization extends AggregateRoot {
       throw new Error('Organizasyon zaten silinmiş.');
     }
     this._status = GlobalStatusSchema.enum.DELETED;
-    this._deletedAt = new Date();
+    this._deletedAt = DateTimeManager.create();
     this.addDomainEvent(
       new OrganizationSoftDeleteEvent({
-        organizationId: this._id,
-        organizationName: this._name,
+        organizationId: this.id.value,
+        organizationName: this.name.value,
         actorId,
         action: LogAction.ORGANIZATION_SOFT_DELETE,
         type: LogType.INFO,
-        details: `Organizasyon silindi: ${this._name}`,
+        details: `Organizasyon silindi: ${this.name.value}`,
       })
     );
   }
@@ -177,19 +190,19 @@ export class Organization extends AggregateRoot {
 
   public toPersistence(): IOrganization {
     return {
-      id: this._id,
-      name: this._name,
-      slug: this._slug,
-      phone: this._phone,
-      email: this._email,
-      address: this._address,
-      city: this._city,
-      district: this._district,
-      status: this._status,
-      timezone: this._timezone.value,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
-      deletedAt: this._deletedAt,
+      id: this.id.value,
+      name: this.name.value,
+      slug: this.slug.value,
+      phone: this.phone?.value ?? null,
+      email: this.email?.value ?? null,
+      address: this.address,
+      city: this.city,
+      district: this.district,
+      status: this.status,
+      timezone: this.timezone.value,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
+      deletedAt: this.deletedAt,
     };
   }
 }

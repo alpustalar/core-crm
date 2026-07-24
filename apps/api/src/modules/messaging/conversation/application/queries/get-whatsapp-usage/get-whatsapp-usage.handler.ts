@@ -1,8 +1,8 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
-  MESSAGE_QUERY_REPOSITORY,
   IMessageQueryRepository,
+  MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { GetWhatsappUsageQuery } from './get-whatsapp-usage.query';
 import { GetWhatsappUsageResponse } from './get-whatsapp-usage.response';
@@ -19,18 +19,19 @@ export class GetWhatsappUsageHandler
   async execute(
     query: GetWhatsappUsageQuery
   ): Promise<GetWhatsappUsageResponse> {
+    const { payload } = query;
     const byCategory = await this.messageQueryRepo.aggregateUsageByCategory({
-      clinicId: query.clinicId,
-      from: query.from,
-      to: query.to,
+      clinicId: payload.clinicId,
+      from: payload.from,
+      to: payload.to,
     });
 
     const totalBillable = byCategory.reduce((sum, c) => sum + c.count, 0);
 
     return {
       data: {
-        from: query.from,
-        to: query.to,
+        from: payload.from,
+        to: payload.to,
         totalBillable,
         byCategory,
       },

@@ -127,10 +127,8 @@ export class AccountingPeriod extends AggregateRoot {
   public static create(props: CreateAccountingPeriodProps): AccountingPeriod {
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     return new AccountingPeriod({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       organizationId: UUID.create(props.organizationId).orThrow().value,
       year: props.year,
@@ -173,7 +171,7 @@ export class AccountingPeriod extends AggregateRoot {
       startsAt: this._startsAt,
       endsAt: this._endsAt,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

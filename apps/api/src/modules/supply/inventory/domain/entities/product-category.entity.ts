@@ -6,7 +6,7 @@ import { Name } from '@src/domain/value-objects/name.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class ProductCategory extends AggregateRoot {
-  private constructor(data: IProductCategory) {
+  constructor(data: IProductCategory) {
     super();
     this._id = UUID.fromTrusted(data.id);
     this._name = Name.fromTrusted(data.name);
@@ -58,11 +58,10 @@ export class ProductCategory extends AggregateRoot {
   public static create(props: CreateProductCategoryProps): ProductCategory {
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     const name = Name.create(props.name).orThrow();
 
     return new ProductCategory({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       name: name.value,
 
       organizationId: UUID.create(props.organizationId).orThrow().value,

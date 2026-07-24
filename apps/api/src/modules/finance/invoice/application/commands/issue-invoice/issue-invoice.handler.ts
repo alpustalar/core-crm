@@ -13,31 +13,27 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { IGetContext } from '@common/decorators';
-import {
-  GetTaxRateQuery
-} from '@modules/finance/accounting/tax-parameters/application/queries/get-tax-rate/get-tax-rate.query';
-import {
-  GetClinicGovernmentSpecsQuery
-} from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
-import {
-  GetClinicOrganizationIdQuery
-} from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import { GetTaxRateQuery } from '@modules/finance/accounting/tax-parameters/application/queries/get-tax-rate/get-tax-rate.query';
+import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
+import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
-import {
-  EnsurePartyForPatientCommand
-} from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
-import {
-  RecordFinancialEventCommand
-} from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
-import {
-  QueueEDocumentCommand
-} from '@modules/finance/e-document/application/commands/queue-e-document/queue-e-document.command';
+import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
+import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import { QueueEDocumentCommand } from '@modules/finance/e-document/application/commands/queue-e-document/queue-e-document.command';
 import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
-import { FinancialEventTypeSchema, PartyRoleSchema, PartyTypeSchema, TaxParameterKeySchema, } from '@shared';
+import {
+  FinancialEventTypeSchema,
+  PartyRoleSchema,
+  PartyTypeSchema,
+  TaxParameterKeySchema,
+} from '@shared';
 import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
 import { InvoiceStatusSchema } from '@input-type-schemas/InvoiceStatusSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 @CommandHandler(IssueInvoiceCommand)
 export class IssueInvoiceHandler
@@ -82,7 +78,7 @@ export class IssueInvoiceHandler
     );
 
     // Fatura PENDING oluşturulur ve ekonomik olay (SALES_INVOICE_ISSUED) HER ZAMAN
-    // yazılır — e-belge gönderiminden bağımsız (doc 07 §5). İkisi atomik (outboxRun).
+    // yazılır — e-belge gönderiminden bağımsız. İkisi atomik (outboxRun).
     await this.txManager.outboxRun(async () => {
       await this.invoiceCommandRepo.create({
         id: invoiceId,
@@ -91,12 +87,12 @@ export class IssueInvoiceHandler
         patientId: input.patientId,
         appointmentId: input.appointmentId,
         paymentId: input.paymentId,
-        amount: input.totalAmount.amount.toNumber(),
+        amount: input.totalAmount.value.toNumber(),
         currency:
-          input.totalAmount.currency ?? Currency.generate(Currency.enum.TRY),
+          input.totalAmount.currency ?? Currency.fromTrusted(Currency.enum.TRY),
         vatRate,
-        netTotal: taxSpec.netAmount.amount,
-        vatTotal: taxSpec.taxAmount.amount,
+        netTotal: taxSpec.netAmount.value,
+        vatTotal: taxSpec.taxAmount.value,
         status: InvoiceStatusSchema.enum.PENDING,
       });
 
@@ -104,10 +100,10 @@ export class IssueInvoiceHandler
         invoiceId,
         clinicId: input.clinicId,
         patientId: input.patientId,
-        netTotal: taxSpec.netAmount.amount.toString(),
-        vatTotal: taxSpec.taxAmount.amount.toString(),
-        grandTotal: taxSpec.grossAmount.amount.toString(),
-        issuedAt: new Date(),
+        netTotal: taxSpec.netAmount.value.toString(),
+        vatTotal: taxSpec.taxAmount.value.toString(),
+        grandTotal: taxSpec.grossAmount.value.toString(),
+        issuedAt: DateTimeManager.create(),
       });
     });
 
@@ -149,7 +145,7 @@ export class IssueInvoiceHandler
       new GetTaxRateQuery(
         clinicId,
         TaxParameterKeySchema.enum.VAT_HEALTH,
-        new Date()
+        DateTimeManager.create()
       )
     );
     return data.rate;
@@ -169,61 +165,57 @@ export class IssueInvoiceHandler
    * Faturayı muhasebe katmanına köprüler: hastanın carisini garanti eder ve
    * SALES_INVOICE_ISSUED ekonomik olayını yazar. dedupeKey ile idempotenttir;
    * olay Outbox'a düşer, posting listener'ı fişi (120 / 600.xx + 391) üretir.
+   *
+   * Bilinçli olarak try-catch YOK: bu çağrı üstteki outboxRun transaction'ının
+   * içinde koşar; köprü (party / financial_event) hata verirse fatura da dahil
+   * her şey rollback olmalıdır. Hatayı yutmak sessiz mutabakat kaybı yaratır
+   * (fatura kesilir, muhasebe fişi yazılmaz). Komut baştaki resolveExisting +
+   * dedupeKey sayesinde idempotenttir; başarısızlıkta çağıran güvenle retry eder.
    */
   private async recordSalesInvoiceIssued(
     input: RecordSalesInvoiceIssuedInput
   ): Promise<void> {
     const ctx = ExecutionContextFactory.createInternal();
 
-    try {
-      const { partyId, organizationId } = await this.commandBus.execute(
-        new EnsurePartyForPatientCommand(
-          input.patientId,
-          input.clinicId,
-          PartyRoleSchema.enum.CUSTOMER,
-          ctx
-        )
-      );
+    const { partyId } = await this.commandBus.execute(
+      new EnsurePartyForPatientCommand(
+        input.patientId,
+        input.clinicId,
+        PartyRoleSchema.enum.CUSTOMER,
+        ctx
+      )
+    );
 
-      // Hasta cari = nihai tüketici (INDIVIDUAL). SMM stopajı yalnız ödeyen vergi
-      // sorumlusu (COMPANY) ise yapılır (doc 05 §2.1, 06 §3); helper INDIVIDUAL'da
-      // erken çıkar (ekstra sorgu yok). Kurumsal-ödeyen faturalama gelince aktifleşir.
-      const withholdingTotal = await this.resolveSmmWithholding({
-        clinicId: input.clinicId,
-        payerType: PartyTypeSchema.enum.INDIVIDUAL,
-        netTotal: input.netTotal,
-        ctx,
-      });
+    // Hasta cari = nihai tüketici (INDIVIDUAL). SMM stopajı yalnız ödeyen vergi
+    // sorumlusu (COMPANY) ise yapılır (doc 05 §2.1, 06 §3); helper INDIVIDUAL'da
+    // erken çıkar (ekstra sorgu yok). Kurumsal-ödeyen faturalama gelince aktifleşir.
+    const withholdingTotal = await this.resolveSmmWithholding({
+      clinicId: input.clinicId,
+      payerType: PartyTypeSchema.enum.INDIVIDUAL,
+      netTotal: input.netTotal,
+      ctx,
+    });
 
-      // TODO: dedupe key ve source modeli enum oluşturup öyle kullan
-      await this.commandBus.execute(
-        new RecordFinancialEventCommand(
-          {
-            organizationId,
-            clinicId: input.clinicId,
-            type: FinancialEventTypeSchema.enum.SALES_INVOICE_ISSUED,
-            occurredAt: input.issuedAt,
-            payload: {
-              partyId,
-              netTotal: input.netTotal,
-              vatTotal: input.vatTotal,
-              grandTotal: input.grandTotal,
-              ...(withholdingTotal ? { withholdingTotal } : {}),
-            },
-            sourceModule: 'invoice',
-            sourceRefId: input.invoiceId,
-            dedupeKey: `sales-invoice:${input.invoiceId}`,
+    await this.commandBus.execute(
+      new RecordFinancialEventCommand(
+        {
+          clinicId: input.clinicId,
+          type: FinancialEventTypeSchema.enum.SALES_INVOICE_ISSUED,
+          occurredAt: input.issuedAt,
+          payload: {
+            partyId,
+            netTotal: input.netTotal,
+            vatTotal: input.vatTotal,
+            grandTotal: input.grandTotal,
+            ...(withholdingTotal ? { withholdingTotal } : {}),
           },
-          ctx
-        )
-      );
-    } catch (error) {
-      // Köprü hatası fatura kesimini bozmamalı; olay sonradan yeniden üretilebilir.
-      this.logger.error(
-        `Muhasebe köprüsü başarısız: invoiceId=${input.invoiceId}`,
-        error
-      );
-    }
+          sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.INVOICE,
+          sourceRefId: input.invoiceId,
+          dedupeKey: FinancialEventDedupeKeys.sales_invoice(input.invoiceId),
+        },
+        ctx
+      )
+    );
   }
 
   /**
@@ -245,7 +237,7 @@ export class IssueInvoiceHandler
       new GetTaxRateQuery(
         input.clinicId,
         TaxParameterKeySchema.enum.WHT_SELF_EMPLOYMENT,
-        new Date()
+        DateTimeManager.create()
       )
     );
 

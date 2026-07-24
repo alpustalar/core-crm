@@ -27,9 +27,10 @@ enum LeadStatus {
 }
 
 model Lead {
-  id            String  @id
-  clinicId      String
-  assignedToId  String?
+  id             String  @id
+  clinicId       String
+  organizationId String  @map("organization_id") // denormalize — org+klinik birlikte taşınır
+  assignedToId   String?
   patientId     String?
   appointmentId String?
   metaLeadId    String? @unique // Meta Lead Ads (form) huni köprüsü — MetaLead kaydına referans
@@ -42,6 +43,12 @@ model Lead {
 
   source LeadSource
   status LeadStatus @default(NEW)
+
+  // Satış hunisi pozisyonu (Pipeline modülü). status kaba yaşam döngüsü; stage satış-panosu
+  // pozisyonu. Aşama tipi (WON/LOST) status'a senkronlanır. Bounded-context: relation değil,
+  // düz id tutulur (Pipeline ayrı modül).
+  pipelineId String? @map("pipeline_id")
+  stageId    String? @map("stage_id")
 
   name  String?
   phone String?
@@ -67,6 +74,8 @@ model Lead {
   clinic Clinic @relation(fields: [clinicId], references: [id])
 
   @@index([clinicId, status])
+  @@index([organizationId])
+  @@index([stageId])
   @@index([phone])
   @@index([adId])
   @@index([campaignId])

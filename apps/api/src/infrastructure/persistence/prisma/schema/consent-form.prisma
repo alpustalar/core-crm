@@ -1,0 +1,59 @@
+/// Klinik-bazlı onam formu şablonu. Klinik çalışanları oluşturur/düzenler; içerik değişince
+/// version artar (geçmiş metin burada değil, imzalanmış Submission'ların snapshot'ında yaşar).
+model ConsentFormTemplate {
+  id             String  @id
+  organizationId String  @map("organization_id")
+  clinicId       String  @map("clinic_id")
+  sectorId       String? @map("sector_id")
+
+  title   String
+  content String @db.Text
+
+  version  Int     @default(1)
+  isActive Boolean @default(true) @map("is_active")
+
+  createdByUserId String  @map("created_by_user_id")
+  updatedByUserId String? @map("updated_by_user_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sector      Sector?                  @relation(fields: [sectorId], references: [id])
+  submissions ConsentFormSubmission[]
+
+  @@index([clinicId, isActive])
+  @@index([organizationId])
+  @@map("consent_form_templates")
+}
+
+/// Hastanın tablette imzaladığı onam formu kaydı. Şablon sonradan değişse bile hastanın
+/// imzaladığı METİN (templateTitleSnapshot/templateContentSnapshot) burada donmuş kalır.
+/// Immutable — düzeltme gerekirse yeni bir kayıt açılır, mevcut kayıt değiştirilmez.
+model ConsentFormSubmission {
+  id             String @id
+  organizationId String @map("organization_id")
+  clinicId       String @map("clinic_id")
+  patientId      String @map("patient_id")
+  templateId     String @map("template_id")
+
+  templateVersion         Int    @map("template_version")
+  templateTitleSnapshot   String @map("template_title_snapshot")
+  templateContentSnapshot String @map("template_content_snapshot") @db.Text
+
+  signatureImage String   @map("signature_image") @db.Text
+  signedAt       DateTime @map("signed_at")
+  signedByUserId String   @map("signed_by_user_id")
+
+  appointmentId String? @map("appointment_id")
+  treatmentId   String? @map("treatment_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  patient  Patient             @relation(fields: [patientId], references: [id])
+  template ConsentFormTemplate @relation(fields: [templateId], references: [id])
+
+  @@index([patientId])
+  @@index([clinicId])
+  @@index([templateId])
+  @@map("consent_form_submissions")
+}

@@ -14,10 +14,13 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreatePaymentCommand } from '@modules/finance/payment/application/commands/create-payment/create-payment.command';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 import { TreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(AssignPackageToPatientCommand)
 export class AssignPackageToPatientHandler
@@ -32,6 +35,8 @@ export class AssignPackageToPatientHandler
     private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus
   ) {}
@@ -39,48 +44,49 @@ export class AssignPackageToPatientHandler
   async execute(
     command: AssignPackageToPatientCommand
   ): Promise<AssignPackageToPatientResponse> {
-    const { dto, ctx } = command;
-    const { actor } = ctx;
+    const { data, ctx } = command;
 
-    if (!actor.clinicId) throw new ClinicNotAssignedException();
-    const actorClinicId = actor.clinicId;
-
-    const pkg = await this.treatmentPackageQueryRepo.findById(dto.packageId);
+    const pkg = await this.treatmentPackageQueryRepo.findById(data.packageId);
     if (!pkg) throw new TreatmentPackageNotFoundException();
 
-    const endDate = DateTimeManager.addDays(dto.startDate, pkg.validityDays);
-    const generatedPaymentId = UUID.generate().value;
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(pkg.clinicId.value))
+      .orThrow();
+
+    const endDate = DateTimeManager.addDays(data.startDate, pkg.validityDays);
+    const generatedPaymentUUID = UUID.generate();
 
     return this.txManager.run(async () => {
       await this.commandBus.execute(
         new CreatePaymentCommand(
           {
-            clinicId: actorClinicId,
-            patientId: dto.patientId,
-            amount: Number(pkg.price.amount),
-            providerId: dto.providerId,
+            clinicId: pkg.clinicId.value,
+            patientId: data.patientId,
+            amount: Number(pkg.price.value),
+            providerId: data.providerId,
             currency: pkg.price.currency,
-            method: dto.method,
+            method: data.method,
           },
-          { paymentId: generatedPaymentId }
+          { paymentId: generatedPaymentUUID.value }
         )
       );
 
       const patientTreatmentPkg = PatientTreatmentPackage.create({
-        patientId: dto.patientId,
-        packageId: dto.packageId,
-        providerId: dto.providerId,
-        startDate: dto.startDate,
+        patientId: data.patientId,
+        packageId: data.packageId,
+        providerId: data.providerId,
+        startDate: data.startDate,
         endDate,
-        notes: dto.notes,
-        paymentId: generatedPaymentId,
+        notes: data.notes,
+        paymentId: generatedPaymentUUID.value,
       });
 
       await this.patientTreatmentPackageCommandRepo.create(patientTreatmentPkg);
 
       return {
         id: patientTreatmentPkg.id.value,
-        paymentId: generatedPaymentId,
+        paymentId: generatedPaymentUUID.value,
       };
     });
   }

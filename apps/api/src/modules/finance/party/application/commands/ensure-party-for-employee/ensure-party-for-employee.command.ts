@@ -1,7 +1,9 @@
 import { IGetContext } from '@common/decorators';
+import { EnsurePartyForEmployeeResponse } from '@modules/finance/party/application/commands/ensure-party-for-employee/ensure-party-for-employee.response';
 
-export interface EnsurePartyForEmployeeResult {
-  partyId: string;
+export interface EnsurePartyForEmployeeData {
+  userId: string;
+  clinicId: string;
   organizationId: string;
 }
 
@@ -11,12 +13,11 @@ export interface EnsurePartyForEmployeeResult {
  * CommandBus ile çağırıp 335 (Personele Borçlar) alt defterini elde eder.
  * User → Party köprüsünü tek yerde toplar (EnsurePartyForPatient simetriği).
  */
+
 export class EnsurePartyForEmployeeCommand {
-  readonly __responseType!: EnsurePartyForEmployeeResult;
+  readonly __responseType!: EnsurePartyForEmployeeResponse;
   constructor(
-    public readonly userId: string,
-    public readonly clinicId: string,
-    public readonly organizationId: string,
+    public readonly data: EnsurePartyForEmployeeData,
     public readonly ctx: IGetContext
   ) {}
 }

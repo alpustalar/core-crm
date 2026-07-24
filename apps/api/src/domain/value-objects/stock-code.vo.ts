@@ -1,80 +1,60 @@
 import { z } from 'zod';
-import { InvalidStockCodeException } from '@src/domain/exceptions/vo/stock-code.exceptions';
+import { InvalidStockCodeException } from '@src/domain/exceptions';
 
 export class StockCode {
-  // Şirket standartlarına göre özelleştirilebilir Zod şeması
-  // (Örn: Boşluksuz, sadece harf, rakam ve tire içerebilen, büyük harf zorunlu şema)
+  // Zod Validasyon Şeması
   private static readonly schema = z
     .string()
     .min(3, 'Stok kodu en az 3 karakter olmalıdır.')
-    .max(30, 'Stok kodu en fazla 30 karakter olmalıdır.')
-    .regex(
-      /^[A-Z0-9-]+$/,
-      'Stok kodu sadece büyük harf, rakam ve tire (-) içerebilir.'
-    );
+    .max(30, 'Stok kodu en fazla 30 karakter olmalıdır.');
 
   private readonly _value: string;
 
-  private constructor(value: string, trusted = false) {
-    // Güvenilir (persisted) veri zaten normalize edilmiştir; tekrar işleme/doğrulama.
-    if (trusted) {
-      this._value = value;
-      return;
-    }
-
-    // 🎯 Girişi temizleyip standartlaştırıyoruz (Trim ve Büyük Harf yapma)
-    const sanitizedValue = value.trim().toUpperCase();
-
-    if (!StockCode.schema.safeParse(sanitizedValue).success) {
-      throw new InvalidStockCodeException();
-    }
-    this._value = sanitizedValue;
+  private constructor(value: string) {
+    this._value = value;
+    Object.freeze(this);
   }
 
-  /**
-   * 🎯 Güvenilir Kurucu: Persisted (DB) veriden doğrudan VO üretir; doğrulama/normalizasyon atlanır.
-   */
-  public static fromTrusted(value: string): StockCode {
-    return new StockCode(value, true);
+  // Validasyon mantığını merkeziyoruz
+  public static get validate() {
+    return {
+      input: (value: string | null | undefined) => {
+        const sanitized = value?.trim().toUpperCase();
+        const result = StockCode.schema.safeParse(sanitized);
+
+        return {
+          isValid: result.success,
+          error: result.success ? undefined : result.error.issues[0]?.message,
+          data: result.success ? result.data : undefined,
+        };
+      },
+    };
   }
 
   get value(): string {
     return this._value;
   }
 
-  /**
-   * 🎯 Akıllı Factory: Geriye doğrudan sarmalanmış proxy nesnesi döner.
-   */
+  // Factory Metodu (create().orThrow())
   public static create(value: string | null | undefined) {
-    const isBlank = !value || value.trim().length === 0;
-
-    let instance: StockCode | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        instance = new StockCode(value);
-      } catch {
-        error = new InvalidStockCodeException();
-      }
-    }
+    const validation = StockCode.validate.input(value);
+    const instance = validation.isValid
+      ? new StockCode(validation.data!)
+      : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Boş veya geçersizse undefined döner (akışı kesmez).
-       */
-      instance: error ? undefined : instance,
-
-      /**
-       * ➔ Zorunlu Senaryo: Boşsa veya geçersizse patlatır, doluysa kesin "StockCode" döner.
-       */
+      instance,
       orThrow(exception?: Error): StockCode {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidStockCodeException();
+        if (!instance) {
+          throw exception ?? new InvalidStockCodeException(validation.error);
         }
         return instance;
       },
     };
+  }
+
+  public static fromTrusted(value: string): StockCode {
+    return new StockCode(value);
   }
 
   public equals(other: StockCode): boolean {

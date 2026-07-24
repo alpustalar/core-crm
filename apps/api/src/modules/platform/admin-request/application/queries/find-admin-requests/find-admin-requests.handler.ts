@@ -20,11 +20,11 @@ export class FindAdminRequestsHandler
   async execute(
     query: FindAdminRequestsQuery
   ): Promise<FindAdminRequestsResponse> {
-    const { dto, pagination } = query;
+    const { filter, pagination } = query.payload;
 
     const { total, items } = await this.adminRequestQueryRepo.findMany({
-      type: dto.type,
-      status: dto.status,
+      type: filter.type,
+      status: filter.status,
       pagination,
     });
 

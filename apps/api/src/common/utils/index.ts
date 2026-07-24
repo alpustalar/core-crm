@@ -5,7 +5,6 @@ export * from '../infrastructure/date-time/date-time.manager';
 export * from './is-defined';
 export * from './is-empty';
 export * from './mapper-array';
-export * from './is-json-type';
 export * from './capitalize';
-export * from './is-not-defined';
 export * from './end-time-calculator';
+export * from './create-bearer-token';

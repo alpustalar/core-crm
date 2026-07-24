@@ -30,27 +30,34 @@ export class CancelAppointmentHandler
   async execute(
     command: CancelAppointmentCommand
   ): Promise<CancelAppointmentCommandResponse> {
-    const { ctx, dto } = command;
-    const { appointmentId, cancelReason } = dto;
-    const { actor, source } = ctx;
+    const { appointmentId, cancelReason } = command.data;
+    const { actor, source } = command.ctx;
 
     const appointment =
       await this.appointmentCommandRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
-    const { evaluator } = this.policyFactory.appointment(actor);
-    evaluator
-      .systemBypass(source)
-      .check(
+    this.policyFactory
+      .appointment(actor, source)
+      .evaluator.check(
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuya erişim yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.CANCELLED);
 
-    appointment.cancelSchedule(actor.userId, cancelReason);
+    const validateOptions = this.policyFactory
+      .entity(actor, source)
+      .policy.getValidateOptions();
 
-    // İptal, sağlık turizmi iadesi gibi kritik yan etkileri tetikleyebildiği için
-    // event'ler outbox ile atomik mühürlenir (AppointmentCancelledEvent).
+    appointment.rules(validateOptions).canBeScheduled.orThrow();
+
+    appointment.cancelSchedule({
+      canceledBy: actor.userId,
+      reason: cancelReason,
+    });
+
+    // sağlık turizmi iadesi gibi kritik yan etkileri tetikleyebildiği için
+    // eventler outbox
     await this.txManager.outboxRun(async () => {
       await this.appointmentCommandRepo.save(appointment);
     });

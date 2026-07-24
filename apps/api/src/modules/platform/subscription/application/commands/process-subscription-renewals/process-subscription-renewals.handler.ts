@@ -48,7 +48,9 @@ export class ProcessSubscriptionRenewalsHandler
   ) {}
 
   async execute(): Promise<void> {
-    const due = await this.subscriptionQueryRepo.findDueForRenewal(new Date());
+    const due = await this.subscriptionQueryRepo.findDueForRenewal(
+      DateTimeManager.create()
+    );
     if (due.length === 0) return;
 
     this.logger.log(`Yenileme: ${due.length} dönem-sonu abonelik işleniyor`);
@@ -112,7 +114,8 @@ export class ProcessSubscriptionRenewalsHandler
     });
 
     if (result.success && result.iyzicoPaymentId) {
-      const periodStart = subscription.currentPeriodEnd ?? DateTimeManager.create();
+      const periodStart =
+        subscription.currentPeriodEnd ?? DateTimeManager.create();
       const periodEnd = DateTimeManager.addMonths(
         periodStart,
         BILLING_PERIOD_MONTHS

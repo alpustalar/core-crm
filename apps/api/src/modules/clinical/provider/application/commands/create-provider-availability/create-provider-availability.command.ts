@@ -1,9 +1,9 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateProviderAvailabilityDto } from '@shared';
+import { CreateProviderAvailability } from '@shared';
 
 export class CreateProviderAvailabilityCommand {
   constructor(
     public readonly ctx: IGetContext,
-    public readonly dto: CreateProviderAvailabilityDto
+    public readonly data: CreateProviderAvailability
   ) {}
 }

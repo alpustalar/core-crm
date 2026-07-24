@@ -43,7 +43,7 @@ export class AdminRequestController {
     @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(
-      new FindAdminRequestsQuery(dto, pagination, ctx)
+      new FindAdminRequestsQuery({ filter: dto, pagination, ctx })
     );
   }
 
@@ -54,7 +54,7 @@ export class AdminRequestController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new ReviewAdminRequestCommand(requestId, dto, ctx)
+      new ReviewAdminRequestCommand({ requestId, data: dto, ctx })
     );
   }
 }

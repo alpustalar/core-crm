@@ -23,17 +23,17 @@ export class ReviewAdminRequestHandler
   ) {}
 
   async execute(command: ReviewAdminRequestCommand): Promise<void> {
-    const { requestId, dto, ctx } = command;
+    const { requestId, data, ctx } = command.payload;
     const { actor } = ctx;
 
     await this.txManager.run(async () => {
       const request = await this.adminRequestQueryRepo.findById(requestId);
       if (!request) throw new NotFoundException('İstek bulunamadı.');
 
-      if (dto.status === AdminRequestStatusSchema.enum.APPROVED) {
-        request.approve(actor.userId, dto.reviewNote);
+      if (data.status === AdminRequestStatusSchema.enum.APPROVED) {
+        request.approve(actor.userId, data.reviewNote);
       } else {
-        request.reject(actor.userId, dto.reviewNote);
+        request.reject(actor.userId, data.reviewNote);
       }
 
       await this.adminRequestCommandRepo.save(request);

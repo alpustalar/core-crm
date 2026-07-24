@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
-} from '@modules/identity/auth/firebase/domain/interfaces/firebase.service.interface';
+} from '@src/infrastructure/firebase/firebase.service.interface';
 import { ChangePasswordCommand } from './change-password.command';
 import { ChangePasswordResponse } from '@modules/identity/user/application/commands/change-password/change-password.response';
 
@@ -19,11 +19,11 @@ export class ChangePasswordHandler
   async execute(
     command: ChangePasswordCommand
   ): Promise<ChangePasswordResponse> {
-    const { dto, ctx } = command;
+    const { data, ctx } = command;
 
     await this.firebaseService.changePassword({
       id: ctx.actor.userId,
-      password: dto.password,
+      password: data.password,
     });
   }
 }

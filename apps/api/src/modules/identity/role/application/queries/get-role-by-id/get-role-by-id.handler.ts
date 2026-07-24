@@ -3,8 +3,8 @@ import { Inject, NotFoundException } from '@nestjs/common';
 import { GetRoleByIdQuery } from './get-role-by-id.query';
 import { GetRoleByIdQueryResponse } from './get-role-by-id.response';
 import {
-  IRoleRepository,
-  ROLE_REPO,
+  IRoleQueryRepository,
+  ROLE_QUERY_REPOSITORY,
 } from '@modules/identity/role/domain/repositories/role.repository.interface';
 
 @QueryHandler(GetRoleByIdQuery)
@@ -12,8 +12,8 @@ export class GetRoleByIdHandler
   implements IQueryHandler<GetRoleByIdQuery, GetRoleByIdQueryResponse>
 {
   constructor(
-    @Inject(ROLE_REPO)
-    private readonly roleRepository: IRoleRepository
+    @Inject(ROLE_QUERY_REPOSITORY)
+    private readonly roleRepository: IRoleQueryRepository
   ) {}
 
   async execute(query: GetRoleByIdQuery): Promise<GetRoleByIdQueryResponse> {
@@ -21,6 +21,6 @@ export class GetRoleByIdHandler
     if (!role) {
       throw new NotFoundException(`Rol bulunamadı: roleId=${query.roleId}`);
     }
-    return { data: role };
+    return { data: role.toPersistence() };
   }
 }

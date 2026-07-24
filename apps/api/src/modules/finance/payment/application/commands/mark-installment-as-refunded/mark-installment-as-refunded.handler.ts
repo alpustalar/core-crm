@@ -14,6 +14,10 @@ import {
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MarkInstallmentAsRefundedCommand)
 export class MarkInstallmentAsRefundedHandler
@@ -26,22 +30,29 @@ export class MarkInstallmentAsRefundedHandler
     private readonly paymentCommandRepo: IPaymentCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: MarkInstallmentAsRefundedCommand): Promise<void> {
-    const { installmentId, details } = command;
+    const { installmentId, details, ctx } = command.payload;
 
     await this.txManager.outboxRun(async () => {
       const payment =
         await this.paymentQueryRepo.findByInstallmentId(installmentId);
       if (!payment) throw new InstallmentNotFoundException(installmentId);
 
+      const validateOptions = this.policyFactory
+        .entity(ctx.actor, ctx.source)
+        .policy.getValidateOptions();
+
+      payment.rules(validateOptions).canRefund().orThrow();
+
       payment.refundInstallment(installmentId);
       await this.paymentCommandRepo.save(payment);
 
-      // Event sahipliği payment modülünde: iade olayı burada fırlatılır.
-      // TODO: event entity içinde fırlat refundInstallment içinde domain event olarak pushla
+      // TODO: entity içinde refundInstallment içinde domain event olarak raise et
       this.paymentEventPublisher.paymentRefund({
         installmentId,
         paymentId: payment.id.value,

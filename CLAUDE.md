@@ -93,10 +93,19 @@ platform/    → admin-request, audit-log, lookup, mail, policy
 domain/                    # Business entities and domain events
   events/                  # Domain events (e.g., ClinicSoftDeletedEvent)
   repositories/
+  exceptions/
+    <aggregate-name>.exceptions.ts. DomainException extends edilir
   entities/
+  rules/
+  interfaces/
+  value-objects/ <name>.vo.ts
   services/
-  <module-name>.contracts.ts  # Merkezi Zod kontrat dosyası (Props/Data/Filter/Response) — domain/types/ KULLANILMAZ
-application/               # Commands, queries, and business logic
+  contracts/
+    <aggregate-name>.contracts.ts  # Merkezi Zod kontrat dosyası (Props/Data/Filter/Response) — domain/types/ KULLANILMAZ
+application/               # Commands, queries, ai tools- and business logic
+  ai-tools/
+    clinic-ai-tools.module.ts
+    book-appointment.tool.ts
   policies/                # Authorization policies
   commands/                # Command handlers (write operations)
     create-clinic/
@@ -126,8 +135,12 @@ infrastructure/            # External concerns
   qeueue/
     processors/
     producer/           # Queue processors
+  cache/
+    clinic-cache.service.ts
 presentation/              # API layer
   controllers/             # HTTP controllers
+  dto/
+    clinic-response.dto.ts        # response dtos.
   clinic-presentation.module
 ```
 
@@ -173,6 +186,93 @@ export class GetLeadByIdQuery implements IQuery {
     public readonly leadId: string,
     public readonly ctx: IGetContext
   ) {}
+}
+```
+
+**Command / Query sınıfı constructor imzası — KURAL: `payload` objesi + `data`/`filter` adlandırması**:
+
+Command/Query sınıfının constructor'ı **2 veya daha az** alan taşıyorsa alanlar doğrudan ayrı parametre olarak geçilir (`leadId`, `ctx` gibi — yukarıdaki `GetLeadByIdQuery` örneği). **2'den fazla** alan taşıyorsa (ör. `id` + gövde + `ctx`) hepsi **tek bir `payload` objesi** içinde toplanır; ayrı ayrı sıralanmaz.
+
+`payload` içindeki gövde alanının adı ve tipi:
+
+| Sınıf tipi  | Gövde alan adı | Tip                                             |
+| ----------- | -------------- | ----------------------------------------------- |
+| **Command** | `data`         | `@shared` zod-infer **type** (DTO sınıfı DEĞİL) |
+| **Query**   | `filter`       | `@shared` zod-infer **type** (DTO sınıfı DEĞİL) |
+
+Controller `@Body()` / `@Query()` ile **DTO** alır; bus'a geçerken command/query sınıfına aktarılan alan adı `data`/`filter` ve tipi zod-infer **type** (`ReviewPurchaseRequest`) olur. DTO sınıf adı (`...Dto`) command/query sınıfının içine **sızmaz**.
+
+**`payload` içindeki alanlar da `readonly`** — command/query bir immutable value object'tir; dış `public readonly payload` referansı korur ama iç alanlar `readonly` işaretlenmezse mutasyona açık kalır. Her iç alan `readonly` yazılır.
+
+**DTO adlandırması (presentation katmanı) — KURAL:**
+
+| DTO tipi                 | İsim deseni                      | Örnek                                                                           |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------- |
+| **Query filtre DTO'su**  | `...FilterDto`                   | `GetPurchaseOrdersFilterDto`, `GetPurchaseRequestsFilterDto`                    |
+| **Command gövde DTO'su** | `...Dto` (fiil-önekli, değişmez) | `CreatePurchaseOrderDto`, `ReceivePurchaseOrderDto`, `ReviewPurchaseRequestDto` |
+
+Query DTO'su kavramsal olarak bir filtredir → `...FilterDto` rolü belgeler ve payload'daki `filter` alanıyla simetriktir. Command DTO'su zaten fiil-önekli (`Create...`, `Receive...`, `Review...`) olduğundan rolü nettir; `...DataDto` **yazılmaz** (DTO zaten "data" demektir — tautoloji; ayrıca zod-infer type `CreatePurchaseOrder` ile paralelliği bozar).
+
+```typescript
+// ✓ Command — >2 alan → tek payload objesi; iç alanlar readonly; gövde alanı `data`, tipi zod-infer type
+import type { ReviewPurchaseRequest } from '@shared/modules/purchasing/types/commands';
+
+export class ApprovePurchaseRequestCommand implements ICommand {
+  constructor(
+    public readonly payload: {
+      readonly requestId: string;
+      readonly data: ReviewPurchaseRequest; // ❌ ReviewPurchaseRequestDto DEĞİL
+      readonly ctx: IGetContext;
+    }
+  ) {}
+}
+
+// ✓ Query — >2 alan → tek payload objesi; iç alanlar readonly; gövde alanı `filter`
+import type { GetPurchaseOrders } from '@shared/modules/purchasing/types/queries';
+
+export class GetPurchaseOrdersQuery implements IQuery {
+  readonly __responseType!: GetPurchaseOrdersResponse;
+  constructor(
+    public readonly payload: {
+      readonly filter: GetPurchaseOrders; // ❌ GetPurchaseOrdersFilterDto DEĞİL
+      readonly pagination: Pagination;
+      readonly ctx: IGetContext;
+    }
+  ) {}
+}
+```
+
+```typescript
+// ❌ Yanlış — çok sayıda ayrı parametre + `dto` alanı + DTO tipi
+export class ApprovePurchaseRequestCommand implements ICommand {
+  constructor(
+    public readonly requestId: string,
+    public readonly dto: ReviewPurchaseRequestDto, // hem ayrı param hem `dto`/DTO tipi yanlış
+    public readonly ctx: IGetContext
+  ) {}
+}
+
+// ✓ Controller DTO alır (query filtresi → ...FilterDto), payload'a `data`/`filter` olarak aktarır
+@Post(':id/approve')
+approve(
+  @Param('id') requestId: string,
+  @Body() dto: ReviewPurchaseRequestDto,
+  @GetContext() ctx: IGetContext
+) {
+  return this.commandBus.execute(
+    new ApprovePurchaseRequestCommand({ requestId, data: dto, ctx })
+  );
+}
+
+@Get()
+list(
+  @Query() dto: GetPurchaseOrdersFilterDto,
+  @Query() pagination: PaginationDto,
+  @GetContext() ctx: IGetContext
+) {
+  return this.queryBus.execute(
+    new GetPurchaseOrdersQuery({ filter: dto, pagination, ctx })
+  );
 }
 ```
 
@@ -335,28 +435,6 @@ export interface IFooQueryRepository {
 }
 ```
 
-**Command repository** (`foo.command.repository.ts`):
-
-```typescript
-@Injectable()
-export class FooCommandRepository
-  extends BaseRepository
-  implements IFooCommandRepository
-{
-  constructor(prisma: PrismaService) {
-    super(prisma);
-  }
-
-  create(data: CreateFooInput) {
-    return this.db.foo.create({ data });
-  }
-
-  softDelete(id: string) {
-    return this.db.foo.update({ where: { id }, data: { isDeleted: true } });
-  }
-}
-```
-
 **Query repository** (`foo.query.repository.ts`):
 
 ```typescript
@@ -424,9 +502,44 @@ constructor(
 ) {}
 ```
 
+**Command Handler'da Command Repo vs Query Repo — KESİN KURAL**:
+
+Bir **Command Handler** (yazma tarafı / Command Context) içinde **durumu değiştirilecek, güncellenecek veya kilitlenecek her şey Query Repo'dan değil, Command Repo'dan** çekilir (`findById`, `findByIdForUpdate`, `findOpenByRegister` vb.). Bu CQRS'in temel doğruluk kuralıdır.
+
+**Neden:**
+
+1. **Transaction & kilit bütünlüğü** — Query Repo'lar doğaları gereği read-only kurgulanır; kilit (`SELECT … FOR UPDATE`) veya mutasyon-güvenli okuma garantisi vermezler. Query Repo'dan okuyup Command Repo ile yazarsan okunan veri aktif transaction'ın kilit kapsamı dışında kalabilir → **stale data üzerine yazma** (lost update).
+2. **Read-replica / eventual consistency** — Büyük ölçekte Query Repo'lar Read-Replica'ya (slave) yönlenebilir; replication lag nedeniyle master'a yeni yazılmış veri replica'da henüz görünmeyebilir. Command Handler içinde Query Repo okursan **eski veriyi** okursun (örn. kasa oturumunu kapatıp 10 ms sonra açmak isterken Query Repo "hâlâ açık" görebilir).
+3. **Aggregate Root farkı** — Query Repo DTO/ViewModel/ham kayıt döner (iş kuralı yok); Command Repo tam **Aggregate Root / Domain Entity** döner (tüm invariant'lar ve state geçişleri üstünde).
+
+**Altın Kural:**
+
+| Katman | Query Repo | Command Repo |
+| --- | --- | --- |
+| **Query Handler (read side)** | %100 her zaman | ❌ asla |
+| **Command Handler (write side)** | ❌ **yalnız** kilit/sorumluluk gerektirmeyen "read-only ön-kontrol" (salt varlık kontrolü / yetki testi, sonucu bir mutasyonu belirlemiyorsa) | %100 (mutasyon, kilit, iş kararı besleyen okuma için) |
+
+Bir Command Handler bir veriyi okuyup **üzerinde karar verecek veya değiştirecekse**, o veri **daima** Command Repo'dan (`findById` / `findByIdForUpdate`) çekilir. Query Repo, Command Handler'a yalnız UI'a dönecek read-only veriyi toplamak için girebilir — iş mantığında **kullanılmaz**.
+
+```typescript
+// ❌ Yanlış — kilit altında mutasyon kararını Query Repo besliyor
+const open = await this.sessionQueryRepo.findOpenByRegister(registerId); // stale/replica riski
+if (open) throw new CashSessionAlreadyOpenException(...);
+await this.sessionCommandRepo.create(session);
+
+// ✓ Doğru — karar Command Repo'dan (aynı tx + kilit kapsamı)
+const open = await this.sessionCommandRepo.findOpenByRegister(registerId);
+if (open) throw new CashSessionAlreadyOpenException(...);
+await this.sessionCommandRepo.create(session);
+```
+
+**Pessimistic kilit (`findByIdForUpdate`) — KURAL**: Eşzamanlı yazma çekişmesi olan sıcak satırlarda (kasa oturumu aç/kapa, stok düşümü, bakiye/sayaç) Command Repo `findByIdForUpdate(id)` metodu `BaseRepository.lockRowForUpdate(table, id)` ile satırı `FOR UPDATE` kilitler. **Yalnız aktif transaction içinde** çağrılır (`lockRowForUpdate` tx yoksa patlar — kilit tx dışında sessizce etkisizdir). Genel `findById`'a blanket `lock` bayrağı **eklenmez**; kilit ihtiyacı olan repo'ya ayrı, adını söyleyen `findByIdForUpdate` metodu eklenir.
+
+**Optimistic kilit (`version` kolonu) — KURAL**: Çekişmenin nadir ama lost-update'in kabul edilemez olduğu aggregate'lerde (randevu, abonelik) entity bir `version: number` taşır; `save()` `updateMany({ where: { id, version }, data: { …, version: version + 1 } })` ile günceller ve etkilenen satır 0 ise `ConcurrencyConflictException` (`@common/domain/exceptions`, 409) fırlatır. `create()` literal'i `version: 0` ile başlatır; `toPersistence()` `version`'ı taşır. `sync`/`upsert` (dış-senkron) yolları optimistic guard'a tabi değildir.
+
 **7. Domain Types & Kontratlar (`*.contracts.ts`) — KURAL**:
 
-Her modülün, entity'lerinin ortak domain-seviye tiplerini toplayan **merkezi bir kontrat dosyası** olur: `domain/<module-name>.contracts.ts`. Tipler ayrı ayrı `domain/types/*.ts` dosyalarına dağıtılmaz; tek dosyada, Zod şemalarından türetilerek tanımlanır. Repository interface'leri, repository implementasyonları ve entity static factory'leri tiplerini buradan alır. **Application katmanından (command/handler) import etmez**.
+Her modülün, entity'lerinin ortak domain-seviye tiplerini toplayan **merkezi bir kontrat dosyası** olur: `domain/contracts/<aggregate-name>.contracts.ts`. Tipler ayrı ayrı `domain/types/*.ts` dosyalarına dağıtılmaz; tek dosyada, Zod şemalarından türetilerek tanımlanır. Repository interface'leri, repository implementasyonları ve entity static factory'leri tiplerini buradan alır. **Application katmanından (command/handler) import etmez**.
 
 **Mimarî Katmanlar ve Veri Akışı (Data Pipeline)** — verinin mimarideki yolculuğuna göre doğru suffix:
 
@@ -511,7 +624,7 @@ mapping'i **handler**'ın sorumluluğundadır. Repository yalnızca hazır veriy
 
 Domain entity'ler `domain/entities/` klasöründe bulunur. Her entity şu yapıya uyar:
 
-- Prisma model interface'ini `implements` eder (`IAppointment` gibi)
+- Value objectler oluşturulabilir. Mevcut vo'lar kullanılır. bunlar "<name>.vo.ts" şeklinde
 - Tüm field'lar `private _field` olarak tanımlanır; dışarıya yalnızca getter açılır
 - Domain iş metodları (durum geçişleri, validasyon) entity içinde yaşar
 - `toPersistence()` metodu entity'yi ham Prisma kaydına dönüştürür; repository'nin `save()` metodunu besler
@@ -528,8 +641,14 @@ import {
 import { ExaminationTypeType as ExaminationType } from '@input-type-schemas/ExaminationTypeSchema';
 import { ExternalSystemType as ExternalSystem } from '@input-type-schemas/ExternalSystemSchema';
 import { VisitTypeType as VisitType } from '@input-type-schemas/VisitTypeSchema';
-import { randomUUID } from 'crypto';
-import { DateTimeManager } from '@common/utils';
+import {
+  AppointmentSourceSchema,
+  AppointmentSourceType as AppointmentSource,
+} from '@input-type-schemas/AppointmentSourceSchema';
+import {
+  AppointmentCreatorTypeSchema,
+  AppointmentCreatorTypeType as AppointmentCreatorType,
+} from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   AppointmentCompletedEvent,
@@ -537,79 +656,146 @@ import {
 } from '@modules/clinical/appointment/domain/events/complete-appointment.event';
 import { AppointmentScheduledEvent } from '@modules/clinical/appointment/domain/events/schedule-appointment.event';
 import { AppointmentBookedEvent } from '@modules/clinical/appointment/domain/events/book-appointment.event';
-import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/appointment.contracts';
+import { AppointmentCancelledEvent } from '@modules/clinical/appointment/domain/events/cancelled-appointment.event';
+import { AppointmentConfirmedEvent } from '@modules/clinical/appointment/domain/events/confirm-appointment.event';
+import { AppointmentRescheduledEvent } from '@modules/clinical/appointment/domain/events/reschedule-appointment.event';
+import {
+  CalculateEndTimeProps,
+  CancelScheduleProps,
+  CreateAppointmentProps,
+  RescheduleByPatientProps,
+  RescheduleRequestProps,
+  UpdateAppointmentDetailsProps,
+} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { AppointmentDetailsUpdatedEvent } from '@modules/clinical/appointment/domain/events/appointment-details-updated.event';
+import { AppointmentCheckedInEvent } from '@modules/clinical/appointment/domain/events/appointment-checked-in.event';
+import { AppointmentReminderDueEvent } from '@modules/clinical/appointment/domain/events/appointment-reminder-due.event';
+import { TimeZone } from '@src/domain/value-objects/timezone.vo';
+import {
+  AppointmentInvalidCreationDateException,
+  AppointmentInvalidTimeRangeException,
+  AppointmentNotCancelledException,
+  AppointmentNotCompletedException,
+  AppointmentNotConfirmedException,
+  AppointmentNotNoShowException,
+  AppointmentNotPendingException,
+  AppointmentPastDateException,
+  AppointmentPatientRequiredException,
+  AppointmentRescheduleWindowExpiredException,
+} from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Email } from '@src/domain/value-objects/email.vo';
+import { Phone } from '@src/domain/value-objects/phone.vo';
+import { Guard } from '@common/domain/guards';
+import { endTimeCalculator, isDefined } from '@common/utils';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { AppointmentRules } from '@modules/clinical/appointment/domain/rules/appointment.rules';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { Cancellation } from '@modules/clinical/appointment/domain/value-objects/cancellation.vo';
 
-export class Appointment extends AggregateRoot implements IAppointment {
+export class Appointment extends AggregateRoot {
   constructor(data: IAppointment) {
     super();
-    this._id = data.id;
-    this._patientName = data.patientName;
-    this._patientPhone = data.patientPhone;
-    this._patientEmail = data.patientEmail;
-    this._startTime = data.startTime;
-    this._endTime = data.endTime;
-    this._timezone = data.timezone;
+    this._id = UUID.fromTrusted(data.id);
+    this._patientName = Name.fromTrusted(data.patientName);
+    this._patientPhone = Phone.fromTrusted(data.patientPhone);
+    this._patientEmail = Email.create(data.patientEmail).instance ?? null;
+    this._timeRange = DateRange.fromTrusted(data.startTime, data.endTime);
+    this._timezone = TimeZone.fromTrusted(data.timezone);
     this._treatmentType = data.treatmentType;
     this._notes = data.notes;
     this._status = data.status;
-    this._canceledAt = data.canceledAt;
-    this._canceledBy = data.canceledBy;
-    this._cancelReason = data.cancelReason;
+    this._checkedInAt = data.checkedInAt;
+    this._reminderSentAt = data.reminderSentAt;
+    this._cancellation =
+      data.canceledAt && data.canceledBy
+        ? Cancellation.create({
+            canceledAt: data.canceledAt,
+            canceledBy: data.canceledBy,
+            reason: data.cancelReason,
+          })
+        : null;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._externalSystem = data.externalSystem;
-    this._externalId = data.externalId;
-    this._treatmentId = data.treatmentId;
-    this._clinicId = data.clinicId;
-    this._providerId = data.providerId;
-    this._patientId = data.patientId;
+    this._externalId = data.externalId ?? null;
+    this._treatmentId = UUID.create(data.treatmentId).instance ?? null;
+    this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._providerId = UUID.fromTrusted(data.providerId);
+    this._patientId = UUID.fromTrusted(data.patientId);
     this._examinationType = data.examinationType;
     this._visitType = data.visitType;
+    this._isConsultation = data.isConsultation;
     this._resourceId = data.resourceId;
     this._isDeleted = data.isDeleted;
     this._deletedAt = data.deletedAt;
+    this._source = data.source;
+    this._creatorType = data.creatorType;
+    this._approvedAt = data.approvedAt;
+    this._approvedBy = data.approvedBy;
+    this._createdById = data.createdById;
+    this._createdByRealName = data.createdByRealName
+      ? Name.fromTrusted(data.createdByRealName)
+      : null;
   }
 
-  private _id: string;
+  private _cancellation: Cancellation | null;
 
-  // GETTER
-  get id(): string {
+  get cancellation(): Cancellation | null {
+    return this._cancellation;
+  }
+
+  private _id: UUID;
+
+  get id(): UUID {
     return this._id;
   }
 
-  private _patientName: string;
+  private _isConsultation: boolean;
 
-  get patientName(): string {
+  get isConsultation(): boolean {
+    return this._isConsultation;
+  }
+
+  private _patientName: Name;
+
+  get patientName(): Name {
     return this._patientName;
   }
 
-  private _patientPhone: string;
+  private _patientPhone: Phone;
 
-  get patientPhone(): string {
+  get patientPhone(): Phone {
     return this._patientPhone;
   }
 
-  private _patientEmail: string | null;
+  private _patientEmail: Email | null;
 
-  get patientEmail(): string | null {
+  get patientEmail(): Email | null {
     return this._patientEmail;
   }
 
-  private _startTime: Date;
-
   get startTime(): Date {
-    return this._startTime;
+    return this._timeRange.startDate;
   }
-
-  private _endTime: Date;
 
   get endTime(): Date {
-    return this._endTime;
+    return this._timeRange.endDate;
   }
 
-  private _timezone: string;
+  private _timeRange: DateRange;
 
-  get timezone(): string {
+  get timeRange(): DateRange {
+    return this._timeRange;
+  }
+
+  private _timezone: TimeZone;
+
+  get timezone(): TimeZone {
     return this._timezone;
   }
 
@@ -631,22 +817,28 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return this._status;
   }
 
-  private _canceledAt: Date | null;
+  private _checkedInAt: Date | null;
+
+  get checkedInAt(): Date | null {
+    return this._checkedInAt;
+  }
+
+  private _reminderSentAt: Date | null;
+
+  get reminderSentAt(): Date | null {
+    return this._reminderSentAt;
+  }
 
   get canceledAt(): Date | null {
-    return this._canceledAt;
+    return this.cancellation?.canceledAt ?? null;
   }
-
-  private _canceledBy: string | null;
 
   get canceledBy(): string | null {
-    return this._canceledBy;
+    return this.cancellation?.canceledBy ?? null;
   }
 
-  private _cancelReason: string | null;
-
   get cancelReason(): string | null {
-    return this._cancelReason;
+    return this.cancellation?.reason ?? null;
   }
 
   private _createdAt: Date;
@@ -673,27 +865,27 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return this._externalId;
   }
 
-  private _treatmentId: string | null;
+  private _treatmentId: UUID | null;
 
-  get treatmentId(): string | null {
+  get treatmentId(): UUID | null {
     return this._treatmentId;
   }
 
-  private _clinicId: string;
+  private _clinicId: UUID;
 
-  get clinicId(): string {
+  get clinicId(): UUID {
     return this._clinicId;
   }
 
-  private _providerId: string;
+  private _providerId: UUID;
 
-  get providerId(): string {
+  get providerId(): UUID {
     return this._providerId;
   }
 
-  private _patientId: string | null;
+  private _patientId: UUID;
 
-  get patientId(): string | null {
+  get patientId(): UUID {
     return this._patientId;
   }
 
@@ -727,16 +919,149 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return this._deletedAt;
   }
 
+  private _source: AppointmentSource;
+
+  get source(): AppointmentSource {
+    return this._source;
+  }
+
+  private _creatorType: AppointmentCreatorType;
+
+  get creatorType(): AppointmentCreatorType {
+    return this._creatorType;
+  }
+
+  private _approvedAt: Date | null;
+
+  get approvedAt(): Date | null {
+    return this._approvedAt;
+  }
+
+  private _approvedBy: string | null;
+
+  get approvedBy(): string | null {
+    return this._approvedBy;
+  }
+
+  private _createdById: string | null;
+
+  get createdById(): string | null {
+    return this._createdById;
+  }
+
+  private _createdByRealName: Name | null;
+
+  get createdByRealName(): Name | null {
+    return this._createdByRealName;
+  }
+
   // DOMAIN BUSINESS METHODS
+
+  public get validate() {
+    return {
+      status: {
+        isPending: (error?: Error) => this.isPending(error),
+        isConfirmed: (error?: Error) => this.isConfirmed(error),
+        isCancelled: (error?: Error) => this.isCancelled(error),
+        isCompleted: (error?: Error) => this.isCompleted(error),
+        isNoShow: (error?: Error) => this.isNoShow(error),
+      },
+    };
+  }
+
+  private get raiseEvent() {
+    return {
+      cancelled: (canceledBy: string, reason?: string): void => {
+        this.addDomainEvent(
+          new AppointmentCancelledEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+            canceledBy,
+            cancelReason: reason,
+          })
+        );
+      },
+      confirmed: (): void => {
+        this.addDomainEvent(
+          new AppointmentConfirmedEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+          })
+        );
+      },
+      rescheduled: (): void => {
+        this.addDomainEvent(
+          new AppointmentRescheduledEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+          })
+        );
+      },
+      reminderDue: (requireResponse: boolean): void => {
+        this.addDomainEvent(
+          new AppointmentReminderDueEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+            requireResponse,
+          })
+        );
+      },
+      checkedIn: (): void => {
+        this.addDomainEvent(
+          new AppointmentCheckedInEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            checkedInAt: this.checkedInAt ?? DateTimeManager.create(),
+          })
+        );
+      },
+      detailsUpdated: (): void => {
+        this.addDomainEvent(
+          new AppointmentDetailsUpdatedEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+          })
+        );
+      },
+    };
+  }
 
   public static schedule(props: CreateAppointmentProps): Appointment {
     const appointment = Appointment.create(props);
     appointment.addDomainEvent(
       new AppointmentScheduledEvent({
-        appointmentId: appointment.id,
-        clinicId: appointment.clinicId,
-        providerId: appointment.providerId,
-        patientId: appointment.patientId,
+        appointmentId: appointment.id.value,
+        clinicId: appointment.clinicId.value,
+        providerId: appointment.providerId.value,
+        patientId: appointment.patientId.value,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
       })
@@ -746,12 +1071,26 @@ export class Appointment extends AggregateRoot implements IAppointment {
 
   public static book(props: CreateAppointmentProps): Appointment {
     const appointment = Appointment.create(props);
+
+    const now = DateTimeManager.create();
+
+    if (DateTimeManager.isBefore(props.startTime, now)) {
+      throw new AppointmentInvalidCreationDateException(props.startTime);
+    }
+
+    if (DateTimeManager.isBeforeOrEqual(props.endTime, props.startTime)) {
+      throw new AppointmentInvalidTimeRangeException(
+        props.startTime,
+        props.endTime
+      );
+    }
+
     appointment.addDomainEvent(
       new AppointmentBookedEvent({
-        appointmentId: appointment.id,
-        clinicId: appointment.clinicId,
-        providerId: appointment.providerId,
-        patientId: appointment.patientId,
+        appointmentId: appointment.id.value,
+        clinicId: appointment.clinicId.value,
+        providerId: appointment.providerId.value,
+        patientId: appointment.patientId.value,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
       })
@@ -759,54 +1098,44 @@ export class Appointment extends AggregateRoot implements IAppointment {
     return appointment;
   }
 
-  public static calculateEndTimeOrThrow(
-    start: Date,
-    endTime?: Date,
-    duration?: number
-  ): Date {
-    if (endTime) {
-      const parsedEndTime = new Date(endTime);
-      if (parsedEndTime <= new Date(start)) {
-        throw new Error(
-          'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
-        );
-      }
-      return parsedEndTime;
-    }
-
-    if (duration && duration > 0) {
-      return DateTimeManager.addMinutes(start, duration);
-    }
-
-    throw new Error(
-      'Randevu süresi (duration) veya bitiş zamanı (endTime) belirlenemedi.'
-    );
+  public static calculateEndTime({
+    startTime,
+    endTime,
+    duration,
+  }: CalculateEndTimeProps) {
+    return endTimeCalculator({ startTime, endTime, duration });
   }
 
   private static create(props: CreateAppointmentProps): Appointment {
-    const now = new Date();
-    const endTime = Appointment.calculateEndTimeOrThrow(
-      props.startTime,
-      props.endTime,
-      props.duration
-    );
+    const endTime = this.calculateEndTime({
+      startTime: props.startTime,
+      endTime: props.endTime,
+      duration: props.duration,
+    }).orThrow();
 
-    if (props.startTime < now) {
-      throw new Error('Geçmiş bir tarihe randevu oluşturulamaz.');
-    }
+    const now = DateTimeManager.create();
+
+    const dateRange = DateRange.create(props.startTime, endTime).orThrow();
+
+    const timezone = TimeZone.create(props.timezone).orThrow().value;
 
     return new Appointment({
-      id: props.id ?? randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
+
       patientName: props.patientName,
-      patientPhone: props.patientPhone,
-      patientEmail: props.patientEmail ?? null,
-      patientId: props.patientId ?? null,
-      providerId: props.providerId,
-      clinicId: props.clinicId,
-      treatmentId: props.treatmentId ?? null,
-      startTime: props.startTime,
-      endTime,
-      timezone: props.timezone ?? 'Europe/Istanbul',
+      patientPhone: Phone.create(props.patientPhone).orThrow().value,
+      patientEmail: props.patientEmail
+        ? Email.create(props.patientEmail).orThrow().value
+        : null,
+      patientId: UUID.create(props.patientId).orThrow().value,
+      providerId: UUID.create(props.providerId).orThrow().value,
+      clinicId: UUID.create(props.clinicId).orThrow().value,
+      treatmentId: props.treatmentId
+        ? UUID.create(props.treatmentId).orThrow().value
+        : null,
+      startTime: dateRange.startDate,
+      endTime: dateRange.endDate,
+      timezone,
       notes: props.notes ?? null,
       treatmentType: props.treatmentType ?? null,
       externalSystem: props.externalSystem ?? null,
@@ -815,6 +1144,8 @@ export class Appointment extends AggregateRoot implements IAppointment {
       visitType: props.visitType ?? null,
       resourceId: props.resourceId ?? null,
       status: props.status ?? AppointmentStatusSchema.enum.PENDING,
+      checkedInAt: null,
+      reminderSentAt: null,
       canceledAt: null,
       canceledBy: null,
       cancelReason: null,
@@ -822,41 +1153,52 @@ export class Appointment extends AggregateRoot implements IAppointment {
       updatedAt: now,
       isDeleted: false,
       deletedAt: null,
+      isConsultation: props.isConsultation,
+      source: props.source ?? AppointmentSourceSchema.enum.CLINIC_INTERNAL,
+      creatorType:
+        props.creatorType ?? AppointmentCreatorTypeSchema.enum.CLINIC_STAFF,
+      approvedAt: null,
+      approvedBy: null,
+      createdById: props.createdById ?? null,
+      createdByRealName: props.createdByRealName ?? null,
     });
   }
 
   public confirm(): void {
-    if (this._status !== AppointmentStatusSchema.enum.PENDING) {
-      throw new Error('Yalnızca bekleyen randevular onaylanabilir.');
-    }
     this._status = AppointmentStatusSchema.enum.CONFIRMED;
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.confirmed();
   }
 
-  public cancelSchedule(canceledBy: string, reason?: string): void {
-    if (!this._canBeCancelled()) {
-      throw new Error(
-        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
-      );
-    }
-    this._applyCancellation(canceledBy, reason);
+  public cancelSchedule(props: CancelScheduleProps): void {
+    this.applyCancellation(props.canceledBy, props.reason);
+
+    this._updatedAt = DateTimeManager.create();
+
+    // İptal event'i fırlatılır; sağlık turizmi iadesi + hasta bildirimi + audit
+    // yan etkileri listener'da (AppointmentCancelledEvent) işlenir.
+    this.raiseEvent.cancelled(props.canceledBy, props.reason);
   }
 
   /**
    * Hasta (Patient) tarafından yapılan iptal işlemi.
    *
+   * NOT: Hastanın kendi iptal edip edemeyeceği (allowPatientCancel) ve iptalin
+   * doğrudan mı yoksa "onay bekliyor" olarak mı işleneceği (cancelLimitHours)
+   * kararı klinik ayarına bağlıdır ve handler'da verilir (settings okunur).
+   * Bu metod çağrıldığında iptal fiilen uygulanır ve event fırlatılır.
    */
-
   public cancelBooking(patientId?: string, reason?: string): void {
     if (!patientId) {
-      throw new Error('Kullanıcı bulunamadı');
+      throw new AppointmentPatientRequiredException();
     }
 
-    if (!this._canBeCancelled()) {
-      throw new Error(
-        'Tamamlanan, iptal edilmiş veya randevuya gelmedi olarak işaretlenmiş randevular iptal edilemez.'
-      );
-    }
-    this._applyCancellation(patientId, reason);
+    this.applyCancellation(patientId, reason);
+
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.cancelled(patientId, reason);
   }
 
   public complete(
@@ -865,199 +1207,257 @@ export class Appointment extends AggregateRoot implements IAppointment {
       'appointmentId' | 'clinicId' | 'patientId' | 'providerId'
     >
   ): void {
-    if (this.isCancelled() || this.isCompleted() || this.isNoShow()) {
-      throw new Error(
-        `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular tamamlanamaz.`
-      );
-    }
     this._status = AppointmentStatusSchema.enum.COMPLETED;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
 
     this.addDomainEvent(
       new AppointmentCompletedEvent({
         ...eventPayload,
-        appointmentId: this._id,
-        clinicId: this._clinicId,
-        patientId: this._patientId,
-        providerId: this._providerId,
+        appointmentId: this.id.value,
+        clinicId: this.clinicId.value,
+        patientId: this.patientId.value,
+        providerId: this.providerId.value,
       })
     );
   }
 
   public markAsNoShow(): void {
-    if (!this.isPending() && !this.isConfirmed()) {
-      throw new Error(
-        'Yalnızca onaylanan veya bekleyen randevular gelmeme olarak işaretlenebilir.'
-      );
-    }
     this._status = AppointmentStatusSchema.enum.NOSHOW;
-  }
-
-  public reschedule(
-    startTime: Date,
-    endTime: Date,
-    providerId: string,
-    notes?: string,
-    treatmentId?: string | null
-  ): void {
-    // Ortak zamanlama mantığını çalıştır
-    this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
-
-    // Personel yaptığı için randevu direkt onaylı kalmaya devam edebilir
-    this._status = AppointmentStatusSchema.enum.CONFIRMED;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   /**
-   * Hasta (Patient) tarafından yapılan yeniden zamanlama.
-   * 6 saat kısıtlaması doğrulanır ve onay bekliyor (PENDING) statüsüne düşürülür.
+   * Hasta kliniğe geldiğinde check-in (ARRIVED). Yalnız bekleyen/onaylanan
+   * randevular check-in edilebilir; geliş zamanı (bekleme sırası için) işaretlenir.
    */
+  public checkIn(): void {
+    const now = DateTimeManager.create();
+    this._status = AppointmentStatusSchema.enum.ARRIVED;
+    this._checkedInAt = now;
+    this._updatedAt = now;
 
-  // TODO: kaç saat öncesine kadar değişiklik yapabilir klinik ayarlarında DB'de tutulsun
-  public rescheduleByPatient(
-    startTime: Date,
-    endTime: Date,
-    providerId: string,
-    notes?: string,
-    treatmentId?: string | null
-  ): void {
-    const now = new Date();
+    this.raiseEvent.checkedIn();
+  }
 
-    const hoursLeft = DateTimeManager.diffInHours(this._startTime, now);
+  /**
+   * Randevu hatırlatmasını "gönderildi" olarak işaretler (aynı randevuya tekrar
+   * gönderimi önler) ve dış-kanal hatırlatmasını tetikleyen event'i fırlatır.
+   * `requireResponse` klinik ayarından (iki yönlü onay) taşınır.
+   */
+  public markReminderSent(requireResponse = false): void {
+    const now = DateTimeManager.create();
+    this._reminderSentAt = now;
+    this._updatedAt = now;
 
-    if (hoursLeft < 6) {
-      throw new Error(
-        'Randevunuza 6 saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.'
+    this.raiseEvent.reminderDue(requireResponse);
+  }
+
+  public reschedule(props: RescheduleRequestProps): void {
+    this.applyReschedule({
+      startTime: props.startTime,
+      endTime: props.endTime,
+      providerId: props.providerId,
+      notes: props.notes,
+      treatmentId: props.treatmentId,
+    });
+
+    this._status = AppointmentStatusSchema.enum.CONFIRMED;
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.rescheduled();
+  }
+
+  /**
+   * Hasta (Patient) tarafından yapılan yeniden zamanlama. Klinik ayarındaki
+   * `rescheduleLimitHours` kadar saatten az kaldıysa reddedilir ve işlem onay
+   * bekliyor (PENDING) statüsüne düşürülür.
+   */
+  public rescheduleByPatient(props: RescheduleByPatientProps): void {
+    const now = DateTimeManager.create();
+    const hoursLeft = DateTimeManager.diffInHours(this.startTime, now);
+
+    const lastRescheduleTimeForPatient = props.rescheduleLimitHours;
+
+    const isTooLate = hoursLeft < lastRescheduleTimeForPatient;
+
+    if (isTooLate) {
+      throw new AppointmentRescheduleWindowExpiredException(
+        lastRescheduleTimeForPatient
       );
     }
 
-    if (startTime <= now) {
-      throw new Error('Geçmiş bir tarihe randevu yeniden zamanlanamaz.');
+    const isNewTimeInPast =
+      DateTimeManager.isBefore(props.startTime, now) ||
+      DateTimeManager.isSame(props.startTime, now);
+
+    if (isNewTimeInPast) {
+      throw new AppointmentPastDateException();
     }
 
-    this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
+    this.applyReschedule(props);
     this._status = AppointmentStatusSchema.enum.PENDING;
-    this._updatedAt = now;
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.rescheduled();
   }
 
-  public isPending(): boolean {
-    return this._status === AppointmentStatusSchema.enum.PENDING;
+  /**
+   * Personel (resepsiyon) tarafından randevu "içerik" alanlarının düzenlenmesi.
+   * Zaman/doktor/durum DEĞİL — yalnız hasta iletişim, not, tedavi/muayene/ziyaret türü.
+   * undefined alan dokunulmaz; null gönderilen nullable alan temizlenir. Kullanıcı
+   * girişi VO'larla (Phone/Email/Name/UUID) doğrulanır.
+   */
+  public updateDetails(props: UpdateAppointmentDetailsProps): void {
+    if (isNotUndefined(props.patientName))
+      this._patientName = Name.create(props.patientName).orThrow();
+    if (isNotUndefined(props.patientPhone))
+      this._patientPhone = Phone.create(props.patientPhone).orThrow();
+    if (isNotUndefined(props.patientEmail))
+      this._patientEmail = props.patientEmail
+        ? Email.create(props.patientEmail).orThrow()
+        : null;
+    if (isNotUndefined(props.notes)) this._notes = props.notes;
+    if (isNotUndefined(props.treatmentType))
+      this._treatmentType = props.treatmentType;
+    if (isNotUndefined(props.treatmentId))
+      this._treatmentId = props.treatmentId
+        ? UUID.create(props.treatmentId).orThrow()
+        : null;
+    if (isNotUndefined(props.examinationType))
+      this._examinationType = props.examinationType;
+    if (isNotUndefined(props.visitType)) this._visitType = props.visitType;
+
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.detailsUpdated();
   }
 
-  // 4. BUSINESS QUERY METHODS (Durum Sorguları)
-
-  public isConfirmed(): boolean {
-    return this._status === AppointmentStatusSchema.enum.CONFIRMED;
-  }
-
-  public isCancelled(): boolean {
-    return this._status === AppointmentStatusSchema.enum.CANCELLED;
-  }
-
-  public isCompleted(): boolean {
-    return this._status === AppointmentStatusSchema.enum.COMPLETED;
-  }
-
-  public isNoShow(): boolean {
-    return this._status === AppointmentStatusSchema.enum.NOSHOW;
-  }
-
-  public isInThePast(): boolean {
-    return this._endTime < new Date();
-  }
-
-  public isInTheFuture(): boolean {
-    return this._startTime > new Date();
-  }
-
-  public canBeRescheduled(): boolean {
-    const invalidStatuses: AppointmentStatus[] = [
-      AppointmentStatusSchema.enum.CANCELLED,
-      AppointmentStatusSchema.enum.COMPLETED,
-      AppointmentStatusSchema.enum.NOSHOW,
-    ];
-    return !invalidStatuses.includes(this._status);
+  public rules(validateOptions: ValidateOptionsType = DefaultValidateOptions) {
+    return new AppointmentRules(this, validateOptions);
   }
 
   public toPersistence(): IAppointment {
     return {
-      id: this._id,
-      patientName: this._patientName,
-      patientPhone: this._patientPhone,
-      patientEmail: this._patientEmail,
-      startTime: this._startTime,
-      endTime: this._endTime,
-      timezone: this._timezone,
-      treatmentType: this._treatmentType,
-      notes: this._notes,
-      status: this._status,
-      canceledAt: this._canceledAt,
-      canceledBy: this._canceledBy,
-      cancelReason: this._cancelReason,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
-      externalSystem: this._externalSystem,
-      externalId: this._externalId,
-      treatmentId: this._treatmentId,
-      clinicId: this._clinicId,
-      providerId: this._providerId,
-      patientId: this._patientId,
-      examinationType: this._examinationType,
-      visitType: this._visitType,
-      resourceId: this._resourceId,
-      isDeleted: this._isDeleted,
-      deletedAt: this._deletedAt,
+      id: this.id.value,
+      patientName: this.patientName.value,
+      patientPhone: this.patientPhone.value,
+      patientEmail: this.patientEmail?.value ?? null,
+      startTime: this.startTime,
+      endTime: this.endTime,
+      timezone: this.timezone.value,
+      treatmentType: this.treatmentType,
+      notes: this.notes,
+      status: this.status,
+      checkedInAt: this.checkedInAt,
+      reminderSentAt: this.reminderSentAt,
+      canceledAt: this.canceledAt,
+      canceledBy: this.canceledBy,
+      cancelReason: this.cancelReason,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      externalSystem: this.externalSystem,
+      externalId: this.externalId ?? null,
+      treatmentId: this.treatmentId?.value ?? null,
+      clinicId: this.clinicId.value,
+      providerId: this.providerId.value,
+      patientId: this.patientId.value,
+      examinationType: this.examinationType,
+      visitType: this.visitType,
+      resourceId: this.resourceId ?? null,
+      isDeleted: this.isDeleted,
+      deletedAt: this.deletedAt,
+      isConsultation: this.isConsultation,
+      source: this.source,
+      creatorType: this.creatorType,
+      approvedAt: this.approvedAt,
+      approvedBy: this.approvedBy,
+      createdById: this.createdById,
+      createdByRealName: this.createdByRealName?.value ?? null,
     };
+  }
+
+  private isNoShow(error?: Error) {
+    const is = this._status === AppointmentStatusSchema.enum.NOSHOW;
+    return Guard.monitor(
+      is,
+      is,
+      () => error ?? new AppointmentNotNoShowException()
+    );
+  }
+
+  private isCompleted(error?: Error) {
+    const isCompleted = this._status === AppointmentStatusSchema.enum.COMPLETED;
+
+    return Guard.monitor(
+      isCompleted,
+      isCompleted,
+      () =>
+        error ??
+        new AppointmentNotCompletedException(this.id.value, this.status)
+    );
+  }
+
+  private isCancelled(error?: Error) {
+    const isCancelled = this._status === AppointmentStatusSchema.enum.CANCELLED;
+    return Guard.monitor(
+      isCancelled,
+      isCancelled,
+      () =>
+        error ||
+        new AppointmentNotCancelledException(this.id.value, this.status)
+    );
+  }
+
+  private isConfirmed(error?: Error) {
+    const isConfirmed = this._status === AppointmentStatusSchema.enum.CONFIRMED;
+    return Guard.monitor(
+      isConfirmed,
+      isConfirmed,
+      () =>
+        error ??
+        new AppointmentNotConfirmedException(this.id.value, this.status)
+    );
+  }
+
+  private isPending(error?: Error) {
+    const isPending = this._status === AppointmentStatusSchema.enum.PENDING;
+    return Guard.monitor(
+      isPending,
+      isPending,
+      () =>
+        error ?? new AppointmentNotPendingException(this.id.value, this.status)
+    );
   }
 
   /**
    * Yeniden zamanlama işlemlerinin ortak validasyon ve atama motoru (Private Helper)
    */
-  private _applyReschedule(
-    startTime: Date,
-    endTime: Date,
-    providerId: string,
-    notes?: string,
-    treatmentId?: string | null
-  ): void {
-    if (!this.canBeRescheduled()) {
-      throw new Error(
-        `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular yeniden zamanlanamaz. Mevcut durum: ${this._status}`
-      );
-    }
+  private applyReschedule(props: RescheduleRequestProps): void {
+    this._providerId = UUID.create(props.providerId).orThrow();
 
-    if (new Date(endTime) <= new Date(startTime)) {
-      throw new Error(
-        'Bitiş zamanı başlangıç zamanından önce veya eşit olamaz.'
-      );
-    }
+    this._timeRange = DateRange.create(
+      props.startTime,
+      props.endTime
+    ).orThrow();
 
-    this._startTime = startTime;
-    this._endTime = endTime;
-    this._providerId = providerId;
-
-    if (notes !== undefined) this._notes = notes;
-    if (treatmentId !== undefined) this._treatmentId = treatmentId;
+    if (isNotUndefined(props.notes)) this._notes = props.notes;
+    if (isDefined(props.treatmentId))
+      this._treatmentId = UUID.create(props.treatmentId).instance ?? null;
   }
 
-  private _applyCancellation(canceledBy: string, reason?: string): void {
+  private applyCancellation(canceledBy: string, reason?: string): void {
+    this._cancellation = Cancellation.create({
+      canceledBy,
+      canceledAt: DateTimeManager.create(),
+      reason,
+    });
+
     this._status = AppointmentStatusSchema.enum.CANCELLED;
-    this._canceledAt = new Date();
-    this._canceledBy = canceledBy;
-    if (reason) {
-      this._cancelReason = reason;
-    }
-  }
-
-  private _canBeCancelled(): boolean {
-    const invalidStatuses: AppointmentStatus[] = [
-      AppointmentStatusSchema.enum.CANCELLED,
-      AppointmentStatusSchema.enum.COMPLETED,
-      AppointmentStatusSchema.enum.NOSHOW,
-    ];
-    return !invalidStatuses.includes(this._status);
   }
 }
+
+
+
 ```
 
 ---
@@ -1098,6 +1498,44 @@ await this.providerCommandRepo.softDeleteAllByClinicId(clinicId);
 - **`save(entity)`**: Mevcut entity'yi **günceller** (UPDATE — `upsert` bile değil, doğrudan `update`). Veri zaten `id` taşıyor; entity domain metodları sonrası çağrılır.
 
 Upsert yapması gereken işlemler (`findOrCreate`, auth bulun-veya-oluştur, broker login) **istisna** olarak ayrı metod (`upsertByEmail`, `findOrCreateByOAuth`) alabilir.
+
+> **⛔ `save` ASLA `upsert` yapmaz — KESİN KURAL**
+>
+> `save(entity)` gövdesi **her zaman** `this.db.<model>.update({ where: { id }, data: update })` çağırır (`id` destructure edilip PK payload'dan çıkarılır). `save` içinde `upsert` **yasaktır**. Yeni kayıt her zaman `create` ile açılır.
+>
+> **Get-or-create / natural-key upsert gerekiyorsa ayrı, amacını söyleyen bir metod adı kullanılır** — `save` DEĞİL:
+>
+> | Senaryo | Metod adı |
+> | --- | --- |
+> | PK dışı doğal anahtarla 1:1 satellite (clinicId unique) | `upsertByClinicId(entity)` |
+> | organizationId unique satellite | `upsertByOrganizationId(entity)` |
+> | Bileşik doğal anahtar (clinicId + provider) | `upsertByClinicAndProvider(entity)` |
+> | E-posta/OAuth bulun-veya-oluştur | `upsertByEmail(...)`, `findOrCreateByOAuth(...)` |
+>
+> Handler tarafında: yeni kayıt kesinse `create`; mevcut kaydın state değişimiyse `save`; "varsa güncelle yoksa oluştur" (config satellite gibi) ise `upsertBy...`.
+>
+> ```typescript
+> // ❌ Yanlış — save upsert yapıyor
+> async save(e: Foo) {
+>   return this.db.foo.upsert({ where: { id: e.id }, create: data, update: data });
+> }
+>
+> // ✓ Doğru — save yalnız update; ayrı upsert metodu doğal anahtarla
+> async save(e: Foo): Promise<Foo> {
+>   const data = e.toPersistence();
+>   const { id, ...update } = data;
+>   const raw = await this.db.foo.update({ where: { id }, data: update });
+>   e.flushEvents();
+>   return new Foo(raw);
+> }
+> async upsertByClinicId(e: Foo): Promise<Foo> {
+>   const data = e.toPersistence();
+>   const { id: _id, ...update } = data;
+>   const raw = await this.db.foo.upsert({ where: { clinicId: data.clinicId }, create: data, update });
+>   e.flushEvents();
+>   return new Foo(raw);
+> }
+> ```
 
 **ID GENERATION KURALI: Prisma modellerinde hiçbir zaman otomatik ID üretilmez.** Her kayıt oluşturulurken `create(props)` çağrısında `props.id` gönderilir — handler/command'de UUID.generate() ile üretilir, repository'ye geçilir.
 
@@ -1190,9 +1628,10 @@ async create(props: CreateFooProps): Promise<FooEntity> {
 
 ```typescript
 async save(entity: FooEntity): Promise<FooEntity> {
-  const data = entity.toPersistence();
+  const persistenceData = entity.toPersistence();
+  const {id, ...data} = persistenceData;
   const raw = await this.db.foo.update({
-    where: { id: data.id },
+    where: { id },
     data, // id hariç (PK güncellemez)
   });
   entity.flushEvents();
@@ -1218,14 +1657,15 @@ async saveMany(entities: FooEntity[]): Promise<void> {
 }
 ```
 
-**`upsertByEmail(email, props)` istisna örneği** — findOrCreate:
+**`upsertByEmail(email, data)` istisna örneği** — findOrCreate:
 
 ```typescript
-async upsertByEmail(email: string, props: CreateFooProps): Promise<FooEntity> {
+async upsertByEmail(email: string, data: CreateFoo): Promise<FooEntity> {
+  const { id, ...update} = data
   const raw = await this.db.foo.upsert({
     where: { email },
-    create: { ...props, id: props.id ?? UUID.generate().value },
-    update: props,
+    create: data,
+    update
   });
   return new FooEntity(raw);
 }
@@ -1245,12 +1685,12 @@ async upsertByEmail(email: string, props: CreateFooProps): Promise<FooEntity> {
 update(id: string, data: Partial<Foo>): Promise<Foo>; // state değişikliği için fazlalık
 
 // ✓ Doğru — state değişikliği entity üzerinden
-const foo = await this.fooQueryRepo.findById(id);
+const foo = await this.fooCommandRepo.findById(id);
 foo.activate(); // domain method
 await this.fooCommandRepo.save(foo); // UPDATE
 
 // ✓ İstisna — findOrCreate
-const user = await this.userCommandRepo.upsertByEmail(email, { id: UUID.generate(), ...props });
+const user = await this.userCommandRepo.upsertByEmail(email, { id: UUID.generate().value, ...props });
 ```
 
 **AggregateRoot — KURAL**:
@@ -1264,12 +1704,14 @@ Tüm domain entity'ler `src/common/domain/aggregate-root.ts` içindeki `Aggregat
 // Entity domain metodu — event raise eder
 public activate(): void {
   this._isActive = true;
-  this.addDomainEvent(new ProviderActivatedEvent({ providerId: this._id, ... }));
+  this.addDomainEvent(new ProviderActivatedEvent({ providerId: this.id, ... }));
 }
 
 // Command repository save() — persist + flush
 async save(entity: Provider): Promise<Provider> {
-  const raw = await this.db.provider.update({ where: { id: entity.id }, data: entity.toPersistence() });
+  const persistenceData = entity.toPersistence();
+  const {id, ...data} = persistenceData;
+  const raw = await this.db.provider.update({ where: { id }, data });
   entity.flushEvents();
   return new Provider(raw);
 }
@@ -1337,9 +1779,9 @@ export class Foo extends AggregateRoot {
 // foo.command-handler.ts
 async execute(command: CreateFooCommand) {
   // 🚀 1. Nesne domain katmanında, tüm kurallara uyarak doğar
-  const foo = Foo.create({ 
+  const foo = Foo.create({
     id: command.id, // Eğer dışarıdan gelen özel bir ID varsa geçilir (örn: bulk sync), yoksa undefined kalır
-    name: command.name 
+    name: command.name
   });
 
   // 🚀 2. Repo sadece doğmuş ve zırhlanmış DOMAIN ENTITY kabul eder
@@ -1364,7 +1806,6 @@ async create(entity: Foo): Promise<Foo> {
 **Gerekçe**: Pre-generated ID'ler (1) state consistency'yi sağlar (handler kontrol eder), (2) ID'yi bilinçli bir şekilde dağıtabilir (örn. correlation/audit), (3) Prisma automatic ID'ler ile oluşan race condition'ları ortadan kaldırır.
 
 ---
-
 
 **4. Policy-Based Authorization**:
 
@@ -2313,20 +2754,20 @@ async findForAuth(firebaseUid: string) {
 
 **Kural:** Çoklu modül barındıran orkestrasyon/Saga işlemlerinde, veritabanının auto-increment veya işlem sonrası ID üretmesi beklenmeyecektir.
 
-**Yöntem:** Gerekli tüm benzersiz kimlikler (UUID), işlemin en tepesinde (Handler katmanında) `crypto.randomUUID()` ile peşinen üretilir ve alt servislerine dikte edilir.
+**Yöntem:** Gerekli tüm benzersiz kimlikler (UUID), işlemin en tepesinde (Handler katmanında) `UUID.generate()` ile peşinen üretilir ve alt servislerine dikte edilir.
 
 **Kazanç:** Modüller arası bağımlılık zinciri kırılır, `if (!id) throw` kontrolleri elenir, asenkron Outbox loglaması güvenli hale gelir.
 
 ```typescript
 // ✓ Doğru — ID'leri handler'da üret, servislere ilet
 async execute(command: RegisterClinicCommand) {
-  const clinicId = randomUUID();
-  const adminUserId = randomUUID();
+  const generatedClinicUUID = UUID.generate();
+  const generatedAdminUserUUID = UUID.generate();
 
   await this.txManager.outboxRun(async () => {
-    await this.clinicCommandRepo.create({ id: clinicId, ... });
+    await this.clinicCommandRepo.create({ id: generatedClinicUUID.value, ... });
     await this.commandBus.execute(
-      new CreateUserCommand({ id: adminUserId, clinicId, ... })
+      new CreateUserCommand({ id: generatedAdminUserUUID.value, clinicId: generatedClinicUUID.value, ... })
     );
   });
 }

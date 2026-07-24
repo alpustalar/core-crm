@@ -3,24 +3,7 @@ import {
   QuantityInsufficientException,
   QuantityNegativeException,
   QuantityNotGreaterThanZeroException,
-} from '@src/domain/exceptions/vo/quantity.exceptions';
-
-// 1. Derleyicinin aklını başında tutacak, tip güvenliğini sağlayan validator arayüzleri
-interface IQuantityPublicValidator {
-  greaterThanZero: {
-    isValid: boolean;
-    isInvalid: boolean;
-    orThrow: (exception?: Error) => Quantity;
-  };
-}
-
-interface IQuantityStaticValidator {
-  isPositive: (value: number | string | Decimal) => {
-    isValid: boolean;
-    isInvalid: boolean;
-    orThrow: (exception?: Error) => void;
-  };
-}
+} from '@src/domain/exceptions/quantity.exceptions';
 
 export class Quantity {
   private readonly _value: Decimal;
@@ -36,7 +19,7 @@ export class Quantity {
    * 🎯 2. Static Validate (Getter): Sınıf düzeyinde, henüz nesne olmadan ham veriyi doğrular
    * Örn: Quantity.validate.isPositive(dto.amount).orThrow()
    */
-  public static get validate(): IQuantityStaticValidator {
+  public static get validate() {
     return {
       isPositive: (value: number | string | Decimal) => {
         const decimal = value instanceof Decimal ? value : new Decimal(value);
@@ -67,21 +50,22 @@ export class Quantity {
    * 🎯 1. Public Validate (Getter): Nesne üzerinden iş kurallarını işletir
    * Örn: productQuantity.validate.greaterThanZero.orThrow()
    */
-  public get validate(): IQuantityPublicValidator {
-    const self = this;
-    const isGreaterThanZero = !self._value.lessThanOrEqualTo(0);
-
+  public get validate() {
     return {
-      greaterThanZero: {
-        isValid: isGreaterThanZero,
-        isInvalid: !isGreaterThanZero,
-        orThrow: (exception?: Error): Quantity => {
-          if (!isGreaterThanZero) {
-            throw exception ?? new QuantityNotGreaterThanZeroException(self._name);
-          }
-          return self;
-        },
-      },
+      greaterThanZero: (() => {
+        const isGreaterThanZero = !this.value.lessThanOrEqualTo(0);
+        return {
+          isValid: isGreaterThanZero,
+          orThrow: (exception?: Error): Quantity => {
+            if (!isGreaterThanZero) {
+              throw (
+                exception ?? new QuantityNotGreaterThanZeroException(this.name)
+              );
+            }
+            return this;
+          },
+        };
+      })(),
     };
   }
 
@@ -148,7 +132,7 @@ export class Quantity {
 
     if (instance) {
       const validation = instance.validate.greaterThanZero;
-      if (validation.isInvalid) {
+      if (!validation.isValid) {
         instance = undefined;
         error = new QuantityNotGreaterThanZeroException(context);
       }

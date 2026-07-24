@@ -7,8 +7,8 @@ import {
   HOTELBEDS_TRANSFER_API_SERVICE,
   IHotelbedsTransferApiService,
 } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
-import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
+import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { TransferCacheService } from '@modules/crm/health-tourism/transfer/infrastructure/cache/transfer-cache.service';
 
 @QueryHandler(SearchTransferAvailabilityQuery)
 export class SearchTransferAvailabilityHandler
@@ -21,20 +21,19 @@ export class SearchTransferAvailabilityHandler
   constructor(
     @Inject(HOTELBEDS_TRANSFER_API_SERVICE)
     private readonly transferApi: IHotelbedsTransferApiService,
-
-    private readonly redis: RedisService
+    private readonly cacheService: TransferCacheService
   ) {}
 
   async execute(
     query: SearchTransferAvailabilityQuery
   ): Promise<SearchTransferAvailabilityResponse> {
-    const { dto } = query;
+    const { filter } = query;
 
     const paramsHash = createHash('sha256')
-      .update(JSON.stringify(dto))
+      .update(JSON.stringify(filter))
       .digest('hex');
 
-    const cached = await this.redis.getTransferAvailability(paramsHash);
+    const cached = await this.cacheService.transferAvailability.get(paramsHash);
     if (cached) {
       return {
         data: cached as TransferAvailabilityItem[],
@@ -45,22 +44,22 @@ export class SearchTransferAvailabilityHandler
     }
 
     const items = await this.transferApi.searchAvailability({
-      language: dto.language,
-      fromType: dto.fromType,
-      fromCode: dto.fromCode,
-      toType: dto.toType,
-      toCode: dto.toCode,
-      outboundDate: dto.outboundDate,
-      outboundTime: dto.outboundTime,
-      adults: dto.adults,
-      children: dto.children,
-      infants: dto.infants,
-      ages: dto.ages,
-      returnDate: dto.returnDate,
-      returnTime: dto.returnTime,
+      language: filter.language,
+      fromType: filter.fromType,
+      fromCode: filter.fromCode,
+      toType: filter.toType,
+      toCode: filter.toCode,
+      outboundDate: filter.outboundDate,
+      outboundTime: filter.outboundTime,
+      adults: filter.adults,
+      children: filter.children,
+      infants: filter.infants,
+      ages: filter.ages,
+      returnDate: filter.returnDate,
+      returnTime: filter.returnTime,
     });
 
-    await this.redis.setTransferAvailability(paramsHash, items);
+    await this.cacheService.transferAvailability.set(paramsHash, items);
 
     return { data: items, meta: { fromCache: false } };
   }

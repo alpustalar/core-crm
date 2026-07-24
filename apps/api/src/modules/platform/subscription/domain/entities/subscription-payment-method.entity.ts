@@ -120,11 +120,9 @@ export class SubscriptionPaymentMethod extends AggregateRoot {
   public static create(
     props: CreateSubscriptionPaymentMethodProps
   ): SubscriptionPaymentMethod {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     const now = DateTimeManager.create();
-
     return new SubscriptionPaymentMethod({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       subscriptionId: UUID.create(props.subscriptionId).orThrow().value,
       provider: props.provider ?? DEFAULT_PROVIDER,
       cardUserKey: props.cardUserKey,
@@ -146,23 +144,23 @@ export class SubscriptionPaymentMethod extends AggregateRoot {
 
   public toPersistence(): ISubscriptionPaymentMethod {
     return {
-      id: this._id,
-      subscriptionId: this._subscriptionId,
-      provider: this._provider,
-      cardUserKey: this._cardUserKey,
-      cardToken: this._cardToken,
-      maskedNumber: this._maskedNumber,
-      cardAssociation: this._cardAssociation,
-      cardFamily: this._cardFamily,
-      buyerName: this._buyerName,
-      buyerSurname: this._buyerSurname,
-      buyerEmail: this._buyerEmail,
-      buyerGsmNumber: this._buyerGsmNumber,
-      buyerIp: this._buyerIp,
-      buyerCity: this._buyerCity,
-      buyerAddress: this._buyerAddress,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id,
+      subscriptionId: this.subscriptionId,
+      provider: this.provider,
+      cardUserKey: this.cardUserKey,
+      cardToken: this.cardToken,
+      maskedNumber: this.maskedNumber,
+      cardAssociation: this.cardAssociation,
+      cardFamily: this.cardFamily,
+      buyerName: this.buyerName,
+      buyerSurname: this.buyerSurname,
+      buyerEmail: this.buyerEmail,
+      buyerGsmNumber: this.buyerGsmNumber,
+      buyerIp: this.buyerIp,
+      buyerCity: this.buyerCity,
+      buyerAddress: this.buyerAddress,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

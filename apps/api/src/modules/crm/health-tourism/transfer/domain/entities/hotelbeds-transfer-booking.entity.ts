@@ -11,11 +11,9 @@ import { Decimal } from 'decimal.js';
 import {
   CreateTransferBookingProps,
   UpdateTransferHolderProps,
-} from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
+} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { LastName } from '@src/domain/value-objects/last-name.vo';
@@ -23,6 +21,8 @@ import { Email } from '@src/domain/value-objects/email.vo';
 import { Phone } from '@src/domain/value-objects/phone.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { isDefined } from '@common/utils';
+import { HotelbedsTransferBookingRules } from '@modules/crm/health-tourism/transfer/domain/rules/hotelbeds-transfer-booking.rules';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 
 export class HotelbedsTransferBooking extends AggregateRoot {
   constructor(data: IHotelbedsTransferBooking) {
@@ -134,34 +134,10 @@ export class HotelbedsTransferBooking extends AggregateRoot {
     return this._updatedAt;
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Static Create Method (Factory)
-
-  public get isCancelled() {
-    const is =
-      this._status === HotelbedsTransferBookingStatusSchema.enum.CANCELLED;
-
-    return Guard.monitor(
-      is,
-      is,
-      () => new Error('Transfer "iptal edilmiş" durumda değil.')
-    );
-  }
-
-  private get _businessRuleValidator() {
+  public get validate() {
     return {
-      updateHolderDetails: () => {
-        const isInvalid = this.isCancelled.value;
-
-        return {
-          isValid: !isInvalid,
-          isInvalid,
-          orThrow: () => {
-            throw new Error(
-              'İptal edilmiş bir transfer rezervasyonunun bilgileri güncellenemez.'
-            );
-          },
-        };
+      status: {
+        isCancelled: this.isCancelled(),
       },
     };
   }
@@ -177,7 +153,7 @@ export class HotelbedsTransferBooking extends AggregateRoot {
         ? Money.create(props.totalAmount, currencyValue.value).orThrow()
         : props.totalAmount;
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const id = UUID.createOrGenerate(props.id);
 
     const now = DateTimeManager.create();
 
@@ -186,12 +162,12 @@ export class HotelbedsTransferBooking extends AggregateRoot {
       reference: props.reference,
       clientReference: props.clientReference ?? null,
       status: props.status,
-      holderName: Name.create(props.holderName).value.value,
-      holderSurname: LastName.create(props.holderSurname).value,
+      holderName: Name.create(props.holderName).orThrow().value,
+      holderSurname: LastName.create(props.holderSurname).orThrow().value,
       holderEmail: Email.create(props.holderEmail).orThrow().value,
       holderPhone: Phone.create(props.holderPhone).orThrow().value,
       transfers: props.transfers,
-      totalAmount: amountValue.amount,
+      totalAmount: amountValue.value,
       currency: currencyValue.value,
       remarks: props.remarks ?? null,
       organizationId: props.organizationId,
@@ -206,17 +182,11 @@ export class HotelbedsTransferBooking extends AggregateRoot {
   /**
    * Rezervasyonu yapan asıl yolcu/sorumlu (Holder) bilgilerini günceller.
    */
-  public updateHolderDetails(
-    props: UpdateTransferHolderProps,
-    options = DefaultValidateOptions
-  ): void {
-    if (shouldValidate(options))
-      this._businessRuleValidator.updateHolderDetails().orThrow();
-
-    this._holderName = Name.create(props.holderName).value;
+  public updateHolderDetails(props: UpdateTransferHolderProps): void {
+    this._holderName = Name.create(props.holderName).orThrow();
 
     if (isDefined(props.holderSurname))
-      this._holderSurname = LastName.create(props.holderSurname);
+      this._holderSurname = LastName.create(props.holderSurname).orThrow();
 
     if (isDefined(props.holderEmail))
       this._holderEmail = Email.create(props.holderEmail).orThrow();
@@ -229,6 +199,10 @@ export class HotelbedsTransferBooking extends AggregateRoot {
     }
 
     this._updatedAt = DateTimeManager.create();
+  }
+
+  public rules(validateOptions: ValidateOptionsType) {
+    return new HotelbedsTransferBookingRules(this, validateOptions);
   }
 
   /**
@@ -252,9 +226,6 @@ export class HotelbedsTransferBooking extends AggregateRoot {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Mapping to Persistence
-
-  // ────────────────────────────────────────────────────────────────────────────
   public toPersistence(): IHotelbedsTransferBooking {
     return {
       id: this._id.value,
@@ -266,7 +237,7 @@ export class HotelbedsTransferBooking extends AggregateRoot {
       holderEmail: this._holderEmail.value,
       holderPhone: this._holderPhone.value,
       transfers: this._transfers,
-      totalAmount: this._totalAmount.amount,
+      totalAmount: this._totalAmount.value,
       currency: this._totalAmount.currency,
       remarks: this._remarks,
       organizationId: this._organizationId.value,
@@ -276,5 +247,19 @@ export class HotelbedsTransferBooking extends AggregateRoot {
       createdAt: this._createdAt,
       updatedAt: DateTimeManager.create(),
     };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Mapping to Persistence
+
+  private isCancelled() {
+    const is =
+      this._status === HotelbedsTransferBookingStatusSchema.enum.CANCELLED;
+
+    return Guard.monitor(
+      is,
+      is,
+      () => new Error('Transfer "iptal edilmiş" durumda değil.')
+    );
   }
 }

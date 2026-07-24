@@ -1,17 +1,24 @@
 import { Capability, Role as IRole, RoleCapability } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
+import { Name } from '@src/domain/value-objects/name.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Slug } from '@src/domain/value-objects/slug.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { CreateRoleProps } from '@modules/identity/role/domain/role.contracts';
+import { Priority } from '@src/domain/value-objects/priority.vo';
+import { Guard } from '@common/domain/guards';
 
 export type RoleWithCapabilities = IRole & {
   capabilities?: (RoleCapability & { capability: Capability })[];
 };
 
-export class Role extends AggregateRoot implements IRole {
+export class Role extends AggregateRoot {
   constructor(data: RoleWithCapabilities) {
     super();
-    this._id = data.id;
-    this._name = data.name;
-    this._slug = data.slug;
-    this._priority = data.priority;
+    this._id = UUID.fromTrusted(data.id);
+    this._name = Name.fromTrusted(data.name);
+
+    this._priority = Priority.fromTrusted(data.priority);
     this._isSystemRole = data.isSystemRole;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -20,27 +27,25 @@ export class Role extends AggregateRoot implements IRole {
       : null;
   }
 
-  private _id: string;
+  private _id: UUID;
 
-  get id(): string {
+  get id(): UUID {
     return this._id;
   }
 
-  private _name: string;
+  private _name: Name;
 
-  get name(): string {
+  get name(): Name {
     return this._name;
   }
 
-  private _slug: string;
-
-  get slug(): string {
-    return this._slug;
+  get slug(): Slug {
+    return this.name.toSlug();
   }
 
-  private _priority: number;
+  private _priority: Priority;
 
-  get priority(): number {
+  get priority(): Priority {
     return this._priority;
   }
 
@@ -68,24 +73,59 @@ export class Role extends AggregateRoot implements IRole {
     return this._capabilities;
   }
 
-  hasCapability(module: string, action: string): boolean {
-    if (this._capabilities) {
-      return this._capabilities.some(
-        (c) => c.module === module && c.action === action
-      );
-    }
-    return false;
+  public get validate() {
+    return {
+      hasCapability: (module: string, action: string) =>
+        this.hasCapability(module, action),
+      canManage: (otherRole: Role) => this.canManage(otherRole),
+    };
+  }
+
+  public static create(input: CreateRoleProps): Role {
+    const roleId = UUID.generate();
+    const roleName = Name.create(input.name).orThrow();
+
+    const now = DateTimeManager.create();
+
+    return new Role({
+      id: roleId.value,
+      name: roleName.value,
+      slug: roleName.toSlug().value,
+      priority: input.priority,
+      isSystemRole: false,
+      createdAt: now,
+      updatedAt: now,
+      capabilities: [],
+    });
   }
 
   toPersistence(): IRole {
     return {
-      id: this._id,
-      name: this._name,
-      slug: this._slug,
-      priority: this._priority,
-      isSystemRole: this._isSystemRole,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      name: this.name.value,
+      slug: this.slug.value,
+      priority: this.priority.value,
+      isSystemRole: this.isSystemRole,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
+  }
+
+  private hasCapability(module: string, action: string) {
+    let isValid = false;
+    if (this.capabilities) {
+      isValid = this.capabilities.some(
+        (c) => c.module === module && c.action === action
+      );
+    }
+    return Guard.monitor(
+      isValid,
+      isValid,
+      () => new Error('Rol hedef kabiliyete sahip değil')
+    );
+  }
+
+  private canManage(otherRole: Role) {
+    return this.priority.validate.isHigherThan(otherRole.priority);
   }
 }

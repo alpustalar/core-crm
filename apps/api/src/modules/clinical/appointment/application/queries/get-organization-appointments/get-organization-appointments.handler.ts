@@ -1,4 +1,3 @@
-import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetOrganizationAppointmentsQuery } from './get-organization-appointments.query';
 import { GetOrganizationAppointmentsQueryResponse } from './get-organization-appointments.response';
@@ -12,7 +11,6 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(GetOrganizationAppointmentsQuery)
 export class GetOrganizationAppointmentsHandler
@@ -32,30 +30,23 @@ export class GetOrganizationAppointmentsHandler
   async execute(
     query: GetOrganizationAppointmentsQuery
   ): Promise<GetOrganizationAppointmentsQueryResponse> {
-    const { dto, ctx } = query;
-    const { actor } = ctx;
+    const { data, ctx } = query;
+    const { organizationId, ...restData } = data;
 
-    if (!actor.organizationId) throw new ClinicNotAssignedException();
-
-    this.policyFactory
-      .organization(actor)
-      .evaluator.check(
-        (p) => p.isOwnOrganization(organizationId),
-        'Bu işlem için yetkiniz yok'
-      )
-      .orThrow(APPOINTMENT_EVENTS.LIST_ORGANIZATION);
-
-    const { organizationId, ...restDto } = dto;
+    const serializationOptions = this.policyFactory
+      .organization(ctx.actor, ctx.source)
+      .policy.getSerializationOptions();
 
     const { items, total } = await this.appointmentRepo.findByOrganizationId({
       organizationId,
-      ...restDto,
+      ...restData,
     });
 
     return {
-      data: items.map((item) => item.toPersistence()),
+      data: items,
       meta: {
-        pagination: buildPaginationMeta(dto.pagination, total),
+        pagination: buildPaginationMeta(data.pagination, total),
+        serializationOptions,
       },
     };
   }

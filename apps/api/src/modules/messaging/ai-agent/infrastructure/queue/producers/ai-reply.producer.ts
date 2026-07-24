@@ -6,6 +6,7 @@ import {
   MESSAGING_AI_MAX_ATTEMPTS,
   QUEUES,
 } from '@common/constants';
+import { MessagingJobIds } from '@modules/messaging/ai-agent/domain/constants/messaging.constants';
 
 export interface AiReplyJobData {
   conversationId: string;
@@ -25,7 +26,7 @@ export class AiReplyProducer {
 
   async enqueueReply(data: AiReplyJobData): Promise<void> {
     await this.queue.add(MESSAGING_AI_JOBS.GENERATE_REPLY, data, {
-      jobId: `ai:reply:${data.messageId}`,
+      jobId: MessagingJobIds.AI_REPLY(data.messageId),
       attempts: MESSAGING_AI_MAX_ATTEMPTS,
       backoff: { type: 'exponential', delay: 3000 },
       removeOnComplete: true,

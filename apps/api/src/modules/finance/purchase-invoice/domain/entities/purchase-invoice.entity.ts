@@ -113,10 +113,8 @@ export class PurchaseInvoice extends AggregateRoot {
   public static create(props: CreatePurchaseInvoiceProps): PurchaseInvoice {
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     return new PurchaseInvoice({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       organizationId: UUID.create(props.organizationId).orThrow().value,
       supplierId: UUID.create(props.supplierId).orThrow().value,
@@ -124,10 +122,10 @@ export class PurchaseInvoice extends AggregateRoot {
       invoiceDate: props.invoiceDate,
       lineAccountCode: props.lineAccountCode,
       vatRate: VatRate.create(props.vatRate).orThrow().value.toNumber(),
-      netTotal: Money.create(props.netTotal, props.currency).orThrow().amount,
-      vatTotal: Money.create(props.vatTotal, props.currency).orThrow().amount,
+      netTotal: Money.create(props.netTotal, props.currency).orThrow().value,
+      vatTotal: Money.create(props.vatTotal, props.currency).orThrow().value,
       grandTotal: Money.create(props.grandTotal, props.currency).orThrow()
-        .amount,
+        .value,
       currency: Currency.create(props.currency).orThrow().value,
       status: PurchaseInvoiceStatusSchema.enum.RECORDED,
       createdAt: now,
@@ -146,9 +144,9 @@ export class PurchaseInvoice extends AggregateRoot {
       invoiceDate: this.invoiceDate,
       lineAccountCode: this.lineAccountCode,
       vatRate: this.vatRate.value.toNumber(),
-      netTotal: this.netTotal.amount,
-      vatTotal: this.vatTotal.amount,
-      grandTotal: this.grandTotal.amount,
+      netTotal: this.netTotal.value,
+      vatTotal: this.vatTotal.value,
+      grandTotal: this.grandTotal.value,
       currency: this.currency,
       status: this.status,
       createdAt: this.createdAt,

@@ -8,7 +8,7 @@ import { PaginationSchema } from '@shared';
 // ==========================================
 
 export const CreateAdminRequestPropsSchema = z.object({
-  id: z.uuid(),
+  id: z.uuid().optional(),
   type: AdminRequestTypeSchema, // Örn: DATA_EXPORT, SYSTEM_RESET, LIMIT_INCREASE
   targetId: z.string().min(1, 'Hedef ID (targetId) boş bırakılamaz'), // İşlemin uygulanacağı entity ID'si
   requestedBy: z.uuid(), // Talebi oluşturan admin/kullanıcı ID'si

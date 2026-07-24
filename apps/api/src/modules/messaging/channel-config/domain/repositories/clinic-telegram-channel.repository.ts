@@ -8,8 +8,10 @@ export const CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IClinicTelegramChannelCommandRepository {
-  /** clinicId+provider unique → upsert tabanlı kayıt (şu an yalnız BOT_API). */
-  save(entity: ClinicTelegramChannel): Promise<ClinicTelegramChannel>;
+  /** clinicId+provider unique → get-or-create (upsert) (şu an yalnız BOT_API). */
+  upsertByClinicAndProvider(
+    entity: ClinicTelegramChannel
+  ): Promise<ClinicTelegramChannel>;
 }
 
 export interface IClinicTelegramChannelQueryRepository {

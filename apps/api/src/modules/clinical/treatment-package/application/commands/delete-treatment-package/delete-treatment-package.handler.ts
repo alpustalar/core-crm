@@ -8,6 +8,10 @@ import {
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(DeleteTreatmentPackageCommand)
 export class DeleteTreatmentPackageHandler
@@ -20,18 +24,28 @@ export class DeleteTreatmentPackageHandler
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(
     command: DeleteTreatmentPackageCommand
   ): Promise<DeleteTreatmentPackageResponse> {
-    const { packageId } = command;
+    const { packageId, ctx } = command;
 
     const treatmentPackage =
       await this.treatmentPackageCommandRepo.findById(packageId);
+
     if (!treatmentPackage)
       throw new TreatmentPackageNotFoundException(packageId);
+
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessTargetClinic(treatmentPackage.clinicId.value)
+      )
+      .orThrow();
 
     await this.txManager.run(async () => {
       treatmentPackage.softDelete();

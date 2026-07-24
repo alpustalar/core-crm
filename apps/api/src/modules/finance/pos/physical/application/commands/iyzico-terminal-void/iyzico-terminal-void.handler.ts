@@ -90,7 +90,7 @@ export class IyzicoTerminalVoidHandler
       posDeviceId: device.id.value,
       clinicId: input.clinicId,
       paymentId: originalTx.paymentId ?? undefined,
-      amount: Number(originalTx.amount.amount),
+      amount: Number(originalTx.amount.value),
       currency: originalTx.amount.currency,
     });
 

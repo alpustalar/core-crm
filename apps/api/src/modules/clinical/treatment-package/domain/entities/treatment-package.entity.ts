@@ -16,14 +16,13 @@ import {
   TreatmentPackageItemProps,
   UpdateTreatmentPackageProps,
 } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
-import { TreatmentPackageAlreadyDeletedException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
-import { Name } from '@src/domain/value-objects/name.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Currency } from '@src/domain/value-objects/currency.vo';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
+import { Guard } from '@common/domain/guards';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { TreatmentPackageRules } from '@modules/clinical/treatment-package/domain/rules/treatment-package.rules';
 
 export class TreatmentPackage extends AggregateRoot {
   constructor(
@@ -35,7 +34,7 @@ export class TreatmentPackage extends AggregateRoot {
     super();
     this._id = UUID.fromTrusted(data.id);
     this._clinicId = UUID.fromTrusted(data.clinicId);
-    this._name = Name.fromTrusted(data.name);
+    this._name = data.name;
     this._examinationCount = data.examinationCount;
     this._controlCount = data.controlCount;
     this._validityDays = data.validityDays;
@@ -56,8 +55,8 @@ export class TreatmentPackage extends AggregateRoot {
     return this._clinicId;
   }
 
-  private _name: Name;
-  get name(): Name {
+  private _name: string;
+  get name(): string {
     return this._name;
   }
 
@@ -105,52 +104,49 @@ export class TreatmentPackage extends AggregateRoot {
     return this._deletedAt;
   }
 
+  get validate() {
+    return {
+      isDeleted: this.isDeleted,
+    };
+  }
+
   /**
    * Repository save() tarafından senkronlanacak ilişki yazma niyeti.
    * `undefined` → ilişkilere dokunma; dizi → mevcut ilişkileri bu set ile değiştir.
    * Prisma scalar modeline ait olmadıkları için toPersistence() dışında tutulur.
    */
   private _providerIdsToSync?: string[];
+
   get providerIdsToSync(): string[] | undefined {
     return this._providerIdsToSync;
   }
 
   private _itemsToSync?: TreatmentPackageItemProps[];
+
   get itemsToSync(): TreatmentPackageItemProps[] | undefined {
     return this._itemsToSync;
-  }
-
-  get isDeleted(): boolean {
-    return !!this._deletedAt;
   }
 
   get totalSessionCount(): number {
     return this._examinationCount + this._controlCount;
   }
 
-  public static create(
-    props: CreateTreatmentPackageProps,
-    options = DefaultValidateOptions
-  ): TreatmentPackage {
-    if (shouldValidate(options))
-      props.price.validate.greaterThanZero.orThrow(
-        'Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'
-      );
+  private get isDeleted() {
+    const is = !!this.deletedAt;
+    return Guard.monitor(is, is, () => new Error('Tedavi paketi silinmemiş'));
+  }
 
-    const now = new Date();
-    const id = props.id
-      ? UUID.create(props.id).orThrow().value
-      : UUID.generate().value;
+  public static create(props: CreateTreatmentPackageProps): TreatmentPackage {
+    const now = DateTimeManager.create();
 
     const entity = new TreatmentPackage({
-      id: id,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
-      name: Name.create(props.name, 'Tedavi paketi adı uygun değil').orThrow()
-        .value,
+      name: props.name,
       examinationCount: props.examinationCount,
       controlCount: props.controlCount,
       validityDays: props.validityDays,
-      price: props.price.amount,
+      price: props.price.value,
       currency: props.price.currency,
       isActive: true,
       createdAt: now,
@@ -165,24 +161,20 @@ export class TreatmentPackage extends AggregateRoot {
       new TreatmentPackageCreatedEvent({
         packageId: entity.id.value,
         clinicId: entity.clinicId.value,
-        name: entity.name.value,
+        name: entity.name,
       })
     );
 
     return entity;
   }
 
-  public update(
-    props: UpdateTreatmentPackageProps,
-    options = DefaultValidateOptions
-  ): void {
-    if (this._deletedAt) {
-      if (shouldValidate(options))
-        throw new TreatmentPackageAlreadyDeletedException();
-    }
+  public rules(validateOptions: ValidateOptionsType) {
+    return new TreatmentPackageRules(this, validateOptions);
+  }
 
+  public update(props: UpdateTreatmentPackageProps): void {
     if (isNotUndefined(props.name)) {
-      this._name = Name.create(props.name).orThrow();
+      this._name = props.name;
     }
     if (isNotUndefined(props.examinationCount))
       this._examinationCount = props.examinationCount;
@@ -192,10 +184,6 @@ export class TreatmentPackage extends AggregateRoot {
       this._validityDays = props.validityDays;
 
     if (isNotUndefined(props.price)) {
-      if (shouldValidate(options))
-        props.price.validate.greaterThanZero.orThrow(
-          'Tedavi paket fiyatı negatif olamaz'
-        );
       this._price = props.price;
     }
     if (isNotUndefined(props.isActive)) this._isActive = props.isActive;
@@ -209,22 +197,25 @@ export class TreatmentPackage extends AggregateRoot {
 
     this.addDomainEvent(
       new TreatmentPackageUpdatedEvent({
-        packageId: this._id.value,
-        clinicId: this._clinicId.value,
+        packageId: this.id.value,
+        clinicId: this.clinicId.value,
       })
     );
   }
 
   public activate(): void {
     this._isActive = true;
+    this._updatedAt = DateTimeManager.create();
   }
 
   public deactivate(): void {
     this._isActive = false;
+    this._updatedAt = DateTimeManager.create();
   }
 
   public switchActiveStatus(): void {
-    this._isActive = !this._isActive;
+    this._isActive = !this.isActive;
+    this._updatedAt = DateTimeManager.create();
   }
 
   public softDelete(): void {
@@ -248,11 +239,11 @@ export class TreatmentPackage extends AggregateRoot {
     return {
       id: this.id.value,
       clinicId: this.clinicId.value,
-      name: this.name.value,
+      name: this.name,
       examinationCount: this.examinationCount,
       controlCount: this.controlCount,
       validityDays: this.validityDays,
-      price: this.price.amount,
+      price: this.price.value,
       currency: this.price.currency,
       isActive: this.isActive,
       createdAt: this.createdAt,

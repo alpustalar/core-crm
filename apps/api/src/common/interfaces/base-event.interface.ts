@@ -1,5 +1,6 @@
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export interface EventMetadata {
   eventId: string;
@@ -23,7 +24,7 @@ export abstract class BaseEvent {
     this.metadata = {
       eventId: crypto.randomUUID(),
       correlationId: getContextCorrelationId(),
-      occurredAt: new Date(),
+      occurredAt: DateTimeManager.create(),
       version: 1,
     };
     this.log = log;

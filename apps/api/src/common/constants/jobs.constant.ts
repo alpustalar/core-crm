@@ -14,7 +14,16 @@ export const ORGANIZATION_JOBS = {
 export const APPOINTMENT_JOBS = {
   /** Toplu iptal/silme sonrası ilgili hastalara bildirim + Redis temizliği. */
   NOTIFY_BULK_SOFT_DELETED: 'appointment-notify-bulk-soft-deleted',
+  /** Yaklaşan randevuları tarayıp (klinik-başına saat penceresi) hatırlatma tetikler. */
+  SCAN_DUE_REMINDERS: 'appointment-scan-due-reminders',
 } as const;
+
+/**
+ * Reminder tarama işinin en geniş ileri penceresi (saat). Klinik-başına
+ * `sendSmsReminderHours` bu üst sınırın altında olmalıdır; tarama bu pencerede
+ * CONFIRMED + reminderSentAt=null randevuları çeker, sonra klinik ayarına göre eler.
+ */
+export const APPOINTMENT_REMINDER_MAX_WINDOW_HOURS = 72;
 
 export const USER_JOBS = {
   FIREBASE_ROLLBACK: 'firebase-rollback',

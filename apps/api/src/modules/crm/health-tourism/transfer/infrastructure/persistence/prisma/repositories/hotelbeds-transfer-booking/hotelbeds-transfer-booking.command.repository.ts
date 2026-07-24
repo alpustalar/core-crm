@@ -39,14 +39,11 @@ export class HotelbedsTransferBookingCommandRepository
     booking: HotelbedsTransferBooking
   ): Promise<HotelbedsTransferBooking> {
     const data = booking.toPersistence();
-    const raw = await this.db.hotelbedsTransferBooking.upsert({
-      where: { id: data.id },
-      create: {
-        ...data,
-        transfers: data.transfers as Prisma.InputJsonValue,
-      },
-      update: {
-        ...data,
+    const { id, ...update } = data;
+    const raw = await this.db.hotelbedsTransferBooking.update({
+      where: { id },
+      data: {
+        ...update,
         transfers: data.transfers as Prisma.InputJsonValue,
       },
     });

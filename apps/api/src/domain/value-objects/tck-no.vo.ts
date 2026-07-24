@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   InvalidTcknChecksumException,
   InvalidTcknFormatException,
-} from '@src/domain/exceptions/vo/tckn.exceptions';
+} from '@src/domain/exceptions';
 
 export class TckNo {
   private static readonly schema = z
@@ -19,6 +19,31 @@ export class TckNo {
     Object.freeze(this);
   }
 
+  public static get validate() {
+    return {
+      input: (value: string | null | undefined) => {
+        const trimmed = value?.trim();
+        if (!trimmed) return { isValid: false, error: 'TCKN boş olamaz.' };
+
+        // 1. Zod ile format kontrolü
+        const formatResult = TckNo.schema.safeParse(trimmed);
+        if (!formatResult.success) {
+          return {
+            isValid: false,
+            error: formatResult.error.issues[0].message,
+          };
+        }
+
+        // 2. Algoritma ile checksum kontrolü
+        if (!TckNo.isValidChecksum(trimmed)) {
+          return { isValid: false, error: 'Geçersiz TCKN (Checksum hatası).' };
+        }
+
+        return { isValid: true, data: trimmed };
+      },
+    };
+  }
+
   get value(): string {
     return this._value;
   }
@@ -30,45 +55,26 @@ export class TckNo {
     return new TckNo(value);
   }
 
-  /**
-   * 🎯 Akıllı Factory: Projedeki tüm VO'lar ile tek bir ortak dil
-   */
-  public static create(tckn?: string | null) {
-    const isBlank = !tckn || tckn.trim().length === 0;
-
-    let instance: TckNo | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        // 1. Temel Format Kontrolü (Zod)
-        const formatResult = TckNo.schema.safeParse(tckn);
-        if (!formatResult.success) {
-          throw new InvalidTcknFormatException();
-        }
-
-        // 2. Matematiksel Algoritma Kontrolü (Algoritma)
-        if (!TckNo.isValidChecksum(tckn)) {
-          throw new InvalidTcknChecksumException();
-        }
-
-        instance = new TckNo(tckn);
-      } catch (e: any) {
-        error = e;
-      }
-    }
+  public static create(value: string | null | undefined) {
+    const validation = TckNo.validate.input(value);
+    const instance = validation.isValid
+      ? new TckNo(validation.data!)
+      : undefined;
 
     return {
-      instance: error ? undefined : instance,
+      instance,
       orThrow(exception?: Error): TckNo {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidTcknFormatException();
+        if (!instance) {
+          // Hatanın türüne göre doğru Exception'ı fırlatıyoruz
+          if (validation.error?.includes('Checksum')) {
+            throw exception ?? new InvalidTcknChecksumException();
+          }
+          throw exception ?? new InvalidTcknFormatException();
         }
         return instance;
       },
     };
   }
-
   /**
    * 🛠️ TCKN Doğrulama Algoritması (Statik olması artık daha mantıklı)
    */

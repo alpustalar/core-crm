@@ -6,7 +6,7 @@ import { IQuery } from '@nestjs/cqrs';
 export class GetOrganizationAppointmentsQuery implements IQuery {
   readonly __responseType!: GetOrganizationAppointmentsQueryResponse;
   constructor(
-    public readonly dto: GetOrganizationAppointments,
+    public readonly data: GetOrganizationAppointments,
     public readonly ctx: IGetContext
   ) {}
 }

@@ -96,12 +96,10 @@ export class AdminRequest extends AggregateRoot {
   }
 
   static create(props: CreateAdminRequestProps): AdminRequest {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     const now = DateTimeManager.create();
 
     const entity = new AdminRequest({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       type: props.type,
       status: AdminRequestStatusSchema.enum.PENDING,
       targetId: props.targetId,

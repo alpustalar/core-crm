@@ -6,9 +6,11 @@ import { GetWhatsappUsageResponse } from './get-whatsapp-usage.response';
 export class GetWhatsappUsageQuery implements IQuery {
   readonly __responseType!: GetWhatsappUsageResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly from: Date,
-    public readonly to: Date,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      from: Date;
+      to: Date;
+      ctx: IGetContext;
+    }
   ) {}
 }

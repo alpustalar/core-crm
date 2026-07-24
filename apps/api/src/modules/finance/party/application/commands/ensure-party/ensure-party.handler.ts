@@ -1,7 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { PartyAlreadyExistsError } from '@modules/finance/party/domain/errors/party.errors';
 import {
   IPartyCommandRepository,
   IPartyQueryRepository,
@@ -11,6 +10,7 @@ import {
 import { Party } from '@modules/finance/party/domain/entities/party.entity';
 import { EnsurePartyCommand } from './ensure-party.command';
 import { normalizeArray } from '@common/utils/normalize-array';
+import { PartyAlreadyExistsError } from '@modules/finance/party/domain/exceptions/party.exceptions';
 
 @CommandHandler(EnsurePartyCommand)
 export class EnsurePartyHandler
@@ -42,7 +42,7 @@ export class EnsurePartyHandler
     const party = Party.create({ ...input, roles: normalizeArray(input.role) });
 
     try {
-      await this.txManager.run(() => this.partyCommandRepo.save(party));
+      await this.txManager.run(() => this.partyCommandRepo.create(party));
       return party.id.value;
     } catch (error) {
       // Eşzamanlı ensure çağrısı aynı origin için cari oluşturmuş olabilir

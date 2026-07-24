@@ -28,12 +28,11 @@ export class MetaAdAccountCommandRepository
   }
 
   async save(entity: MetaAdAccount) {
-    const create = entity.toPersistence();
-    const { id, ...update } = create;
-    const raw = await this.db.metaAdAccount.upsert({
+    const data = entity.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.metaAdAccount.update({
       where: { id },
-      create,
-      update,
+      data: update,
     });
     entity.flushEvents();
     return new MetaAdAccount(raw);

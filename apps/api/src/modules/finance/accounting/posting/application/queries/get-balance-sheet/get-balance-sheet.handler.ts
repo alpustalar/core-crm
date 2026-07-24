@@ -29,7 +29,7 @@ export class GetBalanceSheetHandler
   ) {}
 
   async execute(query: GetBalanceSheetQuery): Promise<GetBalanceSheetResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query;
+    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
 
     const rows = await this.journalQueryRepo.trialBalance({
       clinicId,

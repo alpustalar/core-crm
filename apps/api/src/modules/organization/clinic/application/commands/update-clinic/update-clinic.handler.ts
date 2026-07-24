@@ -29,12 +29,11 @@ export class UpdateClinicHandler
   ) {}
 
   async execute(command: UpdateClinicCommand): Promise<void> {
-    const { ctx, clinicId, dto } = command;
-    const { actor } = ctx;
+    const { ctx, clinicId, data } = command.payload;
 
-    const { evaluator } = this.policyFactory.clinic(actor);
-    evaluator
-      .check(
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check(
         (p) => p.actorCanManageTargetClinic(clinicId),
         'Klinik bulunamadı veya güncelleme yetkiniz yok.'
       )
@@ -44,7 +43,7 @@ export class UpdateClinicHandler
     if (!clinic) throw new NotFoundException('Klinik bulunamadı.');
 
     await this.txManager.run(async () => {
-      clinic.update(dto);
+      clinic.update(data);
       await this.clinicCommandRepo.save(clinic);
     });
   }

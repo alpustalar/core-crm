@@ -1,10 +1,12 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { UpdateTreatmentPackageDto } from '@shared/modules/treatment-package/dto/command';
+import { UpdateTreatmentPackage } from '@shared';
+
+export interface UpdateTreatmentPackageCommandPayload {
+  packageId: string;
+  data: UpdateTreatmentPackage;
+  ctx: IGetContext;
+}
 
 export class UpdateTreatmentPackageCommand {
-  constructor(
-    public readonly packageId: string,
-    public readonly dto: UpdateTreatmentPackageDto,
-    public readonly ctx: IGetContext
-  ) {}
+  constructor(public readonly payload: UpdateTreatmentPackageCommandPayload) {}
 }

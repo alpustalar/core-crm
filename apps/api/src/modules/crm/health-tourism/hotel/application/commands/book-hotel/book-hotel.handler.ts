@@ -28,36 +28,36 @@ export class BookHotelHandler
   ) {}
 
   async execute(command: BookHotelCommand): Promise<BookHotelResponse> {
-    const { dto } = command;
+    const { data } = command;
 
-    const bookingId = UUID.generate();
+    const generatedBookingUUID = UUID.generate();
 
     const apiResult = await this.hotelbedsApi.createBooking({
-      holderName: dto.holderName,
-      holderSurname: dto.holderSurname,
-      rooms: dto.rooms,
-      clientReference: bookingId.value,
-      remarks: dto.remarks,
+      holderName: data.holderName,
+      holderSurname: data.holderSurname,
+      rooms: data.rooms,
+      clientReference: generatedBookingUUID.value,
+      remarks: data.remarks,
     });
 
     const bookingHotel = HotelbedsBooking.create({
-      id: bookingId.value,
+      id: generatedBookingUUID.value,
       reference: apiResult.reference,
-      clientReference: bookingId.value,
-      hotelCode: dto.hotelCode,
-      checkIn: dto.checkIn,
-      checkOut: dto.checkOut,
+      clientReference: generatedBookingUUID.value,
+      hotelCode: data.hotelCode,
+      checkIn: data.checkIn,
+      checkOut: data.checkOut,
       totalNet: apiResult.totalNet,
       currency: apiResult.currency,
-      holderName: dto.holderName,
-      holderSurname: dto.holderSurname,
+      holderName: data.holderName,
+      holderSurname: data.holderSurname,
       rooms: apiResult.rooms,
-      patientId: dto.patientId,
-      leadId: dto.leadId,
-      remarks: dto.remarks,
-      serviceFee: dto.serviceFee,
-      organizationId: dto.organizationId,
-      clinicId: dto.clinicId,
+      patientId: data.patientId,
+      leadId: data.leadId,
+      remarks: data.remarks,
+      serviceFee: data.serviceFee,
+      organizationId: data.organizationId,
+      clinicId: data.clinicId,
       status: HotelbedsBookingStatusSchema.enum.PENDING,
     });
 
@@ -65,6 +65,6 @@ export class BookHotelHandler
       return this.hotelbedsBookingCommandRepo.create(bookingHotel);
     });
 
-    return bookingId.value;
+    return generatedBookingUUID.value;
   }
 }

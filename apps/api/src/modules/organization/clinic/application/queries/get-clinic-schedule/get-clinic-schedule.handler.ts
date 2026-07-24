@@ -26,7 +26,7 @@ export class GetClinicScheduleHandler
   async execute(
     query: GetClinicScheduleQuery
   ): Promise<GetClinicScheduleQueryResponse> {
-    const { clinicId, startDate, endDate } = query;
+    const { clinicId, startDate, endDate } = query.payload;
 
     const [availabilities, exceptions] = await Promise.all([
       this.clinicAvailabilityQueryRepo.findAllByClinicId(clinicId),

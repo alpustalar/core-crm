@@ -37,6 +37,8 @@ export class GetPatientFinanceSummaryHandler
     const { patientId, ctx } = query;
     const { actor, source } = ctx;
 
+    // system-initiated ise patient.clinicId ulaşıp policye sokmak gereksiz. direkt veriyi çekiyoruz.
+
     if (ExecutionPolicy.isSystemInitiated(source)) {
       return await this.getSummary(patientId);
     }
@@ -45,10 +47,12 @@ export class GetPatientFinanceSummaryHandler
       new FindPatientByIdQuery(patientId, ctx)
     );
 
+    if (!patient) throw new Error('Hasta bilgisine ulaşılamadı');
+
     this.policyFactory
-      .user(actor)
+      .user(actor, source)
       .evaluator.check(
-        (p) => p.isTargetInActorsSameClinic(patient?.clinicId),
+        (p) => p.isTargetInActorsSameClinic(patient.clinicId),
         'Görüntülemek için misafirinizle aynı klinikte olmalısınız'
       )
       .orThrow(FINANCE_LEDGER_EVENTS.PATIENT_SUMMARY);

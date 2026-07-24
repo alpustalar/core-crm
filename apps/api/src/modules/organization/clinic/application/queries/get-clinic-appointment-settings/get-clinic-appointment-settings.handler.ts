@@ -1,12 +1,19 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetClinicAppointmentSettingsQuery } from './get-clinic-appointment-settings.query';
-import { GetClinicAppointmentSettingsResponse } from './get-clinic-appointment-settings.response';
+import {
+  ClinicAppointmentSettingsView,
+  GetClinicAppointmentSettingsResponse,
+} from './get-clinic-appointment-settings.response';
 import {
   CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY,
   IClinicAppointmentSettingsQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings.repository.interface';
 import { ClinicAppointmentSettings } from '@modules/organization/clinic/domain/entities/clinic-appointment-settings.entity';
+import {
+  CLINIC_CACHE_SERVICE,
+  IClinicCacheService,
+} from '@modules/organization/clinic/domain/interfaces/clinic-cache.service.interface';
 
 @QueryHandler(GetClinicAppointmentSettingsQuery)
 export class GetClinicAppointmentSettingsHandler
@@ -18,12 +25,22 @@ export class GetClinicAppointmentSettingsHandler
 {
   constructor(
     @Inject(CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY)
-    private readonly appointmentSettingsQueryRepo: IClinicAppointmentSettingsQueryRepository
+    private readonly appointmentSettingsQueryRepo: IClinicAppointmentSettingsQueryRepository,
+    @Inject(CLINIC_CACHE_SERVICE)
+    private readonly cacheService: IClinicCacheService
   ) {}
 
   async execute(
     query: GetClinicAppointmentSettingsQuery
   ): Promise<GetClinicAppointmentSettingsResponse> {
+    // Cache-aside: randevu oluşturma gibi hot-path'ler bu sorguyu sık çağırır;
+    // önce Redis'e bakılır, yoksa DB'den okunup TTL ile cache'lenir.
+    const cached = await this.cacheService
+      .clinicAppointmentSettings<ClinicAppointmentSettingsView>()
+      .get(query.clinicId);
+
+    if (cached) return { data: cached };
+
     // Satır henüz yoksa DB default'ları geçerli — entity `createDefault` ile
     // birebir aynı varsayılanlar döner (6/24 saat, patient iptal açık vb.).
     const settings =
@@ -31,15 +48,25 @@ export class GetClinicAppointmentSettingsHandler
         query.clinicId
       )) ?? ClinicAppointmentSettings.createDefault(query.clinicId);
 
-    return {
-      data: {
-        clinicId: settings.clinicId.value,
-        rescheduleLimitHours: settings.rescheduleLimitHours,
-        cancelLimitHours: settings.cancelLimitHours,
-        allowPatientCancel: settings.allowPatientCancel,
-        requireConfirmation: settings.requireConfirmation,
-        maxFutureBookingDays: settings.maxFutureBookingDays,
-      },
+    const view: ClinicAppointmentSettingsView = {
+      clinicId: settings.clinicId.value,
+      allowPatientBooking: settings.allowPatientBooking,
+      rescheduleLimitHours: settings.rescheduleLimitHours,
+      cancelLimitHours: settings.cancelLimitHours,
+      allowPatientCancel: settings.allowPatientCancel,
+      requireConfirmation: settings.requireConfirmation,
+      maxActivePatientBookings: settings.maxActivePatientBookings,
+      maxFutureBookingDays: settings.maxFutureBookingDays,
+      slotDurationMinutes: settings.slotDurationMinutes,
+      staffAllowOverbooking: settings.staffAllowOverbooking,
+      sendSmsReminderHours: settings.sendSmsReminderHours,
+      requireReminderResponse: settings.requireReminderResponse,
     };
+
+    await this.cacheService
+      .clinicAppointmentSettings()
+      .set(query.clinicId, view);
+
+    return { data: view };
   }
 }

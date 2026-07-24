@@ -1,14 +1,18 @@
 import { ICommand } from '@nestjs/cqrs';
-import { CreatePaymentDto } from '@shared/modules/payment/dto';
+import { CreatePayment } from '@shared';
 
 export type CreatePaymentCommandResponse = string;
-type InternalRelations = { paymentId: string; installmentId?: string };
+
+type CreatePaymentInternalRelations = {
+  paymentId: string;
+  installmentId?: string;
+};
 
 export class CreatePaymentCommand implements ICommand {
   readonly __responseType!: CreatePaymentCommandResponse;
 
   constructor(
-    public readonly dto: CreatePaymentDto,
-    public readonly internalRelations?: InternalRelations
+    public readonly data: CreatePayment,
+    public readonly internalRelations?: CreatePaymentInternalRelations
   ) {}
 }

@@ -3,7 +3,7 @@ import { SubscriptionController } from './controllers/subscription.controller';
 import { SubscriptionAdminController } from './controllers/subscription-admin.controller';
 import { SubscriptionCommandModule } from '@modules/platform/subscription/application/commands/command.module';
 import { SubscriptionQueryModule } from '@modules/platform/subscription/application/queries/query.module';
-import { ModuleEntitlementGuard } from './guards/module-entitlement.guard';
+import { ModuleEntitlementGuard } from '@modules/platform/subscription/presentation/guards/module-entitlement.guard';
 
 @Module({
   imports: [SubscriptionCommandModule, SubscriptionQueryModule],

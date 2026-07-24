@@ -32,12 +32,9 @@ export class FindOneWithIdOrEmailHandler
 
     if (!user) throw new UserNotFoundException();
 
-    const { policy } = this.policyFactory.user(ctx.actor);
-
-    const serializationOptions = policy.getSerializeOptions(
-      user.id.value,
-      user?.clinicId?.value
-    );
+    const serializationOptions = this.policyFactory
+      .user(ctx.actor, ctx.source)
+      .policy.getSerializationOptions(user.id.value, user?.clinicId?.value);
 
     return {
       data: user.toPersistence(),

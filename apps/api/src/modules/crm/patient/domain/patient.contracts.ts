@@ -2,6 +2,21 @@ import { z } from 'zod';
 import { Decimal } from 'decimal.js';
 import BloodTypeSchema from '@input-type-schemas/BloodTypeSchema';
 import { GenderSchema, PatientTypeSchema } from '@shared';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
+
+// ==========================================
+// HASTA SERİLEŞTİRME GRUPLARI (RESPONSE GROUPS)
+// ==========================================
+// Staff tarafındaki hasta cevaplarının alan görünürlüğünü belirler.
+// MEDICAL, hasta kaydının tıbbi bağlamını (kan grubu, checkup, klinik notlar)
+// yalnızca klinik/tıbbi personele açmak için genel gruplara eklenir.
+export const PatientResponseGroups = {
+  ...ResponseGroups,
+  MEDICAL: 'MEDICAL',
+} as const;
+
+export type PatientResponseGroup =
+  (typeof PatientResponseGroups)[keyof typeof PatientResponseGroups];
 
 // ==========================================
 // HASTA OLUŞTURMA SÖZLEŞMESİ (PROPS)

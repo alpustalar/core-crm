@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { GetIncomeStatementQuery } from '@modules/finance/accounting/posting/app
 import { GetBalanceSheetQuery } from '@modules/finance/accounting/posting/application/queries/get-balance-sheet/get-balance-sheet.query';
 import { GetCashFlowQuery } from '@modules/finance/accounting/posting/application/queries/get-cash-flow/get-cash-flow.query';
 import { GetVatDeclarationQuery } from '@modules/finance/accounting/posting/application/queries/get-vat-declaration/get-vat-declaration.query';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Resmî muhasebe raporları (şube/defter bazlı): Mizan, ileride Defter-i Kebir +
@@ -29,16 +31,17 @@ export class AccountingReportsController {
   @Get('trial-balance')
   trialBalance(
     @GetContext() ctx: IGetContext,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetTrialBalanceQuery(
-        this.resolveClinicId(ctx),
+      new GetTrialBalanceQuery({
+        clinicId,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 
@@ -46,6 +49,7 @@ export class AccountingReportsController {
   ledger(
     @GetContext() ctx: IGetContext,
     @Query('accountCode') accountCode: string,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
@@ -53,13 +57,13 @@ export class AccountingReportsController {
       throw new BadRequestException('accountCode zorunludur.');
     }
     return this.queryBus.execute(
-      new GetAccountLedgerQuery(
-        this.resolveClinicId(ctx),
+      new GetAccountLedgerQuery({
+        clinicId,
         accountCode,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 
@@ -67,89 +71,86 @@ export class AccountingReportsController {
   journal(
     @GetContext() ctx: IGetContext,
     @Query() pagination: PaginationDto,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetJournalReportQuery(
-        this.resolveClinicId(ctx),
+      new GetJournalReportQuery({
+        clinicId,
         pagination,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 
   @Get('income-statement')
   incomeStatement(
     @GetContext() ctx: IGetContext,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetIncomeStatementQuery(
-        this.resolveClinicId(ctx),
+      new GetIncomeStatementQuery({
+        clinicId,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 
   @Get('balance-sheet')
   balanceSheet(
     @GetContext() ctx: IGetContext,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetBalanceSheetQuery(
-        this.resolveClinicId(ctx),
+      new GetBalanceSheetQuery({
+        clinicId,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 
   @Get('cash-flow')
   cashFlow(
     @GetContext() ctx: IGetContext,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetCashFlowQuery(
-        this.resolveClinicId(ctx),
+      new GetCashFlowQuery({
+        clinicId,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
   }
 
   @Get('vat-declaration')
   vatDeclaration(
     @GetContext() ctx: IGetContext,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string
   ) {
     return this.queryBus.execute(
-      new GetVatDeclarationQuery(
-        this.resolveClinicId(ctx),
+      new GetVatDeclarationQuery({
+        clinicId,
         ctx,
-        dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
-      )
+        dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
+        dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+      })
     );
-  }
-
-  private resolveClinicId(ctx: IGetContext): string {
-    const clinicId = ctx.actor.clinicId;
-    if (!clinicId) {
-      throw new BadRequestException('Aktörün clinic bağlamı yok.');
-    }
-    return clinicId;
   }
 }

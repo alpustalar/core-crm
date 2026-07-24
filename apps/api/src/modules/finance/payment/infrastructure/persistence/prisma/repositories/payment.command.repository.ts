@@ -54,31 +54,19 @@ export class PaymentCommandRepository
   }
 
   async save(entity: Payment): Promise<Payment> {
-    const create = entity.toPersistence();
+    const persistenceData = entity.toPersistence();
 
-    const { id, ...update } = create;
+    const { id, ...data } = persistenceData;
 
-    const paymentOp = this.db.payment.upsert({
+    const paymentOp = this.db.payment.update({
       where: { id },
-      create,
-      update,
+      data,
     });
+    // Taksitler ödeme ile birlikte create()'te açılır → save yalnız durum günceller.
     const installmentOps = entity.installments.map((inst) =>
-      this.db.paymentInstallment.upsert({
+      this.db.paymentInstallment.update({
         where: { id: inst.id },
-        create: {
-          id: inst.id,
-          paymentId: inst.paymentId,
-          installmentNo: inst.installmentNo,
-          amount: inst.amount,
-          currency: inst.currency,
-          method: inst.method,
-          status: inst.status,
-          dueDate: inst.dueDate,
-          paidAt: inst.paidAt,
-          note: inst.note,
-        },
-        update: { status: inst.status, paidAt: inst.paidAt },
+        data: { status: inst.status, paidAt: inst.paidAt },
       })
     );
 

@@ -1,14 +1,22 @@
 import { AiToolExecutor } from './ai-tool-executor.service';
+import { AiToolRegistry } from './ai-tool.registry';
+import { AiToolSupport } from './ai-tool.support';
+import { DiscoveryService } from '@nestjs/core';
+import { SearchTransfersTool } from '@modules/crm/health-tourism/transfer/application/ai-tools/search-transfers.tool';
+import { BookTransferTool } from '@modules/crm/health-tourism/transfer/application/ai-tools/book-transfer.tool';
+import { GetTransferBookingsTool } from '@modules/crm/health-tourism/transfer/application/ai-tools/get-transfer-bookings.tool';
+import { CancelTransferBookingTool } from '@modules/crm/health-tourism/transfer/application/ai-tools/cancel-transfer-booking.tool';
 import { AI_TOOL_NAMES } from './ai-tool.definitions';
 import { AiToolContext } from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { GetClinicHealthTourismConfigQuery } from '@modules/crm/health-tourism/config/application/queries/get-clinic-health-tourism-config/get-clinic-health-tourism-config.query';
 import { SearchTransferAvailabilityQuery } from '@modules/crm/health-tourism/transfer/application/queries/search-transfer-availability/search-transfer-availability.query';
 import { GetTransferBookingsQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-bookings/get-transfer-bookings.query';
+import { GetTransferRateOptionQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-rate-option/get-transfer-rate-option.query';
+import { CacheTransferRateOptionCommand } from '@modules/crm/health-tourism/transfer/application/commands/cache-transfer-rate-option/cache-transfer-rate-option.command';
 import { InitiateBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.command';
-import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 
 describe('AiToolExecutor — transfer araçları (B3)', () => {
   const context: AiToolContext = {
@@ -56,16 +64,9 @@ describe('AiToolExecutor — transfer araçları (B3)', () => {
     bookings?: unknown[];
     config?: unknown;
   }) => {
+    // Rate-option cache artık bus üzerinden: CacheTransferRateOptionCommand (yaz) +
+    // GetTransferRateOptionQuery (oku).
     const store = new Map<string, unknown>();
-    const redis = {
-      setTransferRateOption: jest.fn((t: string, d: unknown) => {
-        store.set(t, d);
-        return Promise.resolve();
-      }),
-      getTransferRateOption: jest.fn((t: string) =>
-        Promise.resolve(store.get(t) ?? null)
-      ),
-    } as unknown as RedisService;
 
     const queryBus = {
       execute: jest.fn((q: unknown) => {
@@ -83,22 +84,49 @@ describe('AiToolExecutor — transfer araçları (B3)', () => {
             data: overrides?.bookings ?? [],
           });
         }
+        if (q instanceof GetTransferRateOptionQuery) {
+          return Promise.resolve({ data: store.get(q.optionId) ?? null });
+        }
         throw new Error('beklenmeyen query');
       }),
     } as unknown as TSQueryBus;
 
     const commandBus = {
-      execute: jest.fn().mockResolvedValue({
-        bookingPaymentId: 'bp-tr-1',
-        saleAmount: 45,
-        saleCurrency: 'EUR',
-        iyzico: { url: 'https://iyzi/pay/bp-tr-1', amount: 1575, currency: 'TRY' },
-        stripe: { url: 'https://stripe/pay/bp-tr-1', amount: 45, currency: 'EUR' },
+      execute: jest.fn((c: unknown) => {
+        if (c instanceof CacheTransferRateOptionCommand) {
+          store.set(c.optionId, c.token);
+          return Promise.resolve(undefined);
+        }
+        return Promise.resolve({
+          bookingPaymentId: 'bp-tr-1',
+          saleAmount: 45,
+          saleCurrency: 'EUR',
+          iyzico: {
+            url: 'https://iyzi/pay/bp-tr-1',
+            amount: 1575,
+            currency: 'TRY',
+          },
+          stripe: {
+            url: 'https://stripe/pay/bp-tr-1',
+            amount: 45,
+            currency: 'EUR',
+          },
+        });
       }),
     } as unknown as TSCommandBus;
 
+    // Command+Strategy: araçlar registry'de; executor yalnız dispatch eder.
+    const support = new AiToolSupport(commandBus, queryBus);
+    const registry = new AiToolRegistry({} as DiscoveryService);
+    registry.registerAll([
+      new SearchTransfersTool(commandBus, queryBus, support),
+      new BookTransferTool(commandBus, queryBus, support),
+      new GetTransferBookingsTool(support),
+      new CancelTransferBookingTool(commandBus, support),
+    ]);
+
     return {
-      executor: new AiToolExecutor(commandBus, queryBus, redis),
+      executor: new AiToolExecutor(registry),
       commandBus,
       store,
     };
@@ -178,8 +206,12 @@ describe('AiToolExecutor — transfer araçları (B3)', () => {
     expect(body.fxLink.currency).toBe('EUR');
     expect(res.content).not.toContain('TR-RK-OPAQUE-1');
 
-    const cmd = (commandBus.execute as jest.Mock).mock
-      .calls[0][0] as InitiateBookingPaymentCommand;
+    // Arama adımı CacheTransferRateOptionCommand da dispatch eder; ödeme komutunu ayıkla.
+    const cmd = (commandBus.execute as jest.Mock).mock.calls
+      .map((c) => c[0])
+      .find(
+        (c) => c instanceof InitiateBookingPaymentCommand
+      ) as InitiateBookingPaymentCommand;
     expect(cmd).toBeInstanceOf(InitiateBookingPaymentCommand);
     expect(cmd.input.bookingType).toBe('TRANSFER');
     expect(cmd.input.netAmount).toBe(45);
@@ -216,7 +248,11 @@ describe('AiToolExecutor — transfer araçları (B3)', () => {
       context
     );
     expect(res.content).toContain('uçuş numarası');
-    expect(commandBus.execute).not.toHaveBeenCalled();
+    // Arama adımı rate-option cache command'i dispatch eder; ödeme komutu dispatch EDİLMEZ.
+    const paymentDispatched = (commandBus.execute as jest.Mock).mock.calls
+      .map((c) => c[0])
+      .some((c) => c instanceof InitiateBookingPaymentCommand);
+    expect(paymentDispatched).toBe(false);
   });
 
   it('cancel_transfer_booking: yazışmaya ait olmayan referans reddedilir', async () => {

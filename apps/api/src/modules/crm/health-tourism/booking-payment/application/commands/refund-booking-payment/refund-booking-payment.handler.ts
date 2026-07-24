@@ -64,8 +64,8 @@ export class RefundBookingPaymentHandler
         : this.stripeLink;
     const amount =
       bp.paidProvider === PaymentProviders.IYZICO
-        ? bp.tryAmount.amount.toNumber()
-        : bp.saleAmount.amount.toNumber();
+        ? bp.tryAmount.value.toNumber()
+        : bp.saleAmount.value.toNumber();
     const currency =
       bp.paidProvider === PaymentProviders.IYZICO
         ? Currency.enum.TRY

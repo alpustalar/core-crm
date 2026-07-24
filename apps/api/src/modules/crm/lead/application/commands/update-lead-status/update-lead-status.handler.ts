@@ -3,9 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateLeadStatusCommand } from './update-lead-status.command';
 import {
   ILeadCommandRepository,
-  ILeadQueryRepository,
   LEAD_COMMAND_REPOSITORY,
-  LEAD_QUERY_REPOSITORY,
 } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
 import {
   ILeadEventPublisher,
@@ -19,6 +17,10 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { LeadStatusSchema } from '@shared';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(UpdateLeadStatusCommand)
 export class UpdateLeadStatusHandler
@@ -27,39 +29,53 @@ export class UpdateLeadStatusHandler
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadCommandRepo: ILeadCommandRepository,
-    @Inject(LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: ILeadQueryRepository,
     @Inject(LEAD_EVENT_PUBLISHER)
     private readonly eventPublisher: ILeadEventPublisher,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: UpdateLeadStatusCommand): Promise<void> {
-    const { leadId, dto, ctx } = command;
-    const { actor } = ctx;
+    const { leadId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
       const lead = await this.leadCommandRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
+      this.policyFactory
+        .clinic(ctx.actor, ctx.source)
+        .evaluator.check((p) =>
+          p.actorCanAccessTargetClinic(lead.clinicId.value)
+        )
+        .orThrow();
+
+      const validateOptions = this.policyFactory
+        .entity(ctx.actor, ctx.source)
+        .policy.getValidateOptions();
+
       const previousStatus = lead.status;
 
-      if (dto.status === LeadStatusSchema.enum.CONTACTED) {
+      if (data.status === LeadStatusSchema.enum.CONTACTED) {
+        lead.rules(validateOptions).contact().orThrow();
         lead.contact();
-      } else if (dto.status === LeadStatusSchema.enum.QUALIFIED) {
+      } else if (data.status === LeadStatusSchema.enum.QUALIFIED) {
+        lead.rules(validateOptions).qualify().orThrow();
         lead.qualify();
       }
 
-      if (dto.notes) lead.updateNotes(dto.notes);
+      if (data.notes) lead.updateNotes(data.notes);
 
       const saved = await this.leadCommandRepo.save(lead);
+
+      // TODO: event entity içinde raise edilecek
 
       this.eventPublisher.leadStatusChanged({
         leadId: lead.id.value,
         clinicId: lead.clinicId.value,
         previousStatus,
         newStatus: saved.status,
-        actorId: actor.userId,
+        actorId: ctx.actor.userId,
         source: LogSource.WEB,
         action: LogAction.LEAD_STATUS_CHANGED,
         type: LogType.INFO,

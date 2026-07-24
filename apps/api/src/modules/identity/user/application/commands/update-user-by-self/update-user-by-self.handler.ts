@@ -1,14 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   IUserCommandRepository,
-  IUserQueryRepository,
   USER_COMMAND_REPOSITORY,
-  USER_QUERY_REPOSITORY,
 } from '@modules/identity/user/domain/repositories/user.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { UpdateUserBySelfCommand } from './update-user-by-self.command';
 import { UpdateUserBySelfResponse } from './update-user-by-self.response';
+import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
 
 @CommandHandler(UpdateUserBySelfCommand)
 export class UpdateUserBySelfHandler
@@ -17,23 +16,21 @@ export class UpdateUserBySelfHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userCommandRepo: IUserCommandRepository,
-    @Inject(USER_QUERY_REPOSITORY)
-    private readonly userQueryRepo: IUserQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: UpdateUserBySelfCommand): Promise<void> {
-    const { dto, actor } = command;
+    const { data, actor } = command;
 
-    const user = await this.userQueryRepo.find(actor.userId);
+    const user = await this.userCommandRepo.findById(actor.userId);
 
-    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
+    if (!user) throw new UserNotFoundException();
 
     user.updateDetails(
       {
-        displayName: dto.displayName,
-        picture: dto.picture,
-        phoneNumber: dto.phoneNumber,
+        displayName: data.displayName,
+        picture: data.picture,
+        phoneNumber: data.phoneNumber,
       },
       actor.userId
     );

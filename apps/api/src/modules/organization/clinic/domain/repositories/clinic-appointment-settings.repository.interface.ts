@@ -9,7 +9,12 @@ export const CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY = Symbol(
 );
 
 export type IClinicAppointmentSettingsCommandRepository =
-  IBaseCommandRepository<ClinicAppointmentSettings>;
+  IBaseCommandRepository<ClinicAppointmentSettings> & {
+    /** clinicId unique → get-or-create (upsert). */
+    upsertByClinicId(
+      entity: ClinicAppointmentSettings
+    ): Promise<ClinicAppointmentSettings>;
+  };
 
 export interface IClinicAppointmentSettingsQueryRepository {
   findByClinicId(clinicId: string): Promise<ClinicAppointmentSettings | null>;

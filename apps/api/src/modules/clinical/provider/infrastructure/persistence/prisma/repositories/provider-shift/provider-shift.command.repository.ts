@@ -28,12 +28,11 @@ export class ProviderShiftCommandRepository
   }
 
   async save(entity: ProviderShift) {
-    const create = entity.toPersistence();
-    const { id, ...update } = create;
-    const raw = await this.db.providerShift.upsert({
+    const data = entity.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.providerShift.update({
       where: { id },
-      create,
-      update,
+      data: update,
     });
     entity.flushEvents();
     return new ProviderShift(raw);

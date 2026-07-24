@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
-} from '@modules/identity/auth/firebase/domain/interfaces/firebase.service.interface';
+} from '@src/infrastructure/firebase/firebase.service.interface';
 import { ChangePasswordHandler } from './change-password.handler';
 import { ChangePasswordCommand } from './change-password.command';
 

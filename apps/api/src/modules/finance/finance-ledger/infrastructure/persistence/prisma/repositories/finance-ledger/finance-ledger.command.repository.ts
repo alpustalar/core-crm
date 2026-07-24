@@ -15,13 +15,9 @@ export class FinanceLedgerCommandRepository
     super(prisma);
   }
 
-  async save(entry: FinanceLedgerEntity): Promise<FinanceLedgerEntity> {
+  async create(entry: FinanceLedgerEntity): Promise<FinanceLedgerEntity> {
     const data = entry.toPersistence();
-    const raw = await this.db.financeLedger.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
-    });
+    const raw = await this.db.financeLedger.create({ data });
     entry.flushEvents();
     return new FinanceLedgerEntity(raw);
   }

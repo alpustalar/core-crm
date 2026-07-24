@@ -27,6 +27,8 @@ import { EnsurePartyForPatientCommand } from '@modules/finance/party/application
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 @CommandHandler(PaxSaleCommand)
 export class PaxSaleHandler
@@ -53,7 +55,7 @@ export class PaxSaleHandler
       throw new PosDeviceNotFoundException();
     }
 
-    device.validate.status.isActive().orThrow();
+    device.validate.status.isActive.orThrow();
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
     const { posTransactionId, transaction, paymentId } =
@@ -120,7 +122,7 @@ export class PaxSaleHandler
             await this.recordPosPaymentReceived({
               patientId: input.patientId,
               clinicId: input.clinicId,
-              amount: transaction.amount.amount.toString(),
+              amount: transaction.amount.value.toString(),
               posTransactionId,
             });
           }
@@ -211,13 +213,14 @@ export class PaxSaleHandler
       await this.commandBus.execute(
         new RecordFinancialEventCommand(
           {
-            organizationId,
             clinicId: input.clinicId,
             type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: { method: 'POS_CARD', amount: input.amount, partyId },
-            sourceModule: 'pos',
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.POS,
             sourceRefId: input.posTransactionId,
-            dedupeKey: `payment-received:pos:${input.posTransactionId}`,
+            dedupeKey: FinancialEventDedupeKeys.payment_received_pos(
+              input.posTransactionId
+            ),
           },
           ctx
         )

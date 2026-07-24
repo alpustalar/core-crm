@@ -7,6 +7,10 @@ import {
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  IPatientPolicyFactory,
+  PATIENT_POLICY_FACTORY,
+} from '@modules/platform/policy/patient/domain/interfaces/patient-policy-factory.interface';
 
 @QueryHandler(GetPatientAppointmentsQuery)
 export class GetPatientAppointmentsHandler
@@ -18,22 +22,31 @@ export class GetPatientAppointmentsHandler
 {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentRepo: IAppointmentQueryRepository
+    private readonly appointmentRepo: IAppointmentQueryRepository,
+    @Inject(PATIENT_POLICY_FACTORY)
+    private readonly patientPolicyFactory: IPatientPolicyFactory
   ) {}
 
   async execute(
     query: GetPatientAppointmentsQuery
   ): Promise<GetPatientAppointmentsQueryResponse> {
-    const { patientId, pagination } = query;
+    const { patientId, pagination, ctx } = query.payload;
     const { items, total } = await this.appointmentRepo.findByPatientId(
       pagination,
       patientId
     );
 
+    const anyPatientAppointment = items[0];
+
+    const serializationOptions = this.patientPolicyFactory
+      .appointment(ctx.actor, ctx.source)
+      .policy.getSerializationOptions(anyPatientAppointment);
+
     return {
-      data: items.map((item) => item.toPersistence()),
+      data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
+        serializationOptions,
       },
     };
   }

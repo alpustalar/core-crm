@@ -456,6 +456,14 @@ export const CLINIC_CHART_OF_ACCOUNTS_TEMPLATE: readonly AccountTemplateNode[] =
       isPostable: true,
     },
     {
+      code: '679',
+      name: 'Diğer Olağandışı Gelir ve Karlar',
+      parentCode: null,
+      type: REVENUE,
+      normalSide: CREDIT,
+      isPostable: true,
+    },
+    {
       code: '689',
       name: 'Diğer Olağandışı Gider ve Zararlar',
       parentCode: null,

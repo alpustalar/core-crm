@@ -9,7 +9,7 @@ import { IMetaAdsEventPublisher } from '@modules/crm/meta-ads/domain/interfaces/
 import {
   CONTEXT_SERVICE,
   IContextService,
-} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+} from '@src/infrastructure/context/context.service.interface';
 
 @Injectable()
 export class MetaAdsEventPublisher implements IMetaAdsEventPublisher {

@@ -1,5 +1,11 @@
-import { RegisterOrganizationAccountDto } from '@shared';
+import { RegisterOrganizationAccount } from '@shared';
+import { IGetContext } from '@common/decorators';
 
 export class RegisterOrganizationAccountCommand {
-  constructor(public readonly dto: RegisterOrganizationAccountDto) {}
+  constructor(
+    public readonly payload: {
+      data: RegisterOrganizationAccount;
+      ctx: IGetContext;
+    }
+  ) {}
 }

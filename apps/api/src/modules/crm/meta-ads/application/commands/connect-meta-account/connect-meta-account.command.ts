@@ -1,11 +1,15 @@
 import { ICommand } from '@nestjs/cqrs';
-import { ConnectMetaAccountDto } from '@shared/modules/meta-ads/dto/commands';
 import { IGetContext } from '@common/decorators/get-context.decorator';
+import { ConnectMetaAccount } from '@shared/modules/meta-ads';
+import { ConnectMetaAccountResponse } from '@modules/crm/meta-ads/application/commands/connect-meta-account/connect-meta-account.response';
+
+export interface ConnectMetaAccountCommandPayload {
+  clinicId: string;
+  data: ConnectMetaAccount;
+  ctx: IGetContext;
+}
 
 export class ConnectMetaAccountCommand implements ICommand {
-  constructor(
-    public readonly dto: ConnectMetaAccountDto,
-    public readonly clinicId: string,
-    public readonly ctx: IGetContext,
-  ) {}
+  readonly __responseType!: ConnectMetaAccountResponse;
+  constructor(public readonly payload: ConnectMetaAccountCommandPayload) {}
 }

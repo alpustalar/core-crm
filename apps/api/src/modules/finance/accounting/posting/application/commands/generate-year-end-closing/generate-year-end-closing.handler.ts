@@ -13,6 +13,10 @@ import { AccountResolver } from '@modules/finance/accounting/posting/domain/post
 import { GenerateYearEndClosingCommand } from './generate-year-end-closing.command';
 import { YearEndClosingService } from '@modules/finance/accounting/posting/domain/services/year-and-closing.service';
 import { isEmpty } from '@common/utils';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(GenerateYearEndClosingCommand)
 export class GenerateYearEndClosingHandler
@@ -23,6 +27,8 @@ export class GenerateYearEndClosingHandler
     private readonly journalCommandRepo: IJournalCommandRepository,
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -63,8 +69,8 @@ export class GenerateYearEndClosingHandler
           input.periodId
         );
 
-        entry.post(entryNo); // Durumu 'POSTED' yapıp fiş numarasını aggregate içine mühürle
-        await this.journalCommandRepo.save(entry);
+        entry.post(entryNo);
+        await this.journalCommandRepo.create(entry);
       }
     });
   }

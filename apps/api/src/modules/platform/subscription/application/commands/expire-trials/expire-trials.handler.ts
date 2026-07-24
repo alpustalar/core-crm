@@ -8,6 +8,7 @@ import {
   SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(ExpireTrialsCommand)
 export class ExpireTrialsHandler
@@ -25,7 +26,7 @@ export class ExpireTrialsHandler
 
   async execute(): Promise<void> {
     const trials = await this.subscriptionQueryRepo.findExpiredTrials(
-      new Date()
+      DateTimeManager.create()
     );
     if (trials.length === 0) return;
 

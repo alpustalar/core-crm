@@ -8,6 +8,10 @@ import {
   PAYMENT_COMMAND_REPOSITORY,
   PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MarkInstallmentAsCancelledCommand)
 export class MarkInstallmentAsCancelledHandler
@@ -17,7 +21,9 @@ export class MarkInstallmentAsCancelledHandler
     @Inject(PAYMENT_QUERY_REPOSITORY)
     private readonly paymentQueryRepo: IPaymentQueryRepository,
     @Inject(PAYMENT_COMMAND_REPOSITORY)
-    private readonly paymentCommandRepo: IPaymentCommandRepository
+    private readonly paymentCommandRepo: IPaymentCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: MarkInstallmentAsCancelledCommand): Promise<void> {
@@ -25,8 +31,14 @@ export class MarkInstallmentAsCancelledHandler
     const payment =
       await this.paymentQueryRepo.findByInstallmentId(installmentId);
 
-    if (!payment)
-      throw new InstallmentNotFoundException(installmentId);
+    if (!payment) throw new InstallmentNotFoundException(installmentId);
+
+    const validateOptions = this.policyFactory
+      .entity(command.ctx.actor, command.ctx.source)
+      .policy.getValidateOptions();
+
+    payment.rules(validateOptions).canCancel().orThrow();
+
     payment.cancelInstallment(installmentId);
     await this.paymentCommandRepo.save(payment);
   }

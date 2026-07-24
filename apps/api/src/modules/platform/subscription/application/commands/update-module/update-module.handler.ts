@@ -6,6 +6,8 @@ import {
   MODULE_COMMAND_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/module.repository.interface';
 import { SubscriptionModuleNotFoundException } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { isDefined } from '@common/utils';
 
 @CommandHandler(UpdateModuleCommand)
 export class UpdateModuleHandler
@@ -17,16 +19,21 @@ export class UpdateModuleHandler
   ) {}
 
   async execute(command: UpdateModuleCommand): Promise<void> {
-    const module = await this.moduleCommandRepo.findById(command.moduleId);
+    const { payload } = command;
+    const module = await this.moduleCommandRepo.findById(payload.moduleId);
     if (!module) {
-      throw new SubscriptionModuleNotFoundException(command.moduleId);
+      throw new SubscriptionModuleNotFoundException(payload.moduleId);
     }
 
-    if (command.monthlyPrice !== undefined) {
-      module.updatePrice(command.monthlyPrice, command.currency);
+    if (isNotUndefined(payload.monthlyPrice)) {
+      module.updatePrice(payload.monthlyPrice, payload.currency);
     }
-    if (command.isActive !== undefined) {
-      command.isActive ? module.activate() : module.deactivate();
+    if (isDefined(payload.isActive)) {
+      if (payload.isActive) {
+        module.activate();
+      } else {
+        module.deactivate();
+      }
     }
 
     await this.moduleCommandRepo.save(module);

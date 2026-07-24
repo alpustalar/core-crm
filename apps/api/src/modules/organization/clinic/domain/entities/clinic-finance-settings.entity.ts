@@ -224,12 +224,8 @@ export class ClinicFinanceSettings {
       })
       .orThrow();
 
-    const settingsId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     return new ClinicFinanceSettings({
-      id: settingsId.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       defaultCurrency: currency.value,
       roundingType: props.roundingType ?? RoundingDirectionSchema.enum.NONE,

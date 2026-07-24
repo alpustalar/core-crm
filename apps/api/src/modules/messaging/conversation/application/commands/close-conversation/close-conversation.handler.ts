@@ -23,10 +23,10 @@ export class CloseConversationHandler
 
   async execute(command: CloseConversationCommand): Promise<void> {
     const conversation = await this.conversationQueryRepo.findById(
-      command.conversationId
+      command.payload.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== command.clinicId) {
+    if (conversation.clinicId !== command.payload.clinicId) {
       throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
     }
 

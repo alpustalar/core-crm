@@ -9,6 +9,8 @@ import {
   CreateClinicGovernmentSpecsProps,
   UpdateClinicGovernmentSpecsProps,
 } from '@modules/organization/clinic-governance/domain/clinic-governance.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Kliniğin devlet/regülasyon kimliği (platform/governance bounded-context).
@@ -74,9 +76,9 @@ export class ClinicGovernmentSpecs extends AggregateRoot {
   public static create(
     props: CreateClinicGovernmentSpecsProps
   ): ClinicGovernmentSpecs {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new ClinicGovernmentSpecs({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
       healthFacilityCode: props.healthFacilityCode,
       ussPassword: props.ussPassword ?? null,
@@ -102,16 +104,16 @@ export class ClinicGovernmentSpecs extends AggregateRoot {
 
   public toPersistence(): IClinicGovernmentSpecs {
     return {
-      id: this._id,
-      healthFacilityCode: this._healthFacilityCode,
-      ussPassword: this._ussPassword,
-      companyTaxNumber: this._companyTaxNumber
-        ? this._companyTaxNumber.value
+      id: this.id,
+      healthFacilityCode: this.healthFacilityCode,
+      ussPassword: this.ussPassword,
+      companyTaxNumber: this.companyTaxNumber
+        ? this.companyTaxNumber.value
         : null,
-      legalType: this._legalType,
-      clinicId: this._clinicId,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      legalType: this.legalType,
+      clinicId: this.clinicId,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

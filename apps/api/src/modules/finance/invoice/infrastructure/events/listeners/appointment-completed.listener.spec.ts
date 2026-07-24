@@ -37,7 +37,7 @@ describe('AppointmentCompletedInvoiceListener', () => {
       trigger: 'APPOINTMENT',
     });
     // Tutar artık Money VO olarak taşınır.
-    expect(input.totalAmount.amount.toNumber()).toBe(250);
+    expect(input.totalAmount.value.toNumber()).toBe(250);
     expect(input.totalAmount.currency).toBe('TRY');
   });
 

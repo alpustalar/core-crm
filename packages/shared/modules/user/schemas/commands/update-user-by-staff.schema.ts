@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { CreateUserSchema } from '@shared/modules/user/schemas/commands/create-user.schema';
+import { RegisterUserOrProviderAccountSchema } from '@shared/modules/registration/schemas/commands/register-user-or-provider-account.schema';
 import { GlobalStatusSchema } from '@shared/generated-zod';
 
 export const UpdateUserByStaffSchema = z.lazy(() =>
-  CreateUserSchema.omit({ providerProfile: true }).partial().extend({
+  RegisterUserOrProviderAccountSchema.omit({ providerProfile: true }).partial().extend({
     status: GlobalStatusSchema.optional(),
     managedClinicIds: z
       .array(z.uuid({ message: 'Dizi içindeki Klinik ID geçersiz formatta' }))

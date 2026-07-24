@@ -39,7 +39,7 @@ export const CreateMetaLeadDataSchema = z.object({
   adId: z.string().nullable().optional(),
   name: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
-  email: z.string().email('Geçersiz e-posta formatı').nullable().optional(),
+  email: z.email('Geçersiz e-posta formatı').nullable().optional(),
 
   rawData: z.record(z.string(), z.unknown()).nullable().optional(),
 });
@@ -76,3 +76,14 @@ export const CreateMetaAdAccountPropsSchema = z.object({
 export type CreateMetaAdAccountProps = z.infer<
   typeof CreateMetaAdAccountPropsSchema
 >;
+
+export const oAuthStatePayloadSchema = z.object({
+  clinicId: z.uuid(),
+  userId: z.uuid(),
+});
+
+export type OAuthStatePayload = z.infer<typeof oAuthStatePayloadSchema>;
+
+export function isOAuthStatePayload(data: unknown): data is OAuthStatePayload {
+  return oAuthStatePayloadSchema.safeParse(data).success;
+}

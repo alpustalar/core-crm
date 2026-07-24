@@ -6,7 +6,6 @@ import {
   Patch,
   Post,
   UseGuards,
-  UseInterceptors,
   Version,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -14,7 +13,7 @@ import { AuthGuard } from '@modules/identity/auth/auth/guards';
 import { AuthService } from '@modules/identity/auth/auth/auth.service';
 import { CapabilityGuard } from '@modules/identity/auth/auth/guards/capability/capability.guard';
 import { THROTTLE_CONFIG } from '@common/constants';
-import { ChangeUserPasswordDto } from '@shared';
+import { ChangeUserPasswordDto, User } from '@shared';
 import {
   GetContext,
   IGetContext,
@@ -24,9 +23,11 @@ import { ChangePasswordCommand } from '@modules/identity/user/application/comman
 import { SendVerificationEmailCommand } from '@modules/identity/user/application/commands/send-verification-email';
 import { SendUserPasswordResetLinkBySelfCommand } from '@modules/identity/user/application/commands/send-user-password-reset-link-by-self';
 import { FindOneWithIdOrEmailQuery } from '@modules/identity/user/application/queries/find-one-with-id-or-email';
-import { UserTransformInterceptor } from '@modules/identity/user/presentation/user-transform.interceptor';
+
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { Serialize } from '@common/decorators/serialize.decorator';
+import { UserResponseDto } from '@modules/identity/user/presentation/dto';
 
 @UseGuards(AuthGuard, CapabilityGuard)
 @Controller('me')
@@ -37,9 +38,9 @@ export class MeController {
     private readonly authService: AuthService
   ) {}
 
-  @UseInterceptors(UserTransformInterceptor)
   @Version('1')
   @Get('')
+  @Serialize<User, UserResponseDto>(UserResponseDto)
   getProfile(@GetContext() ctx: IGetContext) {
     return this.queryBus.execute(
       new FindOneWithIdOrEmailQuery(ctx.actor.userId, ctx)

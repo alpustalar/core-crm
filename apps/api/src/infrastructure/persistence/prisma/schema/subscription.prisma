@@ -94,6 +94,10 @@ model Subscription {
   createdAt     DateTime                   @default(now()) @map("created_at")
   updatedAt     DateTime                   @updatedAt @map("updated_at")
 
+  // Optimistic concurrency control — her save() ile artar; guard'lı update eşzamanlı
+  // lost-update'i (ör. yenileme job'u vs. kullanıcı iptali yarışı) yakalar.
+  version Int @default(0)
+
   @@index([organizationId])
   @@map("subscriptions")
 }

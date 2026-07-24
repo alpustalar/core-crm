@@ -3,13 +3,15 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import IyzicoTransactionStatusSchema, {
   IyzicoTransactionStatusType as IyzicoTransactionStatus,
 } from '@input-type-schemas/IyzicoTransactionStatusSchema';
-import { randomUUID } from 'crypto';
 import {
   CreateIyzicoTransactionProps,
   MarkIyzicoFailedInput,
   MarkIyzicoRefundedInput,
   MarkIyzicoSuccessInput,
-} from '../iyzico-transaction.contracts';
+} from '../contracts/iyzico-transaction.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
  * iyzico sanal POS işlemini temsil eden domain entity. Durum geçişleri yalnızca `markAs*`
@@ -17,13 +19,10 @@ import {
  * güvenli): INITIALIZE → SUCCESS/FAILURE, SUCCESS → REFUNDED. Repository yalnızca `save`
  * (upsert) ile entity'nin o anki halini yazar.
  */
-export class IyzicoTransaction
-  extends AggregateRoot
-  implements IIyzicoTransaction
-{
+export class IyzicoTransaction extends AggregateRoot {
   constructor(data: IIyzicoTransaction) {
     super();
-    this._id = data.id;
+    this._id = UUID.fromTrusted(data.id);
     this._installmentId = data.installmentId;
     this._conversationId = data.conversationId;
     this._token = data.token;
@@ -37,8 +36,8 @@ export class IyzicoTransaction
     this._updatedAt = data.updatedAt;
   }
 
-  private _id: string;
-  get id(): string {
+  private _id: UUID;
+  get id(): UUID {
     return this._id;
   }
 
@@ -97,11 +96,39 @@ export class IyzicoTransaction
     return this._updatedAt;
   }
 
+  public get validate() {
+    return {
+      status: {
+        isInitialize: this.isInitialize,
+        isSuccess: this.isSuccess,
+      },
+    };
+  }
+
+  private get isInitialize() {
+    const is = this._status === IyzicoTransactionStatusSchema.enum.INITIALIZE;
+    return Guard.monitor(
+      is,
+      is,
+      () => new Error('Iyzico durumu "başlatıldı" değil')
+    );
+  }
+
+  private get isSuccess() {
+    const isSuccess =
+      this._status === IyzicoTransactionStatusSchema.enum.SUCCESS;
+    return Guard.monitor(
+      isSuccess,
+      isSuccess,
+      () => new Error('Iyzico durumu "başarılı" değil')
+    );
+  }
+
   /** Yeni iyzico işlemi (ödeme formu başlatıldığında) — status INITIALIZE. */
   public static create(props: CreateIyzicoTransactionProps): IyzicoTransaction {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new IyzicoTransaction({
-      id: props.id ?? randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       installmentId: props.installmentId,
       conversationId: props.conversationId,
       token: props.token ?? null,
@@ -116,27 +143,18 @@ export class IyzicoTransaction
     });
   }
 
-  public isInitialize(): boolean {
-    return this._status === IyzicoTransactionStatusSchema.enum.INITIALIZE;
-  }
-
-  public isSuccess(): boolean {
-    return this._status === IyzicoTransactionStatusSchema.enum.SUCCESS;
-  }
-
   /** Ödeme başarıyla tamamlandı — yalnız INITIALIZE'dan (idempotent: tekrar çağrı yok sayılır). */
   public markAsSuccess(input: MarkIyzicoSuccessInput): void {
-    if (!this.isInitialize()) return;
+    if (!this.isInitialize.value) return;
     this._status = IyzicoTransactionStatusSchema.enum.SUCCESS;
     this._iyzicoPaymentId = input.iyzicoPaymentId;
-    this._iyzicoPaymentTransactionId =
-      input.iyzicoPaymentTransactionId ?? null;
+    this._iyzicoPaymentTransactionId = input.iyzicoPaymentTransactionId ?? null;
     this._applyRawResponse(input.rawResponse);
   }
 
   /** Ödeme başarısız — yalnız INITIALIZE'dan (idempotent). */
   public markAsFailed(input: MarkIyzicoFailedInput): void {
-    if (!this.isInitialize()) return;
+    if (!this.isInitialize.value) return;
     this._status = IyzicoTransactionStatusSchema.enum.FAILURE;
     this._errorCode = input.errorCode ?? null;
     this._errorMessage = input.errorMessage ?? null;
@@ -145,25 +163,25 @@ export class IyzicoTransaction
 
   /** İade — yalnız başarılı (SUCCESS) işlemden (idempotent: tekrar çağrı yok sayılır). */
   public markAsRefunded(input: MarkIyzicoRefundedInput): void {
-    if (!this.isSuccess()) return;
+    if (!this.isSuccess.value) return;
     this._status = IyzicoTransactionStatusSchema.enum.REFUNDED;
     this._applyRawResponse(input.rawResponse);
   }
 
   public toPersistence(): IIyzicoTransaction {
     return {
-      id: this._id,
-      installmentId: this._installmentId,
-      conversationId: this._conversationId,
-      token: this._token,
-      iyzicoPaymentId: this._iyzicoPaymentId,
-      iyzicoPaymentTransactionId: this._iyzicoPaymentTransactionId,
-      rawResponse: this._rawResponse,
-      status: this._status,
-      errorCode: this._errorCode,
-      errorMessage: this._errorMessage,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      id: this.id.value,
+      installmentId: this.installmentId,
+      conversationId: this.conversationId,
+      token: this.token,
+      iyzicoPaymentId: this.iyzicoPaymentId,
+      iyzicoPaymentTransactionId: this.iyzicoPaymentTransactionId,
+      rawResponse: this.rawResponse,
+      status: this.status,
+      errorCode: this.errorCode,
+      errorMessage: this.errorMessage,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
   }
 

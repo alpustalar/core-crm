@@ -31,7 +31,7 @@ export class GetIncomeStatementHandler
   async execute(
     query: GetIncomeStatementQuery
   ): Promise<GetIncomeStatementResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query;
+    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
 
     const rows = await this.journalQueryRepo.trialBalance({
       clinicId,

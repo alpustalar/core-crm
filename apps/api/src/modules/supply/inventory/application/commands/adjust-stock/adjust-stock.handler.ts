@@ -2,7 +2,9 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { AdjustStockCommand } from './adjust-stock.command';
 import {
+  IProductCommandRepository,
   IProductQueryRepository,
+  PRODUCT_COMMAND_REPOSITORY,
   PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import {
@@ -25,12 +27,15 @@ import { ProductNotFoundException } from '@modules/supply/inventory/domain/excep
 import { INVENTORY_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(AdjustStockCommand)
-export class AdjustStockHandler
-  implements ICommandHandler<AdjustStockCommand, void>
-{
+export class AdjustStockHandler implements ICommandHandler<
+  AdjustStockCommand,
+  void
+> {
   constructor(
     @Inject(PRODUCT_QUERY_REPOSITORY)
     private readonly productQueryRepo: IProductQueryRepository,
+    @Inject(PRODUCT_COMMAND_REPOSITORY)
+    private readonly productCommandRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_QUERY_REPOSITORY)
     private readonly productBatchQueryRepo: IProductBatchQueryRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
@@ -43,38 +48,46 @@ export class AdjustStockHandler
   ) {}
 
   async execute(command: AdjustStockCommand): Promise<void> {
-    const { clinicId, dto, ctx } = command;
+    const { clinicId, data, ctx } = command.payload;
     const { actor, source } = ctx;
 
-    this.policyFactory
-      .clinic(actor)
-      .evaluator.check(
-        (p) => p.actorCanManageTargetClinic(clinicId),
-        'Bu klinikte işlem yapma yetkiniz yok.'
-      )
-      .systemBypass(source)
-      .orThrow(INVENTORY_EVENTS.ADJUST_STOCK);
-
-    const product = await this.productQueryRepo.findById(dto.productId);
+    const product = await this.productQueryRepo.findById(data.productId);
     if (!product) throw new ProductNotFoundException();
 
-    const availableBatches =
-      await this.productBatchQueryRepo.findAvailableByProduct(
-        product.id.value,
-        clinicId
-      );
+    this.policyFactory
+      .clinic(actor, source)
+      .evaluator.check(
+        (p) => p.actorCanManageTargetClinic(product.clinicId.value),
+        'Bu klinikte işlem yapma yetkiniz yok.'
+      )
+      .orThrow(INVENTORY_EVENTS.ADJUST_STOCK);
 
-    const { updatedBatch, stockMovementProps } = product.handleStockChange({
-      quantityDelta: dto.quantityDelta,
-      clinicId,
-      availableBatches,
-      explicitBatchId: dto.batchId,
-      performedById: actor.userId,
-      notes: dto.notes,
-    });
-
-    const stockMovement = StockMovement.create(stockMovementProps);
+    // Ürünü FOR UPDATE ile kilitle, sonra batch'leri kilit ALTINDA oku: aynı ürüne
+    // eşzamanlı stok değişimlerini serialize eder. Aksi halde iki istek aynı batch
+    // quantity'sini okuyup ayrı ayrı düşer → lost update (mevcut bakiyeyi bozar).
     await this.txManager.run(async () => {
+      const lockedProduct = await this.productCommandRepo.findByIdForUpdate(
+        product.id.value
+      );
+      if (!lockedProduct) throw new ProductNotFoundException();
+
+      const availableBatches =
+        await this.productBatchQueryRepo.findAvailableByProduct(
+          lockedProduct.id.value,
+          clinicId
+        );
+
+      const { updatedBatch, stockMovementProps } =
+        lockedProduct.handleStockChange({
+          quantityDelta: data.quantityDelta,
+          clinicId,
+          availableBatches,
+          explicitBatchId: data.batchId,
+          performedById: actor.userId,
+          notes: data.notes,
+        });
+
+      const stockMovement = StockMovement.create(stockMovementProps);
       if (updatedBatch) {
         await this.productBatchCommandRepo.save(updatedBatch);
       }

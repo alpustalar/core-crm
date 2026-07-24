@@ -41,7 +41,7 @@ describe('PaymentPaidInvoiceListener', () => {
       trigger: 'PAYMENT',
     });
     // Tutar artık Money VO olarak taşınır.
-    expect(input.totalAmount.amount.toNumber()).toBe(100);
+    expect(input.totalAmount.value.toNumber()).toBe(100);
     expect(input.totalAmount.currency).toBe('TRY');
   });
 
@@ -65,7 +65,7 @@ describe('PaymentPaidInvoiceListener', () => {
     await listener.handle(event);
 
     expect(
-      commandBus.execute.mock.calls[0][0].input.totalAmount.amount.toNumber()
+      commandBus.execute.mock.calls[0][0].input.totalAmount.value.toNumber()
     ).toBe(300);
   });
 });

@@ -7,6 +7,7 @@ import { z } from 'zod';
 export const ClinicAppointmentSettingsSchema = z.object({
   id: z.string(),
   clinicId: z.string(),
+  allowPatientBooking: z.boolean(),
   rescheduleLimitHours: z.number().int(),
   cancelLimitHours: z.number().int(),
   allowPatientCancel: z.boolean(),
@@ -16,6 +17,7 @@ export const ClinicAppointmentSettingsSchema = z.object({
   requireReminderResponse: z.boolean(),
   requireConfirmation: z.boolean(),
   maxFutureBookingDays: z.number().int(),
+  slotDurationMinutes: z.number().int(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

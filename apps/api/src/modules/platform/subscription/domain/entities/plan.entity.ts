@@ -46,7 +46,7 @@ export class Plan {
   }
 
   get monthlyPrice(): Decimal {
-    return this._monthlyMoney.amount;
+    return this._monthlyMoney.value;
   }
 
   get currency(): Currency {
@@ -70,15 +70,12 @@ export class Plan {
 
   public static create(props: CreatePlanProps): Plan {
     const money = Money.create(props.monthlyPrice, props.currency).orThrow();
-    const planRowId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
     const now = DateTimeManager.create();
     return new Plan({
-      id: planRowId.value,
+      id: UUID.createOrGenerate(props.id).value,
       planId: props.planId,
       name: Name.create(props.name).orThrow().value,
-      monthlyPrice: money.amount,
+      monthlyPrice: money.value,
       currency: money.currency,
       isActive: true,
       createdAt: now,

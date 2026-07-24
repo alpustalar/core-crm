@@ -2,7 +2,10 @@ import { ClinicHealthTourismConfig as IClinicHealthTourismConfig } from '@shared
 
 type Currency = IClinicHealthTourismConfig['defaultCurrency'];
 
-/** Entity static create() girişi. serviceFeePercent domain'de düz sayı; entity Decimal'e çevirir. */
+/**
+ * Entity static create() girişi. Komisyon (serviceFeePercent) burada YOK — satış komisyonu
+ * platform geliridir ve platform-global env ayarından uygulanır (klinik başına ayarlanamaz).
+ */
 export interface CreateClinicHealthTourismConfigProps {
   id?: string;
   clinicId: string;
@@ -14,7 +17,6 @@ export interface CreateClinicHealthTourismConfigProps {
   clinicLocationType?: string | null;
   clinicLocationCode?: string | null;
   pickupAddress?: string | null;
-  serviceFeePercent?: number | null;
   defaultCurrency?: Currency;
 }
 
@@ -27,6 +29,5 @@ export interface UpdateClinicHealthTourismConfigProps {
   clinicLocationType?: string | null;
   clinicLocationCode?: string | null;
   pickupAddress?: string | null;
-  serviceFeePercent?: number | null;
   defaultCurrency?: Currency;
 }

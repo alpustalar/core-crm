@@ -1,4 +1,5 @@
 import { ClinicGovernmentSpecs } from '../entities/clinic-government-specs.entity';
+import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const CLINIC_GOVERNMENT_SPECS_COMMAND_REPOSITORY = Symbol(
   'IClinicGovernmentSpecsCommandRepository'
@@ -7,10 +8,12 @@ export const CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY = Symbol(
   'IClinicGovernmentSpecsQueryRepository'
 );
 
-export interface IClinicGovernmentSpecsCommandRepository {
-  /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicGovernmentSpecs): Promise<ClinicGovernmentSpecs>;
-}
+export type IClinicGovernmentSpecsCommandRepository =
+  IBaseCommandRepository<ClinicGovernmentSpecs> & {
+    sync(
+      clinicGovernmentSpecs: ClinicGovernmentSpecs
+    ): Promise<ClinicGovernmentSpecs>;
+  };
 
 export interface IClinicGovernmentSpecsQueryRepository {
   findByClinicId(clinicId: string): Promise<ClinicGovernmentSpecs | null>;

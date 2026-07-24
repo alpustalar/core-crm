@@ -102,12 +102,8 @@ export class Supplier extends AggregateRoot {
   public static create(props: CreateSupplierProps): Supplier {
     const now = DateTimeManager.create();
 
-    const supplierId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     return new Supplier({
-      id: supplierId.value,
+      id: UUID.createOrGenerate(props.id).value,
       organizationId: props.organizationId,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       name: Name.create(props.name).orThrow().value,

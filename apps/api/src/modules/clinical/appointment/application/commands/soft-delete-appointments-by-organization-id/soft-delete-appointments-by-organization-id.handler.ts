@@ -12,6 +12,7 @@ import {
   IAppointmentEventPublisher,
 } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { AppointmentEventBulkScopes } from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
 
 @CommandHandler(SoftDeleteAppointmentsByOrganizationIdCommand)
 export class SoftDeleteAppointmentsByOrganizationIdHandler
@@ -35,7 +36,7 @@ export class SoftDeleteAppointmentsByOrganizationIdHandler
     const { organizationId } = command;
 
     // Bulk soft-delete (domain bypass, N+1 önlenir) + tek toplu event, veri
-    // bütünlüğü için outbox ile atomik mühürlenir. Bildirim/Redis temizliği
+    // bütünlüğü için outbox . Bildirim/Redis temizliği
     // event'i tüketen listener + processor tarafından asenkron yürütülür.
     await this.txManager.outboxRun(async () => {
       const { count } =
@@ -44,7 +45,7 @@ export class SoftDeleteAppointmentsByOrganizationIdHandler
         );
 
       this.eventPublisher.bulkSoftDeleted({
-        scope: 'ORGANIZATION',
+        scope: AppointmentEventBulkScopes.ORGANIZATION,
         organizationId,
         affectedCount: count,
       });

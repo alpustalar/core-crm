@@ -28,10 +28,9 @@ export class CompleteAppointmentHandler
 
   async execute(command: CompleteAppointmentCommand): Promise<void> {
     const { appointmentId, ctx } = command;
-    const { actor } = ctx;
 
-    // Tamamlanma, ödeme kilidi (geri alınamaz) gibi kritik yan etkiler tetikler
-    // (AppointmentCompletedEvent) — event'ler outbox ile atomik mühürlenir.
+    // Tamamlanma ödeme kilidi gibi kritik yan etkiler tetikler
+    // — eventler outbox ile
     await this.txManager.outboxRun(async () => {
       const appointment =
         await this.appointmentCommandRepo.findById(appointmentId);
@@ -39,18 +38,24 @@ export class CompleteAppointmentHandler
       if (!appointment) throw new AppointmentNotFoundException();
 
       this.policyFactory
-        .appointment(actor)
+        .appointment(ctx.actor, ctx.source)
         .evaluator.check(
           (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
           'Bu randevuya erişim yetkiniz yok.'
         )
         .orThrow(APPOINTMENT_EVENTS.COMPLETED);
 
+      const validateOptions = this.policyFactory
+        .entity(ctx.actor, ctx.source)
+        .policy.getValidateOptions();
+
+      appointment.rules(validateOptions).complete.orThrow();
+
       appointment.complete({
         action: LogAction.APPOINTMENT_COMPLETE,
         type: LogType.INFO,
-        actorId: actor.userId,
-        source: actor.source,
+        actorId: ctx.actor.userId,
+        source: ctx.actor.source,
       });
 
       await this.appointmentCommandRepo.save(appointment);

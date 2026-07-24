@@ -8,7 +8,10 @@ import {
   IAccountingPeriodCommandRepository,
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
 import { ClosePeriodCommand } from './close-period.command';
-import { PeriodNotFoundException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
+import {
+  PeriodAlreadyClosedException,
+  PeriodNotFoundException,
+} from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 
 @CommandHandler(ClosePeriodCommand)
 export class ClosePeriodHandler
@@ -25,10 +28,22 @@ export class ClosePeriodHandler
     const period = await this.periodCommandRepo.findById(command.periodId);
     if (!period) throw new PeriodNotFoundException();
 
+    // Transaction dışı hızlı-ret (belirgin kapalı dönemler için); kesin/otoriter
+    // koruma aşağıdaki atomik claimForClosing'dir.
     period.validate.isOpenOrLocked.orThrow();
 
-    // Kapanış fişleri (dönem hâlâ postable) + dönem CLOSED, transaction
     await this.txManager.outboxRun(async () => {
+      // Atomik sahiplenme: OPEN/LOCKED → CLOSED tek koşullu UPDATE ile. Eşzamanlı
+      // ikinci istek satır kilidinde bekler, commit sonrası CLOSED görüp 0 satır
+      // etkiler → false döner ve mükerrer kapanış fişi üretmeden reddedilir.
+      const claimed = await this.periodCommandRepo.claimForClosing(
+        period.id.value
+      );
+      if (!claimed) {
+        throw new PeriodAlreadyClosedException(period.id.value, period.year);
+      }
+
+      // Kapanış fişleri: aynı transaction'a (ALS join) katılarak atılır.
       await this.commandBus.execute(
         new GenerateYearEndClosingCommand(
           {
@@ -43,9 +58,6 @@ export class ClosePeriodHandler
           command.ctx
         )
       );
-
-      period.close();
-      await this.periodCommandRepo.save(period);
     });
   }
 }

@@ -46,7 +46,7 @@ export class SyncCampaignMetricsHandler
       ? await this.accountQueryRepo.findByClinicId(command.clinicId)
       : await this.accountQueryRepo.findAllActive();
 
-    const yesterday = DateTimeManager.subtractDays(new Date(), 1);
+    const yesterday = DateTimeManager.subtractDays(DateTimeManager.create(), 1);
     const dateString = DateTimeManager.toDateString(yesterday);
 
     let syncedMetrics = 0;

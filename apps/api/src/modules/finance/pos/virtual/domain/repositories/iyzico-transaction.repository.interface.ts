@@ -28,6 +28,8 @@ export interface IIyzicoTransactionQueryRepository {
 }
 
 export interface IIyzicoTransactionCommandRepository {
-  /** id unique → upsert tabanlı kayıt. Durum geçişleri entity metodlarında yapılır. */
+  /** Yeni işlem kaydı (INSERT). */
+  create(entity: IyzicoTransaction): Promise<IyzicoTransaction>;
+  /** Mevcut işlemi günceller (UPDATE). Durum geçişleri entity metodlarında yapılır. */
   save(entity: IyzicoTransaction): Promise<IyzicoTransaction>;
 }

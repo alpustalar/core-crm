@@ -97,7 +97,7 @@ export class ReconcilePosTransactionsHandler
                 await this.recordPosPaymentReceived({
                   patientId: entity.patientId.value,
                   clinicId: entity.clinicId.value,
-                  amount: String(entity.amount.amount),
+                  amount: String(entity.amount.value),
                   posTransactionId: entity.id.value,
                 });
               }
@@ -140,7 +140,7 @@ export class ReconcilePosTransactionsHandler
     const ctx = ExecutionContextFactory.createInternal();
 
     try {
-      const { partyId, organizationId } = await this.commandBus.execute(
+      const { partyId } = await this.commandBus.execute(
         new EnsurePartyForPatientCommand(
           input.patientId,
           input.clinicId,
@@ -152,7 +152,6 @@ export class ReconcilePosTransactionsHandler
       await this.commandBus.execute(
         new RecordFinancialEventCommand(
           {
-            organizationId,
             clinicId: input.clinicId,
             type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: { method: 'POS_CARD', amount: input.amount, partyId },

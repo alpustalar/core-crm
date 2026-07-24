@@ -1,16 +1,19 @@
 import { ProviderShift as IProviderShift } from '@model-schema/ProviderShiftSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DayMinuteRange } from '@src/domain/value-objects/day-minute-range.vo';
-import { CreateShiftProps } from '@modules/clinical/provider/domain/contracts/provider-shift.contracts';
+import {
+  CreateShiftProps,
+  UpdateHoursAndDateProps,
+} from '@modules/clinical/provider/domain/contracts/provider-shift.contracts';
 import {
   AppointmentOutOfShiftException,
   AppointmentOverlapsWithBreakException,
-  InvalidProviderBreakConfigurationException,
-  ProviderBreakOutOfRangeException,
 } from '@modules/clinical/provider/domain/exceptions/provider-shift.exceptions';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DayMinute } from '@src/domain/value-objects/day-minute.vo';
-import { isDefined } from '@common/utils';
+import { DateTimeManager, isDefined } from '@common/utils';
+import { ProviderShiftRules } from '@modules/clinical/provider/domain/rules/provider-shift.rules';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 
 export class ProviderShift extends AggregateRoot {
   constructor(data: IProviderShift) {
@@ -105,42 +108,6 @@ export class ProviderShift extends AggregateRoot {
           },
         };
       },
-
-      /**
-       * Mola ve Vardiya Yapılandırma Kontrolü (Entity içi veya save öncesi için)
-       *
-       */
-      breakConfiguration: () => {
-        // 1. Eksik kurgu var mı? (Biri var biri yoksa patlar)
-        const isConfigIncomplete =
-          !!this.breakStartMinute !== !!this.breakEndMinute;
-
-        // 2. Mola vardiyanın tamamen içinde mi?
-        const isBreakWithinShift = this._breakRange
-          ? this._breakRange.validate.isCompletelyWithIn(this._shiftRange).value
-          : true;
-
-        const isValid = !isConfigIncomplete && isBreakWithinShift;
-
-        return {
-          isValid,
-          isInvalid: !isValid,
-          orThrow: (): this => {
-            if (isConfigIncomplete) {
-              throw new InvalidProviderBreakConfigurationException();
-            }
-            if (!isBreakWithinShift && this._breakRange) {
-              throw new ProviderBreakOutOfRangeException(
-                this._breakRange.start.toString(),
-                this._breakRange.end.toString(),
-                this._shiftRange.start.toString(),
-                this._shiftRange.end.toString()
-              );
-            }
-            return this;
-          },
-        };
-      },
     };
   }
 
@@ -150,17 +117,13 @@ export class ProviderShift extends AggregateRoot {
 
   // ────────────────────────────────────────────────────────────────────────────
   public static create(props: CreateShiftProps): ProviderShift {
-    const id = props.id
-      ? UUID.create(props.id).orThrow().value
-      : UUID.generate().value;
-
     const shiftStartMinute = DayMinute.fromNumber(props.startMinute);
     const shiftEndMinute = DayMinute.fromNumber(props.endMinute);
 
     const shiftMinuteRange = DayMinuteRange.create(
-      shiftStartMinute,
-      shiftEndMinute
-    );
+      shiftStartMinute.orThrow(),
+      shiftEndMinute.orThrow()
+    ).orThrow();
 
     let breakMinuteRange: DayMinuteRange | null = null;
 
@@ -168,13 +131,13 @@ export class ProviderShift extends AggregateRoot {
       const breakStartMinute = DayMinute.fromNumber(props.breakStartMinute);
       const breakEndMinute = DayMinute.fromNumber(props.breakEndMinute);
       breakMinuteRange = DayMinuteRange.create(
-        breakStartMinute,
-        breakEndMinute
-      );
+        breakStartMinute.orThrow(),
+        breakEndMinute.orThrow()
+      ).orThrow();
     }
 
     return new ProviderShift({
-      id,
+      id: UUID.createOrGenerate(props.id).value,
       providerId: UUID.create(props.providerId).orThrow().value,
       date: props.date,
 
@@ -186,16 +149,57 @@ export class ProviderShift extends AggregateRoot {
     });
   }
 
+  public rules(validateOptions: ValidateOptionsType) {
+    return new ProviderShiftRules(this, validateOptions);
+  }
+
   /**
    *  Vardiya saatlerini günceller.
    */
-  public updateHours(
-    newRange: DayMinuteRange,
-    newBreakRange: DayMinuteRange | null
-  ): void {
-    this._shiftRange = newRange;
-    this._breakRange = newBreakRange;
-    this.validate.breakConfiguration().orThrow();
+  public updateHoursAndDate(props: UpdateHoursAndDateProps): void {
+    const start = props.startMinute ?? this.startMinute;
+    const end = props.endMinute ?? this.endMinute;
+
+    const breakStart = props.breakStartMinute ?? this.breakStartMinute;
+    const breakEnd = props.breakEndMinute ?? this.breakEndMinute;
+
+    const date = DateTimeManager.create(props.date);
+
+    if (isDefined(start) && isDefined(end)) {
+      const startDayMinute =
+        typeof start === 'number'
+          ? DayMinute.fromNumber(start)
+          : DayMinute.fromString(start);
+
+      const endDayMinute =
+        typeof end === 'number'
+          ? DayMinute.fromNumber(end)
+          : DayMinute.fromString(end);
+
+      this._shiftRange = DayMinuteRange.create(
+        startDayMinute.orThrow(),
+        endDayMinute.orThrow()
+      ).orThrow();
+    }
+
+    if (isDefined(breakStart) && isDefined(breakEnd)) {
+      const breakStartDayMinute =
+        typeof breakStart === 'number'
+          ? DayMinute.fromNumber(breakStart)
+          : DayMinute.fromString(breakStart);
+
+      const breakEndDayMinute =
+        typeof breakEnd === 'number'
+          ? DayMinute.fromNumber(breakEnd)
+          : DayMinute.fromString(breakEnd);
+
+      this._breakRange = DayMinuteRange.create(
+        breakStartDayMinute.orThrow(),
+        breakEndDayMinute.orThrow()
+      ).orThrow();
+    }
+
+    if (isDefined(date)) this._date = date;
   }
 
   // ────────────────────────────────────────────────────────────────────────────

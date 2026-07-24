@@ -72,16 +72,16 @@ export class SendBookingConfirmationHandler
       !conversation.isWithinServiceWindow()
     ) {
       await this.commandBus.execute(
-        new SendTemplateMessageCommand(
-          input.clinicId,
-          {
+        new SendTemplateMessageCommand({
+          clinicId: input.clinicId,
+          input: {
             conversationId: conversation.id,
             templateName: BOOKING_CONFIRMATION_TEMPLATE_NAME,
             languageCode: BOOKING_CONFIRMATION_TEMPLATE_LANG,
             variables: [input.summary, input.reference],
           },
-          ctx
-        )
+          ctx,
+        })
       );
       return;
     }
@@ -92,15 +92,15 @@ export class SendBookingConfirmationHandler
       this.fallbackText(input);
 
     await this.commandBus.execute(
-      new SendMessageCommand(
-        input.clinicId,
-        {
+      new SendMessageCommand({
+        clinicId: input.clinicId,
+        input: {
           conversationId: conversation.id,
           type: MessageType.TEXT,
           body,
         },
-        ctx
-      )
+        ctx,
+      })
     );
   }
 
@@ -117,7 +117,10 @@ export class SendBookingConfirmationHandler
     );
     if (!config || !config.isEnabled) return null;
 
-    const pagination = PaginationSchema.parse({ page: 1, limit: HISTORY_LIMIT });
+    const pagination = PaginationSchema.parse({
+      page: 1,
+      limit: HISTORY_LIMIT,
+    });
     const { items } = await this.messageQueryRepo.findManyByConversation(
       conversation.id,
       pagination

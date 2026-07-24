@@ -16,7 +16,6 @@ export const StaffRescheduleSchema = z
       .optional(),
     notes: z.string().optional(),
     treatmentId: z
-      .string()
       .uuid({ message: 'Geçerli bir tedavi seçilmelidir.' })
       .optional(),
   })
@@ -24,3 +23,5 @@ export const StaffRescheduleSchema = z
     message: 'Bitiş zamanı veya süre belirtilmelidir.',
     path: ['endTime'],
   });
+
+export type StaffReschedule = z.infer<typeof StaffRescheduleSchema>;

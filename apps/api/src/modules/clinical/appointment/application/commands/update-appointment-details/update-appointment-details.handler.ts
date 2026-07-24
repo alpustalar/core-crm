@@ -1,0 +1,55 @@
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
+import { UpdateAppointmentDetailsCommand } from './update-appointment-details.command';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
+import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+
+/**
+ * Randevu detaylarını (hasta iletişim / not / tedavi-muayene-ziyaret türü) günceller.
+ * Yükle → domain metodu (updateDetails, VO doğrulaması + DetailsUpdated event) → kaydet.
+ * Kritik olmayan güncelleme olduğundan event in-memory (run) kanalıyla yayınlanır.
+ */
+@CommandHandler(UpdateAppointmentDetailsCommand)
+export class UpdateAppointmentDetailsHandler
+  implements ICommandHandler<UpdateAppointmentDetailsCommand, void>
+{
+  constructor(
+    @Inject(APPOINTMENT_COMMAND_REPOSITORY)
+    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager
+  ) {}
+
+  async execute(command: UpdateAppointmentDetailsCommand): Promise<void> {
+    const { appointmentId, data, ctx } = command.payload;
+    const { actor, source } = ctx;
+
+    const appointment =
+      await this.appointmentCommandRepo.findById(appointmentId);
+    if (!appointment) throw new AppointmentNotFoundException();
+
+    this.policyFactory
+      .appointment(actor, source)
+      .evaluator.check(
+        (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
+        'Bu randevuya erişim yetkiniz yok.'
+      )
+      .orThrow(APPOINTMENT_EVENTS.DETAILS_UPDATE);
+
+    appointment.updateDetails(data);
+
+    await this.txManager.run(async () => {
+      await this.appointmentCommandRepo.save(appointment);
+    });
+  }
+}

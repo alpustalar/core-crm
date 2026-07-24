@@ -18,6 +18,12 @@ export class ProductCommandRepository
     return raw ? new Product(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Product | null> {
+    await this.lockRowForUpdate('products', id);
+    const raw = await this.db.product.findUnique({ where: { id } });
+    return raw ? new Product(raw) : null;
+  }
+
   async create(product: Product): Promise<Product> {
     const data = product.toPersistence();
     const raw = await this.db.product.create({ data });

@@ -10,7 +10,10 @@ import {
   SubscriptionRenewedEventPayload,
 } from '@modules/platform/subscription/domain/events';
 import { SubStatusType as SubStatus } from '@input-type-schemas/SubStatusSchema';
-import { BillingTargetType as BillingTarget } from '@input-type-schemas/BillingTargetSchema';
+import {
+  BillingTargetSchema,
+  BillingTargetType as BillingTarget,
+} from '@input-type-schemas/BillingTargetSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
@@ -52,6 +55,14 @@ export class Subscription extends AggregateRoot {
 
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
+    this._version = data.version;
+  }
+
+  private _version: number;
+
+  /** Optimistic concurrency version'ı — repository save() guard'ında kullanılır. */
+  get version(): number {
+    return this._version;
   }
 
   private _id: UUID;
@@ -123,8 +134,8 @@ export class Subscription extends AggregateRoot {
 
   private get _businessRulesValidator() {
     return {
-      scheduleCancellation: () => {
-        const isInvalid = !this._isActive.value;
+      scheduleCancellation: (() => {
+        const isInvalid = !this.isActive.value;
         return {
           isValid: !isInvalid,
           orThrow: () => {
@@ -134,8 +145,8 @@ export class Subscription extends AggregateRoot {
               );
           },
         };
-      },
-      undoCancellation: () => {
+      })(),
+      undoCancellation: (() => {
         const isInvalid = !this._cancelAtPeriodEnd;
         return {
           isValid: !isInvalid,
@@ -146,9 +157,9 @@ export class Subscription extends AggregateRoot {
               );
           },
         };
-      },
-      cancel: () => {
-        const isInvalid = this._isCanceled.value;
+      })(),
+      cancel: (() => {
+        const isInvalid = this.isCanceled.value;
 
         return {
           isValid: !isInvalid,
@@ -158,12 +169,12 @@ export class Subscription extends AggregateRoot {
             }
           },
         };
-      },
+      })(),
     };
   }
 
   // Durum sorguları
-  private get _isActive() {
+  private get isActive() {
     const is = this._status === SubStatusSchema.enum.ACTIVE;
     return Guard.monitor(
       is,
@@ -172,7 +183,7 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  private get _isCanceled() {
+  private get isCanceled() {
     const is = this._status === SubStatusSchema.enum.CANCELED;
     return Guard.monitor(
       is,
@@ -181,7 +192,7 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  private get _isPastDue() {
+  private get isPastDue() {
     const is = this._status === SubStatusSchema.enum.PAST_DUE;
     return Guard.monitor(
       is,
@@ -190,7 +201,7 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  private get _isExpired() {
+  private get isExpired() {
     const is = this._status === SubStatusSchema.enum.EXPIRED;
     return Guard.monitor(
       is,
@@ -199,8 +210,9 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  private get _isOnTrial() {
-    const isTrialActive = !!this._trialEndsAt && this._trialEndsAt > new Date();
+  private get isOnTrial() {
+    const isTrialActive =
+      !!this._trialEndsAt && this._trialEndsAt > DateTimeManager.create();
     return Guard.monitor(
       isTrialActive,
       isTrialActive,
@@ -208,8 +220,8 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  private get _isCancelScheduled() {
-    const isCancel = this._cancelAtPeriodEnd && this._isActive.value;
+  private get isCancelScheduled() {
+    const isCancel = this._cancelAtPeriodEnd && this.isActive.value;
     return Guard.monitor(
       isCancel,
       isCancel,
@@ -217,14 +229,14 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  private get _isInCurrentPeriod() {
+  private get isInCurrentPeriod() {
     const hasValidPeriod =
       !!this._currentPeriodStart && !!this._currentPeriodEnd;
 
     const isInside =
       hasValidPeriod &&
       DateTimeManager.isBetween({
-        target: new Date(),
+        target: DateTimeManager.create(),
         start: this._currentPeriodStart!,
         end: this._currentPeriodEnd!,
         inclusivity: '[)', // Başlangıç dahil, bitiş hariç nizamı
@@ -241,11 +253,13 @@ export class Subscription extends AggregateRoot {
   }
 
   public static create(props: CreateSubscriptionProps): Subscription {
-    const subId = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const subId = UUID.createOrGenerate(props.id);
     const orgId = UUID.create(props.organizationId).orThrow();
 
     // Faturalandırma hedefi CLINIC ise clinicId zorunlu; ORGANIZATION ise yok sayılır (null).
-    const isClinicBilled = props.billingTarget === 'CLINIC';
+    const isClinicBilled =
+      props.billingTarget === BillingTargetSchema.enum.CLINIC;
+
     if (isClinicBilled && !props.clinicId) {
       throw new Error('CLINIC faturalandırma hedefinde clinicId zorunludur.');
     }
@@ -269,6 +283,7 @@ export class Subscription extends AggregateRoot {
       cancelAtPeriodEnd: false,
       createdAt: now,
       updatedAt: now,
+      version: 0,
     });
   }
 
@@ -300,13 +315,13 @@ export class Subscription extends AggregateRoot {
     this._status = SubStatusSchema.enum.ACTIVE;
     this._cancelAtPeriodEnd = false;
     this._externalId = input.iyzicoPaymentId;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
 
     this.addDomainEvent(
       new SubscriptionRenewedEvent({
         ...input.event,
-        subscriptionId: this._id.value,
-        organizationId: this._organizationId.value,
+        subscriptionId: this.id.value,
+        organizationId: this.organizationId.value,
         iyzicoPaymentId: input.iyzicoPaymentId,
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
@@ -328,8 +343,8 @@ export class Subscription extends AggregateRoot {
     this.addDomainEvent(
       new SubscriptionActivatedEvent({
         ...eventPayload,
-        subscriptionId: this._id.value,
-        organizationId: this._organizationId.value,
+        subscriptionId: this.id.value,
+        organizationId: this.organizationId.value,
         iyzicoPaymentId,
       })
     );
@@ -345,34 +360,33 @@ export class Subscription extends AggregateRoot {
     this.addDomainEvent(
       new SubscriptionPaymentFailedEvent({
         ...eventPayload,
-        subscriptionId: this._id.value,
-        organizationId: this._organizationId.value,
+        subscriptionId: this.id.value,
+        organizationId: this.organizationId.value,
       })
     );
   }
 
   public scheduleCancellation(options = DefaultValidateOptions): void {
     if (shouldValidate(options))
-      this._businessRulesValidator.scheduleCancellation().orThrow();
+      this._businessRulesValidator.scheduleCancellation.orThrow();
     this._cancelAtPeriodEnd = true;
   }
 
   public undoCancellation(options = DefaultValidateOptions): void {
     if (shouldValidate(options))
-      this._businessRulesValidator.undoCancellation().orThrow();
+      this._businessRulesValidator.undoCancellation.orThrow();
     this._cancelAtPeriodEnd = false;
   }
 
   public cancel(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.cancel().orThrow();
+    if (shouldValidate(options)) this._businessRulesValidator.cancel.orThrow();
 
     this._status = SubStatusSchema.enum.CANCELED;
     this._cancelAtPeriodEnd = false;
   }
 
   public activate(): void {
-    if (this._isActive.value) {
+    if (this.isActive.value) {
       throw new Error('Abonelik zaten aktif.');
     }
     this._status = SubStatusSchema.enum.ACTIVE;
@@ -381,18 +395,19 @@ export class Subscription extends AggregateRoot {
 
   toPersistence(): ISubscription {
     return {
-      id: this._id.value,
-      billingTarget: this._billingTarget,
-      organizationId: this._organizationId.value,
-      clinicId: this._clinicId?.value ?? null,
-      externalId: this._externalId,
-      status: this._status,
-      trialEndsAt: this._trialEndsAt,
-      currentPeriodStart: this._currentPeriodStart,
-      currentPeriodEnd: this._currentPeriodEnd,
-      cancelAtPeriodEnd: this._cancelAtPeriodEnd,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      billingTarget: this.billingTarget,
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId?.value ?? null,
+      externalId: this.externalId,
+      status: this.status,
+      trialEndsAt: this.trialEndsAt,
+      currentPeriodStart: this.currentPeriodStart,
+      currentPeriodEnd: this.currentPeriodEnd,
+      cancelAtPeriodEnd: this.cancelAtPeriodEnd,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      version: this.version,
     };
   }
 }

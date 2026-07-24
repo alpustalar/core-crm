@@ -3,6 +3,7 @@ import { AppointmentCommandModule } from '@modules/clinical/appointment/applicat
 import { Module } from '@nestjs/common';
 import { AppointmentPresentationModule } from '@modules/clinical/appointment/presentation/appointment-presentation.module';
 import { AppointmentEventListenersModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event-listeners.module';
+import { AppointmentAiToolsModule } from '@modules/clinical/appointment/application/ai-tools/appointment-ai-tools.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { AppointmentEventListenersModule } from '@modules/clinical/appointment/i
     AppointmentCommandModule,
     AppointmentPresentationModule,
     AppointmentEventListenersModule,
+    AppointmentAiToolsModule,
   ],
 })
 export class AppointmentModule {}

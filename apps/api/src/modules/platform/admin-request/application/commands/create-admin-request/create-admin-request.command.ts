@@ -4,7 +4,7 @@ import { CreateAdminRequestDto } from '@shared/modules/admin-request/dto/command
 export class CreateAdminRequestCommand {
   public readonly __responseType!: string;
   constructor(
-    public readonly dto: CreateAdminRequestDto,
+    public readonly data: CreateAdminRequestDto,
     public readonly ctx: IGetContext
   ) {}
 }

@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
 import { IProviderAvailabilityCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 
 @Injectable()
 export class ProviderAvailabilityCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<ProviderAvailability>
   implements IProviderAvailabilityCommandRepository
 {
   constructor(prisma: PrismaService) {

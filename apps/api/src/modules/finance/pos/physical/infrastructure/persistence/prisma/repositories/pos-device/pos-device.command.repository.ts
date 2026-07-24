@@ -13,13 +13,9 @@ export class PosDeviceCommandRepository
     super(prisma);
   }
 
-  async save(entity: PosDevice): Promise<PosDevice> {
+  async create(entity: PosDevice): Promise<PosDevice> {
     const data = entity.toPersistence();
-    const raw = await this.db.posDevice.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
-    });
+    const raw = await this.db.posDevice.create({ data });
     entity.flushEvents();
     return new PosDevice(raw);
   }

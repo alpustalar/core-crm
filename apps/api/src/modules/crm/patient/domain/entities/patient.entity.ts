@@ -6,16 +6,9 @@ import { PatientStatusType as PatientStatus } from '@input-type-schemas/PatientS
 import { PatientTypeType as PatientType } from '@input-type-schemas/PatientTypeSchema';
 import { Decimal } from 'decimal.js';
 import { CreatePatientProps } from '@modules/crm/patient/domain/patient.contracts';
-import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
-import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
-import { TckNo } from '@src/domain/value-objects/tck-no.vo';
-import { Phone } from '@src/domain/value-objects/phone.vo';
-import { Email } from '@src/domain/value-objects/email.vo';
-import { Img } from '@src/domain/value-objects/img.vo';
-import { LastName } from '@src/domain/value-objects/last-name.vo';
-import { Name } from '@src/domain/value-objects/name.vo';
+import { Email, FirebaseUid, FullName, Img, LastName, Name, Phone, TckNo, UUID, } from '@src/domain/value-objects';
 
 export class Patient extends AggregateRoot {
   constructor(data: IPatient) {
@@ -29,7 +22,7 @@ export class Patient extends AggregateRoot {
 
     this._firstName = Name.fromTrusted(data.firstName);
 
-    this._lastName = data.lastName ? LastName.create(data.lastName) : null;
+    this._lastName = LastName.create(data.lastName).instance ?? null;
 
     if (data.tcNo) this._tcNo = TckNo.fromTrusted(data.tcNo);
 
@@ -215,6 +208,7 @@ export class Patient extends AggregateRoot {
     return this._checkupDate;
   }
 
+  // TODO: discountRate alanı kaldırmak lazım. sürekli indirimli bi müşteri olamaz. onun yerine kampanya kupon gibi bi şey yapabiliriz
   private _discountRate: Decimal | null;
 
   get discountRate(): Decimal | null {
@@ -241,16 +235,16 @@ export class Patient extends AggregateRoot {
 
   public get validate() {
     return {
-      hasPhone: this._hasPhone(),
+      hasPhone: this.hasPhone(),
       status: {
-        isActive: this._isActive(),
-        isInactive: this._isInactive(),
-        isArchived: this._isArchived(),
-        isBlackListed: this._isBlacklisted(),
-        isDeceased: this._isDeceased(),
+        isActive: this.isActive(),
+        isInactive: this.isInactive(),
+        isArchived: this.isArchived(),
+        isBlackListed: this.isBlacklisted(),
+        isDeceased: this.isDeceased(),
       },
       mode: {
-        isClinicInline: this._isClinicInline(),
+        isClinicInline: this.isClinicInline(),
       },
     };
   }
@@ -258,7 +252,9 @@ export class Patient extends AggregateRoot {
   public static create(props: CreatePatientProps): Patient {
     const firstName = Name.create(props.firstName).orThrow();
 
-    const lastName = props.lastName ? LastName.create(props.lastName) : null;
+    const lastName = props.lastName
+      ? LastName.create(props.lastName).orThrow()
+      : null;
 
     const organizationId = UUID.create(props.organizationId).orThrow();
 
@@ -294,10 +290,8 @@ export class Patient extends AggregateRoot {
 
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     return new Patient({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       organizationId: organizationId.value,
       clinicId: clinicId?.value ?? null,
       sectorId: sectorId?.value ?? null,
@@ -335,13 +329,13 @@ export class Patient extends AggregateRoot {
   }
 
   public activate(): void {
-    if (this._isActive().value) return;
+    if (this.isActive().value) return;
     this._status = PatientStatusSchema.enum.ACTIVE;
     this._deletedAt = null;
   }
 
   public deactivate(): void {
-    if (this._isInactive().value) return;
+    if (this.isInactive().value) return;
     this._status = PatientStatusSchema.enum.INACTIVE;
   }
 
@@ -361,87 +355,87 @@ export class Patient extends AggregateRoot {
   // STATUS QUERIES
 
   public softDelete(): void {
-    this._deletedAt = new Date();
+    this._deletedAt = DateTimeManager.create();
   }
 
   public fullName(): string {
-    return this._lastName
-      ? `${this._firstName.value} ${this._lastName.value}`
-      : this._firstName.value;
+    return FullName.fromTrusted(
+      `${this.firstName.value} ${this.lastName?.value ?? ''}`
+    ).value;
   }
 
   public toPersistence(): IPatient {
     return {
-      id: this._id.value,
-      organizationId: this._organizationId.value,
-      clinicId: this._clinicId?.value ?? null,
-      sectorId: this._sectorId?.value ?? null,
-      firstName: this._firstName.value,
-      lastName: this._lastName?.value ?? null,
-      tcNo: this._tcNo?.value ?? null,
-      birthDate: this._birthDate,
-      gender: this._gender,
-      phone: this._phone?.value ?? null,
-      alternativePhone: this._alternativePhone?.value ?? null,
-      email: this._email?.value ?? null,
-      address: this._address,
-      emergencyContact: this._emergencyContact,
-      companionName: this._companionName,
-      companionPhone: this._companionPhone?.value ?? null,
-      profilePhoto: this._profilePhoto?.value ?? null,
-      protocolNo: this._protocolNo,
-      allergies: this._allergies,
-      chronicDiseases: this._chronicDiseases,
-      bloodType: this._bloodType,
-      status: this._status,
-      patientType: this._patientType,
-      responsibleProviderId: this._responsibleProviderId,
-      checkupDate: this._checkupDate,
-      discountRate: this._discountRate,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId?.value ?? null,
+      sectorId: this.sectorId?.value ?? null,
+      firstName: this.firstName.value,
+      lastName: this.lastName?.value ?? null,
+      tcNo: this.tcNo?.value ?? null,
+      birthDate: this.birthDate,
+      gender: this.gender,
+      phone: this.phone?.value ?? null,
+      alternativePhone: this.alternativePhone?.value ?? null,
+      email: this.email?.value ?? null,
+      address: this.address,
+      emergencyContact: this.emergencyContact,
+      companionName: this.companionName,
+      companionPhone: this.companionPhone?.value ?? null,
+      profilePhoto: this.profilePhoto?.value ?? null,
+      protocolNo: this.protocolNo,
+      allergies: this.allergies,
+      chronicDiseases: this.chronicDiseases,
+      bloodType: this.bloodType,
+      status: this.status,
+      patientType: this.patientType,
+      responsibleProviderId: this.responsibleProviderId,
+      checkupDate: this.checkupDate,
+      discountRate: this.discountRate,
+      createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
-      deletedAt: this._deletedAt,
-      firebaseUid: this._firebaseUid?.value ?? null,
+      deletedAt: this.deletedAt,
+      firebaseUid: this.firebaseUid?.value ?? null,
     };
   }
 
-  private _isActive(): Guard<boolean> {
-    const isValid = this._status === PatientStatusSchema.enum.ACTIVE;
+  private isActive(): Guard<boolean> {
+    const isValid = this.status === PatientStatusSchema.enum.ACTIVE;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 
-  private _isInactive() {
-    const isValid = this._status === PatientStatusSchema.enum.INACTIVE;
+  private isInactive() {
+    const isValid = this.status === PatientStatusSchema.enum.INACTIVE;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 
-  private _isArchived() {
-    const isValid = this._status === PatientStatusSchema.enum.ARCHIVED;
+  private isArchived() {
+    const isValid = this.status === PatientStatusSchema.enum.ARCHIVED;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 
-  private _isBlacklisted(): Guard<boolean> {
-    const isValid = this._status === PatientStatusSchema.enum.BLACKLISTED;
+  private isBlacklisted(): Guard<boolean> {
+    const isValid = this.status === PatientStatusSchema.enum.BLACKLISTED;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 
-  private _isDeceased(): Guard<boolean> {
-    const isValid = this._status === PatientStatusSchema.enum.DECEASED;
+  private isDeceased(): Guard<boolean> {
+    const isValid = this.status === PatientStatusSchema.enum.DECEASED;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 
-  private _isDeleted(): Guard<boolean> {
-    const isValid = this._deletedAt !== null;
+  private isDeleted(): Guard<boolean> {
+    const isValid = this.deletedAt !== null;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 
-  private _isClinicInline(): Guard<boolean> {
-    const isFirebaseUser = !!this._firebaseUid?.value;
+  private isClinicInline(): Guard<boolean> {
+    const isFirebaseUser = !!this.firebaseUid?.value;
     return Guard.monitor(!isFirebaseUser, !isFirebaseUser, () => new Error());
   }
 
-  private _hasPhone(): Guard<boolean> {
-    const isValid = this._phone !== null;
+  private hasPhone(): Guard<boolean> {
+    const isValid = this.phone !== null;
     return Guard.monitor(isValid, isValid, () => new Error());
   }
 }

@@ -48,9 +48,8 @@ export class ClinicPaymentGateway extends AggregateRoot {
   ): ClinicPaymentGateway {
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     return new ClinicPaymentGateway({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       iyzicoSubMerchantKey: props.iyzicoSubMerchantKey,
       createdAt: now,
@@ -69,7 +68,7 @@ export class ClinicPaymentGateway extends AggregateRoot {
       iyzicoSubMerchantKey: this._iyzicoSubMerchantKey,
       clinicId: this._clinicId.value,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

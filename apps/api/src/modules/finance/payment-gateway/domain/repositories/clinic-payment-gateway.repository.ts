@@ -8,8 +8,10 @@ export const CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IClinicPaymentGatewayCommandRepository {
-  /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicPaymentGateway): Promise<ClinicPaymentGateway>;
+  /** clinicId unique → get-or-create (upsert). */
+  upsertByClinicId(
+    entity: ClinicPaymentGateway
+  ): Promise<ClinicPaymentGateway>;
 }
 
 export interface IClinicPaymentGatewayQueryRepository {

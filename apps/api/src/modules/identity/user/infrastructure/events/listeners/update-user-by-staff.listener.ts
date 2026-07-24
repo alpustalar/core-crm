@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { UpdateUserByStaffEvent } from '@modules/identity/user/domain/events/update-user-by-staff.event';
+import { UserUpdatedEvent } from '@modules/identity/user/domain/events/user-updated.event';
 import { AuditLogService } from '@modules/platform/audit-log/audit-log.service';
 import { LogType } from '@src/domain/constants/log-action.constant';
 
@@ -10,8 +10,8 @@ export class UpdateUserByStaffListener {
 
   constructor(private readonly auditLogService: AuditLogService) {}
 
-  @OnEvent(UpdateUserByStaffEvent.NAME, { async: true })
-  async handle(event: UpdateUserByStaffEvent) {
+  @OnEvent(UserUpdatedEvent.NAME, { async: true })
+  async handle(event: UserUpdatedEvent) {
     const {
       log,
       metadata: { eventId, correlationId },

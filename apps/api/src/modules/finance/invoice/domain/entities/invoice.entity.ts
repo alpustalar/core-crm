@@ -86,7 +86,7 @@ export class Invoice extends AggregateRoot {
   }
 
   get amount(): Decimal {
-    return this._taxSpecification.grossAmount.amount;
+    return this._taxSpecification.grossAmount.value;
   }
 
   private _taxSpecification: TaxSpecification;
@@ -185,6 +185,8 @@ export class Invoice extends AggregateRoot {
     return this._status === InvoiceStatusSchema.enum.ISSUED;
   }
 
+  // TODO: create methodu oluşacak
+
   public issue(props: IssueInvoiceEntityProps): void {
     if (!this.isPending()) {
       throw new Error('Yalnızca bekleyen faturalar kesilebilir.');
@@ -227,7 +229,7 @@ export class Invoice extends AggregateRoot {
     }
     if (this.isPending()) {
       this._status = InvoiceStatusSchema.enum.ISSUED;
-      this._issuedAt = this._issuedAt ?? new Date();
+      this._issuedAt = this._issuedAt ?? DateTimeManager.create();
     }
   }
 
@@ -259,11 +261,11 @@ export class Invoice extends AggregateRoot {
       appointmentId: this._appointmentId?.value ?? null,
       paymentId: this._paymentId?.value ?? null,
 
-      amount: this._taxSpecification.grossAmount.amount,
+      amount: this._taxSpecification.grossAmount.value,
       currency: this._taxSpecification.netAmount.currency,
       vatRate: this._taxSpecification.taxRate,
-      netTotal: this._taxSpecification.netAmount.amount,
-      vatTotal: this._taxSpecification.taxAmount.amount,
+      netTotal: this._taxSpecification.netAmount.value,
+      vatTotal: this._taxSpecification.taxAmount.value,
 
       status: this._status,
       invoiceNumber: this._invoiceNumber?.value || null,

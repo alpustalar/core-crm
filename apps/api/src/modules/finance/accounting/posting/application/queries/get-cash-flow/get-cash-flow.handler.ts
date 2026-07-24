@@ -26,7 +26,7 @@ export class GetCashFlowHandler
   ) {}
 
   async execute(query: GetCashFlowQuery): Promise<GetCashFlowResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query;
+    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
 
     // Nakit hesap id'lerini plan'dan çöz (bounded context — QueryBus).
     const { data: accounts } = await this.queryBus.execute(

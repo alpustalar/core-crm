@@ -9,9 +9,11 @@ import { GetInboundMediaResponse } from './get-inbound-media.response';
 export class GetInboundMediaQuery implements IQuery {
   readonly __responseType!: GetInboundMediaResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly conversationId: string,
-    public readonly messageId: string,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      conversationId: string;
+      messageId: string;
+      ctx: IGetContext;
+    }
   ) {}
 }

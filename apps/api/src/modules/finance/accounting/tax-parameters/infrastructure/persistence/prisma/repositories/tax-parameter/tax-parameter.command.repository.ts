@@ -27,12 +27,11 @@ export class TaxParameterCommandRepository
   }
 
   async save(entity: TaxParameter) {
-    const create = entity.toPersistence();
-    const { id, ...update } = create;
-    const raw = await this.db.taxParameter.upsert({
+    const data = entity.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.taxParameter.update({
       where: { id },
-      create,
-      update,
+      data: update,
     });
     entity.flushEvents();
     return new TaxParameter(raw);

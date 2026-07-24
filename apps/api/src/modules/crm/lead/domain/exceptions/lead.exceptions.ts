@@ -36,3 +36,20 @@ export class LeadNotFoundException extends DomainException<{ leadId: string }> {
     super('Lead bulunamadı.', { leadId });
   }
 }
+
+/**
+ * Convert'te bağlanacak hedef yok: patientId verilmedi, lead'de otomatik hasta
+ * oluşturacak telefon/isim yok ve appointmentId da yok.
+ */
+export class LeadConvertMissingTargetException extends DomainException<{
+  leadId?: string;
+}> {
+  readonly errorCode = ERROR_CODES.LEAD.CONVERT_MISSING_TARGET;
+
+  constructor(leadId?: string) {
+    super(
+      'Dönüştürmek için mevcut bir hasta, otomatik hasta oluşturacak telefon+isim ya da randevu gerekli.',
+      { leadId }
+    );
+  }
+}

@@ -23,7 +23,7 @@ export interface UpsertHotelbedsHotelInput {
 }
 
 export interface IHotelbedsHotelCommandRepository {
-  upsertMany(hotels: UpsertHotelbedsHotelInput[]): Promise<void>;
+  syncMany(hotels: UpsertHotelbedsHotelInput[]): Promise<void>;
 }
 
 export interface IHotelbedsHotelQueryRepository {

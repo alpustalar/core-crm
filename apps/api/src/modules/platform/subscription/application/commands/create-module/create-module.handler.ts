@@ -18,12 +18,13 @@ export class CreateModuleHandler
   ) {}
 
   async execute(command: CreateModuleCommand): Promise<string> {
+    const { payload } = command;
     const module = Module.create({
-      key: command.key,
-      name: command.name,
-      monthlyPrice: command.monthlyPrice,
-      currency: command.currency,
-      description: command.description ?? null,
+      key: payload.key,
+      name: payload.name,
+      monthlyPrice: payload.monthlyPrice,
+      currency: payload.currency,
+      description: payload.description ?? null,
     });
 
     const existing = await this.moduleCommandRepo.findByKey(module.key);

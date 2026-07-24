@@ -10,11 +10,12 @@ model Sector {
   slug String     @unique
   name SectorType
 
-  categories  TreatmentCategory[]
-  specialties ProviderSpecialty[]
-  providers   Provider[]
-  clinics     Clinic[]
-  patients    Patient[]
+  categories            TreatmentCategory[]
+  specialties           ProviderSpecialty[]
+  providers             Provider[]
+  clinics               Clinic[]
+  patients              Patient[]
+  consentFormTemplates  ConsentFormTemplate[]
 
   @@map("sectors")
 }

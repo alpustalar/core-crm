@@ -16,7 +16,7 @@ import {
   ProviderNotStaticModeException,
 } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { Guard } from '@common/domain/guards';
-import { DateTimeManager } from '@common/utils';
+import { DateTimeManager, isDefined } from '@common/utils';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Phone } from '@src/domain/value-objects/phone.vo';
 import { Email } from '@src/domain/value-objects/email.vo';
@@ -150,13 +150,44 @@ export class Provider extends AggregateRoot {
   public get validate() {
     return {
       operationMode: {
-        isStatic: this._isStaticMode(),
-        isShift: this._isShiftMode(),
+        isStatic: this.isStaticMode,
+        isShift: this.isShiftMode,
       },
       canAcceptConsultation: this.canAcceptConsultation(),
-      isDeleted: this._isDeleted(),
-      isActive: this._validateIsActive(),
+      isDeleted: this._isDeleted,
+      isActive: this.validateIsActive,
     };
+  }
+
+  private get isStaticMode() {
+    const isStatic = this._operationMode === OperationModeSchema.enum.STATIC;
+
+    return Guard.monitor(
+      isStatic,
+      isStatic,
+      () => new ProviderNotStaticModeException()
+    );
+  }
+
+  private get isShiftMode() {
+    const is = this._operationMode === OperationModeSchema.enum.SHIFT;
+    return Guard.monitor(is, is, () => new ProviderNotShiftModeException());
+  }
+
+  private get _isDeleted(): Guard<boolean> {
+    return Guard.monitor(
+      this.isDeleted,
+      this.isDeleted,
+      () => new ProviderAlreadyDeleted()
+    );
+  }
+
+  private get validateIsActive(): Guard<boolean> {
+    return Guard.monitor(
+      this.isActive,
+      this.isActive,
+      () => new Error('Uzman aktif değil')
+    );
   }
 
   // --- Factory Method ---
@@ -164,9 +195,7 @@ export class Provider extends AggregateRoot {
     const now = DateTimeManager.create();
 
     const provider = new Provider({
-      id: props.id
-        ? UUID.create(props.id).orThrow().value
-        : UUID.generate().value,
+      id: UUID.createOrGenerate(props.id).value,
 
       userId: UUID.create(props.userId).orThrow().value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
@@ -218,7 +247,7 @@ export class Provider extends AggregateRoot {
         ? UUID.create(dto.providerTitleId).orThrow()
         : null;
 
-    if (isNotUndefined(dto.providerSpecialtyId))
+    if (isDefined(dto.providerSpecialtyId))
       this._providerSpecialtyId = UUID.create(
         dto.providerSpecialtyId
       ).orThrow();
@@ -263,9 +292,9 @@ export class Provider extends AggregateRoot {
     this._isActive = false;
     this.addDomainEvent(
       new ProviderSoftDeletedEvent({
-        providerId: this._id.value,
-        clinicId: this._clinicId.value,
-        userId: this._userId.value,
+        providerId: this.id.value,
+        clinicId: this.clinicId.value,
+        userId: this.userId.value,
       })
     );
   }
@@ -276,7 +305,7 @@ export class Provider extends AggregateRoot {
 
   public switchOperationMode(): void {
     const { STATIC, SHIFT } = OperationModeSchema.enum;
-    this._operationMode = this._isStaticMode() ? SHIFT : STATIC;
+    this._operationMode = this.isStaticMode ? SHIFT : STATIC;
   }
 
   // --- Mapping ---
@@ -299,37 +328,6 @@ export class Provider extends AggregateRoot {
       updatedAt: DateTimeManager.create(),
       deletedAt: this.deletedAt,
     };
-  }
-
-  private _isStaticMode() {
-    const isStatic = this._operationMode === OperationModeSchema.enum.STATIC;
-
-    return Guard.monitor(
-      isStatic,
-      isStatic,
-      () => new ProviderNotStaticModeException()
-    );
-  }
-
-  private _isShiftMode() {
-    const is = this._operationMode === OperationModeSchema.enum.SHIFT;
-    return Guard.monitor(is, is, () => new ProviderNotShiftModeException());
-  }
-
-  private _isDeleted(): Guard<boolean> {
-    return Guard.monitor(
-      this.isDeleted,
-      this.isDeleted,
-      () => new ProviderAlreadyDeleted()
-    );
-  }
-
-  private _validateIsActive(): Guard<boolean> {
-    return Guard.monitor(
-      this.isActive,
-      this.isActive,
-      () => new Error('Uzman aktif değil')
-    );
   }
 
   private canAcceptConsultation(): Guard<boolean> {

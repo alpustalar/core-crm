@@ -1,10 +1,12 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { ReviewAdminRequestDto } from '@shared/modules/admin-request/dto/commands';
+import { ReviewAdminRequest } from '@shared';
 
 export class ReviewAdminRequestCommand {
   constructor(
-    public readonly requestId: string,
-    public readonly dto: ReviewAdminRequestDto,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      requestId: string;
+      data: ReviewAdminRequest;
+      ctx: IGetContext;
+    }
   ) {}
 }

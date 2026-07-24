@@ -7,7 +7,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { CreateProductCommand } from './create-product.command';
-import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -26,25 +25,23 @@ export class CreateProductHandler
   ) {}
 
   async execute(command: CreateProductCommand): Promise<string> {
-    const { dto, ctx } = command;
-    const { actor, source } = ctx;
+    const { data, ctx } = command;
 
-    if (!actor.organizationId) throw new OrganizationNotAssignedException();
-
-    if (!actor.clinicId) {
-      this.policyFactory
-        .clinic(actor)
-        .evaluator.systemBypass(source)
-        .check((p) => p.actorCanAccessTargetClinic(dto.clinicId))
-        .orThrow();
-    }
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicAndOrganization(
+          data.clinicId,
+          data.organizationId
+        )
+      )
+      .orThrow();
 
     const product = Product.create({
-      vatRate: dto.vatRate ?? 0,
-      criticalStockQty: dto.criticalStockQty ?? 0,
-      reorderQty: dto.reorderQty ?? 0,
-      organizationId: actor.organizationId,
-      ...dto,
+      vatRate: data.vatRate ?? 0,
+      criticalStockQty: data.criticalStockQty ?? 0,
+      reorderQty: data.reorderQty ?? 0,
+      ...data,
     });
 
     return this.txManager.run(async () => {

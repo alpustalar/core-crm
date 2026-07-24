@@ -10,6 +10,7 @@ import {
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
 import { TAX_PARAMETER_DEFAULTS } from '@modules/finance/accounting/tax-parameters/domain/constants/tax-parameter-defaults';
 import { InitializeTaxParametersCommand } from './initialize-tax-parameters.command';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Şube açılışında varsayılan vergi oranlarını kurar. İdempotent: parametre
@@ -28,13 +29,13 @@ export class InitializeTaxParametersHandler
   ) {}
 
   async execute(command: InitializeTaxParametersCommand): Promise<void> {
-    const { clinicId, organizationId } = command;
+    const { clinicId, organizationId, ctx } = command;
 
     const alreadyInitialized =
       await this.taxParameterQueryRepo.existsForClinic(clinicId);
     if (alreadyInitialized) return;
 
-    const validFrom = new Date();
+    const validFrom = DateTimeManager.create();
     const parameters = TAX_PARAMETER_DEFAULTS.map((def) =>
       TaxParameter.create({
         clinicId,

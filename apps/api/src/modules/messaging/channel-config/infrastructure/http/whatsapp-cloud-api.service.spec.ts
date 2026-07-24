@@ -1,10 +1,10 @@
-import { ConfigService } from '@nestjs/config';
 import { WhatsappCloudApiService } from './whatsapp-cloud-api.service';
 
+// Servis artık ConfigService değil düz WhatsappCloudApiConfig ({ appId, appSecret }) alır.
+const testConfig = { appId: 'app-id', appSecret: 'app-secret' };
+
 describe('WhatsappCloudApiService.fetchMedia (proxy indirme)', () => {
-  const service = new WhatsappCloudApiService({
-    getOrThrow: jest.fn(),
-  } as unknown as ConfigService);
+  const service = new WhatsappCloudApiService(testConfig);
 
   afterEach(() => jest.restoreAllMocks());
 
@@ -52,9 +52,7 @@ describe('WhatsappCloudApiService.fetchMedia (proxy indirme)', () => {
 });
 
 describe('WhatsappCloudApiService.registerPhoneNumber (Cloud API register)', () => {
-  const service = new WhatsappCloudApiService({
-    getOrThrow: jest.fn(),
-  } as unknown as ConfigService);
+  const service = new WhatsappCloudApiService(testConfig);
 
   afterEach(() => jest.restoreAllMocks());
 
@@ -85,9 +83,7 @@ describe('WhatsappCloudApiService.registerPhoneNumber (Cloud API register)', () 
 });
 
 describe('WhatsappCloudApiService.listMessageTemplates', () => {
-  const service = new WhatsappCloudApiService({
-    getOrThrow: jest.fn(),
-  } as unknown as ConfigService);
+  const service = new WhatsappCloudApiService(testConfig);
 
   afterEach(() => jest.restoreAllMocks());
 
@@ -123,11 +119,7 @@ describe('WhatsappCloudApiService.listMessageTemplates', () => {
 });
 
 describe('WhatsappCloudApiService.exchangeForLongLivedToken', () => {
-  const service = new WhatsappCloudApiService({
-    getOrThrow: jest.fn((k: string) =>
-      k.includes('SECRET') ? 'app-secret' : 'app-id'
-    ),
-  } as unknown as ConfigService);
+  const service = new WhatsappCloudApiService(testConfig);
 
   afterEach(() => jest.restoreAllMocks());
 

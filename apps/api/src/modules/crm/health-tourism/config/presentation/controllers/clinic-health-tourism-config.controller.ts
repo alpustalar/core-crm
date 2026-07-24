@@ -40,7 +40,7 @@ export class ClinicHealthTourismConfigController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new ConfigureClinicHealthTourismCommand(clinicId, dto, ctx)
+      new ConfigureClinicHealthTourismCommand({ clinicId, data: dto, ctx })
     );
   }
 }

@@ -1,9 +1,9 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { AssignPackageToPatientDto } from '@shared/modules/treatment-package/dto/command';
+import { AssignPackageToPatient } from '@shared';
 
 export class AssignPackageToPatientCommand {
   constructor(
-    public readonly dto: AssignPackageToPatientDto,
+    public readonly data: AssignPackageToPatient,
     public readonly ctx: IGetContext
   ) {}
 }

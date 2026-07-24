@@ -1,18 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
-interface IUrlValidator {
-  protocol: {
-    isHttps: boolean;
-    orThrow: (msg?: string) => void;
-  };
-  domain: {
-    isTrustedCloud: boolean;
-  };
-}
+import { InvalidUrlException } from '@src/domain/exceptions';
 
 export class Url {
   private readonly _value: string;
-  private readonly _parsed: URL; // Node.js built-in URL nesnesi
+  private readonly _parsed: URL;
 
   private constructor(value: string) {
     this._value = value;
@@ -20,78 +10,62 @@ export class Url {
     Object.freeze(this);
   }
 
-  get value(): string {
+  public get value(): string {
     return this._value;
   }
-  get host(): string {
+  public get host(): string {
     return this._parsed.host;
   }
-  get pathname(): string {
+  public get pathname(): string {
     return this._parsed.pathname;
   }
 
-  /**
-   * 🎯 2026 Standart Zırhlı Validate Katmanı
-   */
-  public get validate(): IUrlValidator {
-    const self = this;
-    const isHttps = self._parsed.protocol === 'https:';
-    // Örn: Sadece bizim AWS S3 veya MinIO domainimize mi ait kontrolü
-    const isTrustedCloud =
-      self._parsed.host.endsWith('amazonaws.com') ||
-      self._parsed.host.includes('cliniccore');
+  // 2. Akıcı ve Temiz Doğrulama
+  public get validate() {
+    return {
+      isHttps: (): boolean => this._parsed.protocol === 'https:',
+
+      isTrustedCloud: (): boolean =>
+        this._parsed.host.endsWith('amazonaws.com') ||
+        this._parsed.host.includes('cliniccore'),
+
+      ensureHttps: (msg?: string) => {
+        if (this._parsed.protocol !== 'https:') {
+          throw new InvalidUrlException(
+            msg ?? 'Güvenlik nedeniyle sadece HTTPS protokolü kabul edilir.'
+          );
+        }
+      },
+    };
+  }
+
+  // 1. Disiplinli Factory: create().orThrow()
+  public static create(value: string | null | undefined) {
+    const trimmed = value?.trim();
+    let instance: Url | undefined;
+    let error: Error | undefined;
+
+    if (!trimmed) {
+      error = new InvalidUrlException('URL boş olamaz.');
+    } else {
+      try {
+        instance = new Url(trimmed);
+      } catch {
+        error = new InvalidUrlException('Geçersiz URL formatı.');
+      }
+    }
 
     return {
-      protocol: {
-        get isHttps() {
-          return isHttps;
-        },
-        orThrow: (msg?: string) => {
-          if (!isHttps)
-            throw new BadRequestException(
-              msg ?? 'Güvenlik nedeniyle sadece HTTPS protokolü kabul edilir.'
-            );
-        },
-      },
-      domain: {
-        get isTrustedCloud() {
-          return isTrustedCloud;
-        },
+      instance,
+      orThrow(exception?: Error): Url {
+        if (!instance) throw exception ?? error!;
+        return instance;
       },
     };
   }
 
   public static fromTrusted(value: string): Url {
     return new Url(value);
-  }
-
-  public static create(value: string | null | undefined) {
-    if (!value) {
-      return {
-        instance: undefined,
-        orThrow: () => {
-          throw new BadRequestException('URL boş olamaz.');
-        },
-      };
-    }
-
-    let instance: Url | undefined;
-    let error: Error | undefined;
-
-    try {
-      // Geçersiz bir URL yapısındaysa Node.js new URL() otomatik fırlatır
-      instance = new Url(value);
-    } catch (e) {
-      error = new BadRequestException('Geçersiz URL formatı.');
-    }
-
-    return {
-      instance: error ? undefined : instance,
-      orThrow: (): Url => {
-        if (error || !instance) throw error!;
-        return instance;
-      },
-    };
   }
 
   public equals(other: Url): boolean {

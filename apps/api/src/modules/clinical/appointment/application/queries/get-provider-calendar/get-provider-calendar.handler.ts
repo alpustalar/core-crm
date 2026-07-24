@@ -1,4 +1,3 @@
-import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 /* eslint-disable */
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetProviderCalendarQuery } from './get-provider-calendar.query';
@@ -13,7 +12,6 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(GetProviderCalendarQuery)
 export class GetProviderCalendarHandler
@@ -30,35 +28,28 @@ export class GetProviderCalendarHandler
   async execute(
     query: GetProviderCalendarQuery
   ): Promise<GetProviderCalendarQueryResponse> {
-    const { dto, ctx, pagination } = query;
-    const { actor } = ctx;
+    const { payload } = query;
+    const { filter, ctx, pagination } = payload;
 
     {
-      if (!actor.clinicId) throw new ClinicNotAssignedException();
-
-      const { evaluator, policy } = this.policyFactory.appointment(actor);
-
-      evaluator
-        .check(
-          (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
-          'Bu kliniğe ait randevulara erişim yetkiniz yok.'
-        )
-        .orThrow(APPOINTMENT_EVENTS.PROVIDER_CALENDAR);
-
-      const serializationOptions = policy.getSerializationOptions({
-        providerId: dto.providerId,
-        clinicId: actor.clinicId,
-      });
-
       const { items, total } = await this.appointmentRepo.findProviderCalendar({
         pagination,
-        providerId: dto.providerId,
-        startDate: dto.startDate,
-        endDate: dto.endDate,
+        providerId: filter.providerId,
+        startDate: filter.startDate,
+        endDate: filter.endDate,
       });
 
+      const anyProviderAppointment = items[0];
+
+      const serializationOptions = this.policyFactory
+        .appointment(ctx.actor, ctx.source)
+        .policy.getSerializationOptions({
+          providerId: filter.providerId,
+          clinicId: anyProviderAppointment.clinicId,
+        });
+
       return {
-        data: items.map((item) => item.toPersistence()),
+        data: items,
         meta: {
           pagination: buildPaginationMeta(pagination, total),
           serializationOptions,

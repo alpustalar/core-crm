@@ -24,19 +24,11 @@ export class FindSuppliersHandler
   ) {}
 
   async execute(query: FindSuppliersQuery): Promise<FindSuppliersResponse> {
-    const { pagination, ctx } = query;
-    const { actor } = ctx;
-
-    this.policyFactory
-      .organization(actor)
-      .evaluator.check(
-        (p) => p.isOwnOrganization(),
-        'Tedarikçi listeleme yetkiniz yok.'
-      )
-      .orThrow();
+    const { payload } = query;
+    const { pagination, ctx, organizationId } = payload;
 
     const result = await this.supplierQueryRepo.findMany(
-      actor.organizationId!,
+      organizationId,
       pagination
     );
 

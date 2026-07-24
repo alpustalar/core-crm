@@ -12,7 +12,10 @@ import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/t
 import { CreateFinanceLedgerProps } from '@modules/finance/finance-ledger/domain/finance-ledger.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
-import { TaxRate } from 'stripe';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
+import { shouldValidate } from '@common/domain/utils/should-validate';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
 export class FinanceLedgerEntity extends AggregateRoot {
   constructor(data: IFinanceLedger) {
@@ -20,21 +23,17 @@ export class FinanceLedgerEntity extends AggregateRoot {
     this._id = UUID.fromTrusted(data.id);
     this._organizationId = UUID.fromTrusted(data.organizationId);
     this._clinicId = UUID.fromTrusted(data.clinicId);
-    this._patientId = data.patientId ? UUID.fromTrusted(data.patientId) : null;
-    this._paymentId = data.paymentId ? UUID.fromTrusted(data.paymentId) : null;
-    this._installmentId = data.installmentId
-      ? UUID.fromTrusted(data.installmentId)
-      : null;
-    this._performedById = data.performedById
-      ? UUID.fromTrusted(data.performedById)
-      : null;
+    this._patientId = UUID.create(data.patientId).instance ?? null;
+    this._paymentId = UUID.create(data.paymentId).instance ?? null;
+    this._installmentId = UUID.create(data.installmentId).instance ?? null;
+    this._performedById = UUID.create(data.performedById).instance ?? null;
     this._type = data.type;
     this._source = data.source;
     this._category = data.category;
     this._status = data.status;
 
-    const netMoney = Money.create(data.amount, data.currency).orThrow();
-    const taxMoney = Money.create(data.taxAmount, data.currency).orThrow();
+    const netMoney = Money.fromTrusted(data.amount, data.currency);
+    const taxMoney = Money.fromTrusted(data.taxAmount, data.currency);
 
     this._taxSpecification = TaxSpecification.create(
       netMoney,
@@ -108,14 +107,19 @@ export class FinanceLedgerEntity extends AggregateRoot {
     return this._status;
   }
 
-  private _currency: Currency;
-  get currency(): Currency {
-    return this._currency;
+  get amount(): Money {
+    return this.taxSpecification.netAmount;
   }
 
-  private _taxRate: TaxRate;
-  get taxRate(): TaxRate {
-    return this._taxRate;
+  get currency(): Currency {
+    return Currency.fromTrusted(this.taxSpecification.netAmount.currency);
+  }
+  get taxRate(): number {
+    return this.taxSpecification.taxRate;
+  }
+
+  get taxAmount(): Money {
+    return this.taxSpecification.taxAmount;
   }
 
   private _description: string | null;
@@ -143,13 +147,19 @@ export class FinanceLedgerEntity extends AggregateRoot {
     return this._updatedAt;
   }
 
+  public get validate() {
+    return {
+      isCompleted: (msg?: string) => this.isCompleted(msg),
+      isRefunded: (msg?: string) => this.isRefunded(msg),
+      isCancelled: (msg?: string) => this.isCancelled(msg),
+    };
+  }
+
   public static create(props: CreateFinanceLedgerProps): FinanceLedgerEntity {
     const taxSpec = TaxSpecification.create(props.money, props.taxRate ?? 0);
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     return new FinanceLedgerEntity({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       organizationId: UUID.create(props.organizationId).orThrow().value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
 
@@ -174,71 +184,76 @@ export class FinanceLedgerEntity extends AggregateRoot {
       category: props.category,
       status: LedgerStatusSchema.enum.COMPLETED,
 
-      amount: taxSpec.netAmount.amount,
+      amount: taxSpec.netAmount.value,
       currency: taxSpec.netAmount.currency,
       taxRate: taxSpec.taxRate,
-      taxAmount: taxSpec.taxAmount.amount,
+      taxAmount: taxSpec.taxAmount.value,
 
       description: props.description ?? null,
       documentNo: props.documentNo ?? null,
-      entryDate: props.entryDate ?? new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      entryDate: props.entryDate ?? DateTimeManager.create(),
+      createdAt: DateTimeManager.create(),
+      updatedAt: DateTimeManager.create(),
     });
   }
 
-  public isCompleted(): boolean {
-    return this._status === LedgerStatusSchema.enum.COMPLETED;
-  }
+  public refund(validateOptions = DefaultValidateOptions): void {
+    if (shouldValidate(validateOptions))
+      this.isCompleted(
+        'Yalnızca tamamlanan kayıtlar iade edilebilir.'
+      ).orThrow();
 
-  public isRefunded(): boolean {
-    return this._status === LedgerStatusSchema.enum.REFUNDED;
-  }
-
-  public isCancelled(): boolean {
-    return this._status === LedgerStatusSchema.enum.CANCELLED;
-  }
-
-  public refund(): void {
-    if (!this.isCompleted()) {
-      throw new Error('Yalnızca tamamlanan kayıtlar iade edilebilir.');
-    }
     this._status = LedgerStatusSchema.enum.REFUNDED;
   }
 
-  public cancel(): void {
-    if (this.isRefunded() || this.isCancelled()) {
-      throw new Error(
-        'İade edilmiş veya iptal edilmiş kayıtlar iptal edilemez.'
-      );
-    }
+  public cancel(validateOptions = DefaultValidateOptions): void {
+    if (shouldValidate(validateOptions))
+      this.isRefunded('İade edilmiş kayıtlar iptal edilemez').orThrow();
+
+    const isCancelled = this.isCancelled().value;
+    if (isCancelled) return;
+
     this._status = LedgerStatusSchema.enum.CANCELLED;
   }
 
   public toPersistence(): IFinanceLedger {
     return {
-      id: this._id.value,
-      organizationId: this._organizationId.value,
-      clinicId: this._clinicId.value,
-      patientId: this._patientId?.value ?? null,
-      paymentId: this._paymentId?.value ?? null,
-      installmentId: this._installmentId?.value ?? null,
-      performedById: this._performedById?.value ?? null,
-      type: this._type,
-      source: this._source,
-      category: this._category,
-      status: this._status,
+      id: this.id.value,
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId.value,
+      patientId: this.patientId?.value ?? null,
+      paymentId: this.paymentId?.value ?? null,
+      installmentId: this.installmentId?.value ?? null,
+      performedById: this.performedById?.value ?? null,
+      type: this.type,
+      source: this.source,
+      category: this.category,
+      status: this.status,
 
-      amount: this._taxSpecification.netAmount.amount,
-      currency: this._taxSpecification.netAmount.currency,
-      taxRate: this._taxSpecification.taxRate,
-      taxAmount: this._taxSpecification.taxAmount.amount,
-
-      description: this._description,
-      documentNo: this._documentNo,
-      entryDate: this._entryDate,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      amount: this.amount.value,
+      currency: this.currency.value,
+      taxRate: this.taxRate,
+      taxAmount: this.taxAmount.value,
+      description: this.description,
+      documentNo: this.documentNo,
+      entryDate: this.entryDate,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
+  }
+
+  private isCompleted(msg?: string): Guard<boolean> {
+    const is = this._status === LedgerStatusSchema.enum.COMPLETED;
+    return Guard.monitor(is, is, () => new Error(msg ?? 'Tamamlanmamış'));
+  }
+
+  private isRefunded(msg?: string): Guard<boolean> {
+    const is = this._status === LedgerStatusSchema.enum.REFUNDED;
+    return Guard.monitor(is, is, () => new Error(msg ?? 'İade edilmemiş'));
+  }
+
+  private isCancelled(msg?: string): Guard<boolean> {
+    const is = this._status === LedgerStatusSchema.enum.CANCELLED;
+    return Guard.monitor(is, is, () => new Error(msg ?? 'İptal edilmemiş'));
   }
 }

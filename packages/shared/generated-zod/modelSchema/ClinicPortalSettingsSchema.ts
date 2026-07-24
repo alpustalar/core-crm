@@ -11,7 +11,7 @@ export const ClinicPortalSettingsSchema = z.object({
   customDomain: z.string().nullable(),
   primaryColor: z.string(),
   customTitle: z.string().nullable(),
-  allowOnlineBooking: z.boolean(),
+  showOnlineBooking: z.boolean(),
   showMedicalRecords: z.boolean(),
   showFinancials: z.boolean(),
   showRaysAndImages: z.boolean(),

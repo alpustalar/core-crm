@@ -9,7 +9,16 @@ export const ACCOUNTING_PERIOD_QUERY_REPOSITORY = Symbol(
 );
 
 export type IAccountingPeriodCommandRepository =
-  IBaseCommandRepository<AccountingPeriod>;
+  IBaseCommandRepository<AccountingPeriod> & {
+    /**
+     * Dönemi atomik olarak kapanışa "sahiplenir": OPEN/LOCKED → CLOSED tek bir
+     * koşullu UPDATE ile yapılır. Eşzamanlı ikinci istek 0 satır etkiler (satır
+     * kilidi commit'i bekler, sonra CLOSED görür) → `false` döner. Böylece mükerrer
+     * yıl sonu kapanış fişi üretimi (check-then-act yarışı) önlenir.
+     * @returns dönemi bu çağrı kapattıysa `true`, zaten kapalıysa `false`
+     */
+    claimForClosing(periodId: string): Promise<boolean>;
+  };
 
 export interface IAccountingPeriodQueryRepository {
   findById(id: string): Promise<AccountingPeriod | null>;

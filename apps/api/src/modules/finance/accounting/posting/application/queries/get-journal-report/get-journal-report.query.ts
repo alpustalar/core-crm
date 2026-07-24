@@ -11,10 +11,12 @@ import { GetJournalReportResponse } from './get-journal-report.response';
 export class GetJournalReportQuery implements IQuery {
   readonly __responseType!: GetJournalReportResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly pagination: Pagination,
-    public readonly ctx: IGetContext,
-    public readonly dateFrom?: Date,
-    public readonly dateTo?: Date
+    public readonly payload: {
+      clinicId: string;
+      pagination: Pagination;
+      ctx: IGetContext;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
   ) {}
 }

@@ -100,25 +100,26 @@ export class MetaCampaignMetric extends AggregateRoot {
     return {} as MetaAdAccount;
   }
 
+  // TODO: static create methodu oluştur
   public toPersistence(): IMetaCampaignMetric {
     return {
-      id: this._id.value,
-      metaAdAccountId: this._metaAdAccountId,
-      campaignId: this._campaignId,
-      campaignName: this._campaignName,
-      date: this._date,
+      id: this.id.value,
+      metaAdAccountId: this.metaAdAccountId,
+      campaignId: this.campaignId,
+      campaignName: this.campaignName,
+      date: this.date,
 
-      spend: this._spend.amount,
-      cpc: this._cpc?.amount ?? null,
-      ctr: this._ctr,
+      spend: this.spend.value,
+      cpc: this.cpc?.value ?? null,
+      ctr: this.ctr,
 
-      clicks: this._clicks,
-      impressions: this._impressions,
+      clicks: this.clicks,
+      impressions: this.impressions,
 
-      currency: this._spend.currency,
+      currency: this.spend.currency,
 
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

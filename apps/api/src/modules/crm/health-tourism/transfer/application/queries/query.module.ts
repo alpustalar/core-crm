@@ -5,12 +5,14 @@ import { GetTransferBookingsHandler } from './get-transfer-bookings/get-transfer
 import { GetTransferBookingByIdHandler } from './get-transfer-booking-by-id/get-transfer-booking-by-id.handler';
 import { HotelbedsTransferApiModule } from '../../infrastructure/http/hotelbeds-transfer-api.module';
 import { HotelbedsTransferBookingRepositoryModule } from '../../infrastructure/persistence/prisma/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.repository.module';
-import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
+import { TransferCacheModule } from '@modules/crm/health-tourism/transfer/infrastructure/cache/transfer-cache.module';
+import { GetTransferRateOptionHandler } from './get-transfer-rate-option/get-transfer-rate-option.handler';
 
 export const TRANSFER_QUERY_HANDLERS = [
   SearchTransferAvailabilityHandler,
   GetTransferBookingsHandler,
   GetTransferBookingByIdHandler,
+  GetTransferRateOptionHandler,
 ];
 
 @Module({
@@ -18,9 +20,9 @@ export const TRANSFER_QUERY_HANDLERS = [
     CqrsModule,
     HotelbedsTransferApiModule,
     HotelbedsTransferBookingRepositoryModule,
-    RedisModule,
+    TransferCacheModule,
   ],
-  providers: TRANSFER_QUERY_HANDLERS,
+  providers: [...TRANSFER_QUERY_HANDLERS],
   exports: TRANSFER_QUERY_HANDLERS,
 })
 export class TransferQueryModule {}

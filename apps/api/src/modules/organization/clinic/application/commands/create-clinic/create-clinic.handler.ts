@@ -29,23 +29,25 @@ export class CreateClinicHandler
   ) {}
 
   async execute(command: CreateClinicCommand) {
-    const { dto, ctx, internalRelations } = command;
+    const { data, ctx, internalRelations } = command.payload;
     const { actor, source } = ctx;
 
     const organizationId =
-      internalRelations?.organizationId ?? dto.organizationId;
+      internalRelations?.organizationId ?? data.organizationId;
     const props: CreateClinicProps = {
-      ...dto,
+      ...data,
       organizationId,
       id: internalRelations?.clinicId,
       timezone: TimeZoneSchema.enum.Europe_Istanbul,
     };
 
-    const { evaluator } = this.policyFactory.organization(actor);
+    const { evaluator } = this.policyFactory.organization(actor, source);
     if (organizationId) {
       evaluator
-        .systemBypass(source)
-        .check((p) => p.isOwnOrganization(organizationId), 'Yetki ihlali')
+        .check(
+          (p) => p.actorCanManageTargetOrganization(organizationId),
+          'Yetki ihlali'
+        )
         .orThrow(CLINIC_EVENTS.CREATED);
     }
 

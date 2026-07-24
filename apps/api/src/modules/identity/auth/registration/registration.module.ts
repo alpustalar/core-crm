@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FirebaseModule } from '@modules/identity/auth/firebase/firebase.module';
+import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
 import { UserModule } from '@modules/identity/user/user.module';
 import { ClinicModule } from '@modules/organization/clinic/clinic.module';
 import { RoleModule } from '@modules/identity/role/role.module';

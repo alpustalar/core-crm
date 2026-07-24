@@ -1,8 +1,6 @@
 import {
   IOrganizationCommandRepository,
-  IOrganizationQueryRepository,
   ORGANIZATION_COMMAND_REPOSITORY,
-  ORGANIZATION_QUERY_REPOSITORY,
 } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import {
   IOrganizationEventPublisher,
@@ -29,8 +27,6 @@ export class SoftDeleteOrganizationHandler
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
     private readonly organizationCommandRepo: IOrganizationCommandRepository,
-    @Inject(ORGANIZATION_QUERY_REPOSITORY)
-    private readonly organizationQueryRepo: IOrganizationQueryRepository,
     @Inject(ORGANIZATION_EVENT_PUBLISHER)
     private readonly eventPublisher: IOrganizationEventPublisher,
     private readonly commandBus: TSCommandBus,
@@ -44,14 +40,15 @@ export class SoftDeleteOrganizationHandler
 
     return this.transactionManager.run(async () => {
       const organization =
-        await this.organizationQueryRepo.findById(organizationId);
+        await this.organizationCommandRepo.findById(organizationId);
+
       if (!organization)
         throw new NotFoundException('Organizasyon bulunamadı.');
 
       if (ExecutionPolicy.isSystemInitiated(ctx.source)) {
         organization.softDelete(ctx.actor.userId);
         await this.organizationCommandRepo.save(organization);
-        return organization.id;
+        return organization.id.value;
       }
 
       const adminRequestId = await this.commandBus.execute(
@@ -66,7 +63,7 @@ export class SoftDeleteOrganizationHandler
 
       this.eventPublisher.deletionRequested({
         organizationId,
-        organizationName: organization.name,
+        organizationName: organization.name.value,
         adminRequestId,
         actorEmail: ctx.actor.email,
       });

@@ -6,7 +6,7 @@ export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
 export const POS_DEVICE_QUERY_REPOSITORY = Symbol('IPosDeviceQueryRepository');
 
 export interface IPosDeviceCommandRepository {
-  save(entity: PosDevice): Promise<PosDevice>;
+  create(entity: PosDevice): Promise<PosDevice>;
   deactivate(id: string): Promise<void>;
   softDelete(id: string): Promise<void>;
 }

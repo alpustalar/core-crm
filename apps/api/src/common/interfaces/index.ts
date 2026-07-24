@@ -5,3 +5,5 @@ export * from './base-event.interface';
 export * from './nullable.type';
 export * from './json-value.type';
 export * from './tenant-entitlements.interface';
+export * from './validate.type';
+export * from './cache-operations.interface';

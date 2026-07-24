@@ -15,6 +15,7 @@ enum AppointmentCreatorType {
 enum AppointmentStatus {
   PENDING
   CONFIRMED
+  ARRIVED // Hasta kliniğe geldi / check-in yapıldı (bekleme odasında)
   CANCELLED
   COMPLETED
   NOSHOW
@@ -60,12 +61,20 @@ model Appointment {
 
   status AppointmentStatus @default(PENDING)
 
+  checkedInAt DateTime? @map("checked_in_at") // Hasta check-in (ARRIVED) zamanı — bekleme sırası için
+
+  reminderSentAt DateTime? @map("reminder_sent_at") // Randevu hatırlatması gönderildiği an (tekrarı önlemek için)
+
   canceledAt   DateTime? @map("canceled_at")
   canceledBy   String?   @map("canceled_by")
   cancelReason String?   @map("cancel_reason")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Optimistic concurrency control — her save() ile artar; guard'lı update eşzamanlı
+  // lost-update'i yakalar (bkz. appointment.command.repository.save).
+  version Int @default(0)
 
   examinationType ExaminationType? @map("examination_type")
   visitType       VisitType?       @map("visit_type")
@@ -77,7 +86,7 @@ model Appointment {
   treatmentId String? @map("treatment_id")
   clinicId    String  @map("clinic_id")
   providerId  String  @map("provider_id")
-  patientId   String? @map("patient_id")
+  patientId   String  @map("patient_id")
   resourceId  String? @map("resource_id")
 
   isDeleted Boolean   @default(false) @map("is-deleted")
@@ -86,7 +95,7 @@ model Appointment {
   treatment Treatment? @relation(fields: [treatmentId], references: [id])
   clinic    Clinic     @relation(fields: [clinicId], references: [id])
   provider  Provider   @relation(fields: [providerId], references: [id])
-  patient   Patient?   @relation(fields: [patientId], references: [id])
+  patient   Patient    @relation(fields: [patientId], references: [id])
   resource  Resource?  @relation(fields: [resourceId], references: [id])
 
   medicalFile     MedicalFile[]

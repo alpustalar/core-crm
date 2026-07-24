@@ -35,7 +35,7 @@ export class GetLedgerByClinicIdHandler
       );
 
     this.policyFactory
-      .clinic(ctx.actor)
+      .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) => p.actorCanAccessTargetClinic(clinicId))
       .orThrow();
 

@@ -1,11 +1,9 @@
-import { CreateUserDto } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateUserInternalRelations } from '@modules/identity/user/domain/user.contracts';
+import { CreateUser } from '@modules/identity/user/domain/contracts/user.contracts';
 
 export class CreateUserCommand {
   constructor(
-    public readonly dto: CreateUserDto,
-    public readonly ctx: IGetContext,
-    public readonly internalRelations?: CreateUserInternalRelations
+    public readonly data: CreateUser,
+    public readonly ctx: IGetContext
   ) {}
 }

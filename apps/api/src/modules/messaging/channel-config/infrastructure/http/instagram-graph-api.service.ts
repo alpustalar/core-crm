@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ENV } from '@common/constants/env.constant';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   IInstagramGraphApi,
+  INSTAGRAM_GRAPH_API_CONFIG,
+  InstagramGraphApiConfig,
   InstagramTokenResult,
 } from '@modules/messaging/channel-config/domain/interfaces/instagram-graph-api.interface';
 import {
@@ -19,11 +19,13 @@ import {
 export class InstagramGraphApiService implements IInstagramGraphApi {
   private readonly logger = new Logger(InstagramGraphApiService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    @Inject(INSTAGRAM_GRAPH_API_CONFIG)
+    private readonly instagramGraphApiConfig: InstagramGraphApiConfig
+  ) {}
 
   async exchangeCodeForToken(code: string): Promise<InstagramTokenResult> {
-    const appId = this.config.getOrThrow<string>(ENV.INSTAGRAM_APP_ID);
-    const appSecret = this.config.getOrThrow<string>(ENV.INSTAGRAM_APP_SECRET);
+    const { appId, appSecret } = this.instagramGraphApiConfig;
 
     const params = new URLSearchParams({
       client_id: appId,
@@ -53,8 +55,7 @@ export class InstagramGraphApiService implements IInstagramGraphApi {
   async exchangeForLongLivedToken(
     shortLivedToken: string
   ): Promise<InstagramTokenResult> {
-    const appId = this.config.getOrThrow<string>(ENV.INSTAGRAM_APP_ID);
-    const appSecret = this.config.getOrThrow<string>(ENV.INSTAGRAM_APP_SECRET);
+    const { appId, appSecret } = this.instagramGraphApiConfig;
 
     const params = new URLSearchParams({
       grant_type: 'fb_exchange_token',

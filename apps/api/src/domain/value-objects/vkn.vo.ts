@@ -2,12 +2,12 @@ import { z } from 'zod';
 import {
   InvalidVknChecksumException,
   InvalidVknFormatException,
-} from '@src/domain/exceptions/vo/vkn.exceptions';
+} from '@src/domain/exceptions';
 
 export class Vkn {
   private static readonly schema = z
     .string()
-    .length(10)
+    .length(10, 'VKN 10 haneli olmalıdır.')
     .regex(/^\d+$/, 'VKN sadece rakamlardan oluşmalıdır.');
 
   private readonly _value: string;
@@ -17,27 +17,34 @@ export class Vkn {
     Object.freeze(this);
   }
 
+  // 1. Merkezi Validasyon
   public static get validate() {
     return {
-      format: (vkn: string) => {
-        const isValid = Vkn.isValidFormat(vkn);
-        return {
-          isValid,
-          isInvalid: !isValid,
-          orThrow: (exception?: Error) => {
-            if (!isValid) throw exception ?? new InvalidVknFormatException();
-          },
-        };
-      },
-      checksum: (vkn: string) => {
-        const isValid = Vkn.isValidChecksum(vkn);
-        return {
-          isValid,
-          isInvalid: !isValid,
-          orThrow: (exception?: Error) => {
-            if (!isValid) throw exception ?? new InvalidVknChecksumException();
-          },
-        };
+      input: (value: string | null | undefined) => {
+        const trimmed = value?.trim();
+        if (!trimmed)
+          return { isValid: false, error: 'VKN boş olamaz.', type: 'FORMAT' };
+
+        // Zod format kontrolü
+        const formatResult = Vkn.schema.safeParse(trimmed);
+        if (!formatResult.success) {
+          return {
+            isValid: false,
+            error: formatResult.error.issues[0].message,
+            type: 'FORMAT',
+          };
+        }
+
+        // Checksum algoritma kontrolü
+        if (!Vkn.isValidChecksum(trimmed)) {
+          return {
+            isValid: false,
+            error: 'Geçersiz VKN (Checksum hatası).',
+            type: 'CHECKSUM',
+          };
+        }
+
+        return { isValid: true, data: trimmed };
       },
     };
   }
@@ -46,59 +53,33 @@ export class Vkn {
     return this._value;
   }
 
-  /**
-   * 🎯 Güvenilir Kurucu: Persisted (DB) VKN'den doğrudan VO üretir; format/checksum atlanır.
-   */
-  public static fromTrusted(value: string): Vkn {
-    return new Vkn(value);
-  }
-
-  /**
-   * 🎯 Akıllı Factory: Projedeki yeni "instance" ve "orThrow" standart ordu nizamımız
-   */
-  public static create(vkn?: string | null) {
-    const isBlank = !vkn || vkn.trim().length === 0;
-
-    let instance: Vkn | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        Vkn.validate.format(vkn).orThrow();
-        Vkn.validate.checksum(vkn).orThrow();
-
-        instance = new Vkn(vkn);
-      } catch (e: any) {
-        error = e;
-      }
-    }
+  // 2. Disiplinli Factory
+  public static create(value: string | null | undefined) {
+    const validation = Vkn.validate.input(value);
+    const instance = validation.isValid ? new Vkn(validation.data!) : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Geçersizse veya boşsa undefined döner (Akışı kesmez, .value.value çirkinliğini çözer)
-       */
-      instance: error ? undefined : instance,
-
-      /**
-       * ➔ Zorunlu Senaryo: Formata veya algoritmaya uymuyorsa anında fırlatır
-       */
+      instance,
       orThrow(exception?: Error): Vkn {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidVknFormatException();
+        if (!instance) {
+          if (validation.type === 'CHECKSUM')
+            throw exception ?? new InvalidVknChecksumException();
+          throw exception ?? new InvalidVknFormatException();
         }
         return instance;
       },
     };
   }
 
-  /**
-   * Resmî VKN algoritması: ilk 9 hane üzerinden 10. (kontrol) hane hesaplanır.
-   */
+  public static fromTrusted(value: string): Vkn {
+    return new Vkn(value);
+  }
+
   private static isValidChecksum(vkn: string): boolean {
     const digits = vkn.split('').map(Number);
     const checkDigit = digits[9];
-
     let sum = 0;
+
     for (let i = 0; i < 9; i++) {
       const tmp = (digits[i] + (9 - i)) % 10;
       if (tmp !== 0) {
@@ -107,17 +88,11 @@ export class Vkn {
         sum += p;
       }
     }
-
     return (10 - (sum % 10)) % 10 === checkDigit;
   }
 
-  private static isValidFormat(vkn: string): boolean {
-    return Vkn.schema.safeParse(vkn).success;
-  }
-
   public equals(other: Vkn): boolean {
-    if (!other) return false;
-    return this._value === other.value;
+    return other instanceof Vkn && this._value === other.value;
   }
 
   public toString(): string {

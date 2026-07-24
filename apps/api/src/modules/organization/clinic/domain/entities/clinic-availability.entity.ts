@@ -93,22 +93,20 @@ export class ClinicAvailability {
   ): ClinicAvailability {
     this.validate.isDayOfWeek(props.dayOfWeek).orThrow();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     const startMinute = DayMinute.fromNumber(props.startMinute);
     const endMinute = DayMinute.fromNumber(props.endMinute);
 
     const availabilityMinuteRange = DayMinuteRange.create(
-      startMinute,
-      endMinute
+      startMinute.orThrow(),
+      endMinute.orThrow()
     );
 
     return new ClinicAvailability({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       dayOfWeek: props.dayOfWeek,
-      startMinute: availabilityMinuteRange.start.toNumber(),
-      endMinute: availabilityMinuteRange.end.toNumber(),
+      startMinute: availabilityMinuteRange.orThrow().start.toNumber(),
+      endMinute: availabilityMinuteRange.orThrow().end.toNumber(),
       isClosed: props.isClosed ?? false,
     });
   }
@@ -167,7 +165,9 @@ export class ClinicAvailability {
 
     // 3. Geometrik ve Günsel Matris Doğrulaması
     const isDayValid = targetDay === this.dayOfWeek;
-    const isTimeValid = this.timeRange.validate.contains(targetDayMinute).value;
+    const isTimeValid = this.timeRange.validate.contains(
+      targetDayMinute.orThrow()
+    ).value;
 
     const isValid = isDayValid && isTimeValid;
 

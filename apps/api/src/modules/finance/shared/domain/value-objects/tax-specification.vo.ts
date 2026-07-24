@@ -23,8 +23,8 @@ export class TaxSpecification {
     .refine(
       (data) => {
         if (!data.customTaxAmount) return true;
-        const calculatedTax = data.netAmount.amount.mul(data.taxRate).div(100);
-        const diff = data.customTaxAmount.amount.minus(calculatedTax).abs();
+        const calculatedTax = data.netAmount.value.mul(data.taxRate).div(100);
+        const diff = data.customTaxAmount.value.minus(calculatedTax).abs();
         return diff.lte(0.02);
       },
       { message: 'Vergi tutarı uyuşmuyor.', path: ['customTaxAmount'] }
@@ -68,7 +68,7 @@ export class TaxSpecification {
       throw new BadRequestException(result.error.issues[0].message);
     }
 
-    const calculatedTax = netAmount.amount.mul(taxRate).div(100);
+    const calculatedTax = netAmount.value.mul(taxRate).div(100);
     const taxMoney = Money.create(calculatedTax, netAmount.currency).orThrow();
 
     return new TaxSpecification(
@@ -88,8 +88,8 @@ export class TaxSpecification {
     }
 
     const divisor = new Decimal(1).plus(new Decimal(vatRate).div(100));
-    const netValue = grossAmount.amount.div(divisor).toDecimalPlaces(2);
-    const vatValue = grossAmount.amount.minus(netValue);
+    const netValue = grossAmount.value.div(divisor).toDecimalPlaces(2);
+    const vatValue = grossAmount.value.minus(netValue);
 
     return new TaxSpecification(
       Money.create(netValue, grossAmount.currency).orThrow(),

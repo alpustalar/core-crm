@@ -5,6 +5,7 @@ import { FinancialEventTypeType as FinancialEventType } from '@input-type-schema
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Değişmez (append-only) ekonomik olay. Bir kez yazılır, asla güncellenmez.
@@ -85,14 +86,13 @@ export class FinancialEvent extends AggregateRoot {
    * (New Record): İlk kez yeni bir finansal olay kaydederken çağrılır.
    */
   public static record(props: RecordFinancialEventProps): FinancialEvent {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     const organizationId = UUID.create(props.organizationId).orThrow();
     const clinicId = UUID.create(props.clinicId).orThrow();
 
-    const now = new Date();
+    const now = DateTimeManager.create();
 
     const event = new FinancialEvent({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       organizationId: organizationId.value,
       clinicId: clinicId.value,
       type: props.type,
@@ -119,17 +119,17 @@ export class FinancialEvent extends AggregateRoot {
 
   public toPersistence(): IFinancialEvent {
     return {
-      id: this._id.value,
-      organizationId: this._organizationId.value,
-      clinicId: this._clinicId.value,
-      type: this._type,
-      occurredAt: this._occurredAt,
-      payload: this._payload,
-      sourceModule: this._sourceModule,
-      sourceRefId: this._sourceRefId,
-      dedupeKey: this._dedupeKey,
-      performedById: this._performedById,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId.value,
+      type: this.type,
+      occurredAt: this.occurredAt,
+      payload: this.payload,
+      sourceModule: this.sourceModule,
+      sourceRefId: this.sourceRefId,
+      dedupeKey: this.dedupeKey,
+      performedById: this.performedById,
+      createdAt: this.createdAt,
     };
   }
 }

@@ -2,6 +2,7 @@ import { Body, Controller, Patch, Post, UseGuards } from '@nestjs/common';
 import { PatientGuard } from '@modules/identity/auth/patient-auth/guards/patient.guard';
 import {
   GetContext,
+  GetPatientContext,
   IGetPatientContext,
 } from '@common/decorators/get-context.decorator';
 import { PatientCancelAppointmentCommand } from '@modules/clinical/appointment/application/commands/patient-cancel-appointment/patient-cancel-appointment.command';
@@ -21,7 +22,10 @@ export class PatientController {
 
   @Public()
   @Post('book')
-  async bookAppointment(@Body() dto: PatientBookAppointmentDto) {
+  async bookAppointment(
+    @Body() dto: PatientBookAppointmentDto,
+    @GetPatientContext() ctx: IGetPatientContext
+  ) {
     const patient = await this.patientAuthService.verifyAndRegister({
       idToken: dto.idToken,
       organizationId: dto.organizationId,
@@ -29,11 +33,15 @@ export class PatientController {
       clinicId: dto.clinicId,
     });
     return this.commandBus.execute(
-      new PatientBookAppointmentCommand(dto, {
-        patientId: patient.id,
-        patientName: patient.firstName,
-        patientPhone: patient.phone,
-        patientEmail: patient.email ?? null,
+      new PatientBookAppointmentCommand({
+        data: dto,
+        patient: {
+          patientId: patient.id,
+          patientName: patient.firstName,
+          patientPhone: patient.phone,
+          patientEmail: patient.email ?? null,
+        },
+        ctx,
       })
     );
   }

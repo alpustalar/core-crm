@@ -11,9 +11,11 @@ import { GetVatDeclarationResponse } from './get-vat-declaration.response';
 export class GetVatDeclarationQuery implements IQuery {
   readonly __responseType!: GetVatDeclarationResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly ctx: IGetContext,
-    public readonly dateFrom?: Date,
-    public readonly dateTo?: Date
+    public readonly payload: {
+      clinicId: string;
+      ctx: IGetContext;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
   ) {}
 }

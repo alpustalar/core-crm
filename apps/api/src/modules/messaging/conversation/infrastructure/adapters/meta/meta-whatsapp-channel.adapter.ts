@@ -12,6 +12,7 @@ import {
   WHATSAPP_GRAPH_API_BASE,
   WHATSAPP_SEND_TIMEOUT_MS,
 } from './whatsapp-graph.constants';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 interface GraphSendResponse {
   messages?: Array<{ id: string }>;
@@ -41,7 +42,7 @@ export class MetaWhatsappChannelAdapter implements MessageChannelPort {
     }
     if (
       credentials.tokenExpiresAt &&
-      credentials.tokenExpiresAt <= new Date()
+      credentials.tokenExpiresAt <= DateTimeManager.create()
     ) {
       throw new Error(
         `WhatsApp token süresi dolmuş, yeniden bağlanın (reconnect): clinicId=${request.clinicId}`

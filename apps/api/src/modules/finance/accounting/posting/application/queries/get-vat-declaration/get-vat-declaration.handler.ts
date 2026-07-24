@@ -32,7 +32,7 @@ export class GetVatDeclarationHandler
   async execute(
     query: GetVatDeclarationQuery
   ): Promise<GetVatDeclarationResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query;
+    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
 
     // KDV hesap id'lerini plan'dan çöz (bounded context — QueryBus).
     const { data: accounts } = await this.queryBus.execute(

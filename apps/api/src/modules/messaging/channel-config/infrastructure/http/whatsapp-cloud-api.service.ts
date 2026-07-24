@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ENV } from '@common/constants/env.constant';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   IWhatsappCloudApi,
   UpdateWhatsappBusinessProfileInput,
+  WHATSAPP_CLOUD_API_CONFIG,
   WhatsappBusinessProfile,
+  WhatsappCloudApiConfig,
   WhatsappMediaContent,
   WhatsappPhoneNumberHealth,
   WhatsappTemplateSummary,
@@ -15,6 +15,8 @@ import {
   WHATSAPP_SEND_TIMEOUT_MS,
 } from '@modules/messaging/conversation/infrastructure/adapters/meta/whatsapp-graph.constants';
 
+import { createBearerToken } from '@common/utils';
+
 /**
  * WhatsApp Cloud API (Meta Graph) onboarding çağrıları. Embedded Signup'tan dönen yetki
  * kodunu platform app credential'larıyla token'a çevirir ve WABA'yı app webhook'una
@@ -24,11 +26,13 @@ import {
 export class WhatsappCloudApiService implements IWhatsappCloudApi {
   private readonly logger = new Logger(WhatsappCloudApiService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    @Inject(WHATSAPP_CLOUD_API_CONFIG)
+    private readonly whatsappCloudApiConfig: WhatsappCloudApiConfig
+  ) {}
 
   async exchangeCodeForToken(code: string): Promise<WhatsappTokenResult> {
-    const appId = this.config.getOrThrow<string>(ENV.WHATSAPP_APP_ID);
-    const appSecret = this.config.getOrThrow<string>(ENV.WHATSAPP_APP_SECRET);
+    const { appSecret, appId } = this.whatsappCloudApiConfig;
 
     const params = new URLSearchParams({
       client_id: appId,
@@ -58,8 +62,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
   async exchangeForLongLivedToken(
     shortLivedToken: string
   ): Promise<WhatsappTokenResult> {
-    const appId = this.config.getOrThrow<string>(ENV.WHATSAPP_APP_ID);
-    const appSecret = this.config.getOrThrow<string>(ENV.WHATSAPP_APP_SECRET);
+    const { appSecret, appId } = this.whatsappCloudApiConfig;
 
     const params = new URLSearchParams({
       grant_type: 'fb_exchange_token',
@@ -95,7 +98,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
       `${WHATSAPP_GRAPH_API_BASE}/${wabaId}/subscribed_apps`,
       {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: createBearerToken(accessToken) },
         signal: AbortSignal.timeout(WHATSAPP_SEND_TIMEOUT_MS),
       }
     );
@@ -118,7 +121,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
     const res = await fetch(
       `${WHATSAPP_GRAPH_API_BASE}/${wabaId}/message_templates?${params}`,
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: createBearerToken(accessToken) },
         signal: AbortSignal.timeout(WHATSAPP_SEND_TIMEOUT_MS),
       }
     );
@@ -142,7 +145,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
     const res = await fetch(
       `${WHATSAPP_GRAPH_API_BASE}/${phoneNumberId}?${params}`,
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: createBearerToken(accessToken) },
         signal: AbortSignal.timeout(WHATSAPP_SEND_TIMEOUT_MS),
       }
     );
@@ -172,7 +175,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
     const res = await fetch(
       `${WHATSAPP_GRAPH_API_BASE}/${phoneNumberId}/whatsapp_business_profile?${params}`,
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: createBearerToken(accessToken) },
         signal: AbortSignal.timeout(WHATSAPP_SEND_TIMEOUT_MS),
       }
     );
@@ -206,7 +209,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
       {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: createBearerToken(accessToken),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ messaging_product: 'whatsapp', ...input }),
@@ -215,7 +218,9 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
     );
     if (!res.ok) {
       const err = await res.text();
-      this.logger.error(`İşletme profili güncelleme hatası: ${res.status} ${err}`);
+      this.logger.error(
+        `İşletme profili güncelleme hatası: ${res.status} ${err}`
+      );
       throw new Error(`İşletme profili güncellenemedi: ${res.status}`);
     }
   }
@@ -230,7 +235,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
       {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: createBearerToken(accessToken),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ messaging_product: 'whatsapp', pin }),
@@ -249,7 +254,7 @@ export class WhatsappCloudApiService implements IWhatsappCloudApi {
     mediaId: string,
     accessToken: string
   ): Promise<WhatsappMediaContent | null> {
-    const authHeader = { Authorization: `Bearer ${accessToken}` };
+    const authHeader = { Authorization: createBearerToken(accessToken) };
 
     // 1) media id → geçici indirme URL'i + mime.
     const metaRes = await fetch(`${WHATSAPP_GRAPH_API_BASE}/${mediaId}`, {

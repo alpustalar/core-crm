@@ -16,14 +16,14 @@ import { IClinicEventPublisher } from '@modules/organization/clinic/domain/inter
 import {
   CONTEXT_SERVICE,
   IContextService,
-} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+} from '@src/infrastructure/context/context.service.interface';
 
 @Injectable()
 export class ClinicEventPublisher implements IClinicEventPublisher {
   constructor(
     @Inject(CONTEXT_SERVICE)
     private readonly contextService: IContextService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   softDeleteClinic(payload: ClinicSoftDeletedEventPayload) {
@@ -33,7 +33,7 @@ export class ClinicEventPublisher implements IClinicEventPublisher {
   requestClinicSoftDelete(payload: ClinicSoftDeleteRequestedEventPayload) {
     this.eventEmitter.emit(
       ClinicSoftDeleteRequestedEvent.NAME,
-      new ClinicSoftDeleteRequestedEvent(payload),
+      new ClinicSoftDeleteRequestedEvent(payload)
     );
   }
 

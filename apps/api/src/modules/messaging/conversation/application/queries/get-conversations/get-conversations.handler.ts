@@ -22,12 +22,12 @@ export class GetConversationsHandler
   async execute(
     query: GetConversationsQuery
   ): Promise<GetConversationsResponse> {
-    const { clinicId, dto, pagination } = query;
+    const { clinicId, filter, pagination } = query.payload;
 
     const result = await this.conversationQueryRepo.findMany({
       clinicId,
-      status: dto.status,
-      assignedUserId: dto.assignedUserId,
+      status: filter.status,
+      assignedUserId: filter.assignedUserId,
       pagination,
     });
 

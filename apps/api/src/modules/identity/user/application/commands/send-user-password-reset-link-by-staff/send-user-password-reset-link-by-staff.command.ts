@@ -1,9 +1,9 @@
-import { SendUserPasswordResetByActorDto } from '@shared';
+import { SendUserPasswordResetByActor } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
 
 export class SendUserPasswordResetLinkByStaffCommand {
   constructor(
-    public readonly dto: SendUserPasswordResetByActorDto,
+    public readonly data: SendUserPasswordResetByActor,
     public readonly ctx: IGetContext
   ) {}
 }

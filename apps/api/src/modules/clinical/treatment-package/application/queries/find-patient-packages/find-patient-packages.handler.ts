@@ -7,6 +7,11 @@ import {
   PATIENT_TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @QueryHandler(FindPatientPackagesQuery)
 export class FindPatientPackagesHandler
@@ -15,19 +20,22 @@ export class FindPatientPackagesHandler
 {
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly patientPackageQueryRepo: IPatientTreatmentPackageQueryRepository
+    private readonly patientPackageQueryRepo: IPatientTreatmentPackageQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
     query: FindPatientPackagesQuery
   ): Promise<FindPatientPackagesResponse> {
-    const { dto } = query;
+    const { filter, ctx } = query;
 
     const { items: patientTreatmentPackages, total } =
       await this.patientPackageQueryRepo.findManyByPatient(
-        dto.patientId ?? '',
-        dto.pagination,
-        dto.status
+        filter.patientId ?? '',
+        filter.pagination,
+        filter.status
       );
 
     return {
@@ -35,7 +43,7 @@ export class FindPatientPackagesHandler
         patientTreatmentPackage.toPersistence()
       ),
       meta: {
-        pagination: buildPaginationMeta(dto.pagination, total),
+        pagination: buildPaginationMeta(filter.pagination, total),
       },
     };
   }

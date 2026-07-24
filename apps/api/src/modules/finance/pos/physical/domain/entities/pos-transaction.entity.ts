@@ -162,16 +162,14 @@ export class PosTransaction extends AggregateRoot {
 
     const money = Money.create(props.amount, props.currency).orThrow();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     return new PosTransaction({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       posDeviceId: props.posDeviceId,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       patientId: UUID.create(props.patientId)?.instance?.value ?? null,
       appointmentId: UUID.create(props.appointmentId)?.instance?.value ?? null,
       paymentId: props.paymentId ?? null,
-      amount: money.amount,
+      amount: money.value,
       currency: money.currency,
       status: PosTransactionStatusSchema.enum.PENDING,
       externalRef: props.externalRef ?? null,
@@ -214,7 +212,7 @@ export class PosTransaction extends AggregateRoot {
         clinicId: this._clinicId.value,
         paymentId: this._paymentId,
         externalRef: this._externalRef,
-        amount: this._amount.amount,
+        amount: this._amount.value,
         currency: this._amount.currency,
       })
     );
@@ -280,7 +278,7 @@ export class PosTransaction extends AggregateRoot {
       patientId: this._patientId?.value ?? null,
       appointmentId: this._appointmentId?.value ?? null,
       paymentId: this._paymentId,
-      amount: this._amount.amount,
+      amount: this._amount.value,
       currency: this._amount.currency,
       status: this._status,
       externalRef: this._externalRef,

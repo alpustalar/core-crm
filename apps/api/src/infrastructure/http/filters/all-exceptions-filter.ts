@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaErrorMap } from '@common/constants';
 import { DomainException } from '@src/domain/exceptions/domain.exception';
 import { ERROR_CODES } from '@common/constants/error-codes.constant';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -78,7 +79,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       code: errorCode,
       error: message,
       meta: meta,
-      timestamp: new Date().toISOString(),
+      timestamp: DateTimeManager.create().toISOString(),
     });
   }
 }

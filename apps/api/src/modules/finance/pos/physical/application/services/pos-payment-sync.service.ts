@@ -8,6 +8,7 @@ import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/appli
 import InstallmentStatusSchema, {
   InstallmentStatusType,
 } from '@input-type-schemas/InstallmentStatusSchema';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 interface PosPaymentSyncInput {
   paymentId: string;
@@ -73,10 +74,11 @@ export class PosPaymentSyncService {
     if (!installmentId) return;
 
     await this.commandBus.execute(
-      new MarkInstallmentAsRefundedCommand(
-        installmentId,
-        'POS işlemi iade edildi'
-      )
+      new MarkInstallmentAsRefundedCommand({
+        installmentId: installmentId,
+        details: 'POS işlemi iade edildi',
+        ctx: ExecutionContextFactory.createInternal(),
+      })
     );
   }
 

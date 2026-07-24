@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
 import { HotelbedsBooking } from '../entities/hotelbeds-booking.entity';
-import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
+import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const HOTELBEDS_BOOKING_COMMAND_REPOSITORY = Symbol(

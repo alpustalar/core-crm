@@ -31,6 +31,8 @@ export class CancelHotelBookingHandler
     const booking = await this.bookingCommandRepo.findById(dto.bookingId);
     if (!booking) throw new NotFoundException('Rezervasyon bulunamadı.');
 
+    // TODO: saga/outbox kullanıcaz. nest cqrs'in sagasını kullan. kullanıcıya direkt talebiniz alındı dön. kuyruğa al
+
     await this.hotelbedsApi.cancelBooking(booking.reference);
 
     booking.cancel();

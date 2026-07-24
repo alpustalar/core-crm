@@ -9,7 +9,7 @@ import { IOrganizationEventPublisher } from '@modules/organization/organization/
 import {
   CONTEXT_SERVICE,
   IContextService,
-} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+} from '@src/infrastructure/context/context.service.interface';
 
 @Injectable()
 export class OrganizationEventPublisher implements IOrganizationEventPublisher {

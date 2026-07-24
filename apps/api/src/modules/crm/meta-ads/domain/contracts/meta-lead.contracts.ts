@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { JsonValueSchema } from '@input-type-schemas/JsonValueSchema'; // Mevcut yapına göre
 
 export const CreateMetaLeadPropsSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.uuid().optional(),
   metaAdAccountId: z.string().min(1, 'Ad Account ID zorunludur'),
   metaLeadId: z.string().min(1, 'Meta Lead ID zorunludur'),
 
@@ -15,7 +15,7 @@ export const CreateMetaLeadPropsSchema = z.object({
   name: z.string().nullable().optional(),
 
   phone: z.string().nullable().optional(),
-  email: z.string().email('Geçersiz e-posta formatı').nullable().optional(),
+  email: z.email('Geçersiz e-posta formatı').nullable().optional(),
 
   rawData: JsonValueSchema,
 });

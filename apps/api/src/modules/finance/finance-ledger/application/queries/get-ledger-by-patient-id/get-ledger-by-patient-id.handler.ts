@@ -1,4 +1,3 @@
-import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetLedgerByPatientIdQuery } from './get-ledger-by-patient-id.query';
 import { GetLedgerByPatientIdQueryResponse } from './get-ledger-by-patient-id.response';
@@ -31,21 +30,13 @@ export class GetLedgerByPatientIdHandler
   async execute(
     query: GetLedgerByPatientIdQuery
   ): Promise<GetLedgerByPatientIdQueryResponse> {
-    const { patientId, pagination, ctx } = query;
-    const { source, actor } = ctx;
+    const { patientId, pagination, ctx } = query.payload;
 
     const { data: patient } = await this.queryBus.execute(
       new FindPatientByIdQuery(patientId, ctx)
     );
 
-    const { evaluator } = this.policyFactory.user(actor);
-    evaluator
-      .systemBypass(source)
-      .check(
-        (p) => p.isTargetInActorsSameClinic(patient?.clinicId),
-        'İşlem yapabilmek için hastayla aynı klinikte olmalısınız'
-      )
-      .orThrow(FINANCE_LEDGER_EVENTS.LEDGER);
+    // TODO: patient.clinicId policyde kullan. policy eklenecek
 
     const { items, total } =
       await this.financeLedgerRepository.findManyByPatientIdWithDetails(

@@ -7,6 +7,7 @@ import { DateTimeManager } from '@common/utils';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { GetProviderAvailabilityQuery } from '@modules/clinical/appointment/application/queries/get-provider-availability/get-provider-availability.query';
 import { GetProviderAvailabilityDto } from '@shared/modules/appointment/dto/queries/get-provider-availability.dto';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 /**
  * Bir doktorun verilen gündeki hazır boş slotlarını döner. Çalışma saatlerinden
@@ -19,13 +20,14 @@ export class GetProviderOpenSlotsHandler
   implements
     IQueryHandler<GetProviderOpenSlotsQuery, GetProviderOpenSlotsResponse>
 {
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(private readonly queryBus: TSQueryBus) {}
 
   async execute(
     query: GetProviderOpenSlotsQuery
   ): Promise<GetProviderOpenSlotsResponse> {
-    const { input, ctx } = query;
-    const { providerId, clinicId, date, durationMinutes } = input;
+    const { filter, ctx } = query;
+    const { providerId, clinicId, date, durationMinutes } = filter;
 
     const { data: tz } = await this.queryBus.execute(
       new GetClinicTimezoneQuery(clinicId)
@@ -34,15 +36,17 @@ export class GetProviderOpenSlotsHandler
     const startDate = DateTimeManager.fromLocalDateTime(date, '00:00', tz);
     const endDate = DateTimeManager.fromLocalDateTime(date, '23:59', tz);
 
-    const dto: GetProviderAvailabilityDto = {
+    const providerAvailabilityFilter: GetProviderAvailabilityDto = {
       providerId,
-      clinicId,
       startDate,
       endDate,
-    } as GetProviderAvailabilityDto;
+    };
 
     const { data: days } = await this.queryBus.execute(
-      new GetProviderAvailabilityQuery(dto, ctx)
+      new GetProviderAvailabilityQuery(
+        providerAvailabilityFilter,
+        this.internalCtx
+      )
     );
 
     const day = days.find((d) => d.date === date);
@@ -52,15 +56,20 @@ export class GetProviderOpenSlotsHandler
 
     const { startMinute, endMinute, breakStartMinute, breakEndMinute } =
       day.workingHours;
-    const now = new Date();
+    const now = DateTimeManager.create();
     const slots: OpenSlot[] = [];
 
-    for (let m = startMinute; m + durationMinutes <= endMinute; m += durationMinutes) {
+    for (
+      let m = startMinute;
+      m + durationMinutes <= endMinute;
+      m += durationMinutes
+    ) {
       const slotEndMin = m + durationMinutes;
 
       // Mola penceresiyle çakışan slotları atla
       if (breakStartMinute != null && breakEndMinute != null) {
-        const overlapsBreak = m < breakEndMinute && slotEndMin > breakStartMinute;
+        const overlapsBreak =
+          m < breakEndMinute && slotEndMin > breakStartMinute;
         if (overlapsBreak) continue;
       }
 

@@ -1,10 +1,8 @@
 import { UpdateLastLoginHandler } from './update-last-login/update-last-login.handler';
 import { Module } from '@nestjs/common';
-import { FirebaseModule } from '@modules/identity/auth/firebase/firebase.module';
+import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
 import { PolicyModule } from '@modules/platform/policy/policy.module';
-import { MailModule } from '@modules/platform/mail/mail.module';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
-import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 import { USER_EVENT_PUBLISHER } from '@modules/identity/user/domain/interfaces/user-event-publisher.interface';
 import { UserEventPublisher } from '@modules/identity/user/infrastructure/events/user-event-publisher.service';
 import { UserRepositoryModule } from '@modules/identity/user/infrastructure/persistence/prisma/repositories/user.repository.module';
@@ -22,6 +20,7 @@ import { SoftDeleteUserByStaffHandler } from '@modules/identity/user/application
 import { UpdateUserByStaffHandler } from './update-user-by-staff/update-user-by-staff.handler';
 import { UpdateUserBySelfHandler } from './update-user-by-self/update-user-by-self.handler';
 import { SoftDeleteManyUsersByClinicIdHandler } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-users-by-clinic-id.handler';
+import { MailModule } from '@src/infrastructure/mail/mail.module';
 
 const CommandHandlers = [
   UpdateLastLoginHandler,
@@ -44,7 +43,6 @@ const CommandHandlers = [
     PolicyModule,
     MailModule,
     ProviderModule,
-    RedisModule,
     UserRepositoryModule,
   ],
   providers: [

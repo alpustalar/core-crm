@@ -44,14 +44,14 @@ export class ProviderSchedule {
     }
 
     const appointmentMinuteRange = DayMinuteRange.create(
-      DayMinute.fromDate(startTime),
-      DayMinute.fromDate(endTime)
-    );
+      DayMinute.fromDate(startTime).orThrow(),
+      DayMinute.fromDate(endTime).orThrow()
+    ).orThrow();
 
     const availableMinuteRange = DayMinuteRange.create(
-      DayMinute.fromNumber(availability.startMinute),
-      DayMinute.fromNumber(availability.endMinute)
-    );
+      DayMinute.fromNumber(availability.startMinute).orThrow(),
+      DayMinute.fromNumber(availability.endMinute).orThrow()
+    ).orThrow();
 
     if (
       !appointmentMinuteRange.validate.isCompletelyWithIn(availableMinuteRange)
@@ -62,9 +62,9 @@ export class ProviderSchedule {
 
     if (availability.breakStartMinute && availability.breakEndMinute) {
       const breakTime = DayMinuteRange.create(
-        DayMinute.fromNumber(availability.breakStartMinute),
-        DayMinute.fromNumber(availability.breakEndMinute)
-      );
+        DayMinute.fromNumber(availability.breakStartMinute).orThrow(),
+        DayMinute.fromNumber(availability.breakEndMinute).orThrow()
+      ).orThrow();
 
       if (appointmentMinuteRange.validate.overlapsWith(breakTime).value) {
         return this.returnValue(new ProviderOnBreakException());

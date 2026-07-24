@@ -20,6 +20,7 @@ enum FinancialEventType {
   MANUAL_JOURNAL
   OPENING_BALANCE
   PERIOD_CLOSING
+  CASH_SESSION_CLOSED
 }
 
 model FinancialEvent {

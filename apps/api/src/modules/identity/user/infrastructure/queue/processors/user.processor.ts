@@ -2,7 +2,7 @@
 import { Job } from 'bullmq';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { QUEUES, USER_JOBS } from '@common/constants';
-import { FirebaseService } from '@modules/identity/auth/firebase/infrastructure/firebase.service';
+import { FirebaseService } from '@src/infrastructure/firebase/firebase.service';
 import { Logger } from '@nestjs/common';
 
 @Processor(QUEUES.USER)

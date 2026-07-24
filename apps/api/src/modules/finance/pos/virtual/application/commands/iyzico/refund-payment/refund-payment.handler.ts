@@ -7,8 +7,7 @@ import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
-import { PaymentGuard } from '@modules/finance/payment/domain/value-objects/payment-guard.vo';
-import { IyzicoResultGuard } from '@modules/finance/pos/virtual/domain/value-objects/iyzico-result-guard.vo';
+import { IyzicoResultGuard } from '@src/domain/value-objects/iyzico-result-guard.vo';
 import {
   IIyzicoTransactionCommandRepository,
   IIyzicoTransactionQueryRepository,
@@ -26,11 +25,12 @@ import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { randomUUID } from 'crypto';
 import { RefundPaymentCommand } from './refund-payment.command';
 import { RefundPaymentCommandResponse } from './refund-payment.response';
+import { Currency, UUID } from '@src/domain/value-objects';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(RefundPaymentCommand)
 export class RefundPaymentHandler
@@ -56,45 +56,46 @@ export class RefundPaymentHandler
   ): Promise<RefundPaymentCommandResponse> {
     const { paymentId, ip } = command;
 
+    const ctx = ExecutionContextFactory.createInternal();
+
     const { data: payment } = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
     if (!payment) throw new PaymentNotFoundException(paymentId);
 
-    PaymentGuard.of(payment).validate.refundEligibility().orThrow();
-
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
     );
-    if (!completedInstallment) {
+
+    if (!completedInstallment)
       throw new CompletedInstallmentNotFoundException();
-    }
 
     const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
       completedInstallment.id
     );
+
     if (!iyzicoTx?.iyzicoPaymentTransactionId) {
       throw new IyzicoPaymentRecordNotFoundException(
         'Bu ödeme için iyzico işlem transaction kaydı bulunamadı.'
       );
     }
 
-    const conversationId = randomUUID();
+    const generatedConversationUUID = UUID.generate();
 
     const sdkResult = await this.iyzicoProvider.refund({
       locale: 'TR',
-      conversationId,
+      conversationId: generatedConversationUUID.value,
       paymentTransactionId: iyzicoTx.iyzicoPaymentTransactionId,
       price: completedInstallment.amount.toString(),
       ip,
-      currency: 'TRY',
+      currency: Currency.enum.TRY,
     });
 
-    IyzicoResultGuard.of({
+    IyzicoResultGuard.create({
       status: sdkResult.status,
       errorMessage: sdkResult.errorMessage,
     })
-      .assertSuccess()
+      .isSuccess()
       .orThrow();
 
     await this.txManager.outboxRun(async () => {
@@ -102,7 +103,10 @@ export class RefundPaymentHandler
       await this.iyzicoCommandRepo.save(iyzicoTx);
 
       await this.commandBus.execute(
-        new MarkInstallmentAsRefundedCommand(completedInstallment.id)
+        new MarkInstallmentAsRefundedCommand({
+          installmentId: completedInstallment.id,
+          ctx,
+        })
       );
 
       // TODO: entity oluşturulacak. event entity içinde addDomainEvent ile pushlanacak save ile flush edilecek

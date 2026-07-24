@@ -2,9 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import {
-  FindPeriodByDateQuery
-} from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
+import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
 import {
   IJournalCommandRepository,
   IJournalQueryRepository,
@@ -13,6 +11,8 @@ import {
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
 import { AccountingPeriodStatusSchema } from '@shared';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(ReverseJournalEntryCommand)
 export class ReverseJournalEntryHandler
@@ -28,7 +28,7 @@ export class ReverseJournalEntryHandler
   ) {}
 
   async execute(command: ReverseJournalEntryCommand): Promise<string> {
-    const { entryId, ctx, reason } = command;
+    const { entryId, ctx, reason } = command.payload;
 
     const original = await this.journalQueryRepo.findById(entryId);
     if (!original) {
@@ -36,7 +36,7 @@ export class ReverseJournalEntryHandler
     }
 
     // Storno bugünün açık dönemine girer; kilitli dönemdeki orijinal kayda dokunulmaz.
-    const entryDate = new Date();
+    const entryDate = DateTimeManager.create();
     const { data: period } = await this.queryBus.execute(
       new FindPeriodByDateQuery(original.clinicId, entryDate, ctx)
     );
@@ -51,16 +51,16 @@ export class ReverseJournalEntryHandler
       );
     }
 
-    const reversalId = crypto.randomUUID();
+    const generatedReversalUUID = UUID.generate();
     // buildReversalDraft + markReversed aynı invariant'ı (POSTED + henüz storno yok) korur.
     const reversal = original.buildReversalDraft({
-      reversalId,
+      reversalId: generatedReversalUUID.value,
       periodId: period.id,
       entryDate,
       description: reason,
       performedById: ctx.actor.userId,
     });
-    original.markReversed(reversalId);
+    original.markReversed(generatedReversalUUID.value);
 
     // Storno fişi + orijinalin REVERSED linkajı atomik (kritik finansal mutasyon).
     return this.txManager.outboxRun(async () => {
@@ -69,7 +69,7 @@ export class ReverseJournalEntryHandler
         period.id
       );
       reversal.post(entryNo);
-      const saved = await this.journalCommandRepo.save(reversal);
+      const saved = await this.journalCommandRepo.create(reversal);
       await this.journalCommandRepo.applyReversal(original);
       return saved.id;
     });

@@ -2,7 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ModuleEntitlementGuard } from './module-entitlement.guard';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
+import { SubscriptionCacheService } from '@modules/platform/subscription/infrastructure/cache/subscription-cache.service';
 import { SubscriptionModuleRequiredException } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
 import { TenantEntitlements } from '@common/interfaces';
 import { randomUUID } from 'crypto';
@@ -27,18 +27,18 @@ describe('ModuleEntitlementGuard', () => {
     } as unknown as Reflector;
 
     const setTenantEntitlements = jest.fn();
-    const redis = {
+    const cacheService = {
       getTenantEntitlements: jest
         .fn()
         .mockResolvedValue(opts.cached ?? null),
       setTenantEntitlements,
-    } as unknown as RedisService;
+    } as unknown as SubscriptionCacheService;
 
     const queryBus = {
       execute: jest.fn().mockResolvedValue({ data: opts.queried }),
     } as unknown as TSQueryBus;
 
-    const guard = new ModuleEntitlementGuard(reflector, queryBus, redis);
+    const guard = new ModuleEntitlementGuard(reflector, queryBus, cacheService);
     return { guard, queryBus, setTenantEntitlements };
   };
 
@@ -59,7 +59,8 @@ describe('ModuleEntitlementGuard', () => {
 
   it('sistem admin (priority>=100) → modül aranmadan geçer', async () => {
     const t = build({ requiredModule: 'e_invoice' });
-    const actor = { organizationId, role: { priority: 100 } };
+    // Guard admin kontrolünü actor.rolePriority (düz alan) üzerinden yapar.
+    const actor = { organizationId, rolePriority: 100 };
     await expect(t.guard.canActivate(ctxFor(actor))).resolves.toBe(true);
     expect(t.queryBus.execute).not.toHaveBeenCalled();
   });

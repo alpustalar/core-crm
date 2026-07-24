@@ -19,6 +19,7 @@ export interface IRequestWithUser extends Request {
     ownedOrganizations?: { id: string; name: string }[] | null;
     doctorProfile?: { id: string } | null;
   };
+
   actor: ActorContext;
 }
 

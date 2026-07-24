@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   UseGuards,
@@ -29,17 +30,18 @@ export class JournalController {
   getEntries(
     @GetContext() ctx: IGetContext,
     @Query() pagination: PaginationDto,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('status') status?: JournalEntryStatusType,
     @Query('periodId') periodId?: string
   ) {
     return this.queryBus.execute(
-      new GetJournalEntriesQuery(
-        this.resolveOrganizationId(ctx),
+      new GetJournalEntriesQuery({
+        organizationId,
         pagination,
         ctx,
         status,
-        periodId
-      )
+        periodId,
+      })
     );
   }
 
@@ -51,7 +53,7 @@ export class JournalController {
     @Body('reason') reason?: string
   ) {
     return this.commandBus.execute(
-      new ReverseJournalEntryCommand(id, ctx, reason)
+      new ReverseJournalEntryCommand({ entryId: id, ctx, reason })
     );
   }
 

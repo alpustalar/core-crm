@@ -33,6 +33,14 @@ export class OrganizationQueryRepository
     return raw ? new Organization(raw) : null;
   }
 
+  async findIdByClinicId(clinicId: string) {
+    const raw = await this.db.organization.findFirst({
+      where: { clinics: { some: { id: clinicId } } },
+      select: { id: true },
+    });
+    return raw ? raw.id : null;
+  }
+
   async findOneByIdByOwner(
     ownerId: string,
     organizationId: string

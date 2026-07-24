@@ -30,22 +30,25 @@ export class CompletedInstallmentNotFoundException extends DomainException {
   }
 }
 
-export class PaymentNotRefundableException extends DomainException {
+export class PaymentNotRefundableException extends DomainException<{
+  status?: string;
+}> {
   public readonly errorCode = ERROR_CODES.PAYMENT.NOT_REFUNDABLE;
 
-  constructor(status: string) {
-    super(
-      `Yalnızca tamamlanmış ödemeler iade edilebilir. Mevcut durum: ${status}`
-    );
+  constructor(status?: string) {
+    super(`İptal edilmiş veya bekleyen ödemeler iade edilemez.`, { status });
   }
 }
 
-export class PaymentNotCancellableException extends DomainException {
+export class PaymentNotCancellableException extends DomainException<{
+  status: string;
+}> {
   public readonly errorCode = ERROR_CODES.PAYMENT.NOT_CANCELLABLE;
 
-  constructor(status: string) {
+  constructor(status?: string) {
     super(
-      `Yalnızca tamamlanmış ödemeler iptal edilebilir. Mevcut durum: ${status}`
+      'Tamamlanmış veya iade süreci başlamış ödemeler iptal edilemez. İade metodunu kullanın.',
+      { status }
     );
   }
 }
@@ -80,12 +83,12 @@ export class InstallmentTotalMismatchException extends DomainException {
  * Ödeme sağlayıcısı (iyzico SDK vb.) işlemi başarısız döndürdüğünde fırlatılır.
  * Payment domain'i provider'a özgü isimden habersiz kalsın diye jeneriktir.
  */
-export class PaymentProviderFailedException extends DomainException {
+export class PaymentProviderFailedException extends DomainException<{
+  sdkErrorMessage?: string;
+}> {
   public readonly errorCode = ERROR_CODES.PAYMENT.PROVIDER_FAILED;
 
   constructor(sdkErrorMessage?: string) {
-    super(
-      `İşlem gerçekleştirilemedi: 'Bilinmeyen hata - SDK Error - Message: ${sdkErrorMessage}'`
-    );
+    super(`İşlem gerçekleştirilemedi: 'Bilinmeyen hata`, { sdkErrorMessage });
   }
 }

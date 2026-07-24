@@ -53,7 +53,8 @@ export type CreateProviderAvailabilityProps = z.infer<
 // 2. GÜNCELLEME SÖZLEŞMESİ (UPDATE)
 // ==========================================
 
-export const UpdateProviderAvailabilityPropsSchema = AvailabilityValidation;
+export const UpdateProviderAvailabilityPropsSchema =
+  AvailabilityValidation.partial();
 export type UpdateProviderAvailabilityProps = z.infer<
   typeof UpdateProviderAvailabilityPropsSchema
 >;

@@ -4,9 +4,7 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import {
   IProductCommandRepository,
-  IProductQueryRepository,
   PRODUCT_COMMAND_REPOSITORY,
-  PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
@@ -19,8 +17,6 @@ export class SoftDeleteProductHandler
   implements ICommandHandler<SoftDeleteProductCommand, void>
 {
   constructor(
-    @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productCommandRepo: IProductCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -30,16 +26,14 @@ export class SoftDeleteProductHandler
 
   async execute(command: SoftDeleteProductCommand): Promise<void> {
     const { productId, ctx } = command;
-    const { actor, source } = ctx;
 
-    const product = await this.productQueryRepo.findById(productId);
+    const product = await this.productCommandRepo.findById(productId);
     if (!product) throw new ProductNotFoundException();
 
     this.policyFactory
-      .organization(actor)
-      .evaluator.systemBypass(source)
-      .check(
-        (p) => p.isOwnOrganization(product.organizationId.value),
+      .organization(ctx.actor, ctx.source)
+      .evaluator.check(
+        (p) => p.actorCanManageTargetOrganization(product.organizationId.value),
         'Ürün silme yetkiniz yok.'
       )
       .orThrow();

@@ -27,7 +27,7 @@ export class ExpirePastDueSubscriptionsHandler
 
   async execute(): Promise<void> {
     const pastDue = await this.subscriptionQueryRepo.findPastDue();
-    const now = new Date();
+    const now = DateTimeManager.create();
 
     for (const subscription of pastDue) {
       const periodEnd = subscription.currentPeriodEnd;

@@ -20,4 +20,6 @@ export interface IClinicQueryRepository {
   findManyByOrganizationId(organizationId: string): Promise<ClinicEntity[]>;
   existsBySlug(slug: string): Promise<boolean>;
   canUserManageClinic(clinicId: string, userId: string): Promise<boolean>;
+  findIdByProviderId(providerId: string): Promise<string | null>;
+  findIdByPatientId(patientId: string): Promise<string | null>;
 }

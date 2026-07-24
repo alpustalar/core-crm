@@ -21,7 +21,7 @@ export class PosDevice extends AggregateRoot {
     super();
     this._id = UUID.fromTrusted(data.id);
     this._clinicId = UUID.fromTrusted(data.clinicId);
-    this._label = Name.create(data.label).value;
+    this._label = Name.fromTrusted(data.label);
     this._provider = data.provider;
     this._terminalId = data.terminalId;
     this._merchantId = data.merchantId;
@@ -106,15 +106,15 @@ export class PosDevice extends AggregateRoot {
         isIyzicoTerminal: this._isIyzicoTerminal,
       },
       status: {
-        isActive: () => {
-          const isActive = this._isActive;
+        isActive: (() => {
+          const activeStatus = this._isActive;
           return {
-            isValid: isActive,
+            isValid: activeStatus,
             orThrow: () => {
-              if (!isActive) throw new Error('Pos cihazı aktif değil.');
+              if (!activeStatus) throw new Error('Pos cihazı aktif değil.');
             },
           };
-        },
+        })(),
       },
     };
   }
@@ -163,10 +163,9 @@ export class PosDevice extends AggregateRoot {
 
   public static create(props: CreatePosDeviceProps): PosDevice {
     const now = DateTimeManager.create();
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
 
     return new PosDevice({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       provider: props.provider,
       label: Name.create(props.label).orThrow().value,

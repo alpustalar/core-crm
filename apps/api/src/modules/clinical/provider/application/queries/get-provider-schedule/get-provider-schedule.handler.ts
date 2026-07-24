@@ -21,6 +21,12 @@ import {
   PROVIDER_SHIFT_QUERY_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
 
 @QueryHandler(GetProviderScheduleQuery)
 export class GetProviderScheduleHandler
@@ -35,13 +41,24 @@ export class GetProviderScheduleHandler
     @Inject(PROVIDER_AVAILABILITY_QUERY_REPOSITORY)
     private readonly providerAvailabilityQueryRepo: IProviderAvailabilityQueryRepository,
     @Inject(PROVIDER_SHIFT_QUERY_REPOSITORY)
-    private readonly providerShiftQueryRepo: IProviderShiftQueryRepository
+    private readonly providerShiftQueryRepo: IProviderShiftQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
     query: GetProviderScheduleQuery
   ): Promise<GetProviderScheduleQueryResponse> {
-    const { providerId, startDate, endDate } = query;
+    const { providerId, startDate, endDate, ctx } = query.payload;
+
+    const { clinicId } = await this.queryBus.execute(
+      new FindClinicIdByProviderIdQuery(providerId)
+    );
+
+    const serializationOptions = this.policyFactory
+      .provider(ctx.actor, ctx.source)
+      .policy.getSerializationOptions(clinicId, providerId);
 
     const provider = await this.providerQueryRepo.findById(providerId);
 
@@ -82,6 +99,7 @@ export class GetProviderScheduleHandler
         availabilities,
         exceptions: exceptions.map((exception) => exception.toPersistence()),
       },
+      meta: { serializationOptions },
     };
   }
 }

@@ -58,7 +58,7 @@ export class ConnectClinicTelegramBotChannelHandler
     });
 
     const saved = await this.txManager.run(() =>
-      this.channelCommandRepo.save(channel)
+      this.channelCommandRepo.upsertByClinicAndProvider(channel)
     );
     return saved.id;
   }

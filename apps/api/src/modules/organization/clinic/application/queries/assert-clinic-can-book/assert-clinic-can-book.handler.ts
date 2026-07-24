@@ -25,7 +25,7 @@ export class AssertClinicCanBookHandler
   ) {}
 
   async execute(query: AssertClinicCanBookQuery): Promise<void> {
-    const { clinicId, startTime, endTime } = query;
+    const { clinicId, startTime, endTime } = query.payload;
     const dayOfWeek = DateTimeManager.getDayOfWeek(startTime);
 
     const [availability, exception] = await Promise.all([

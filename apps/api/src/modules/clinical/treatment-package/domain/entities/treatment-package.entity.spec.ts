@@ -29,7 +29,7 @@ describe('TreatmentPackage entity', () => {
       expect(pkg.name.value).toBe('Saç Ekimi Paketi'); // trim
       expect(pkg.isActive).toBe(true);
       expect(pkg.isDeleted).toBe(false);
-      expect(pkg.price.amount.toNumber()).toBe(15000);
+      expect(pkg.price.value.toNumber()).toBe(15000);
       expect(pkg.totalSessionCount).toBe(5); // examination + control
 
       // İlişki yazma niyeti create'te her zaman set edilir
@@ -79,7 +79,7 @@ describe('TreatmentPackage entity', () => {
       pkg.update({ name: 'Yeni İsim', price: Money.create(20000, 'TRY').orThrow() });
 
       expect(pkg.name.value).toBe('Yeni İsim');
-      expect(pkg.price.amount.toNumber()).toBe(20000);
+      expect(pkg.price.value.toNumber()).toBe(20000);
       expect(pkg.validityDays).toBe(365); // dokunulmadı
 
       const events = pkg.getDomainEvents();

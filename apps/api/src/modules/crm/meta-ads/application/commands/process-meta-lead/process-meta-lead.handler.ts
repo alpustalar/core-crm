@@ -88,11 +88,11 @@ export class ProcessMetaLeadHandler
 
     if (account && (payload.phone || payload.email)) {
       const { data: patient } = await this.queryBus.execute(
-        new FindPatientByContactQuery(
-          account.clinicId.value,
-          payload.phone,
-          payload.email
-        )
+        new FindPatientByContactQuery({
+          clinicId: account.clinicId.value,
+          phone: payload.phone,
+          email: payload.email,
+        })
       );
 
       if (patient) {
@@ -151,7 +151,11 @@ export class ProcessMetaLeadHandler
 
     try {
       await this.commandBus.execute(
-        new CreateLeadCommand(dto, clinicId, this.buildSystemContext(clinicId))
+        new CreateLeadCommand({
+          data: dto,
+          clinicId,
+          ctx: this.buildSystemContext(clinicId),
+        })
       );
     } catch (err) {
       this.logger.warn(

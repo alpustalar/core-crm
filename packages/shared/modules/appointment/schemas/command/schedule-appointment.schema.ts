@@ -31,7 +31,9 @@ export const ScheduleAppointmentSchema = z
       .min(1, { message: "Randevu süresi en az 1 dakika olmalıdır." })
       .optional(),
     notes: z.string().optional(),
-    isConsultation: z.boolean()
+    isConsultation: z.boolean(),
+    clinicId: z.string(),
+    organizationId: z.string()
   })
   .superRefine((data, ctx) => {
     if (!data.patientId && !data.patientName) {

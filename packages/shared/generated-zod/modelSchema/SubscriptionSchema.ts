@@ -19,6 +19,7 @@ export const SubscriptionSchema = z.object({
   cancelAtPeriodEnd: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+  version: z.number().int(),
 })
 
 export type Subscription = z.infer<typeof SubscriptionSchema>

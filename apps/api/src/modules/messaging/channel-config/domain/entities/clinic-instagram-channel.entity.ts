@@ -1,6 +1,8 @@
 import { ClinicInstagramChannel as IClinicInstagramChannel } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicInstagramChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
  * Kliniğin Instagram DM kanal config'i (messaging bounded-context). Clinic'ten ayrıştırılmış
@@ -91,9 +93,9 @@ export class ClinicInstagramChannel
   public static connect(
     props: CreateClinicInstagramChannelProps
   ): ClinicInstagramChannel {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new ClinicInstagramChannel({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       igUserId: props.igUserId,
@@ -134,7 +136,7 @@ export class ClinicInstagramChannel
     this._lastError = reason;
   }
 
-  public isTokenExpired(now: Date = new Date()): boolean {
+  public isTokenExpired(now: Date = DateTimeManager.create()): boolean {
     return this._tokenExpiresAt !== null && this._tokenExpiresAt <= now;
   }
 
@@ -151,7 +153,7 @@ export class ClinicInstagramChannel
       clinicId: this._clinicId,
       organizationId: this._organizationId,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

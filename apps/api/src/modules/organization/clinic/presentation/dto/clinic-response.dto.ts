@@ -1,55 +1,57 @@
 import { Expose, Type } from 'class-transformer';
-import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
+import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
 
-export class ClinicDetailsManagerDto {
-  @Expose()
-  @IsString()
-  id: string;
+const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 
-  @Expose()
-  @IsString()
-  displayName: string;
+export class ClinicResponseDto {
+  @Expose() id: string;
+  @Expose() organizationId: string;
+  @Expose() sectorId: string;
 
-  @Expose()
-  @IsString()
-  email: string;
-}
+  // --- Genel Klinik Kimlik ve İletişim Bilgileri (Herkes Görebilir) ---
+  @Expose() name: string;
+  @Expose() slug: string;
+  @Expose() logo: string | null;
+  @Expose() phone: string | null;
+  @Expose() email: string | null;
 
-export class ClinicDetailsStatsDto {
-  @Expose()
-  @IsNumber()
-  providerCount: number;
+  // --- Lokasyon Bilgileri (İç Operasyon ve Üst Roller) ---
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  address: string | null;
 
-  @Expose()
-  @IsNumber()
-  patientCount: number;
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  city: string | null;
 
-  @Expose()
-  @IsNumber()
-  appointmentCount: number;
-}
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  district: string | null;
 
-export class ClinicDetailsDto {
-  @Expose()
-  @IsString()
-  id: string;
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  latitude: number | null;
 
-  @Expose()
-  @IsString()
-  name: string;
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  longitude: number | null;
 
-  @Expose()
-  @IsString()
-  organizationName: string;
+  // --- Operasyonel Ayarlar ve Durum (İç Operasyon ve Üst Roller) ---
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  status: GlobalStatus;
 
-  @Expose()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ClinicDetailsManagerDto)
-  managers: ClinicDetailsManagerDto[];
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  consultationSlotDuration: number;
 
-  @Expose()
-  @ValidateNested()
-  @Type(() => ClinicDetailsStatsDto)
-  stats: ClinicDetailsStatsDto;
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  timezone: string;
+
+  // --- Sistem ve Audit Zaman Damgaları (Sadece Yönetim ve Admin) ---
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  createdAt: Date;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  updatedAt: Date;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  deletedAt: Date | null;
 }

@@ -1,11 +1,13 @@
 import { ICommand } from '@nestjs/cqrs';
-import { BookingPaymentProviderValue } from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+import { BookingPaymentProviderValue } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { IGetContext } from '@common/decorators';
 
 export interface ConfirmBookingPaymentInput {
   bookingPaymentId: string;
   provider: BookingPaymentProviderValue;
   /** İade için sağlayıcı ödeme referansı: iyzico paymentTransactionId / stripe payment_intent. */
   providerRef: string;
+  ctx: IGetContext;
 }
 
 /**

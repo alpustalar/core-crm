@@ -11,14 +11,12 @@ import { ThrottleMonitorGuard } from '@common/guards/throttle-monitor.guard';
 import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listener';
 import { UserModule } from '@modules/identity/user/user.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
-import { FirebaseModule } from '@modules/identity/auth/firebase/firebase.module';
-import { MailModule } from '@modules/platform/mail/mail.module';
+import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
 import { AuditLogModule } from '@modules/platform/audit-log/audit-log.module';
 import { AppointmentModule } from '@modules/clinical/appointment/appointment.module';
 import { ClinicModule } from '@modules/organization/clinic/clinic.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { TreatmentModule } from '@modules/clinical/treatment/treatment.module';
-import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
 import { OrganizationModule } from '@modules/organization/organization/organization.module';
 import { MedicalFilesModule } from '@modules/clinical/medical-files/medical-files.module';
 import { LookupModule } from '@modules/platform/lookup/lookup.module';
@@ -48,10 +46,22 @@ import { PayrollModule } from '@modules/finance/payroll/payroll.module';
 import { EDocumentModule } from '@modules/finance/e-document/e-document.module';
 import { MetaAdsModule } from '@modules/crm/meta-ads/meta-ads.module';
 import { LeadModule } from '@modules/crm/lead/lead.module';
+import { PipelineModule } from '@modules/crm/pipeline/pipeline.module';
+import { ActivityModule } from '@modules/crm/activity/activity.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
 import { MessagingModule } from '@modules/messaging/messaging.module';
+import { InventoryModule } from '@modules/supply/inventory/inventory.module';
+import { NotificationModule } from '@modules/platform/notification/notification.module';
+import { MailModule } from '@src/infrastructure/mail/mail.module';
+import { EmployeeModule } from '@modules/hr/employee/employee.module';
+import { LeaveModule } from '@modules/hr/leave/leave.module';
+import { AttendanceModule } from '@modules/hr/attendance/attendance.module';
+import { PurchasingModule } from '@modules/supply/purchasing/purchasing.module';
+import { CashRegisterModule } from '@modules/finance/cash-register/cash-register.module';
+import { BankModule } from '@modules/finance/bank/bank.module';
+import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.module';
 
 @Module({
   imports: [
@@ -64,7 +74,7 @@ import { MessagingModule } from '@modules/messaging/messaging.module';
     AuthModule,
     TSCqrsModule,
     UserModule,
-    MailModule,
+    MailModule.forRoot(),
     AuditLogModule,
     AppointmentModule,
     FinanceLedgerModule,
@@ -75,7 +85,6 @@ import { MessagingModule } from '@modules/messaging/messaging.module';
     TreatmentModule,
     TreatmentPackageModule,
     ProviderModule,
-    RedisModule,
     OrganizationModule,
     MedicalFilesModule,
     LookupModule,
@@ -93,11 +102,21 @@ import { MessagingModule } from '@modules/messaging/messaging.module';
     GovernanceModule,
     MetaAdsModule,
     LeadModule,
+    PipelineModule,
+    ActivityModule,
     AdminRequestModule,
     HealthTourismModule,
     MessagingModule,
+    InventoryModule,
+    NotificationModule,
+    EmployeeModule,
+    LeaveModule,
+    AttendanceModule,
+    PurchasingModule,
+    CashRegisterModule,
+    BankModule,
+    ConsentFormModule,
   ],
-  controllers: [],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ExecutionSourceInterceptor },
     { provide: APP_INTERCEPTOR, useClass: TransactionInterceptor },

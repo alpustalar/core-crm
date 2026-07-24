@@ -150,10 +150,6 @@ export class StockMovement extends AggregateRoot {
       totalAmount = subTotal.add(vatAmount);
     }
 
-    const stockMovementId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     const batchId = props.batchId ? UUID.create(props.batchId).orThrow() : null;
 
     const vatRate = props.vatRate
@@ -169,18 +165,18 @@ export class StockMovement extends AggregateRoot {
       : null;
 
     return new StockMovement({
-      id: stockMovementId.value,
+      id: UUID.createOrGenerate(props.id).value,
       productId: props.productId,
       clinicId: props.clinicId,
       batchId: batchId?.value ?? null,
       type: props.type,
       direction: props.direction,
       quantity: Quantity.create(quantity).orThrow().value,
-      unitPrice: unitPrice?.amount ?? null,
+      unitPrice: unitPrice?.value ?? null,
       currency: unitPrice?.currency ?? Currency.enum.TRY,
       vatRate: vatRate?.value ?? null,
-      vatAmount: vatAmount?.amount ?? null,
-      totalAmount: totalAmount?.amount ?? null,
+      vatAmount: vatAmount?.value ?? null,
+      totalAmount: totalAmount?.value ?? null,
 
       financeLedgerId: financeLedgerId?.value ?? null,
       performedById: performedById?.value ?? null,
@@ -198,11 +194,11 @@ export class StockMovement extends AggregateRoot {
       type: this.type,
       direction: this.direction,
       quantity: this.quantity.value,
-      unitPrice: this.unitPrice?.amount ?? null,
+      unitPrice: this.unitPrice?.value ?? null,
       currency: this.currency.value,
       vatRate: this.vatRate?.value ?? null,
-      vatAmount: this.vatAmount?.amount ?? null,
-      totalAmount: this.totalAmount?.amount ?? null,
+      vatAmount: this.vatAmount?.value ?? null,
+      totalAmount: this.totalAmount?.value ?? null,
       financeLedgerId: this.financeLedgerId?.value ?? null,
       performedById: this.performedById?.value ?? null,
       notes: this.notes,

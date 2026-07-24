@@ -37,6 +37,7 @@ export class SubscriptionAdminController {
     return this.queryBus.execute(new ListModulesQuery());
   }
 
+  // TODO: DTO oluşturulacak
   @Post('modules')
   createModule(
     @GetContext() ctx: IGetContext,
@@ -49,9 +50,7 @@ export class SubscriptionAdminController {
       description?: string | null;
     }
   ) {
-    return this.commandBus.execute(
-      new CreateModuleCommand({ ...body, actor: ctx.actor })
-    );
+    return this.commandBus.execute(new CreateModuleCommand({ ...body, ctx }));
   }
 
   @Patch('modules/:id')

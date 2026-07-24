@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { WhatsappChannelPresentationModule } from './channel-config/presentation/whatsapp-channel.presentation.module';
-import { TelegramChannelPresentationModule } from './channel-config/presentation/telegram-channel.presentation.module';
-import { InstagramChannelPresentationModule } from './channel-config/presentation/instagram-channel.presentation.module';
-import { ConversationPresentationModule } from './conversation/presentation/conversation.presentation.module';
+import { WhatsappChannelPresentationModule } from './channel-config/presentation/controllers/whatsapp-channel.presentation.module';
+import { TelegramChannelPresentationModule } from './channel-config/presentation/controllers/telegram-channel.presentation.module';
+import { InstagramChannelPresentationModule } from './channel-config/presentation/controllers/instagram-channel.presentation.module';
+import { ConversationPresentationModule } from './conversation/presentation/controllers/conversation.presentation.module';
 import { AiAgentPresentationModule } from './ai-agent/presentation/ai-agent.presentation.module';
 import { AiReplyModule } from './ai-agent/infrastructure/ai-reply.module';
 

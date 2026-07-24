@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BadRequestException } from '@nestjs/common';
-import { Decimal } from 'decimal.js';
+import { Inject } from '@nestjs/common';
 import { DateTimeManager } from '@common/utils';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -8,6 +7,14 @@ import { EnsurePartyForEmployeeCommand } from '@modules/finance/party/applicatio
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema } from '@shared';
 import { RecordPayrollAccrualCommand } from './record-payroll-accrual.command';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { PayrollBreakdown } from '@modules/finance/shared/domain/value-objects/payroll-breakdown.vo';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 @CommandHandler(RecordPayrollAccrualCommand)
 export class RecordPayrollAccrualHandler
@@ -15,65 +22,78 @@ export class RecordPayrollAccrualHandler
 {
   constructor(
     private readonly txManager: TransactionManager,
-    private readonly commandBus: TSCommandBus
+    private readonly commandBus: TSCommandBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: RecordPayrollAccrualCommand): Promise<string> {
-    const { dto, ctx } = command;
-    const clinicId = ctx.actor.clinicId;
-    const organizationId = ctx.actor.organizationId;
-    if (!clinicId || !organizationId) {
-      throw new BadRequestException('Aktörün clinic/organization bağlamı yok.');
-    }
+    const { data, ctx } = command;
 
-    const gross = new Decimal(dto.grossSalary);
-    const net = new Decimal(dto.netPayable);
-    const taxWithholding = new Decimal(dto.taxWithholding);
-    const employeeSgk = new Decimal(dto.employeeSgk);
-    const employerSgk = new Decimal(dto.employerSgk);
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicAndOrganization(
+          data.clinicId,
+          data.organizationId
+        )
+      )
+      .orThrow();
 
-    // Brüt = net + GV stopajı + işçi SGK. Sağlanmazsa fiş dengesiz olur → erken reddet.
-    const decomposed = net.plus(taxWithholding).plus(employeeSgk);
-    if (!gross.equals(decomposed)) {
-      throw new BadRequestException(
-        `Bordro dengesiz: brüt (${gross.toFixed(2)}) = net + stopaj + işçi SGK (${decomposed.toFixed(2)}) olmalı.`
-      );
-    }
+    const payrollBreakDown = PayrollBreakdown.create({
+      grossSalary: data.grossSalary,
+      netPayable: data.netPayable,
+      taxWithholding: data.taxWithholding,
+      employeeSgk: data.employeeSgk,
+      employerSgk: data.employerSgk,
+    }).orThrow();
+
+    const internalCtx = ExecutionContextFactory.createInternal();
 
     // Köprü kritik (finansal kayıt) → outboxRun ile atomik. Persist edilen başka kayıt
     // yok; köprü hatası komutu hataya düşürür (kısmi durum oluşmaz).
     return this.txManager.outboxRun(async () => {
       const { partyId } = await this.commandBus.execute(
         new EnsurePartyForEmployeeCommand(
-          dto.employeeUserId,
-          clinicId,
-          organizationId,
-          ctx
+          {
+            clinicId: data.clinicId,
+            organizationId: data.organizationId,
+            userId: data.employeeUserId,
+          },
+          internalCtx
         )
       );
 
-      const monthKey = DateTimeManager.toMonthKey(dto.accrualDate);
+      const monthKey = DateTimeManager.toMonthKey(data.accrualDate);
 
       return this.commandBus.execute(
         new RecordFinancialEventCommand(
           {
-            organizationId,
-            clinicId,
+            clinicId: data.clinicId,
             type: FinancialEventTypeSchema.enum.PAYROLL_ACCRUED,
-            occurredAt: dto.accrualDate,
+            occurredAt: data.accrualDate,
             payload: {
               partyId,
-              grossSalary: gross.toFixed(2),
-              employerSgk: employerSgk.toFixed(2),
-              netPayable: net.toFixed(2),
-              taxWithholding: taxWithholding.toFixed(2),
-              employeeSgk: employeeSgk.toFixed(2),
+              grossSalary: payrollBreakDown.grossSalary,
+              employerSgk: payrollBreakDown.employerSgk,
+              netPayable: payrollBreakDown.netPayable,
+              taxWithholding: payrollBreakDown.taxWithholding,
+              employeeSgk: payrollBreakDown.employeeSgk,
             },
-            sourceModule: 'payroll',
-            sourceRefId: dto.employeeUserId,
-            dedupeKey: `payroll-accrual:${dto.employeeUserId}:${monthKey}`,
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.PAYROLL,
+            // Tahakkuk kaydı için ayrı bir persist edilmiş belge yok; doğal anahtar
+            // (personel + ay) olduğundan sourceRefId de aya özgü olmalı — aksi halde
+            // personelin tüm bordro geçmişi tek ID'ye çöker ve aya inilemez.
+            sourceRefId: FinancialEventDedupeKeys.payroll_accrual(
+              data.employeeUserId,
+              monthKey
+            ),
+            dedupeKey: FinancialEventDedupeKeys.payroll_accrual(
+              data.employeeUserId,
+              monthKey
+            ),
           },
-          ctx
+          internalCtx
         )
       );
     });

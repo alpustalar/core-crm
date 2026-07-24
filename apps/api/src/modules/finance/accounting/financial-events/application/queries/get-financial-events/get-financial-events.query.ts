@@ -7,11 +7,13 @@ import { FinancialEventTypeType as FinancialEventType } from '@input-type-schema
 export class GetFinancialEventsQuery implements IQuery {
   readonly __responseType!: GetFinancialEventsResponse;
   constructor(
-    public readonly organizationId: string,
-    public readonly pagination: PaginationDto,
-    public readonly ctx: IGetContext,
-    public readonly type?: FinancialEventType,
-    public readonly sourceModule?: string,
-    public readonly sourceRefId?: string
+    public readonly payload: {
+      organizationId: string;
+      pagination: PaginationDto;
+      ctx: IGetContext;
+      type?: FinancialEventType;
+      sourceModule?: string;
+      sourceRefId?: string;
+    }
   ) {}
 }

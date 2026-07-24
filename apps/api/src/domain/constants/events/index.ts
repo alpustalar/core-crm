@@ -1,25 +1,36 @@
 import { AppointmentEvent } from '@src/domain/constants/events/appointment.constant';
-import { ClinicEvent } from '@src/domain/constants/events/clinic.constants';
+import { ClinicEvent } from '@src/domain/constants/events/clinic.constant';
 import { UserEvent } from '@src/domain/constants/events/user.constant';
 import { OrganizationEvent } from '@src/domain/constants/events/organization.constant';
-import { PaymentEvent } from '@src/domain/constants/events/payment.constants';
+import { PaymentEvent } from '@src/domain/constants/events/payment.constant';
 import { ProviderEvent } from '@src/domain/constants/events/provider.constant';
 import { PatientEvent } from '@src/domain/constants/events/patient.constant';
 import { ThrottleEvent } from '@src/domain/constants/events/throttle.constant';
 import { TreatmentEvent } from '@src/domain/constants/events/treatment.constant';
-import { TreatmentPackageEvent } from '@src/domain/constants/events/treatment-package.constant';
+import {
+  PatientTreatmentPackageEvent,
+  TreatmentPackageEvent,
+} from '@src/domain/constants/events/treatment-package.constant';
 import { SubscriptionEvent } from '@src/domain/constants/events/subscription.constant';
-import { InvoiceEvent } from '@src/domain/constants/events/invoice.constants';
-import { PosEvent } from '@src/domain/constants/events/pos.constants';
-import { MetaAdsEvent } from '@src/domain/constants/events/meta-ads.constants';
+import { InvoiceEvent } from '@src/domain/constants/events/invoice.constant';
+import { PosEvent } from '@src/domain/constants/events/pos.constant';
+import { MetaAdsEvent } from '@src/domain/constants/events/meta-ads.constant';
 import { LeadEvent } from '@src/domain/constants/events/lead.constant';
 import { InventoryEvent } from '@src/domain/constants/events/inventory.constant';
-import { AdminRequestEvent } from '@src/domain/constants/events/admin-request.constants';
-import { SecurityEvent } from '@src/domain/constants/events/security.constants';
-import { FinanceLedgerEvent } from '@src/domain/constants/events/finance-ledger.constants';
-import { FinancialEventEvent } from '@src/domain/constants/events/financial-event.constants';
-import { GovernanceEvent } from '@src/domain/constants/events/governance.constants';
-import { MessagingEvent } from '@src/domain/constants/events/messaging.constants';
+import { AdminRequestEvent } from '@src/domain/constants/events/admin-request.constant';
+import { SecurityEvent } from '@src/domain/constants/events/security.constant';
+import { FinanceLedgerEvent } from '@src/domain/constants/events/finance-ledger.constant';
+import { FinancialEventEvent } from '@src/domain/constants/events/financial-event.constant';
+import { GovernanceEvent } from '@src/domain/constants/events/governance.constant';
+import { MessagingEvent } from '@src/domain/constants/events/messaging.constant';
+import { HealthTourismConfigEvent } from '@src/domain/constants/events/health-tourism.constant';
+import { LeaveEvent } from '@src/domain/constants/events/leave.constant';
+import { EmployeeEvent } from '@src/domain/constants/events/employee.constant';
+import { AttendanceEvent } from '@src/domain/constants/events/attendance.constant';
+import {
+  ConsentFormEvent,
+  ConsentTemplateEvent,
+} from '@src/domain/constants/events/consent-form.constant';
 
 export type AppEventName =
   | AppointmentEvent
@@ -43,27 +54,40 @@ export type AppEventName =
   | FinanceLedgerEvent
   | FinancialEventEvent
   | GovernanceEvent
-  | MessagingEvent;
+  | MessagingEvent
+  | PatientTreatmentPackageEvent
+  | HealthTourismConfigEvent
+  | LeaveEvent
+  | EmployeeEvent
+  | AttendanceEvent
+  | ConsentTemplateEvent
+  | ConsentFormEvent;
 
 export * from './appointment.constant';
-export * from './clinic.constants';
+export * from './clinic.constant';
 export * from './provider.constant';
 export * from './organization.constant';
 export * from './patient.constant';
-export * from './payment.constants';
+export * from './payment.constant';
 export * from './throttle.constant';
 export * from './treatment.constant';
 export * from './treatment-package.constant';
 export * from './user.constant';
 export * from './subscription.constant';
-export * from './invoice.constants';
-export * from './pos.constants';
-export * from './meta-ads.constants';
+export * from './invoice.constant';
+export * from './pos.constant';
+export * from './meta-ads.constant';
 export * from './lead.constant';
 export * from './inventory.constant';
-export * from './admin-request.constants';
-export * from './security.constants';
-export * from './finance-ledger.constants';
-export * from './financial-event.constants';
-export * from './governance.constants';
-export * from './messaging.constants';
+export * from './admin-request.constant';
+export * from './security.constant';
+export * from './finance-ledger.constant';
+export * from './financial-event.constant';
+export * from './governance.constant';
+export * from './messaging.constant';
+export * from './activity.constant';
+export * from './health-tourism.constant';
+export * from './leave.constant';
+export * from './employee.constant';
+export * from './attendance.constant';
+export * from './consent-form.constant';

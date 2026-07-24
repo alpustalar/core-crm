@@ -13,7 +13,8 @@ export class ClinicInstagramChannelCommandRepository
     super(prisma);
   }
 
-  async save(
+  // 1:1 satellite (clinicId unique) → get-or-create (upsert).
+  async upsertByClinicId(
     entity: ClinicInstagramChannel
   ): Promise<ClinicInstagramChannel> {
     const data = entity.toPersistence();

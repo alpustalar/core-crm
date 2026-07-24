@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
@@ -13,7 +12,7 @@ export class FinancialEventQueryRepository
   extends BaseRepository
   implements IFinancialEventQueryRepository
 {
-  constructor(prisma: PrismaService) {
+  constructor(public readonly prisma: PrismaService) {
     super(prisma);
   }
 
@@ -33,7 +32,7 @@ export class FinancialEventQueryRepository
     filter: FindFinancialEventsFilter,
     pagination: Pagination
   ): Promise<{ items: FinancialEvent[]; total: number }> {
-    const where: Prisma.FinancialEventWhereInput = {
+    const where = {
       organizationId: filter.organizationId,
       ...(filter.type ? { type: filter.type } : {}),
       ...(filter.sourceModule ? { sourceModule: filter.sourceModule } : {}),

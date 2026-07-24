@@ -10,9 +10,11 @@ import { GetTrialBalanceResponse } from './get-trial-balance.response';
 export class GetTrialBalanceQuery implements IQuery {
   readonly __responseType!: GetTrialBalanceResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly ctx: IGetContext,
-    public readonly dateFrom?: Date,
-    public readonly dateTo?: Date
+    public readonly payload: {
+      clinicId: string;
+      ctx: IGetContext;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
   ) {}
 }

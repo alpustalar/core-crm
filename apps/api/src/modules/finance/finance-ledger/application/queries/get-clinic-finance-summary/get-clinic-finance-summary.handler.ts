@@ -10,8 +10,6 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
-import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetClinicFinanceSummaryQuery)
 export class GetClinicFinanceSummaryHandler
@@ -31,18 +29,7 @@ export class GetClinicFinanceSummaryHandler
   async execute(
     query: GetClinicFinanceSummaryQuery
   ): Promise<GetClinicFinanceSummaryQueryResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query;
-    const { actor, source } = ctx;
-
-    if (!ExecutionPolicy.isSystemInitiated(source)) {
-      this.policyFactory
-        .clinic(actor)
-        .evaluator.check(
-          (p) => p.actorCanManageTargetClinic(clinicId),
-          'Bu şubenin finans özetini görüntüleme yetkiniz yok.'
-        )
-        .orThrow(FINANCE_LEDGER_EVENTS.CLINIC_SUMMARY);
-    }
+    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
 
     const summary = await this.financeLedgerRepository.getClinicSummary(
       clinicId,

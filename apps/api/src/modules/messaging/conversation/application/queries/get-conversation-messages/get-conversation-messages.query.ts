@@ -7,9 +7,11 @@ import { GetConversationMessagesResponse } from './get-conversation-messages.res
 export class GetConversationMessagesQuery implements IQuery {
   readonly __responseType!: GetConversationMessagesResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly conversationId: string,
-    public readonly pagination: Pagination,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      conversationId: string;
+      pagination: Pagination;
+      ctx: IGetContext;
+    }
   ) {}
 }

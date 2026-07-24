@@ -1,7 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 
 import { PatientBasePolicy } from '@modules/platform/policy/patient/application/patient-base.policy';
 import { PatientPolicyAccessDeniedEvent } from '@modules/platform/policy/patient/domain/events/patient-policy-access-denied.event';
@@ -14,17 +12,14 @@ export class PatientPolicyEvaluator<T extends PatientBasePolicy> {
   constructor(
     private readonly policy: T,
     private readonly eventEmitter?: EventEmitter2
-  ) {}
+  ) {
+    if (this.policy.isSystem()) {
+      this.isBypassed = true;
+    }
+  }
 
   bypassIf(condition: boolean): this {
     if (condition) this.isBypassed = true;
-    return this;
-  }
-
-  systemBypass(source: ExecutionSource): this {
-    if (ExecutionPolicy.isSystemInitiated(source)) {
-      this.isBypassed = true;
-    }
     return this;
   }
 

@@ -1,5 +1,11 @@
-import { RegisterClinicAccountDto } from '@shared';
+import { RegisterClinicAccount } from '@shared';
+import { IGetContext } from '@common/decorators';
 
 export class RegisterClinicAccountCommand {
-  constructor(public readonly dto: RegisterClinicAccountDto) {}
+  constructor(
+    public readonly payload: {
+      data: RegisterClinicAccount;
+      ctx: IGetContext;
+    }
+  ) {}
 }

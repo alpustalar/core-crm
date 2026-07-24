@@ -6,6 +6,7 @@ import { TaxParameterKeySchema } from '@input-type-schemas/TaxParameterKeySchema
 // ==========================================
 
 export const CreateTaxParameterSchema = z.object({
+  id: z.uuid().optional(),
   clinicId: z.uuid(),
   organizationId: z.uuid(),
   key: TaxParameterKeySchema, // Orijinal enum/tip şeması (Örn: VAT_20, STOPPAJ_20)
@@ -25,7 +26,7 @@ export const SetTaxParameterInputSchema = z.object({
   organizationId: z.uuid(),
   key: TaxParameterKeySchema,
   rate: z.number().min(0, "Vergi oranı 0'dan küçük olamaz"),
-  validFrom: z.date().optional(), // Verilmezse command handler içinde 'new Date()' atanabilir
+  validFrom: z.date().optional(), // Verilmezse command handler içinde 'DateTimeManager.create()' atanabilir
 });
 
 export type SetTaxParameterInput = z.infer<typeof SetTaxParameterInputSchema>;

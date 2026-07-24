@@ -1,4 +1,5 @@
-import { PatientBookAppointmentDto } from '@shared/modules/patients/dto/commands';
+import { IGetPatientContext } from '@common/decorators';
+import { PatientBookAppointment } from '@shared';
 
 export interface PatientIdentity {
   patientId: string;
@@ -9,7 +10,10 @@ export interface PatientIdentity {
 
 export class PatientBookAppointmentCommand {
   constructor(
-    public readonly dto: PatientBookAppointmentDto,
-    public readonly patient: PatientIdentity
+    public readonly payload: {
+      readonly data: PatientBookAppointment;
+      readonly patient: PatientIdentity;
+      readonly ctx: IGetPatientContext;
+    }
   ) {}
 }

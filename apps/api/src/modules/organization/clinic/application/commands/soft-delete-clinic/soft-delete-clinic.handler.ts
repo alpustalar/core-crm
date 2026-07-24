@@ -50,9 +50,9 @@ export class SoftDeleteClinicHandler
       return;
     }
 
-    const { evaluator } = this.policyFactory.clinic(actor);
-    evaluator
-      .check(
+    this.policyFactory
+      .clinic(actor, source)
+      .evaluator.check(
         (p) => p.actorCanManageTargetClinic(clinicId),
         'Bu kliniği silme isteği gönderme yetkiniz yok.'
       )

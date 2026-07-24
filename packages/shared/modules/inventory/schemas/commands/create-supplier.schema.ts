@@ -8,5 +8,6 @@ export const CreateSupplierSchema = z.object({
   address: z.string().max(500).optional().nullable(),
   taxNumber: z.string().max(20).optional().nullable(),
   taxOffice: z.string().max(100).optional().nullable(),
-  clinicId: z.uuid()
+  clinicId: z.uuid(),
+  organizationId: z.uuid()
 });

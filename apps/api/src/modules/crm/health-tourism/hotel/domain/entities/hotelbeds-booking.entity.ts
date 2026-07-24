@@ -9,14 +9,15 @@ import {
   JsonValueType as JsonValue,
 } from '@input-type-schemas/JsonValueSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { HotelbedsBookingAlreadyCancelledException } from '@modules/crm/health-tourism/hotel/domain/exceptions/hotelbeds-booking.exceptions';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { LastName } from '@src/domain/value-objects/last-name.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
-import { CreateHotelbedsBookingProps } from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
+import { CreateHotelbedsBookingProps } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { HotelbedsBookingRules } from '@modules/crm/health-tourism/hotel/domain/rules/hotelbeds-booking.rules';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { Guard } from '@common/domain/guards';
 
 export class HotelbedsBooking extends AggregateRoot {
   constructor(data: IHotelbedsBooking) {
@@ -149,30 +150,25 @@ export class HotelbedsBooking extends AggregateRoot {
     return this._updatedAt;
   }
 
-  public static create(
-    props: CreateHotelbedsBookingProps,
-    options = DefaultValidateOptions
-  ): HotelbedsBooking {
-    if (shouldValidate(options)) {
-      if (props.checkOut <= props.checkIn) {
-        throw new Error(
-          'Check-out tarihi, check-in tarihinden önce veya eşit olamaz.'
-        );
-      }
-    }
+  public get validate() {
+    return {
+      status: {
+        isCancelled: this.isCancelled(),
+      },
+    };
+  }
 
+  public static create(props: CreateHotelbedsBookingProps): HotelbedsBooking {
     const currency = Currency.create(props.currency).orThrow();
 
     const totalNet = Money.create(props.totalNet, currency.value).orThrow();
 
     const serviceFee = props.serviceFee
-      ? Money.create(props.serviceFee, currency.value).orThrow().amount
+      ? Money.create(props.serviceFee, currency.value).orThrow().value
       : null;
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     const instance = new HotelbedsBooking({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       reference: props.reference,
       clientReference: props.clientReference ?? null,
       hotelCode: props.hotelCode,
@@ -186,7 +182,7 @@ export class HotelbedsBooking extends AggregateRoot {
       checkIn: props.checkIn,
       checkOut: props.checkOut,
       status: props.status,
-      totalNet: totalNet.amount,
+      totalNet: totalNet.value,
       currency: currency.value,
       holderName: props.holderName,
       holderSurname: props.holderSurname,
@@ -195,8 +191,8 @@ export class HotelbedsBooking extends AggregateRoot {
       serviceFee: serviceFee,
       organizationId: props.organizationId,
       clinicId: props.clinicId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: DateTimeManager.create(),
+      updatedAt: DateTimeManager.create(),
     });
 
     // TODO: Yeni bir rezervasyon başarıyla ayağa kalktığında event fırlat
@@ -205,45 +201,56 @@ export class HotelbedsBooking extends AggregateRoot {
     return instance;
   }
 
+  public rules(validateOptions: ValidateOptionsType) {
+    return new HotelbedsBookingRules(this, validateOptions);
+  }
+
   public cancel(): void {
     if (this._status === HotelbedsBookingStatusSchema.enum.CANCELLED) {
-      throw new HotelbedsBookingAlreadyCancelledException(this._reference);
+      return;
     }
 
     // TODO: domain event pushlanacak
     this._status = HotelbedsBookingStatusSchema.enum.CANCELLED;
-  }
-
-  public isCancelled(): boolean {
-    return this._status === HotelbedsBookingStatusSchema.enum.CANCELLED;
+    this._updatedAt = DateTimeManager.create();
   }
 
   toPersistence(): IHotelbedsBooking {
     return {
-      id: this._id.value,
-      reference: this._reference,
-      clientReference: this._clientReference,
-      hotelCode: this._hotelCode,
-      patientId: this._patientId?.value ?? null,
-      leadId: this._leadId?.value ?? null,
-      checkIn: this._checkIn,
-      checkOut: this._checkOut,
-      status: this._status,
+      id: this.id.value,
+      reference: this.reference,
+      clientReference: this.clientReference,
+      hotelCode: this.hotelCode,
+      patientId: this.patientId?.value ?? null,
+      leadId: this.leadId?.value ?? null,
+      checkIn: this.checkIn,
+      checkOut: this.checkOut,
+      status: this.status,
 
-      totalNet: this._totalNet.amount,
-      currency: this._totalNet.currency,
+      totalNet: this.totalNet.value,
+      currency: this.totalNet.currency,
 
-      holderName: this._holderName.value,
-      holderSurname: this._holderSurname.value,
-      rooms: this._rooms ?? null,
-      remarks: this._remarks,
+      holderName: this.holderName.value,
+      holderSurname: this.holderSurname.value,
+      rooms: this.rooms ?? null,
+      remarks: this.remarks,
 
-      serviceFee: this._serviceFee?.amount ?? null,
+      serviceFee: this.serviceFee?.value ?? null,
 
-      organizationId: this._organizationId.value,
-      clinicId: this._clinicId?.value ?? null,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      organizationId: this.organizationId.value,
+      clinicId: this.clinicId?.value ?? null,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
+  }
+
+  private isCancelled() {
+    const is = this._status === HotelbedsBookingStatusSchema.enum.CANCELLED;
+
+    return Guard.monitor(
+      is,
+      is,
+      () => new Error('Rezervasyon iptal edilmemiş')
+    );
   }
 }

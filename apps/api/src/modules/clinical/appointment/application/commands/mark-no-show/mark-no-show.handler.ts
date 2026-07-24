@@ -28,19 +28,25 @@ export class MarkNoShowHandler
     command: MarkNoShowCommand
   ): Promise<MarkNoShowCommandResponse> {
     const { appointmentId, ctx } = command;
-    const { actor } = ctx;
+    const { actor, source } = ctx;
 
     const appointment =
       await this.appointmentCommandRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
-      .appointment(actor)
+      .appointment(actor, source)
       .evaluator.check(
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuya erişim yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.NO_SHOW);
+
+    const validateOptions = this.policyFactory
+      .entity(actor, source)
+      .policy.getValidateOptions();
+
+    appointment.rules(validateOptions).markAsNoShow.orThrow();
 
     appointment.markAsNoShow();
 

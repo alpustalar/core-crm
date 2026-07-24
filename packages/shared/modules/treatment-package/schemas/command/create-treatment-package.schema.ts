@@ -15,4 +15,5 @@ export const CreateTreatmentPackageSchema = z.object({
   providerIds: z.array(z.uuid()).optional(),
   items: z.array(TreatmentPackageItemInputSchema).optional(),
   currency: CurrencySchema,
+  clinicId: z.uuid(),
 });

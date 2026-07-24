@@ -13,7 +13,8 @@ export class ClinicIyzicoTerminalConfigCommandRepository
     super(prisma);
   }
 
-  async save(
+  // 1:1 satellite (clinicId unique) → get-or-create (upsert).
+  async upsertByClinicId(
     entity: ClinicIyzicoTerminalConfig
   ): Promise<ClinicIyzicoTerminalConfig> {
     const data = entity.toPersistence();

@@ -13,7 +13,10 @@ export class ClinicTelegramChannelCommandRepository
     super(prisma);
   }
 
-  async save(entity: ClinicTelegramChannel): Promise<ClinicTelegramChannel> {
+  // Satellite (clinicId + provider unique) → get-or-create (upsert).
+  async upsertByClinicAndProvider(
+    entity: ClinicTelegramChannel
+  ): Promise<ClinicTelegramChannel> {
     const data = entity.toPersistence();
     const raw = await this.db.clinicTelegramChannel.upsert({
       where: {

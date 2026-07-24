@@ -1,0 +1,110 @@
+// Satın Alma (Procure-to-Pay): Talep (PR) → Onay → Sipariş (PO) → Mal Kabul.
+// `supply/purchasing` modülü. Supplier + Product `supply/inventory`'de kalır
+// (bounded-context: navigation yok, yalnızca scalar id). Teslimde ReceiveStockCommand
+// ile stok girişi tetiklenir (cross-module). clinicId/organizationId denormalize scalar.
+
+enum PurchaseRequestStatus {
+  DRAFT // taslak
+  SUBMITTED // onaya gönderildi
+  APPROVED // onaylandı
+  REJECTED // reddedildi
+  CANCELLED // iptal
+  ORDERED // siparişe dönüştürüldü
+}
+
+enum PurchaseOrderStatus {
+  DRAFT // taslak
+  SENT // tedarikçiye gönderildi
+  PARTIALLY_RECEIVED // kısmen teslim alındı
+  RECEIVED // tamamen teslim alındı
+  CANCELLED // iptal
+}
+
+model PurchaseRequest {
+  id             String @id
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+  requestedById  String @map("requested_by_id")
+
+  status   PurchaseRequestStatus @default(SUBMITTED)
+  neededBy DateTime?             @map("needed_by")
+  note     String?               @db.Text
+
+  reviewedById String?   @map("reviewed_by_id")
+  reviewedAt   DateTime? @map("reviewed_at")
+  reviewNote   String?   @map("review_note")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items PurchaseRequestItem[]
+
+  @@index([clinicId, status])
+  @@index([organizationId])
+  @@map("purchase_requests")
+}
+
+model PurchaseRequestItem {
+  id        String @id
+  requestId String @map("request_id")
+
+  productId          String?  @map("product_id") // katalog ürünü (opsiyonel)
+  description        String // ürün adı snapshot'ı veya katalog-dışı serbest metin
+  quantity           Decimal  @db.Decimal(12, 3)
+  estimatedUnitPrice Decimal? @map("estimated_unit_price") @db.Decimal(12, 2)
+  unit               String?
+
+  request PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("purchase_request_items")
+}
+
+model PurchaseOrder {
+  id                String  @id
+  clinicId          String  @map("clinic_id")
+  organizationId    String  @map("organization_id")
+  supplierId        String  @map("supplier_id") // inventory Supplier (bounded-context)
+  purchaseRequestId String? @map("purchase_request_id") // kaynak talep (opsiyonel)
+
+  status       PurchaseOrderStatus @default(DRAFT)
+  orderDate    DateTime            @map("order_date")
+  expectedDate DateTime?           @map("expected_date")
+  currency     Currency            @default(TRY)
+
+  netTotal   Decimal @map("net_total") @db.Decimal(14, 2)
+  vatTotal   Decimal @map("vat_total") @db.Decimal(14, 2)
+  grandTotal Decimal @map("grand_total") @db.Decimal(14, 2)
+
+  note String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items PurchaseOrderItem[]
+
+  @@index([clinicId, status])
+  @@index([organizationId])
+  @@index([supplierId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id      String @id
+  orderId String @map("order_id")
+
+  productId        String? @map("product_id") // katalog ürünü (teslimde stok girer)
+  description      String
+  quantityOrdered  Decimal @map("quantity_ordered") @db.Decimal(12, 3)
+  quantityReceived Decimal @default(0) @map("quantity_received") @db.Decimal(12, 3)
+  unitPrice        Decimal @map("unit_price") @db.Decimal(12, 2)
+  vatRate          Int     @default(0) @map("vat_rate")
+  lineNet          Decimal @map("line_net") @db.Decimal(14, 2)
+  lineVat          Decimal @map("line_vat") @db.Decimal(14, 2)
+  lineTotal        Decimal @map("line_total") @db.Decimal(14, 2)
+
+  order PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("purchase_order_items")
+}

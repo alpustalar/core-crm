@@ -13,7 +13,11 @@ export class ClinicPaymentGatewayCommandRepository
     super(prisma);
   }
 
-  async save(entity: ClinicPaymentGateway): Promise<ClinicPaymentGateway> {
+  // 1:1 satellite (clinicId unique) → get-or-create semantiği. save (pure update)
+  // yerine ismiyle upsert.
+  async upsertByClinicId(
+    entity: ClinicPaymentGateway
+  ): Promise<ClinicPaymentGateway> {
     const data = entity.toPersistence();
     const raw = await this.db.clinicPaymentGateway.upsert({
       where: { clinicId: data.clinicId },

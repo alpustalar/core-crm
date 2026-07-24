@@ -10,10 +10,12 @@ import { GetAccountLedgerResponse } from './get-account-ledger.response';
 export class GetAccountLedgerQuery implements IQuery {
   readonly __responseType!: GetAccountLedgerResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly accountCode: string,
-    public readonly ctx: IGetContext,
-    public readonly dateFrom?: Date,
-    public readonly dateTo?: Date
+    public readonly payload: {
+      clinicId: string;
+      accountCode: string;
+      ctx: IGetContext;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
   ) {}
 }

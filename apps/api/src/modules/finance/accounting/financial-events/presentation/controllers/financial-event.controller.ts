@@ -1,7 +1,7 @@
 import {
-  BadRequestException,
   Controller,
   Get,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,27 +21,20 @@ export class FinancialEventController {
   getEvents(
     @GetContext() ctx: IGetContext,
     @Query() pagination: PaginationDto,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('type') type?: FinancialEventType,
     @Query('sourceModule') sourceModule?: string,
     @Query('sourceRefId') sourceRefId?: string
   ) {
     return this.queryBus.execute(
-      new GetFinancialEventsQuery(
-        this.resolveOrganizationId(ctx),
+      new GetFinancialEventsQuery({
+        organizationId,
         pagination,
         ctx,
         type,
         sourceModule,
-        sourceRefId
-      )
+        sourceRefId,
+      })
     );
-  }
-
-  private resolveOrganizationId(ctx: IGetContext): string {
-    const organizationId = ctx.actor.organizationId;
-    if (!organizationId) {
-      throw new BadRequestException('Aktörün organization bağlamı yok.');
-    }
-    return organizationId;
   }
 }

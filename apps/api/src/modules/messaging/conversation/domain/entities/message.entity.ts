@@ -6,14 +6,16 @@ import {
 } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { MessageStatusChangedEvent } from '../events/message-status-changed.event';
+import { MessageDirectionType as MessageDirection } from '@input-type-schemas/MessageDirectionSchema';
+import { MessageStatusType as MessageStatus } from '@input-type-schemas/MessageStatusSchema';
+import { MessageTypeType as MessageType } from '@input-type-schemas/MessageTypeSchema';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 import {
   CreateInboundMessageProps,
   CreateOutboundMessageProps,
   MessageTemplateComponents,
-} from '../types/create-message.props';
-import { MessageDirectionType as MessageDirection } from '@input-type-schemas/MessageDirectionSchema';
-import { MessageStatusType as MessageStatus } from '@input-type-schemas/MessageStatusSchema';
-import { MessageTypeType as MessageType } from '@input-type-schemas/MessageTypeSchema';
+} from '@modules/messaging/conversation/domain/contracts/message.contracts';
 
 /** Giden mesaj teslim akışındaki ileri-yön sıralaması (idempotent webhook için). */
 const DELIVERY_RANK: Record<MessageStatus, number> = {
@@ -184,9 +186,9 @@ export class Message extends AggregateRoot implements IMessage {
 
   /** Gelen (inbound) mesaj — status RECEIVED. */
   public static createInbound(props: CreateInboundMessageProps): Message {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new Message({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       conversationId: props.conversationId,
       direction: MessageDirectionSchema.enum.INBOUND,
       type: props.type ?? MessageTypeSchema.enum.TEXT,
@@ -212,9 +214,9 @@ export class Message extends AggregateRoot implements IMessage {
 
   /** Giden (outbound) mesaj — başlangıç status QUEUED (kanal portuna verilmeden önce). */
   public static createOutbound(props: CreateOutboundMessageProps): Message {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new Message({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       conversationId: props.conversationId,
       direction: MessageDirectionSchema.enum.OUTBOUND,
       type: props.type ?? MessageTypeSchema.enum.TEXT,
@@ -285,7 +287,7 @@ export class Message extends AggregateRoot implements IMessage {
     const action = statusActions[status];
     if (action) {
       action();
-      this._updatedAt = new Date();
+      this._updatedAt = DateTimeManager.create();
     }
   }
 
@@ -335,7 +337,7 @@ export class Message extends AggregateRoot implements IMessage {
       templateLanguage: this._templateLanguage,
       templateParams: this._templateParams,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 

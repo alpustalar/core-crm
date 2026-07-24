@@ -55,7 +55,7 @@ export class SubscriptionItem extends AggregateRoot {
   }
 
   get priceAtPurchase(): Decimal {
-    return this._moneyAtPurchase.amount;
+    return this._moneyAtPurchase.value;
   }
 
   get currency(): Currency {
@@ -124,13 +124,13 @@ export class SubscriptionItem extends AggregateRoot {
 
   /** Yeni üyelik eki (plan veya modül). priceAtPurchase Money VO'dan tutar+para ayrıştırılır. */
   public static create(props: CreateSubscriptionItemProps): SubscriptionItem {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const id = UUID.createOrGenerate(props.id);
     return new SubscriptionItem({
       id: id.value,
       subscriptionId: props.subscriptionId,
       planId: props.planId ?? null,
       moduleId: props.moduleId ?? null,
-      priceAtPurchase: props.priceAtPurchase.amount,
+      priceAtPurchase: props.priceAtPurchase.value,
       currency: props.priceAtPurchase.currency,
       externalPriceId: props.externalPriceId ?? null,
       createdAt: DateTimeManager.create(),

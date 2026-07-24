@@ -18,6 +18,7 @@ import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-gove
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { GetPartyByIdQuery } from '@modules/finance/party/application/queries/get-party-by-id/get-party-by-id.query';
 import { EDocumentRequest } from '@modules/finance/e-document/domain/e-document.contracts';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 interface SendJobData {
   invoiceId: string;
@@ -88,7 +89,7 @@ export class EDocumentProcessor extends WorkerHost {
     const request: EDocumentRequest = {
       type: documentType,
       invoiceId: invoice.id,
-      issueDate: invoice.issuedAt ?? new Date(),
+      issueDate: invoice.issuedAt ?? DateTimeManager.create(),
       seller: {
         // TODO(gerçek-adapter): kliniğin yasal unvanını çöz; Noop kullanmıyor.
         taxId: specs?.companyTaxNumber ?? null,

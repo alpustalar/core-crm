@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { BadRequestException } from '@nestjs/common';
 import { ReverseJournalEntryHandler } from './reverse-journal-entry.handler';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
@@ -11,6 +12,9 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { AccountingPeriodStatusSchema } from '@shared';
 
 describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
+  // createDraft yalnız `id`'yi UUID doğrular (clinicId/organizationId/periodId/accountId ham kalır).
+  const ORIG_ID = '33333333-3333-4333-8333-333333333333';
+
   const ctx = {
     actor: { userId: 'user-1', clinicId: 'clinic-1', organizationId: 'org-1' },
   } as never;
@@ -18,7 +22,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
   /** POSTED orijinal fiş: B 100 Kasa / A 600 Yurtiçi Satışlar = 1000. */
   const buildPostedOriginal = () => {
     const entry = JournalEntry.createDraft({
-      id: 'orig-1',
+      id: ORIG_ID,
       clinicId: 'clinic-1',
       organizationId: 'org-1',
       periodId: 'period-2025',
@@ -77,7 +81,13 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
   };
 
   const run = (handler: ReverseJournalEntryHandler) =>
-    handler.execute(new ReverseJournalEntryCommand('orig-1', ctx, 'Hatalı kayıt'));
+    handler.execute(
+      new ReverseJournalEntryCommand({
+        entryId: ORIG_ID,
+        ctx,
+        reason: 'Hatalı kayıt',
+      })
+    );
 
   it('storno fişinde borç/alacak ters çevrilir, orijinal REVERSED bağlanır', async () => {
     const original = buildPostedOriginal();
@@ -86,7 +96,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     const reversalId = await run(handler);
 
     // save'e geçen storno fişi: satırlar ters (acc-100 alacak, acc-600 borç).
-    const saved = (journalCommandRepo.save as jest.Mock).mock
+    const saved = (journalCommandRepo.create as jest.Mock).mock
       .calls[0][0] as JournalEntry;
     const lines = saved.lines.items;
     const kasa = lines.find((l) => l.accountId === 'acc-100')!;
@@ -108,12 +118,12 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     const { handler, journalCommandRepo } = build({ original, canPost: false });
 
     await expect(run(handler)).rejects.toBeInstanceOf(BadRequestException);
-    expect(journalCommandRepo.save).not.toHaveBeenCalled();
+    expect(journalCommandRepo.create).not.toHaveBeenCalled();
   });
 
   it('POSTED olmayan fiş storno edilemez', async () => {
     const draft = JournalEntry.createDraft({
-      id: 'orig-1',
+      id: ORIG_ID,
       clinicId: 'clinic-1',
       organizationId: 'org-1',
       periodId: 'period-2026',
@@ -126,6 +136,6 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     const { handler, journalCommandRepo } = build({ original: draft });
 
     await expect(run(handler)).rejects.toBeInstanceOf(BadRequestException);
-    expect(journalCommandRepo.save).not.toHaveBeenCalled();
+    expect(journalCommandRepo.create).not.toHaveBeenCalled();
   });
 });

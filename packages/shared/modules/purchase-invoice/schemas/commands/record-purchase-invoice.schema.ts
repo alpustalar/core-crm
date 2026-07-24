@@ -10,7 +10,7 @@ export const PurchaseInvoiceCurrencyEnum = z.enum(['TRY', 'USD', 'EUR', 'GBP']);
  * bağlı değil) → finans carisi (320) bu bilgilerle garanti edilir.
  */
 export const RecordPurchaseInvoiceSchema = z.object({
-  supplierId: z.string().uuid(),
+  supplierId: z.uuid(),
   supplierName: z.string().min(1),
   supplierTaxNumber: z.string().optional(),
   supplierTaxOffice: z.string().optional(),
@@ -24,4 +24,7 @@ export const RecordPurchaseInvoiceSchema = z.object({
   netTotal: z.number().nonnegative(),
   vatTotal: z.number().nonnegative(),
   currency: PurchaseInvoiceCurrencyEnum.default('TRY'),
+
+  clinicId: z.uuid(),
+  organizationId: z.uuid(),
 });

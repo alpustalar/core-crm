@@ -127,6 +127,7 @@ async function main() {
         direction: language.direction,
         id: crypto.randomUUID(),
       })),
+      skipDuplicates: true,
     });
 
     const findLanguages = await tx.language.findMany();

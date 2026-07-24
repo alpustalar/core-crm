@@ -3,6 +3,9 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IInvoiceQueryRepository } from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
+import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
+import { Pagination } from '@shared';
+import { FindInvoicesFilter } from '@modules/finance/invoice/domain/invoice.contracts';
 
 @Injectable()
 export class InvoiceQueryRepository
@@ -30,5 +33,24 @@ export class InvoiceQueryRepository
       where: { paymentId, isDeleted: false },
     });
     return raw ? new Invoice(raw) : null;
+  }
+
+  async findMany(
+    filter: FindInvoicesFilter,
+    pagination: Pagination
+  ): Promise<{ items: Invoice[]; total: number }> {
+    const result = await paginate({
+      delegate: this.db.invoice,
+      pagination,
+      where: {
+        organizationId: filter.organizationId,
+        isDeleted: false,
+        ...(filter.clinicId ? { clinicId: filter.clinicId } : {}),
+      },
+    });
+    return {
+      items: result.items.map((r) => new Invoice(r)),
+      total: result.total,
+    };
   }
 }

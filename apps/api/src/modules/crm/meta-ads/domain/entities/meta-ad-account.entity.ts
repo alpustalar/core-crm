@@ -13,12 +13,13 @@ export class MetaAdAccount extends AggregateRoot {
     super();
     this._id = UUID.fromTrusted(data.id);
     this._clinicId = UUID.fromTrusted(data.clinicId);
+
     this._adAccountId = data.adAccountId;
     this._accessToken = data.accessToken;
     this._pageId = data.pageId;
-    this._businessName = data.businessName
-      ? Name.create(data.businessName).value
-      : null;
+
+    this._businessName = Name.create(data.businessName).instance ?? null;
+
     this._isActive = data.isActive;
     this._tokenExpiresAt = data.tokenExpiresAt;
     this._lastSyncAt = data.lastSyncAt;
@@ -83,31 +84,31 @@ export class MetaAdAccount extends AggregateRoot {
 
   public get validate() {
     return {
-      tokenExpiringSoon: () => {
-        const isExpiringSoon = this.isTokenExpiringSoon();
+      token: {
+        isExpiringSoon: (() => {
+          const isExpiringSoon = this.isTokenExpiringSoon();
 
-        return Guard.monitor(
-          isExpiringSoon,
-          isExpiringSoon,
-          () => new Error('Token süresi yakında doluyor')
-        );
+          return Guard.monitor(
+            isExpiringSoon,
+            isExpiringSoon,
+            () => new Error('Token süresi yakında doluyor')
+          );
+        })(),
       },
     };
   }
 
   public static create(props: CreateMetaAdAccountProps): MetaAdAccount {
-    const accountId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     const now = DateTimeManager.create();
 
     return new MetaAdAccount({
-      id: accountId.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
+
       adAccountId: props.adAccountId,
       accessToken: props.accessToken,
       pageId: props.pageId ?? null,
+
       businessName: props.businessName
         ? Name.create(props.businessName).orThrow().value
         : null,
@@ -127,7 +128,7 @@ export class MetaAdAccount extends AggregateRoot {
     //       source,
     //       action: LogAction.META_ADS_ACCOUNT_CONNECTED,
     //       type: LogType.INFO,
-    //       details: props.details... `Meta hesap bağlandı: ${metaAdAccountId} | 'Meta Hesap OAuth ile bağlandı: ${metaAdAccountId}'`,
+    //       details: props.details... `Meta hesap bağlandı: ${metaAdAccountId} | 'Meta Hesap OAuth ile  //        bağlandı: ${metaAdAccountId}'`,
     //     }
   }
 
@@ -146,16 +147,16 @@ export class MetaAdAccount extends AggregateRoot {
 
   public toPersistence(): IMetaAdAccount {
     return {
-      id: this._id.value,
-      clinicId: this._clinicId.value,
-      adAccountId: this._adAccountId,
-      accessToken: this._accessToken,
-      pageId: this._pageId,
-      businessName: this._businessName?.value ?? null,
-      isActive: this._isActive,
-      tokenExpiresAt: this._tokenExpiresAt,
-      lastSyncAt: this._lastSyncAt,
-      createdAt: this._createdAt,
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      adAccountId: this.adAccountId,
+      accessToken: this.accessToken,
+      pageId: this.pageId,
+      businessName: this.businessName?.value ?? null,
+      isActive: this.isActive,
+      tokenExpiresAt: this.tokenExpiresAt,
+      lastSyncAt: this.lastSyncAt,
+      createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
     };
   }

@@ -2,16 +2,7 @@ import {
   CurrencySchema,
   CurrencyType,
 } from '@input-type-schemas/CurrencySchema';
-import { InvalidCurrencyException } from '@src/domain/exceptions/vo/currency.exceptions';
-
-// Derleyicinin (TSC) context'i kaçırmasını önleyen statik validator arayüzü
-interface ICurrencyStaticValidator {
-  code: (value?: string) => {
-    isValid: boolean;
-    isInvalid: boolean;
-    orThrow: (exception?: Error) => CurrencyType;
-  };
-}
+import { InvalidCurrencyException } from '@src/domain/exceptions';
 
 export class Currency {
   private readonly _value: CurrencyType;
@@ -25,21 +16,24 @@ export class Currency {
    * Static Validate (Getter): Sınıf düzeyinde ham string para birimini doğrular.
    * Örn: Currency.validate.code('USD').orThrow()
    */
-  public static get validate(): ICurrencyStaticValidator {
+  public static get validate() {
     return {
-      code: (value: string) => {
+      code: (value?: string | null) => {
+        if (!value || value.trim().length === 0) {
+          return {
+            isValid: false,
+            error: 'Para birimi boş olamaz.',
+            data: undefined,
+          };
+        }
+
         const normalized = value.trim().toUpperCase();
         const result = CurrencySchema.safeParse(normalized);
 
         return {
           isValid: result.success,
-          isInvalid: !result.success,
-          orThrow: (exception?: Error): CurrencyType => {
-            if (!result.success) {
-              throw exception ?? new InvalidCurrencyException(value);
-            }
-            return result.data;
-          },
+          error: result.success ? undefined : 'Geçersiz para birimi formatı.',
+          data: result.success ? result.data : undefined,
         };
       },
     };
@@ -53,10 +47,6 @@ export class Currency {
     return this._value;
   }
 
-  public static generate(currency: CurrencyType) {
-    return new Currency(currency);
-  }
-
   /**
    * 🎯 Güvenilir Kurucu: Persisted (DB) para biriminden doğrudan VO üretir; doğrulama atlanır.
    */
@@ -64,42 +54,23 @@ export class Currency {
     return new Currency(currency);
   }
 
-  /**
-   * 🎯 Akıllı Factory: Projedeki yeni "instance" ve "orThrow" ortak dili.
-   */
   public static create(currencyStr?: string | null) {
-    // Eğer null/undefined veya boş string gelirse sistem varsayılanı olarak TRY (Türk Lirası) hazırlarız.
     const isBlank = !currencyStr || currencyStr.trim().length === 0;
 
-    let instance: Currency | undefined;
-    let error: Error | undefined;
+    const validation = isBlank ? null : Currency.validate.code(currencyStr);
 
-    try {
-      if (isBlank) {
-        instance = new Currency(CurrencySchema.enum.TRY);
-      } else {
-        // İçerideki hata fırlatan mekanizmayı tamamen statik validate metodumuzla çözüyoruz
-        const validatedCode = Currency.validate.code(currencyStr).orThrow();
-        instance = new Currency(validatedCode);
-      }
-    } catch (e: any) {
-      error = e;
-    }
+    const isValid = isBlank ? true : validation!.isValid;
+
+    const instance = isValid
+      ? new Currency(isBlank ? CurrencySchema.enum.TRY : validation!.data!)
+      : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Hata durumunda undefined döner, akışı bozmaz.
-       */
-      instance: error ? undefined : instance,
+      instance,
 
-      /**
-       * ➔ Zorunlu Senaryo: Desteklenmeyen bir para birimi sızmaya çalışırsa anında patlatır.
-       */
       orThrow(exception?: Error): Currency {
-        if (error || !instance) {
-          throw (
-            exception ?? error ?? new InvalidCurrencyException(currencyStr ?? '')
-          );
+        if (!instance) {
+          throw exception ?? new InvalidCurrencyException(currencyStr ?? '');
         }
         return instance;
       },

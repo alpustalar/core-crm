@@ -33,11 +33,10 @@ export class RegisterClinicIyzicoTerminalConfigHandler
     command: RegisterClinicIyzicoTerminalConfigCommand
   ): Promise<string> {
     const { input, ctx } = command;
-    const { actor } = ctx;
 
-    const { evaluator } = this.policyFactory.clinic(actor);
-    evaluator
-      .check(
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check(
         (p) => p.actorCanManageTargetClinic(input.clinicId),
         'Bu kliniğin POS kimlik bilgilerini yönetme yetkiniz yok.'
       )
@@ -53,7 +52,7 @@ export class RegisterClinicIyzicoTerminalConfigHandler
           username: input.username,
           password: input.password,
         });
-        const saved = await this.configCommandRepo.save(existing);
+        const saved = await this.configCommandRepo.upsertByClinicId(existing);
         return saved.id.value;
       }
 
@@ -64,7 +63,7 @@ export class RegisterClinicIyzicoTerminalConfigHandler
         username: input.username,
         password: input.password,
       });
-      const saved = await this.configCommandRepo.save(config);
+      const saved = await this.configCommandRepo.upsertByClinicId(config);
       return saved.id.value;
     });
   }

@@ -66,9 +66,8 @@ export class ClinicIyzicoTerminalConfig extends AggregateRoot {
     props: CreateClinicIyzicoTerminalConfigProps
   ): ClinicIyzicoTerminalConfig {
     const now = DateTimeManager.create();
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     return new ClinicIyzicoTerminalConfig({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       clientId: props.clientId,
       clientSecret: props.clientSecret,

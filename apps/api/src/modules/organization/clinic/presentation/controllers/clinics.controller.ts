@@ -8,13 +8,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
-import { CreateClinicDto, UpdateClinicDto } from '@shared';
+import {
+  CreateClinicDto,
+  UpdateClinicAppointmentSettingsDto,
+  UpdateClinicDto,
+} from '@shared';
 import { CreateClinicCommand } from '@modules/organization/clinic/application/commands/create-clinic/create-clinic.command';
 import {
   GetContext,
   IGetContext,
 } from '@common/decorators/get-context.decorator';
 import { UpdateClinicCommand } from '@modules/organization/clinic/application/commands/update-clinic/update-clinic.command';
+import { UpdateClinicAppointmentSettingsCommand } from '@modules/organization/clinic/application/commands/update-clinic-appointment-settings/update-clinic-appointment-settings.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @UseGuards(AuthGuard)
@@ -24,7 +29,7 @@ export class ClinicController {
 
   @Post('')
   create(@Body() dto: CreateClinicDto, @GetContext() ctx: IGetContext) {
-    return this.commandBus.execute(new CreateClinicCommand(dto, ctx));
+    return this.commandBus.execute(new CreateClinicCommand({ data: dto, ctx }));
   }
 
   @Patch(':id')
@@ -33,6 +38,23 @@ export class ClinicController {
     @Body() dto: UpdateClinicDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new UpdateClinicCommand(id, dto, ctx));
+    return this.commandBus.execute(
+      new UpdateClinicCommand({ clinicId: id, data: dto, ctx })
+    );
+  }
+
+  @Patch(':id/appointment-settings')
+  updateAppointmentSettings(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateClinicAppointmentSettingsDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new UpdateClinicAppointmentSettingsCommand({
+        clinicId: id,
+        data: dto,
+        ctx,
+      })
+    );
   }
 }

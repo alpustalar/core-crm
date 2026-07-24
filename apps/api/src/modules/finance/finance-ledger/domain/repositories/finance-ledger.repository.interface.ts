@@ -33,6 +33,18 @@ export interface PatientLedgerItem {
   providerName: string | null;
 }
 
+/** Hasta-başı dönem geliri (attribution/ROI için). amount = INCOME/COMPLETED toplamı. */
+export interface PatientRevenue {
+  patientId: string;
+  revenue: string;
+}
+
+export interface SumIncomeByPatientsFilter {
+  patientIds: string[];
+  from: Date;
+  to: Date;
+}
+
 export const FINANCE_LEDGER_COMMAND_REPOSITORY = Symbol(
   'IFinanceLedgerCommandRepository'
 );
@@ -41,7 +53,7 @@ export const FINANCE_LEDGER_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IFinanceLedgerCommandRepository {
-  save(entry: FinanceLedgerEntity): Promise<FinanceLedgerEntity>;
+  create(entry: FinanceLedgerEntity): Promise<FinanceLedgerEntity>;
   saveMany(entries: FinanceLedgerEntity[]): Promise<void>;
   updateStatus(id: string, status: LedgerStatus): Promise<void>;
   updateManyStatusByPaymentId(
@@ -70,4 +82,8 @@ export interface IFinanceLedgerQueryRepository {
     clinicId: string,
     filter: GetSummaryFilter
   ): Promise<LedgerSummary>;
+  /** Verilen hastaların dönem içi INCOME (COMPLETED) gelirini hasta-başı toplar. */
+  sumIncomeByPatientIds(
+    filter: SumIncomeByPatientsFilter
+  ): Promise<PatientRevenue[]>;
 }

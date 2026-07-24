@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { SubscriptionActivatedEvent } from '@modules/platform/subscription/domain/events/subscription-activated.event';
 import { SubscriptionRenewedEvent } from '@modules/platform/subscription/domain/events/subscription-renewed.event';
 import { ModuleAddedEvent } from '@modules/platform/subscription/domain/events/module-added.event';
+import { SubscriptionCacheService } from '@modules/platform/subscription/infrastructure/cache/subscription-cache.service';
 
 /**
  * Abonelik değiştiğinde (aktivasyon / yenileme / modül ekleme) kiracının entitlement cache'ini
@@ -16,7 +16,7 @@ export class EntitlementCacheInvalidationListener {
     EntitlementCacheInvalidationListener.name
   );
 
-  constructor(private readonly redis: RedisService) {}
+  constructor(private readonly cacheService: SubscriptionCacheService) {}
 
   @OnEvent(
     [
@@ -29,7 +29,9 @@ export class EntitlementCacheInvalidationListener {
   async handle(payload: { organizationId?: string }): Promise<void> {
     if (!payload?.organizationId) return;
     try {
-      await this.redis.deleteTenantEntitlementsByOrg(payload.organizationId);
+      await this.cacheService.tenantEntitlements.delByOrganizationId(
+        payload.organizationId
+      );
     } catch (err) {
       this.logger.error(
         `Entitlement cache bust hatası (organizationId: ${payload.organizationId})`,

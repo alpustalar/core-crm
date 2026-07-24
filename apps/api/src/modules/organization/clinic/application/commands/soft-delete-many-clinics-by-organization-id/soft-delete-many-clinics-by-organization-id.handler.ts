@@ -40,10 +40,10 @@ export class SoftDeleteManyClinicsByOrganizationIdHandler
     const { source, actor } = ctx;
 
     if (ExecutionPolicy.isUserInitiated(source)) {
-      const { evaluator } = this.policyFactory.organization(actor);
-      evaluator
-        .check(
-          (p) => p.isOwnOrganization(organizationId),
+      this.policyFactory
+        .organization(actor, source)
+        .evaluator.check(
+          (p) => p.actorCanManageTargetOrganization(organizationId),
           'Bu işlem için yetkiniz bulunmamaktadır.'
         )
         .orThrow(CLINIC_EVENTS.SOFT_DELETED);

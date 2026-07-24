@@ -2,7 +2,7 @@ import { BookingPayment } from './booking-payment.entity';
 import {
   CreateBookingPaymentProps,
   HotelBookingIntent,
-} from '../booking-payment.contracts';
+} from '../contracts/booking-payment.contracts';
 
 describe('BookingPayment entity — durum makinesi', () => {
   const hotelIntent: HotelBookingIntent = {
@@ -34,9 +34,9 @@ describe('BookingPayment entity — durum makinesi', () => {
   it('create → PENDING; tutarlar Decimal; intent tipli okunur', () => {
     const bp = BookingPayment.create(baseProps);
     expect(bp.status).toBe('PENDING');
-    expect(bp.isPending()).toBe(true);
-    expect(bp.saleAmount.amount.toNumber()).toBe(120);
-    expect(bp.tryAmount.amount.toNumber()).toBe(4200);
+    expect(bp.validate.status.isPending.value).toBe(true);
+    expect(bp.saleAmount.value.toNumber()).toBe(120);
+    expect(bp.tryAmount.value.toNumber()).toBe(4200);
     expect(bp.fxRate?.toNumber()).toBe(35);
     expect(bp.bookingIntent.type).toBe('HOTEL');
   });
@@ -61,7 +61,7 @@ describe('BookingPayment entity — durum makinesi', () => {
     expect(bp.paidProvider).toBe('STRIPE');
     expect(bp.paidProviderRef).toBe('pi_123');
     expect(bp.paidAt).toBeInstanceOf(Date);
-    expect(bp.isSettled()).toBe(true);
+    expect(bp.validate.status.isSettled.value).toBe(true);
   });
 
   it('markPaid ikinci kez → hata (idempotency koruması)', () => {
@@ -77,7 +77,7 @@ describe('BookingPayment entity — durum makinesi', () => {
     bp.markBooked('BK-1', 'BK-1');
     expect(bp.status).toBe('BOOKED');
     expect(bp.bookingReference).toBe('BK-1');
-    expect(bp.isSettled()).toBe(true);
+    expect(bp.validate.status.isSettled.value).toBe(true);
   });
 
   it('markExpired yalnız PENDING; ödenmişten → hata', () => {

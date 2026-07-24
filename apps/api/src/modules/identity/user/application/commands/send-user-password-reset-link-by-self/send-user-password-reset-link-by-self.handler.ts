@@ -4,11 +4,11 @@ import { Inject } from '@nestjs/common';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
-} from '@modules/identity/auth/firebase/domain/interfaces/firebase.service.interface';
+} from '@src/infrastructure/firebase/firebase.service.interface';
 import {
   IMailService,
   MAIL_SERVICE,
-} from '@modules/platform/mail/domain/interfaces/mail.service.interface';
+} from '@src/infrastructure/mail/interfaces/mail.service.interface';
 import { SendUserPasswordResetLinkBySelfResponse } from '@modules/identity/user/application/commands/send-user-password-reset-link-by-self/send-user-password-reset-link-by-self.response';
 
 @CommandHandler(SendUserPasswordResetLinkBySelfCommand)

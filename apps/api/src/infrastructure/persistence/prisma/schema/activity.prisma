@@ -1,0 +1,46 @@
+/// Satış/CRM aktivite tipi. NOTE anlık kayıttır; CALL/TASK/MEETING zamanlanabilir
+/// (dueAt) ve tamamlanabilir (completedAt + status).
+enum ActivityType {
+  CALL
+  NOTE
+  TASK
+  MEETING
+}
+
+/// Zamanlanabilir aktivitelerin (TASK/MEETING/CALL) durumu. NOTE için anlamlı değildir
+/// (varsayılan PENDING kalır, tamamlama gerektirmez).
+enum ActivityStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+/// Lead (ve dönüşüm sonrası opsiyonel Patient) üzerine kaydedilen satış aktivitesi:
+/// arama, not, görev, toplantı. Görevler assignedTo + dueAt taşır ve tamamlanır.
+model Activity {
+  id             String @id
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id") // denormalize
+
+  leadId    String? @map("lead_id")
+  patientId String? @map("patient_id")
+
+  type    ActivityType
+  status  ActivityStatus @default(PENDING)
+  subject String
+  notes   String?        @db.Text
+
+  assignedToId String?   @map("assigned_to_id")
+  createdById  String?   @map("created_by_id")
+  dueAt        DateTime? @map("due_at")
+  completedAt  DateTime? @map("completed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([clinicId, type])
+  @@index([leadId])
+  @@index([patientId])
+  @@index([assignedToId, status])
+  @@map("activities")
+}

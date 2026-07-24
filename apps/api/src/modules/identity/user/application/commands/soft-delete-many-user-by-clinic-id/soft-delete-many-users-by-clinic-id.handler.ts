@@ -7,7 +7,6 @@ import {
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUsersByClinicIdCommand } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-users-by-clinic-id.command';
 import { SoftDeleteManyUserByClinicIdResponse } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-user-by-clinic-id.response';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(SoftDeleteManyUsersByClinicIdCommand)
@@ -21,20 +20,15 @@ export class SoftDeleteManyUsersByClinicIdHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userCommandRepo: IUserCommandRepository,
-    private readonly redis: RedisService,
     private readonly txManager: TransactionManager
   ) {}
 
   @InternalOnly()
   async execute(command: SoftDeleteManyUsersByClinicIdCommand): Promise<void> {
-    const result = await this.txManager.run(async () => {
+    await this.txManager.run(async () => {
       return await this.userCommandRepo.softDeleteAllByClinicIds(
         command.clinicId
       );
     });
-
-    await this.redis.deleteManyActorContexts(
-      result.ids.map((id) => id.toString())
-    );
   }
 }

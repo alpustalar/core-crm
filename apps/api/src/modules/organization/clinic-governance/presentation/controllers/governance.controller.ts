@@ -33,7 +33,7 @@ export class GovernanceController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new UpsertClinicGovernmentSpecsCommand(clinicId, dto, ctx)
+      new UpsertClinicGovernmentSpecsCommand({ clinicId, data: dto, ctx })
     );
   }
 

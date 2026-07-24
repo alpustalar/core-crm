@@ -8,5 +8,5 @@ interface GetInstallmentInfoDto {
 export class GetInstallmentInfoQuery implements IQuery {
   readonly __responseType!: GetInstallmentInfoQueryResponse;
 
-  constructor(public readonly dto: GetInstallmentInfoDto) {}
+  constructor(public readonly data: GetInstallmentInfoDto) {}
 }

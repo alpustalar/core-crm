@@ -43,7 +43,10 @@ export class ClinicSchedule {
     return new ClinicSchedule(availabilities, exceptions);
   }
 
-  private bookingAvailability({ date, requestedRange }: ClinicBookingCheckInput) {
+  private bookingAvailability({
+    date,
+    requestedRange,
+  }: ClinicBookingCheckInput) {
     // 1. Tarih bazlı istisna (resmi tatil / özel kapatma) kliniği o gün kapatıyor mu?
     const closedException = this.exceptions.find(
       (exception) => exception.isClosed && exception.isMatch(date)
@@ -67,7 +70,7 @@ export class ClinicSchedule {
     const workingHours = availability.timeRange;
 
     // 3. Başlangıç saati açılıştan önce olamaz.
-    if (requestedRange.start.isBefore(workingHours.start)) {
+    if (requestedRange.start.validate.isBefore(workingHours.start).value) {
       return this.returnValue(
         new ClinicOutsideWorkingHoursException(
           `İşlem başlangıç saati (${requestedRange.start.toString()}) kliniğin açılış saatinden (${workingHours.start.toString()}) önce olamaz.`
@@ -76,7 +79,7 @@ export class ClinicSchedule {
     }
 
     // 4. Bitiş saati kapanışı aşamaz.
-    if (requestedRange.end.isAfter(workingHours.end)) {
+    if (requestedRange.end.validate.isAfter(workingHours.end).value) {
       return this.returnValue(
         new ClinicOutsideWorkingHoursException(
           `İşlem bitiş saati (${requestedRange.end.toString()}) kliniğin kapanış saatini (${workingHours.end.toString()}) aşamaz.`

@@ -43,6 +43,8 @@ export class DisconnectClinicTelegramChannelHandler
     }
 
     channel.revoke();
-    await this.txManager.run(() => this.channelCommandRepo.save(channel));
+    await this.txManager.run(() =>
+      this.channelCommandRepo.upsertByClinicAndProvider(channel)
+    );
   }
 }

@@ -54,6 +54,9 @@ export const ENV = {
   FX_EUR_TRY: 'FX_EUR_TRY',
   FX_USD_TRY: 'FX_USD_TRY',
   FX_GBP_TRY: 'FX_GBP_TRY',
+  // Sağlık turizmi (otel + transfer) satış komisyonu % — PLATFORM geliri (klinik değil).
+  // Satış = net × (1 + oran/100). Tek platform-global oran; klinik başına ayarlanamaz.
+  HEALTH_TOURISM_SERVICE_FEE_PERCENT: 'HEALTH_TOURISM_SERVICE_FEE_PERCENT',
 } as const;
 
 export type EnvConstant = (typeof ENV)[keyof typeof ENV];

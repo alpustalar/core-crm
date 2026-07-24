@@ -6,8 +6,8 @@ import { ENV } from '@common/constants/env.constant';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/payment-initialize.request';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
+import { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/payment-initialize.request';
 import {
   CreatePaymentLinkInput,
   IPaymentLinkProvider,

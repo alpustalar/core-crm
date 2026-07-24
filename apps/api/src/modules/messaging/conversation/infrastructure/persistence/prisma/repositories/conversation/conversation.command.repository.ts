@@ -13,12 +13,18 @@ export class ConversationCommandRepository
     super(prisma);
   }
 
+  async create(entity: Conversation): Promise<Conversation> {
+    const data = entity.toPersistence();
+    const raw = await this.db.conversation.create({ data });
+    entity.flushEvents();
+    return new Conversation(raw);
+  }
+
   async save(entity: Conversation): Promise<Conversation> {
     const data = entity.toPersistence();
-    const raw = await this.db.conversation.upsert({
+    const raw = await this.db.conversation.update({
       where: { id: data.id },
-      create: data,
-      update: {
+      data: {
         contactName: data.contactName,
         patientId: data.patientId,
         leadId: data.leadId,

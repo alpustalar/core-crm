@@ -3,37 +3,39 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { LeadSourceType as LeadSource } from '@input-type-schemas/LeadSourceSchema';
 import { LeadMediumType as LeadMedium } from '@input-type-schemas/LeadMediumSchema';
 import { LeadStatusType as LeadStatus } from '@input-type-schemas/LeadStatusSchema';
-import {
-  InvalidLeadStatusTransitionException,
-  LeadAlreadyFinalizedException,
-} from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { Phone } from '@src/domain/value-objects/phone.vo';
 import { Email } from '@src/domain/value-objects/email.vo';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
 import {
+  AssignLeadStageProps,
   ConvertLeadProps,
   CreateLeadProps,
-  MarkLostLeadProps,
+  MoveLeadToStageProps,
 } from '@modules/crm/lead/domain/contracts/lead-contracts';
+import { PipelineStageTypeSchema } from '@input-type-schemas/PipelineStageTypeSchema';
 import { LeadCreatedEvent } from '@modules/crm/lead/domain/events';
 import {
   LogAction,
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import { ActorContext } from '@common/interfaces';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { LeadRules } from '@modules/crm/lead/domain/rules/lead.rules';
 
 export class Lead extends AggregateRoot {
   constructor(data: ILead) {
     super();
     this._id = UUID.fromTrusted(data.id);
     this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._organizationId = UUID.fromTrusted(data.organizationId);
     this._source = data.source;
     this._status = data.status;
+    this._pipelineId = data.pipelineId;
+    this._stageId = data.stageId;
     this._name = data.name ? Name.fromTrusted(data.name) : null;
     this._phone = Phone.create(data.phone).instance ?? null;
     this._email = Email.create(data.email).instance ?? null;
@@ -67,6 +69,11 @@ export class Lead extends AggregateRoot {
     return this._clinicId;
   }
 
+  private _organizationId: UUID;
+  get organizationId(): UUID {
+    return this._organizationId;
+  }
+
   private _source: LeadSource;
   get source(): LeadSource {
     return this._source;
@@ -75,6 +82,16 @@ export class Lead extends AggregateRoot {
   private _status: LeadStatus;
   get status(): LeadStatus {
     return this._status;
+  }
+
+  private _pipelineId: string | null;
+  get pipelineId(): string | null {
+    return this._pipelineId;
+  }
+
+  private _stageId: string | null;
+  get stageId(): string | null {
+    return this._stageId;
   }
 
   private _name: Name | null;
@@ -182,70 +199,17 @@ export class Lead extends AggregateRoot {
     return this._updatedAt;
   }
 
-  private get _businessRulesValidator() {
-    return {
-      convert: () => {
-        const isInValid =
-          this._status === LeadStatusSchema.enum.CONVERTED ||
-          this._status === LeadStatusSchema.enum.LOST;
-
-        return {
-          isValid: !isInValid,
-          orThrow: () => {
-            if (isInValid) throw new LeadAlreadyFinalizedException();
-          },
-        };
-      },
-      markLost: () => {
-        const isInValid =
-          this._status === LeadStatusSchema.enum.CONVERTED ||
-          this._status === LeadStatusSchema.enum.LOST;
-
-        return {
-          isValid: !isInValid,
-          orThrow: () => {
-            if (isInValid) throw new LeadAlreadyFinalizedException();
-          },
-        };
-      },
-      qualify: () => {
-        const isInvalid = this._status !== LeadStatusSchema.enum.CONTACTED;
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new InvalidLeadStatusTransitionException(
-                LeadStatusSchema.enum.CONTACTED
-              );
-          },
-        };
-      },
-      contact: () => {
-        const isInvalid = this._status !== LeadStatusSchema.enum.NEW;
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new InvalidLeadStatusTransitionException(
-                this._status,
-                LeadStatusSchema.enum.NEW
-              );
-          },
-        };
-      },
-    };
-  }
-
   public static create(props: CreateLeadProps): Lead {
-    const leadId = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     const now = DateTimeManager.create();
 
     const lead = new Lead({
-      id: leadId.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
+      organizationId: UUID.create(props.organizationId).orThrow().value,
       source: props.source,
       status: LeadStatusSchema.enum.NEW,
+      pipelineId: props.pipelineId ?? null,
+      stageId: props.stageId ?? null,
       name: props.name ? Name.create(props.name).orThrow().value : null,
       phone: props.phone ? Phone.create(props.phone).orThrow().value : null,
       email: props.email ? Email.create(props.email).orThrow().value : null,
@@ -269,8 +233,6 @@ export class Lead extends AggregateRoot {
       updatedAt: now,
     });
 
-    // Audit event entity içinde raise edilir (kural: mümkün olduğunca entity'de). actorId ve
-    // logSource entity'nin bilemeyeceği bağlam olduğundan props ile handler'dan geçirilir.
     lead.addDomainEvent(
       new LeadCreatedEvent({
         leadId: lead.id.value,
@@ -287,27 +249,15 @@ export class Lead extends AggregateRoot {
     return lead;
   }
 
-  public contact(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.contact().orThrow();
-
+  public contact(): void {
     this._status = LeadStatusSchema.enum.CONTACTED;
   }
 
-  public qualify(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.qualify().orThrow();
+  public qualify(): void {
     this._status = LeadStatusSchema.enum.QUALIFIED;
   }
 
-  public convert({
-    patientId,
-    appointmentId,
-    validateOptions = DefaultValidateOptions,
-  }: ConvertLeadProps): void {
-    if (shouldValidate(validateOptions))
-      this._businessRulesValidator.convert().orThrow();
-
+  public convert({ patientId, appointmentId, actor }: ConvertLeadProps): void {
     this._patientId = patientId
       ? UUID.create(patientId).orThrow()
       : this._patientId;
@@ -331,16 +281,10 @@ export class Lead extends AggregateRoot {
     //       details: `Lead dönüştürüldü — hasta: ${saved.patientId?.value ?? '-'}, randevu: ${saved.appointmentId?.value ?? '-'}`,
   }
 
-  public markLost({
-    reason,
-    actor: _,
-    validateOptions = DefaultValidateOptions,
-  }: MarkLostLeadProps): void {
-    if (shouldValidate(validateOptions))
-      this._businessRulesValidator.markLost().orThrow();
-
+  public markLost(actor: ActorContext, reason?: string): void {
     this._status = LeadStatusSchema.enum.LOST;
     this._lostReason = reason ?? null;
+    this._updatedAt = DateTimeManager.create();
     this._lostAt = DateTimeManager.create();
 
     // TODO: event fırlat ÖRN:  leadId,
@@ -351,6 +295,56 @@ export class Lead extends AggregateRoot {
     //         action: LogAction.LEAD_LOST,
     //         type: LogType.INFO,
     //         details: `Lead kaybedildi${dto.lostReason ? `: ${dto.lostReason}` : ''}`
+  }
+
+  public rules(validateOptions: ValidateOptionsType) {
+    return new LeadRules(this, validateOptions);
+  }
+
+  /**
+   * Satış hunisi panosunda aşama taşıma. Aşama tipini coarse LeadStatus'e senkronlar:
+   * WON→CONVERTED, LOST→LOST, terminalden OPEN'a dönüş→yeniden aktif (QUALIFIED).
+   * Pano açık bir yönetim aksiyonu olduğundan finalize guard'ı uygulanmaz.
+   */
+  public moveToStage(props: MoveLeadToStageProps): void {
+    this._pipelineId = props.pipelineId;
+    this._stageId = props.stageId;
+
+    const now = DateTimeManager.create();
+
+    if (props.stageType === PipelineStageTypeSchema.enum.WON) {
+      if (this._status !== LeadStatusSchema.enum.CONVERTED) {
+        this._status = LeadStatusSchema.enum.CONVERTED;
+        this._convertedAt = now;
+        this._lostReason = null;
+        this._lostAt = null;
+      }
+    } else if (props.stageType === PipelineStageTypeSchema.enum.LOST) {
+      if (this._status !== LeadStatusSchema.enum.LOST) {
+        this._status = LeadStatusSchema.enum.LOST;
+        this._lostReason = props.reason ?? this._lostReason;
+        this._lostAt = now;
+        this._convertedAt = null;
+      }
+    } else if (
+      this._status === LeadStatusSchema.enum.CONVERTED ||
+      this._status === LeadStatusSchema.enum.LOST
+    ) {
+      // Terminalden açık bir aşamaya geri taşıma → lead'i yeniden aktive et.
+      this._status = LeadStatusSchema.enum.QUALIFIED;
+      this._convertedAt = null;
+      this._lostReason = null;
+      this._lostAt = null;
+    }
+
+    this._updatedAt = now;
+  }
+
+  /** Yalnız huni + aşama kimliğini atar; LeadStatus'e dokunmaz (convert/lost senkronu, create seed). */
+  public assignStage(props: AssignLeadStageProps): void {
+    this._pipelineId = props.pipelineId;
+    this._stageId = props.stageId;
+    this._updatedAt = DateTimeManager.create();
   }
 
   public updateNotes(notes: string): void {
@@ -370,31 +364,34 @@ export class Lead extends AggregateRoot {
 
   public toPersistence(): ILead {
     return {
-      id: this._id.value,
-      clinicId: this._clinicId.value,
-      source: this._source,
-      status: this._status,
-      name: this._name?.value ?? null,
-      phone: this._phone?.value ?? null,
-      email: this._email?.value ?? null,
-      notes: this._notes,
-      assignedToId: this._assignedToId,
-      patientId: this._patientId?.value ?? null,
-      appointmentId: this._appointmentId?.value ?? null,
-      convertedAt: this._convertedAt,
-      lostReason: this._lostReason,
-      lostAt: this._lostAt,
-      whatsAppConversationId: this._whatsAppConversationId,
-      medium: this._medium,
-      metaLeadId: this._metaLeadId,
-      campaignId: this._campaignId,
-      campaignName: this._campaignName,
-      adId: this._adId,
-      adsetId: this._adsetId,
-      ctwaClid: this._ctwaClid,
-      sourceUrl: this._sourceUrl,
-      createdAt: this._createdAt,
-      updatedAt: DateTimeManager.create(),
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      source: this.source,
+      status: this.status,
+      pipelineId: this.pipelineId,
+      stageId: this.stageId,
+      name: this.name?.value ?? null,
+      phone: this.phone?.value ?? null,
+      email: this.email?.value ?? null,
+      notes: this.notes,
+      assignedToId: this.assignedToId,
+      patientId: this.patientId?.value ?? null,
+      appointmentId: this.appointmentId?.value ?? null,
+      convertedAt: this.convertedAt,
+      lostReason: this.lostReason,
+      lostAt: this.lostAt,
+      whatsAppConversationId: this.whatsAppConversationId,
+      medium: this.medium,
+      metaLeadId: this.metaLeadId,
+      campaignId: this.campaignId,
+      campaignName: this.campaignName,
+      adId: this.adId,
+      adsetId: this.adsetId,
+      ctwaClid: this.ctwaClid,
+      sourceUrl: this.sourceUrl,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

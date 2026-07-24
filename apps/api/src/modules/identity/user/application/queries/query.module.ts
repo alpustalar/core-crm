@@ -8,12 +8,14 @@ import { UserRepositoryModule } from '@modules/identity/user/infrastructure/pers
 import { CheckEmailExistsHandler } from './check-email-exists/check-email-exists.handler';
 import { FindAllUsersForManagerHandler } from '@modules/identity/user/application/queries/find-all-users-for-manager';
 import { FindOneWithIdOrEmailHandler } from '@modules/identity/user/application/queries/find-one-with-id-or-email';
+import { FindClinicStaffUserIdsHandler } from '@modules/identity/user/application/queries/find-clinic-staff-user-ids/find-clinic-staff-user-ids.handler';
 
 const QueryHandlers = [
   FindUserForAuthHandler,
   CheckEmailExistsHandler,
   FindAllUsersForManagerHandler,
   FindOneWithIdOrEmailHandler,
+  FindClinicStaffUserIdsHandler,
 ];
 
 @Module({

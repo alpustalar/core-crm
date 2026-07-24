@@ -9,7 +9,7 @@ import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/doma
 import {
   CreateBookingPaymentProps,
   HotelBookingIntent,
-} from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 
 describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
   const hotelIntent: HotelBookingIntent = {
@@ -90,7 +90,11 @@ describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
     await handler.execute(new RefundBookingPaymentCommand('BK-1', 'iptal'));
 
     expect(stripeLink.refund).toHaveBeenCalledWith(
-      expect.objectContaining({ providerRef: 'pi_1', amount: 120, currency: 'EUR' })
+      expect.objectContaining({
+        providerRef: 'pi_1',
+        amount: 120,
+        currency: 'EUR',
+      })
     );
     expect(bp.status).toBe('REFUNDED');
     expect(saved).toHaveLength(1);
@@ -103,7 +107,11 @@ describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
     await handler.execute(new RefundBookingPaymentCommand('BK-1'));
 
     expect(iyzicoLink.refund).toHaveBeenCalledWith(
-      expect.objectContaining({ providerRef: 'tx_1', amount: 4200, currency: 'TRY' })
+      expect.objectContaining({
+        providerRef: 'tx_1',
+        amount: 4200,
+        currency: 'TRY',
+      })
     );
     expect(bp.status).toBe('REFUNDED');
   });

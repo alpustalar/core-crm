@@ -40,13 +40,12 @@ export class ConnectMetaAccountHandler
   async execute(
     command: ConnectMetaAccountCommand
   ): Promise<ConnectMetaAccountResponse> {
-    const { dto, clinicId, ctx } = command;
-    const { actor, source } = ctx;
+    const { payload } = command;
+    const { data, ctx, clinicId } = payload;
 
     this.policyFactory
-      .clinic(actor)
-      .evaluator.systemBypass(source)
-      .check(
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check(
         (p) => p.actorCanManageTargetClinic(clinicId),
         'Bu klinik için Meta hesabı bağlama yetkiniz yok.'
       )
@@ -55,21 +54,21 @@ export class ConnectMetaAccountHandler
     const metaAdAccount =
       await this.accountQueryRepo.findByClinicAndAdAccountId(
         clinicId,
-        dto.adAccountId
+        data.adAccountId
       );
 
     if (metaAdAccount) {
       throw new ConflictException('Bu klinik için bu Meta hesabı zaten bağlı.');
     }
 
-    const encryptedToken = this.tokenCipher.encrypt(dto.accessToken);
+    const encryptedToken = this.tokenCipher.encrypt(data.accessToken);
 
     const account = MetaAdAccount.create({
       clinicId,
-      adAccountId: dto.adAccountId,
+      adAccountId: data.adAccountId,
       accessToken: encryptedToken,
-      pageId: dto.pageId,
-      businessName: dto.businessName,
+      pageId: data.pageId,
+      businessName: data.businessName,
     });
 
     const savedAccount = await this.metaAdAccountCommandRepo.create(account);

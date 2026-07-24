@@ -2,8 +2,6 @@ import { ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BasePolicy } from '@modules/platform/policy/staff/application/base.policy';
 import { PolicyAccessDeniedEvent } from '@modules/platform/policy/staff/domain/events/policy-access-denied.event';
-import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 
 export class PolicyEvaluator<T extends BasePolicy> {
   private isValid: boolean = true;
@@ -14,20 +12,13 @@ export class PolicyEvaluator<T extends BasePolicy> {
     private readonly policy: T,
     private readonly eventEmitter?: EventEmitter2
   ) {
-    if (this.policy.isSystemAdmin()) {
+    if (this.policy.isSystem()) {
       this.isBypassed = true;
     }
   }
 
   bypassIf(condition: boolean): this {
     if (condition) this.isBypassed = true;
-    return this;
-  }
-
-  systemBypass(source: ExecutionSource): this {
-    if (ExecutionPolicy.isSystemInitiated(source)) {
-      this.isBypassed = true;
-    }
     return this;
   }
 

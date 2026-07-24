@@ -1,7 +1,6 @@
 import { User } from '@modules/identity/user/domain/entities/user.entity';
 import { IUserCommandRepository } from '@modules/identity/user/domain/repositories/user.repository';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
@@ -9,13 +8,21 @@ import {
   GlobalStatusType,
 } from '@input-type-schemas/GlobalStatusSchema';
 import { normalizeArray } from '@common/utils/normalize-array';
+import { Priority } from '@src/domain/value-objects/priority.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UsersBulkSoftDeletedEvent } from '@modules/identity/user/domain/events/user-bulk-soft-deleted.event';
+import { ChangeUsersStatusEvent } from '@modules/identity/user/domain/events/change-users-status.event';
 
 @Injectable()
 export class UserCommandRepository
   extends BaseCommandRepository<User>
   implements IUserCommandRepository
 {
-  constructor(prisma: PrismaService) {
+  constructor(
+    public readonly prisma: PrismaService,
+    public readonly eventEmitter: EventEmitter2
+  ) {
     super(prisma);
   }
 
@@ -33,10 +40,19 @@ export class UserCommandRepository
 
     if (!raw) return null;
 
-    const { managedClinics, ownedOrganizations, providerProfile, ...rest } =
-      raw;
+    const {
+      managedClinics,
+      ownedOrganizations,
+      providerProfile,
+      role,
+      ...rest
+    } = raw;
     return new User({
       ...rest,
+      role: {
+        priority: Priority.fromTrusted(role.priority),
+        id: role.id,
+      },
       managedClinicIds: managedClinics.map((c) => c.id),
       ownedOrganizationIds: ownedOrganizations.map((o) => o.id),
       providerProfileId: providerProfile?.id ?? null,
@@ -47,7 +63,7 @@ export class UserCommandRepository
     const data = entity.toPersistence();
     const raw = await this.db.user.create({
       data: {
-        ...(data as Prisma.UserUncheckedCreateInput),
+        ...data,
         ...(entity.managedClinicIds?.length && {
           managedClinics: {
             connect: entity.managedClinicIds.map((id) => ({ id: id.value })),
@@ -80,24 +96,9 @@ export class UserCommandRepository
   async save(entity: User): Promise<User> {
     const create = entity.toPersistence();
     const { id, ...update } = create;
-    const raw = await this.db.user.upsert({
+    const raw = await this.db.user.update({
       where: { id },
-      create: {
-        ...(create as Prisma.UserUncheckedCreateInput),
-        ...(entity.managedClinicIds?.length && {
-          managedClinics: {
-            connect: entity.managedClinicIds.map((id) => ({ id: id.value })),
-          },
-        }),
-        ...(entity.ownedOrganizationIds?.length && {
-          ownedOrganizations: {
-            connect: entity.ownedOrganizationIds.map((id) => ({
-              id: id.value,
-            })),
-          },
-        }),
-      },
-      update,
+      data: update,
     });
     entity.flushEvents();
     return new User({
@@ -118,14 +119,14 @@ export class UserCommandRepository
   updateLastLogin(id: string) {
     return this.db.user.update({
       where: { id },
-      data: { lastLogin: new Date() },
+      data: { lastLogin: DateTimeManager.create() },
     });
   }
 
   async changeStatus(
     status: GlobalStatusType,
     clinicId: string
-  ): Promise<{ ids: string[]; deletedCount: number }> {
+  ): Promise<{ affectedCount: number }> {
     const affected = await this.db.user.findMany({
       where: { workingClinic: { is: { id: clinicId } } },
       select: { id: true },
@@ -137,12 +138,19 @@ export class UserCommandRepository
       data: { status },
     });
 
-    return { ids, deletedCount: batchPayload.count };
+    this.eventEmitter.emit(
+      ChangeUsersStatusEvent.NAME,
+      new ChangeUsersStatusEvent({
+        userIds: ids,
+      })
+    );
+
+    return { affectedCount: batchPayload.count };
   }
 
   async softDeleteAllByClinicIds(
     clinicId: string[] | string
-  ): Promise<{ ids: string[]; deletedCount: number }> {
+  ): Promise<{ deletedCount: number }> {
     const normalizedClinicId = normalizeArray(clinicId);
 
     const affected = await this.db.user.findMany({
@@ -157,7 +165,7 @@ export class UserCommandRepository
     const ids = affected.map((u) => u.id);
 
     if (ids.length === 0) {
-      return { ids: [], deletedCount: 0 };
+      return { deletedCount: 0 };
     }
 
     const { count: deletedCount } = await this.db.user.updateMany({
@@ -166,10 +174,17 @@ export class UserCommandRepository
       },
       data: {
         status: GlobalStatusSchema.enum.DELETED,
-        deletedAt: new Date(),
+        deletedAt: DateTimeManager.create(),
       },
     });
 
-    return { ids, deletedCount };
+    this.eventEmitter.emit(
+      UsersBulkSoftDeletedEvent.NAME,
+      new UsersBulkSoftDeletedEvent({
+        userIds: ids,
+      })
+    );
+
+    return { deletedCount };
   }
 }

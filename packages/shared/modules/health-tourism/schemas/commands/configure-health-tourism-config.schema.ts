@@ -17,7 +17,7 @@ export const ConfigureHealthTourismConfigSchema = z.object({
   clinicLocationCode: z.string().min(1).nullable().optional(),
   pickupAddress: z.string().min(1).nullable().optional(),
 
-  // FİYAT
-  serviceFeePercent: z.number().min(0).max(100).nullable().optional(),
+  // FİYAT — satış komisyonu (serviceFeePercent) burada YOK: platform geliridir, klinik
+  // ayarlayamaz; oran platform-global env (HEALTH_TOURISM_SERVICE_FEE_PERCENT) ile uygulanır.
   defaultCurrency: z.enum(['TRY', 'USD', 'EUR', 'GBP']).optional(),
 });

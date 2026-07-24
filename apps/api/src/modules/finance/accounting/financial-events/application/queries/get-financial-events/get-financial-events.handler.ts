@@ -21,7 +21,7 @@ export class GetFinancialEventsHandler
     query: GetFinancialEventsQuery
   ): Promise<GetFinancialEventsResponse> {
     const { organizationId, pagination, type, sourceModule, sourceRefId } =
-      query;
+      query.payload;
 
     const { items, total } = await this.eventQueryRepo.findMany(
       { organizationId, type, sourceModule, sourceRefId },
@@ -29,7 +29,7 @@ export class GetFinancialEventsHandler
     );
 
     return {
-      data: items,
+      data: items.map((financialEvent) => financialEvent.toPersistence()),
       meta: { pagination: buildPaginationMeta(pagination, total) },
     };
   }

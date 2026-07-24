@@ -13,11 +13,11 @@ import { AppointmentsBulkSoftDeletedEvent } from '@modules/clinical/appointment/
  */
 @Injectable()
 export class AppointmentsBulkSoftDeletedListener {
-  private readonly logger = new Logger(AppointmentsBulkSoftDeletedListener.name);
+  private readonly logger = new Logger(
+    AppointmentsBulkSoftDeletedListener.name
+  );
 
-  constructor(
-    @InjectQueue(QUEUES.APPOINTMENT) private readonly queue: Queue
-  ) {}
+  constructor(@InjectQueue(QUEUES.APPOINTMENT) private readonly queue: Queue) {}
 
   @OnEvent(APPOINTMENT_EVENTS.BULK_SOFT_DELETED, { async: true })
   async handle(event: AppointmentsBulkSoftDeletedEvent): Promise<void> {

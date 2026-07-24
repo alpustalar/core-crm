@@ -7,7 +7,6 @@ import {
 } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
-import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -26,27 +25,28 @@ export class CreateSupplierHandler
   ) {}
 
   async execute(command: CreateSupplierCommand): Promise<string> {
-    const { dto, ctx } = command;
-    const { actor } = ctx;
-
-    if (!actor.organizationId) throw new OrganizationNotAssignedException();
+    const { data, ctx } = command;
 
     this.policyFactory
-      .clinic(actor)
-      .evaluator.systemBypass(ctx.source)
-      .check((p) => p.actorCanAccessTargetClinic(dto.clinicId))
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicAndOrganization(
+          data.clinicId,
+          data.organizationId
+        )
+      )
       .orThrow();
 
     const supplier = Supplier.create({
-      name: dto.name,
-      contactName: dto.contactName ?? null,
-      phone: dto.phone ?? null,
-      email: dto.email ?? null,
-      address: dto.address ?? null,
-      taxNumber: dto.taxNumber ?? null,
-      taxOffice: dto.taxOffice ?? null,
-      organizationId: actor.organizationId,
-      clinicId: dto.clinicId,
+      name: data.name,
+      contactName: data.contactName ?? null,
+      phone: data.phone ?? null,
+      email: data.email ?? null,
+      address: data.address ?? null,
+      taxNumber: data.taxNumber ?? null,
+      taxOffice: data.taxOffice ?? null,
+      organizationId: data.organizationId,
+      clinicId: data.clinicId,
     });
 
     return this.txManager.run(async () => {

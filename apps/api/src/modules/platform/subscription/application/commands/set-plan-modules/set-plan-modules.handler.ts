@@ -21,10 +21,11 @@ export class SetPlanModulesHandler
   ) {}
 
   async execute(command: SetPlanModulesCommand): Promise<void> {
-    const plan = await this.planQueryRepo.findByPlanId(command.planId);
+    const { payload } = command;
+    const plan = await this.planQueryRepo.findByPlanId(payload.planId);
     if (!plan) {
-      throw new SubscriptionPlanNotFoundException(command.planId);
+      throw new SubscriptionPlanNotFoundException(payload.planId);
     }
-    await this.planCommandRepo.setModules(plan.id.value, command.moduleIds);
+    await this.planCommandRepo.setModules(plan.id.value, payload.moduleIds);
   }
 }

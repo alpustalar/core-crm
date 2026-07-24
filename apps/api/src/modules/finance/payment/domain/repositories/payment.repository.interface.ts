@@ -6,7 +6,7 @@ import {
   ArAgingFilter,
   CollectedInstallmentRow,
   ProviderRevenueFilterData,
-} from '@modules/finance/payment/domain/payment.contracts';
+} from '@modules/finance/payment/domain/contracts/payment.contracts';
 
 export interface InstallmentPlanItem {
   amount: number;

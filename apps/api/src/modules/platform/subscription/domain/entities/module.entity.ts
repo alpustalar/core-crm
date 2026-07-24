@@ -43,14 +43,12 @@ export class Module {
     return this._monthlyMoney;
   }
 
-  private _monthlyPrice: Decimal;
   get monthlyPrice(): Decimal {
-    return this._monthlyMoney.amount;
+    return this.monthlyMoney.value;
   }
 
-  private _currency: Currency;
   get currency(): Currency {
-    return Currency.fromTrusted(this._monthlyMoney.currency);
+    return Currency.fromTrusted(this.monthlyMoney.currency);
   }
 
   private _isActive: boolean;
@@ -64,16 +62,12 @@ export class Module {
       props.currency
     ).orThrow();
 
-    const moduleId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     return new Module({
-      id: moduleId.value,
+      id: UUID.createOrGenerate(props.id).value,
       key: props.key.toUpperCase().trim(),
       name: props.name.trim(),
       description: props.description ?? null,
-      monthlyPrice: monthlyMoney.amount,
+      monthlyPrice: monthlyMoney.value,
       currency: monthlyMoney.currency,
       isActive: true,
     });
@@ -103,13 +97,13 @@ export class Module {
 
   public toPersistence(): IModule {
     return {
-      id: this._id.value,
-      key: this._key,
-      name: this._name,
-      description: this._description,
-      monthlyPrice: this._monthlyPrice,
-      currency: this._currency.value,
-      isActive: this._isActive,
+      id: this.id.value,
+      key: this.key,
+      name: this.name,
+      description: this.description,
+      monthlyPrice: this.monthlyPrice,
+      currency: this.currency.value,
+      isActive: this.isActive,
     };
   }
 }

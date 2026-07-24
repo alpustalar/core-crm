@@ -9,6 +9,7 @@ import {
 } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
 import { SetTaxParameterCommand } from './set-tax-parameter.command';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(SetTaxParameterCommand)
 export class SetTaxParameterHandler
@@ -24,7 +25,7 @@ export class SetTaxParameterHandler
 
   async execute(command: SetTaxParameterCommand): Promise<string> {
     const { input } = command;
-    const validFrom = input.validFrom ?? new Date();
+    const validFrom = input.validFrom ?? DateTimeManager.create();
 
     return this.txManager.run(async () => {
       // Mevcut açık sürümü yeni geçerlilik tarihinde kapat (ileriye dönük versiyonlama).
@@ -49,7 +50,7 @@ export class SetTaxParameterHandler
         rate: input.rate,
         validFrom,
       });
-      const saved = await this.taxParameterCommandRepo.save(parameter);
+      const saved = await this.taxParameterCommandRepo.create(parameter);
       return saved.id;
     });
   }

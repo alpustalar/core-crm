@@ -13,7 +13,7 @@ import {
   GetArAgingResponse,
 } from './get-ar-aging.response';
 import { Decimal } from 'decimal.js';
-import { OpenInstallmentRow } from '@modules/finance/payment/domain/payment.contracts';
+import { OpenInstallmentRow } from '@modules/finance/payment/domain/contracts/payment.contracts';
 
 const BUCKET_ORDER: ArAgingBucketLabel[] = [
   'NOT_DUE',
@@ -41,7 +41,9 @@ export class GetArAgingHandler
   async execute(query: GetArAgingQuery): Promise<GetArAgingResponse> {
     const { clinicId } = query;
     // Saat farkından kaynaklanan yanlış vadelendirmeyi önlemek için gün başına normalize et.
-    const asOf = DateTimeManager.startOfDay(query.asOf ?? new Date());
+    const asOf = DateTimeManager.startOfDay(
+      query.asOf ?? DateTimeManager.create()
+    );
 
     const { openInstallments, collectedTotal } =
       await this.paymentQueryRepo.arAging({ clinicId });

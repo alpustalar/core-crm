@@ -9,7 +9,13 @@ import {
 } from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config.repository';
 import { ClinicHealthTourismConfig } from '@modules/crm/health-tourism/config/domain/entities/clinic-health-tourism-config.entity';
 import { ConfigureClinicHealthTourismCommand } from './configure-clinic-health-tourism.command';
-import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { FindOrganizationIdByClinicIdQuery } from '@modules/organization/organization/application/queries/find-organization-id-by-clinic-id/find-organization-id-by-clinic-id.query';
+import { HEALTH_TOURISM_CONFIG_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(ConfigureClinicHealthTourismCommand)
 export class ConfigureClinicHealthTourismHandler
@@ -20,34 +26,43 @@ export class ConfigureClinicHealthTourismHandler
     private readonly clinicHealthTourismConfigCommandRepo: IClinicHealthTourismConfigCommandRepository,
     @Inject(CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY)
     private readonly ClinicHealthTourismConfigQueryRepo: IClinicHealthTourismConfigQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: ConfigureClinicHealthTourismCommand): Promise<string> {
-    const { clinicId, dto, ctx } = command;
+    const { clinicId, data, ctx } = command.payload;
 
-    const existing =
+    let config =
       await this.ClinicHealthTourismConfigQueryRepo.findByClinicId(clinicId);
 
-    if (!ctx.actor.organizationId) throw new OrganizationNotAssignedException();
+    if (!config) {
+      const { organizationId } = await this.queryBus.execute(
+        new FindOrganizationIdByClinicIdQuery(clinicId)
+      );
 
-    const config =
-      existing ??
-      ClinicHealthTourismConfig.create({
+      config = ClinicHealthTourismConfig.create({
         clinicId,
-        organizationId: ctx.actor.organizationId,
+        organizationId,
       });
+    }
+
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(clinicId))
+      .orThrow(HEALTH_TOURISM_CONFIG_EVENTS.CONFIG);
 
     config.updateSettings({
-      isEnabled: dto.isEnabled,
-      destinationCode: dto.destinationCode,
-      nearbyHotelCodes: dto.nearbyHotelCodes,
-      airportIata: dto.airportIata,
-      clinicLocationType: dto.clinicLocationType,
-      clinicLocationCode: dto.clinicLocationCode,
-      pickupAddress: dto.pickupAddress,
-      serviceFeePercent: dto.serviceFeePercent,
-      defaultCurrency: dto.defaultCurrency,
+      isEnabled: data.isEnabled,
+      destinationCode: data.destinationCode,
+      nearbyHotelCodes: data.nearbyHotelCodes,
+      airportIata: data.airportIata,
+      clinicLocationType: data.clinicLocationType,
+      clinicLocationCode: data.clinicLocationCode,
+      pickupAddress: data.pickupAddress,
+      defaultCurrency: data.defaultCurrency,
     });
 
     const sync = await this.txManager.run(() =>

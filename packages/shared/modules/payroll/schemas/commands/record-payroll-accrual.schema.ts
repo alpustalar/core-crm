@@ -6,7 +6,7 @@ import { z } from 'zod';
  * grossSalary + employerSgk = netPayable + taxWithholding + (employeeSgk + employerSgk).
  */
 export const RecordPayrollAccrualSchema = z.object({
-  employeeUserId: z.string().uuid(),
+  employeeUserId: z.uuid(),
   /** Tahakkuk tarihi; muhasebe dönemini ve dedupe ay anahtarını belirler. */
   accrualDate: z.coerce.date(),
   grossSalary: z.number().nonnegative(), // brüt ücret
@@ -14,4 +14,6 @@ export const RecordPayrollAccrualSchema = z.object({
   netPayable: z.number().nonnegative(), // personele net ödenecek
   taxWithholding: z.number().nonnegative(), // GV stopajı + damga
   employeeSgk: z.number().nonnegative(), // işçi SGK kesintisi
+  clinicId: z.uuid(),
+  organizationId: z.uuid(),
 });

@@ -12,7 +12,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { SerializationOptions } from '@shared';
-import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
+import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
 
 const { ADMIN, MANAGEMENT } = UserResponseGroups;
 
@@ -36,11 +36,11 @@ export class FindAllUsersForManagerHandler
   ): Promise<FindAllUsersForManagerQueryResponse> {
     const { dto, ctx } = query;
 
-    const { actor } = ctx;
+    const { actor, source } = ctx;
     let clinicIds: string[] | undefined;
     let organizationIds: string[] | undefined;
 
-    const user = this.policyFactory.user(actor).policy;
+    const user = this.policyFactory.user(actor, source).policy;
 
     const groups = [MANAGEMENT, user.isSystemAdmin() && ADMIN].filter(
       (group) => typeof group === 'string'

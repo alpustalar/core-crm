@@ -1,15 +1,17 @@
 import { IQuery } from '@nestjs/cqrs';
-import { GetLeadsDto } from '@shared/modules/lead/dto/queries';
 import { IGetContext } from '@common/decorators/get-context.decorator';
 import { Pagination } from '@shared/common';
 import { GetLeadsResponse } from './get-leads.response';
+import { GetLeads } from '@shared';
 
 export class GetLeadsQuery implements IQuery {
   readonly __responseType!: GetLeadsResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly dto: GetLeadsDto,
-    public readonly pagination: Pagination,
-    public readonly ctx: IGetContext,
+    public readonly payload: {
+      clinicId: string;
+      data: GetLeads;
+      pagination: Pagination;
+      ctx: IGetContext;
+    }
   ) {}
 }

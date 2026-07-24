@@ -20,7 +20,7 @@ export class RegisterPatientAccountHandler
       command.input;
 
     const { data: existing } = await this.queryBus.execute(
-      new FindPatientByContactQuery(clinicId, phone)
+      new FindPatientByContactQuery({ clinicId, phone })
     );
 
     if (existing) {

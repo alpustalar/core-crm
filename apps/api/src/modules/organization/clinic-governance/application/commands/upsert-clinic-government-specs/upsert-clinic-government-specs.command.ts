@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { UpsertClinicGovernmentSpecsDto } from '@shared/modules/governance/dto';
+import { UpsertClinicGovernmentSpecs } from '@shared';
 
 /**
  * Bir kliniğin devlet/regülasyon kimliğini (SKRS tesis kodu, USS şifresi, VKN)
@@ -9,8 +9,10 @@ import { UpsertClinicGovernmentSpecsDto } from '@shared/modules/governance/dto';
 export class UpsertClinicGovernmentSpecsCommand implements ICommand {
   readonly __responseType!: void;
   constructor(
-    public readonly clinicId: string,
-    public readonly dto: UpsertClinicGovernmentSpecsDto,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      data: UpsertClinicGovernmentSpecs;
+      ctx: IGetContext;
+    }
   ) {}
 }

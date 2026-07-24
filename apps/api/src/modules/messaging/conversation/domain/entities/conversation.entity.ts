@@ -3,10 +3,11 @@ import { Conversation as IConversation } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 import { MessageReceivedEvent } from '../events/message-received.event';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 import {
   LinkContactProps,
   StartConversationProps,
-} from '../types/create-conversation.props';
+} from '@modules/messaging/conversation/domain/contracts/conversation.contracts';
 
 /** WhatsApp müşteri hizmetleri penceresi: son gelen mesajdan itibaren 24 saat. */
 const SERVICE_WINDOW_HOURS = 24;
@@ -138,9 +139,9 @@ export class Conversation extends AggregateRoot implements IConversation {
 
   /** Yeni yazışma başlığı (status OPEN). */
   public static start(props: StartConversationProps): Conversation {
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new Conversation({
-      id: props.id ?? crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       channel: props.channel ?? MessageChannel.WHATSAPP,
@@ -172,7 +173,7 @@ export class Conversation extends AggregateRoot implements IConversation {
     body: string | null;
     occurredAt?: Date;
   }): void {
-    const at = input.occurredAt ?? new Date();
+    const at = input.occurredAt ?? DateTimeManager.create();
     this._lastMessageAt = at;
     this._lastInboundAt = at;
     this._unreadCount += 1;
@@ -195,11 +196,11 @@ export class Conversation extends AggregateRoot implements IConversation {
 
   /** Giden mesaj sonrası son-mesaj zamanını günceller (event yok). */
   public touch(at?: Date): void {
-    this._lastMessageAt = at ?? new Date();
+    this._lastMessageAt = at ?? DateTimeManager.create();
   }
 
   /** Ajan yazışmayı okudu — okunmamış sayacı sıfırlanır, okuma anı kaydedilir. */
-  public markAgentRead(at: Date = new Date()): void {
+  public markAgentRead(at: Date = DateTimeManager.create()): void {
     this._unreadCount = 0;
     this._agentReadAt = at;
   }
@@ -210,7 +211,7 @@ export class Conversation extends AggregateRoot implements IConversation {
   }
 
   /** Kontak pazarlama mesajlarından çıkma (opt-out) talep etti. */
-  public optOutMarketing(at: Date = new Date()): void {
+  public optOutMarketing(at: Date = DateTimeManager.create()): void {
     this._marketingOptOut = true;
     this._optOutAt = at;
   }
@@ -260,7 +261,7 @@ export class Conversation extends AggregateRoot implements IConversation {
    * WhatsApp 24s müşteri hizmetleri penceresi açık mı? Pencere açıkken serbest (session)
    * mesaj gönderilebilir; kapalıyken yalnızca onaylı şablon (HSM) gönderilebilir.
    */
-  public isWithinServiceWindow(now: Date = new Date()): boolean {
+  public isWithinServiceWindow(now: Date = DateTimeManager.create()): boolean {
     if (!this._lastInboundAt) return false;
     return (
       DateTimeManager.diffInHours(now, this._lastInboundAt) <
@@ -295,7 +296,7 @@ export class Conversation extends AggregateRoot implements IConversation {
       marketingOptOut: this._marketingOptOut,
       optOutAt: this._optOutAt,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

@@ -1,6 +1,5 @@
 import { Inject, Logger, UnauthorizedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConfigService } from '@nestjs/config';
 import { HandleMetaOAuthCallbackCommand } from './handle-meta-oauth-callback.command';
 import { HandleMetaOAuthCallbackResponse } from './handle-meta-oauth-callback.response';
 import {
@@ -10,23 +9,18 @@ import {
   META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
 import {
-  IMetaAdsEventPublisher,
-  META_ADS_EVENT_PUBLISHER,
-} from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
-import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
-import { ENV } from '@common/constants/env.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
-
-interface OAuthStatePayload {
-  clinicId: string;
-  userId: string;
-}
+import { MetaAdsCacheService } from '@modules/crm/meta-ads/infrastructure/cache/meta-ads-cache.service';
+import {
+  IMetaAdsConfig,
+  META_ADS_CONFIG,
+} from '@modules/crm/meta-ads/domain/interfaces/meta-ads-config.interface';
+import { isOAuthStatePayload } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 
 @CommandHandler(HandleMetaOAuthCallbackCommand)
 export class HandleMetaOAuthCallbackHandler
@@ -43,13 +37,12 @@ export class HandleMetaOAuthCallbackHandler
     private readonly metaAdAccountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
     private readonly metaAdAccountQueryRepo: IMetaAdAccountQueryRepository,
-    @Inject(META_ADS_EVENT_PUBLISHER)
-    private readonly eventPublisher: IMetaAdsEventPublisher,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaMarketingApi: IMetaMarketingApiService,
+    @Inject(META_ADS_CONFIG)
+    private readonly metaAdsConfig: IMetaAdsConfig,
     private readonly tokenCipher: TokenCipherService,
-    private readonly redis: RedisService,
-    private readonly config: ConfigService,
+    private readonly cacheService: MetaAdsCacheService,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -58,21 +51,28 @@ export class HandleMetaOAuthCallbackHandler
   ): Promise<HandleMetaOAuthCallbackResponse> {
     const { code, state } = command;
 
-    const raw = await this.redis.getMetaOAuthState(state);
+    const raw = await this.cacheService.metaOAuthState.get(state);
+
     if (!raw)
       throw new UnauthorizedException(
         'Geçersiz veya süresi dolmuş OAuth state.'
       );
 
-    await this.redis.deleteMetaOAuthState(state);
+    let oAuthState: unknown;
+    try {
+      oAuthState = JSON.parse(raw);
+    } catch {
+      throw new UnauthorizedException('OAuth state formatı bozuk.');
+    }
 
-    const { clinicId, userId } = JSON.parse(raw) as OAuthStatePayload;
+    if (!isOAuthStatePayload(oAuthState)) {
+      throw new UnauthorizedException(
+        'OAuth state veri bütünlüğü doğrulanamadı.'
+      );
+    }
 
-    const appId = this.config.getOrThrow<string>(ENV.META_APP_ID);
-    const appSecret = this.config.getOrThrow<string>(ENV.META_APP_SECRET);
-    const redirectUri = this.config.getOrThrow<string>(
-      ENV.META_OAUTH_REDIRECT_URI
-    );
+    const { clinicId } = oAuthState;
+    const { appSecret, appId, redirectUri } = this.metaAdsConfig;
 
     const shortLived = await this.metaMarketingApi.exchangeCodeForToken(
       code,

@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { RoleSlug } from '@src/domain/constants/db/role/role-slugs';
-import { IRoleRepository } from '@modules/identity/role/domain/repositories/role.repository.interface';
 import { Role } from '@modules/identity/role/domain/entities/role.entity';
 import { FindBySlugResponse } from '@modules/identity/role/domain/role.contracts';
+import { IRoleQueryRepository } from '@modules/identity/role/domain/repositories/role.repository.interface';
 
 @Injectable()
-export class RoleRepository extends BaseRepository implements IRoleRepository {
+export class RoleQueryRepository
+  extends BaseRepository
+  implements IRoleQueryRepository
+{
   constructor(prisma: PrismaService) {
     super(prisma);
   }

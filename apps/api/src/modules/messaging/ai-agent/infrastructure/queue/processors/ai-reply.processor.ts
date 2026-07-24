@@ -79,7 +79,9 @@ export class AiReplyProcessor extends WorkerHost {
     const conversation =
       await this.conversationQueryRepo.findById(conversationId);
     if (!conversation) {
-      this.logger.warn(`Yazışma bulunamadı, AI yanıtı atlanıyor: ${conversationId}`);
+      this.logger.warn(
+        `Yazışma bulunamadı, AI yanıtı atlanıyor: ${conversationId}`
+      );
       return;
     }
 
@@ -129,25 +131,25 @@ export class AiReplyProcessor extends WorkerHost {
 
     if (result.text) {
       await this.commandBus.execute(
-        new SendMessageCommand(
-          conversation.clinicId,
-          {
+        new SendMessageCommand({
+          clinicId: conversation.clinicId,
+          input: {
             conversationId: conversation.id,
             type: MessageType.TEXT,
             body: result.text,
           },
-          ctx
-        )
+          ctx,
+        })
       );
     }
 
     if (result.handoff) {
       await this.commandBus.execute(
-        new RequestConversationHandoffCommand(
-          conversation.clinicId,
-          conversation.id,
-          ctx
-        )
+        new RequestConversationHandoffCommand({
+          clinicId: conversation.clinicId,
+          conversationId: conversation.id,
+          ctx,
+        })
       );
     }
   }

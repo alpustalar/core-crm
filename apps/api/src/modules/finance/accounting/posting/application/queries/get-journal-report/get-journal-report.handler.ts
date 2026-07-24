@@ -28,7 +28,7 @@ export class GetJournalReportHandler
   async execute(
     query: GetJournalReportQuery
   ): Promise<GetJournalReportResponse> {
-    const { clinicId, pagination, ctx, dateFrom, dateTo } = query;
+    const { clinicId, pagination, ctx, dateFrom, dateTo } = query.payload;
 
     const { items, total } = await this.journalQueryRepo.journalReport(
       { clinicId, dateFrom, dateTo },

@@ -7,23 +7,77 @@ import { RedisModule as IoRedisModule } from '@nestjs-modules/ioredis/dist/redis
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Module } from '@nestjs/common';
+import path from 'node:path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `envs/.env.${process.env.NODE_ENV ?? 'development'}`,
+      envFilePath: path.resolve(
+        process.cwd(),
+        'envs',
+        `.env.${process.env.NODE_ENV ?? 'development'}`
+      ),
       validationSchema: Joi.object({
-        [ENV.PORT]: Joi.number().required(),
+        // ⚙️ Core & Server Settings
+        [ENV.MODE]: Joi.string()
+          .valid('DEVELOPMENT', 'PRODUCTION', 'TEST')
+          .default('DEVELOPMENT'),
+        [ENV.PORT]: Joi.number().port().default(8080).required(),
+        [ENV.ORIGIN]: Joi.string().uri().required(),
+        [ENV.ALLOWED_ORIGINS]: Joi.string().required(),
+        [ENV.ADMIN_EMAIL]: Joi.string().email().required(),
+
+        // Databases & Infrastructures
         [ENV.DATABASE_URL]: Joi.string().required(),
         [ENV.MONGODB_URI]: Joi.string().required(),
         [ENV.REDIS_URL]: Joi.string().required(),
-        [ENV.ADMIN_EMAIL]: Joi.string().email().required(),
+
+        // Observability / Logging
         [ENV.BETTERSTACK_TOKEN]: Joi.string().required(),
+
+        // Security & Encryption
+        [ENV.TOKEN_CIPHER_KEY]: Joi.string().hex().length(64).required(), // 32 byte hex = 64 karakter
+
+        // Mail Service (Nodemailer)
+        [ENV.EMAIL_SMTP_HOST]: Joi.string().required(),
+        [ENV.EMAIL_SMTP_PORT]: Joi.number().port().required(),
+        [ENV.EMAIL_ADDRESS]: Joi.string().email().required(),
+        [ENV.EMAIL_PASSWORD]: Joi.string().required(),
+
+        // Payment Integration (Iyzico)
         [ENV.IYZICO_API_KEY]: Joi.string().required(),
         [ENV.IYZICO_SECRET_KEY]: Joi.string().required(),
         [ENV.IYZICO_BASE_URL]: Joi.string().uri().required(),
-        // TODO: diğer env değişkenleri schemaya eklenecek
+        [ENV.IYZICO_TERMINAL_BASE_URL]: Joi.string().uri().required(),
+
+        // Queue & Background Tasks
+        [ENV.QUEUE_MONITOR_ADMIN_PASSWORD]: Joi.string().required(),
+
+        // Meta & WhatsApp Integration
+        [ENV.META_APP_ID]: Joi.string().required(),
+        [ENV.META_APP_SECRET]: Joi.string().required(),
+        [ENV.META_OAUTH_REDIRECT_URI]: Joi.string().uri().required(),
+        [ENV.META_WEBHOOK_VERIFY_TOKEN]: Joi.string().required(),
+
+        [ENV.WHATSAPP_APP_ID]: Joi.string().required(),
+        [ENV.WHATSAPP_APP_SECRET]: Joi.string().required(),
+        [ENV.WHATSAPP_WEBHOOK_VERIFY_TOKEN]: Joi.string().required(),
+
+        // AI Fallback Engine
+        [ENV.ANTHROPIC_API_KEY]: Joi.string().required(),
+        [ENV.ANTHROPIC_DEFAULT_MODEL]: Joi.string().required(),
+
+        // Integration Hotel Beds
+        [ENV.HOTELBEDS_HOTEL_API_KEY]: Joi.string().required(),
+        [ENV.HOTELBEDS_HOTEL_SECRET]: Joi.string().required(),
+        [ENV.HOTELBEDS_TRANSFER_API_KEY]: Joi.string().required(),
+        [ENV.HOTELBEDS_TRANSFER_SECRET]: Joi.string().required(),
+
+        [ENV.HEALTH_TOURISM_SERVICE_FEE_PERCENT]: Joi.number()
+          .min(0)
+          .max(100)
+          .default(5),
       }),
     }),
     ThrottlerModule.forRoot([
@@ -35,7 +89,7 @@ import { Module } from '@nestjs/common';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.get<string>(ENV.MONGODB_URI),
+        uri: config.get(ENV.MONGODB_URI),
         autoIndex: true,
         serverSelectionTimeoutMS: 5000,
       }),
@@ -44,14 +98,14 @@ import { Module } from '@nestjs/common';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'single',
-        url: config.get<string>(ENV.REDIS_URL),
+        url: config.get(ENV.REDIS_URL),
       }),
     }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          url: config.get<string>(ENV.REDIS_URL),
+          url: config.get(ENV.REDIS_URL),
         },
         prefix: 'bull_queue',
       }),

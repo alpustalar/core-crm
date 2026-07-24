@@ -8,8 +8,8 @@ export const ORGANIZATION_QUERY_REPOSITORY = Symbol(
   'IOrganizationQueryRepository'
 );
 
-export interface IOrganizationCommandRepository
-  extends IBaseCommandRepository<Organization> {}
+export type IOrganizationCommandRepository =
+  IBaseCommandRepository<Organization>;
 
 export interface IOrganizationQueryRepository {
   findById(id: string): Promise<Organization | null>;
@@ -19,4 +19,5 @@ export interface IOrganizationQueryRepository {
     ownerId: string,
     organizationId: string
   ): Promise<Organization | null>;
+  findIdByClinicId(clinicId: string): Promise<string | null>;
 }

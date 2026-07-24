@@ -12,6 +12,7 @@ import {
   IAppointmentEventPublisher,
 } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { AppointmentEventBulkScopes } from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
 
 @CommandHandler(SoftDeleteAppointmentsByClinicIdCommand)
 export class SoftDeleteAppointmentsByClinicIdHandler
@@ -45,7 +46,7 @@ export class SoftDeleteAppointmentsByClinicIdHandler
         );
 
       this.eventPublisher.bulkSoftDeleted({
-        scope: 'CLINIC',
+        scope: AppointmentEventBulkScopes.CLINIC,
         clinicId,
         affectedCount: count,
       });

@@ -6,20 +6,11 @@ describe('ClinicHealthTourismConfig (B0)', () => {
     organizationId: '22222222-2222-4222-8222-222222222222',
   };
 
-  it('create varsayılanları: kapalı, allowlist boş, EUR, fee null', () => {
+  it('create varsayılanları: kapalı, allowlist boş, EUR', () => {
     const cfg = ClinicHealthTourismConfig.create(base);
     expect(cfg.isEnabled).toBe(false);
     expect(cfg.nearbyHotelCodes).toEqual([]);
     expect(cfg.defaultCurrency.value).toBe('EUR');
-    expect(cfg.serviceFeePercent).toBeNull();
-  });
-
-  it('serviceFeePercent sayıdan Decimal’e çevrilir ve değeri korur', () => {
-    const cfg = ClinicHealthTourismConfig.create({
-      ...base,
-      serviceFeePercent: 12.5,
-    });
-    expect(cfg.serviceFeePercent?.toNumber()).toBe(12.5);
   });
 
   describe('effectiveHotelScope — allowlist öncelikli hibrit', () => {
@@ -56,14 +47,5 @@ describe('ClinicHealthTourismConfig (B0)', () => {
     cfg.updateSettings({ airportIata: 'SAW' });
     expect(cfg.airportIata).toBe('SAW');
     expect(cfg.defaultCurrency.value).toBe('USD'); // dokunulmadı
-  });
-
-  it('fee null’a çekilebilir (temizleme)', () => {
-    const cfg = ClinicHealthTourismConfig.create({
-      ...base,
-      serviceFeePercent: 10,
-    });
-    cfg.updateSettings({ serviceFeePercent: null });
-    expect(cfg.serviceFeePercent).toBeNull();
   });
 });

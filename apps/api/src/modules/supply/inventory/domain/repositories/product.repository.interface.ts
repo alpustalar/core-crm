@@ -6,7 +6,15 @@ import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-mov
 export const PRODUCT_COMMAND_REPOSITORY = Symbol('IProductCommandRepository');
 export const PRODUCT_QUERY_REPOSITORY = Symbol('IProductQueryRepository');
 
-export type IProductCommandRepository = IBaseCommandRepository<Product>;
+export interface IProductCommandRepository
+  extends IBaseCommandRepository<Product> {
+  /**
+   * Ürünü `FOR UPDATE` ile kilitleyerek yükler — o ürüne ait eşzamanlı stok
+   * değişimlerini (batch quantity oku-değiştir-yaz) serialize eder, lost-update'i
+   * önler. Yalnız aktif transaction içinde çağrılır.
+   */
+  findByIdForUpdate(id: string): Promise<Product | null>;
+}
 
 export interface IProductQueryRepository {
   findById(id: string): Promise<Product | null>;

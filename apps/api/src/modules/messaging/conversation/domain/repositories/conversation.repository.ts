@@ -2,7 +2,7 @@ import { Conversation } from '../entities/conversation.entity';
 import {
   FindConversationByContactProps,
   FindConversationsFilter,
-} from '../types/find-conversations.filter';
+} from '@modules/messaging/conversation/domain/contracts/conversation.contracts';
 
 export const CONVERSATION_COMMAND_REPOSITORY = Symbol(
   'IConversationCommandRepository'
@@ -12,6 +12,7 @@ export const CONVERSATION_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IConversationCommandRepository {
+  create(entity: Conversation): Promise<Conversation>;
   save(entity: Conversation): Promise<Conversation>;
 }
 

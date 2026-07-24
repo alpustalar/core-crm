@@ -16,28 +16,53 @@ import {
 } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
-  AppointmentCompletedEvent,
-  AppointmentCompletedEventPayload,
-} from '@modules/clinical/appointment/domain/events/complete-appointment.event';
-import { AppointmentScheduledEvent } from '@modules/clinical/appointment/domain/events/schedule-appointment.event';
-import { AppointmentBookedEvent } from '@modules/clinical/appointment/domain/events/book-appointment.event';
-import { AppointmentCancelledEvent } from '@modules/clinical/appointment/domain/events/cancelled-appointment.event';
-import {
+  CalculateEndTimeProps,
+  CancelScheduleProps,
   CreateAppointmentProps,
   RescheduleByPatientProps,
+  RescheduleRequestProps,
+  UpdateAppointmentDetailsProps,
 } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { TimeZone } from '@src/domain/value-objects/timezone.vo';
-import { AppointmentCancellationNotAllowedException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
-import { DateRange } from '@src/domain/value-objects/date-range.vo';
-import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { AppointmentDetailsUpdatedEvent } from '@modules/clinical/appointment/domain/events/appointment-details-updated.event';
+import { AppointmentCheckedInEvent } from '@modules/clinical/appointment/domain/events/appointment-checked-in.event';
+import { AppointmentReminderDueEvent } from '@modules/clinical/appointment/domain/events/appointment-reminder-due.event';
+import {
+  AppointmentInvalidCreationDateException,
+  AppointmentInvalidTimeRangeException,
+  AppointmentNotCancelledException,
+  AppointmentNotCompletedException,
+  AppointmentNotConfirmedException,
+  AppointmentNotNoShowException,
+  AppointmentNotPendingException,
+  AppointmentPastDateException,
+  AppointmentPatientRequiredException,
+  AppointmentRescheduleWindowExpiredException,
+} from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { Email } from '@src/domain/value-objects/email.vo';
-import { Phone } from '@src/domain/value-objects/phone.vo';
 import { Guard } from '@common/domain/guards';
-import { endTimeCalculator } from '@common/utils';
+import { endTimeCalculator, isDefined } from '@common/utils';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { AppointmentRules } from '@modules/clinical/appointment/domain/rules/appointment.rules';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { Cancellation } from '@modules/clinical/appointment/domain/value-objects/cancellation.vo';
+import {
+  AppointmentBookedEvent,
+  AppointmentCancelledEvent,
+  AppointmentCompletedEvent,
+  AppointmentConfirmedEvent,
+  AppointmentRescheduledEvent,
+  AppointmentScheduledEvent,
+} from '@modules/clinical/appointment/domain/events';
+import {
+  DateRange,
+  Email,
+  Phone,
+  TimeZone,
+  UUID,
+} from '@src/domain/value-objects';
+import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
 export class Appointment extends AggregateRoot {
   constructor(data: IAppointment) {
@@ -51,9 +76,13 @@ export class Appointment extends AggregateRoot {
     this._treatmentType = data.treatmentType;
     this._notes = data.notes;
     this._status = data.status;
-    this._canceledAt = data.canceledAt;
-    this._canceledBy = data.canceledBy;
-    this._cancelReason = data.cancelReason;
+    this._checkedInAt = data.checkedInAt;
+    this._reminderSentAt = data.reminderSentAt;
+    this._cancellation =
+      Cancellation.create({
+        canceledBy: data.canceledBy,
+        reason: data.cancelReason,
+      }).instance ?? null;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._externalSystem = data.externalSystem;
@@ -61,9 +90,10 @@ export class Appointment extends AggregateRoot {
     this._treatmentId = UUID.create(data.treatmentId).instance ?? null;
     this._clinicId = UUID.fromTrusted(data.clinicId);
     this._providerId = UUID.fromTrusted(data.providerId);
-    this._patientId = UUID.create(data.patientId).instance ?? null;
+    this._patientId = UUID.fromTrusted(data.patientId);
     this._examinationType = data.examinationType;
     this._visitType = data.visitType;
+    this._isConsultation = data.isConsultation;
     this._resourceId = data.resourceId;
     this._isDeleted = data.isDeleted;
     this._deletedAt = data.deletedAt;
@@ -72,24 +102,23 @@ export class Appointment extends AggregateRoot {
     this._approvedAt = data.approvedAt;
     this._approvedBy = data.approvedBy;
     this._createdById = data.createdById;
-    this._createdByRealName = data.createdByRealName;
+    this._createdByRealName = data.createdByRealName
+      ? Name.fromTrusted(data.createdByRealName)
+      : null;
+    this._version = data.version;
   }
 
-  public static get businessRulesValidator() {
-    return {
-      create: (start: Date) => {
-        const now = DateTimeManager.create();
-        const isInvalid = DateTimeManager.isBefore(start, now);
+  private _version: number;
 
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new Error('Geçmiş bir tarihe randevu oluşturulamaz.');
-          },
-        };
-      },
-    };
+  /** Optimistic concurrency version'ı — repository save() guard'ında kullanılır. */
+  get version(): number {
+    return this._version;
+  }
+
+  private _cancellation: Cancellation | null;
+
+  get cancellation(): Cancellation | null {
+    return this._cancellation;
   }
 
   private _id: UUID;
@@ -160,22 +189,28 @@ export class Appointment extends AggregateRoot {
     return this._status;
   }
 
-  private _canceledAt: Date | null;
+  private _checkedInAt: Date | null;
+
+  get checkedInAt(): Date | null {
+    return this._checkedInAt;
+  }
+
+  private _reminderSentAt: Date | null;
+
+  get reminderSentAt(): Date | null {
+    return this._reminderSentAt;
+  }
 
   get canceledAt(): Date | null {
-    return this._canceledAt;
+    return this.cancellation?.canceledAt ?? null;
   }
-
-  private _canceledBy: string | null;
 
   get canceledBy(): string | null {
-    return this._canceledBy;
+    return this.cancellation?.canceledBy ?? null;
   }
 
-  private _cancelReason: string | null;
-
   get cancelReason(): string | null {
-    return this._cancelReason;
+    return this.cancellation?.reason ?? null;
   }
 
   private _createdAt: Date;
@@ -220,9 +255,9 @@ export class Appointment extends AggregateRoot {
     return this._providerId;
   }
 
-  private _patientId: UUID | null;
+  private _patientId: UUID;
 
-  get patientId(): UUID | null {
+  get patientId(): UUID {
     return this._patientId;
   }
 
@@ -286,193 +321,107 @@ export class Appointment extends AggregateRoot {
     return this._createdById;
   }
 
-  private _createdByRealName: string | null;
+  private _createdByRealName: Name | null;
 
-  get createdByRealName(): string | null {
+  get createdByRealName(): Name | null {
     return this._createdByRealName;
   }
-
-  // DOMAIN BUSINESS METHODS
 
   public get validate() {
     return {
       status: {
-        isPending: (error: Error) => this._isPending(error),
-        isConfirmed: (error: Error) => this._isConfirmed(error),
-        isCancelled: this._isCancelled,
-        isCompleted: this._isCompleted,
-        isNoShow: this._isNoShow,
-      },
-      endTime: {
-        isInThePast: this._isEndTimeInThePast,
-      },
-      startTime: {
-        isInTheFuture: this._startTimeIsInTheFuture,
+        isPending: (error?: Error) => this.isPending(error),
+        isConfirmed: (error?: Error) => this.isConfirmed(error),
+        isCancelled: (error?: Error) => this.isCancelled(error),
+        isCompleted: (error?: Error) => this.isCompleted(error),
+        isNoShow: (error?: Error) => this.isNoShow(error),
       },
     };
   }
 
-  private get businessRulesValidator() {
+  private get raiseEvent() {
     return {
-      rescheduleByPatient: (
-        currentStartTime: Date,
-        newStartTime: Date,
-        rescheduleLimitHours: number
-      ) => {
-        const now = DateTimeManager.create();
-        const hoursLeft = DateTimeManager.diffInHours(currentStartTime, now);
-
-        // Sınır klinik ayarından (ClinicAppointmentSettings.rescheduleLimitHours)
-        // gelir; handler settings'i okuyup domain metoduna geçirir.
-        const lastRescheduleTimeForPatient = rescheduleLimitHours;
-
-        const isTooLate = hoursLeft < lastRescheduleTimeForPatient;
-
-        const isNewTimeInPast =
-          DateTimeManager.isBefore(newStartTime, now) ||
-          DateTimeManager.isSame(newStartTime, now);
-
-        return {
-          isValid: !isTooLate && !isNewTimeInPast,
-          isNewTimeInPast,
-
-          orThrow: () => {
-            if (isTooLate) {
-              throw new Error(
-                `Randevunuza ${lastRescheduleTimeForPatient} saatten az bir süre kaldığı için sistem üzerinden değişiklik yapamazsınız. Lütfen müşteri hizmetleri ile iletişime geçin.`
-              );
-            }
-            if (isNewTimeInPast) {
-              throw new Error(
-                'Geçmiş bir tarihe randevu yeniden zamanlanamaz.'
-              );
-            }
-          },
-        };
+      cancelled: (canceledBy: string, reason?: string): void => {
+        this.addDomainEvent(
+          new AppointmentCancelledEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+            canceledBy,
+            cancelReason: reason,
+          })
+        );
       },
-      markAsNoShow: () => {
-        const isInvalid =
-          !this._isPending().value && !this._isConfirmed().value;
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new Error(
-                'Yalnızca onaylanan veya bekleyen randevular gelmeme olarak işaretlenebilir.'
-              );
-          },
-        };
+      confirmed: (): void => {
+        this.addDomainEvent(
+          new AppointmentConfirmedEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+          })
+        );
       },
-      complete: () => {
-        const isInvalid =
-          this._isCancelled.value ||
-          this._isCompleted.value ||
-          this._isNoShow.value;
-
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new Error(
-                `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular tamamlanamaz.`
-              );
-          },
-        };
+      rescheduled: (): void => {
+        this.addDomainEvent(
+          new AppointmentRescheduledEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+          })
+        );
       },
-      cancelBooking: this._canBeCancelled,
-      cancelSchedule: this._canBeCancelled,
-      confirm: () => {
-        const isInvalid = !this._isPending().value;
-        return {
-          isValid: !isInvalid,
-          isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new Error('Yalnızca bekleyen randevular onaylanabilir.');
-          },
-        };
+      reminderDue: (requireResponse: boolean): void => {
+        this.addDomainEvent(
+          new AppointmentReminderDueEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            patientName: this.patientName.value,
+            patientPhone: this.patientPhone.value,
+            patientEmail: this.patientEmail?.value ?? null,
+            startTime: this.startTime,
+            requireResponse,
+          })
+        );
+      },
+      checkedIn: (): void => {
+        this.addDomainEvent(
+          new AppointmentCheckedInEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+            checkedInAt: this.checkedInAt ?? DateTimeManager.create(),
+          })
+        );
+      },
+      detailsUpdated: (): void => {
+        this.addDomainEvent(
+          new AppointmentDetailsUpdatedEvent({
+            appointmentId: this.id.value,
+            clinicId: this.clinicId.value,
+            providerId: this.providerId.value,
+            patientId: this.patientId.value,
+          })
+        );
       },
     };
-  }
-
-  private get _isCancelled() {
-    const isCancelled = this._status === AppointmentStatusSchema.enum.CANCELLED;
-    return Guard.monitor(
-      isCancelled,
-      isCancelled,
-      () => new Error('Randevu durumu "iptal edilmiş" değil')
-    );
-  }
-
-  private get _isCompleted() {
-    const isCompleted = this._status === AppointmentStatusSchema.enum.COMPLETED;
-
-    return Guard.monitor(
-      isCompleted,
-      isCompleted,
-      () => new Error('Randevu durumu "tamamlanmış" değil')
-    );
-  }
-
-  private get _isNoShow() {
-    const is = this._status === AppointmentStatusSchema.enum.NOSHOW;
-    return Guard.monitor(
-      is,
-      is,
-      () => new Error('Randevu durumu "gelmedi" değil')
-    );
-  }
-
-  private get _isEndTimeInThePast() {
-    const isInPast = this.endTime < DateTimeManager.create();
-    const isInFuture = !isInPast;
-
-    return Guard.monitor(
-      isInPast,
-      isInFuture,
-      () => new Error('Randevu bitiş tarihi eski tarihte')
-    );
-  }
-
-  private get _startTimeIsInTheFuture() {
-    const is = this.startTime > DateTimeManager.create();
-    return Guard.monitor(
-      is,
-      is,
-      () => new Error('Başlangıç tarihi ileri bir tarihte değil')
-    );
-  }
-
-  private get _canBeCancelled() {
-    const invalidStatuses: AppointmentStatus[] = [
-      AppointmentStatusSchema.enum.CANCELLED,
-      AppointmentStatusSchema.enum.COMPLETED,
-      AppointmentStatusSchema.enum.NOSHOW,
-    ];
-    const canBe = !invalidStatuses.includes(this._status);
-
-    return Guard.monitor(
-      canBe,
-      canBe,
-      () => new AppointmentCancellationNotAllowedException()
-    );
-  }
-
-  private get _canBeRescheduled() {
-    const invalidStatuses: AppointmentStatus[] = [
-      AppointmentStatusSchema.enum.CANCELLED,
-      AppointmentStatusSchema.enum.COMPLETED,
-      AppointmentStatusSchema.enum.NOSHOW,
-    ];
-    const canBe = !invalidStatuses.includes(this._status);
-    return Guard.monitor(
-      canBe,
-      canBe,
-      () =>
-        new Error(
-          `İptal edilmiş, tamamlanmış veya gelmedi durumundaki randevular yeniden zamanlanamaz. Mevcut durum: ${this._status}`
-        )
-    );
   }
 
   public static schedule(props: CreateAppointmentProps): Appointment {
@@ -482,7 +431,7 @@ export class Appointment extends AggregateRoot {
         appointmentId: appointment.id.value,
         clinicId: appointment.clinicId.value,
         providerId: appointment.providerId.value,
-        patientId: appointment.patientId?.value ?? null,
+        patientId: appointment.patientId.value,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
       })
@@ -492,12 +441,26 @@ export class Appointment extends AggregateRoot {
 
   public static book(props: CreateAppointmentProps): Appointment {
     const appointment = Appointment.create(props);
+
+    const now = DateTimeManager.create();
+
+    if (DateTimeManager.isBefore(props.startTime, now)) {
+      throw new AppointmentInvalidCreationDateException(props.startTime);
+    }
+
+    if (DateTimeManager.isBeforeOrEqual(props.endTime, props.startTime)) {
+      throw new AppointmentInvalidTimeRangeException(
+        props.startTime,
+        props.endTime
+      );
+    }
+
     appointment.addDomainEvent(
       new AppointmentBookedEvent({
         appointmentId: appointment.id.value,
         clinicId: appointment.clinicId.value,
         providerId: appointment.providerId.value,
-        patientId: appointment.patientId?.value ?? null,
+        patientId: appointment.patientId.value,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
       })
@@ -505,26 +468,20 @@ export class Appointment extends AggregateRoot {
     return appointment;
   }
 
-  public static calculateEndTime(
-    start: Date,
-    endTime?: Date,
-    duration?: number
-  ) {
-    return endTimeCalculator(start, endTime, duration);
+  public static calculateEndTime({
+    startTime,
+    endTime,
+    duration,
+  }: CalculateEndTimeProps) {
+    return endTimeCalculator({ startTime, endTime, duration });
   }
 
-  private static create(
-    props: CreateAppointmentProps,
-    validateOptions = DefaultValidateOptions
-  ): Appointment {
-    if (shouldValidate(validateOptions))
-      this.businessRulesValidator.create(props.startTime).orThrow();
-
-    const endTime = this.calculateEndTime(
-      props.startTime,
-      props.endTime,
-      props.duration
-    ).orThrow();
+  private static create(props: CreateAppointmentProps): Appointment {
+    const endTime = this.calculateEndTime({
+      startTime: props.startTime,
+      endTime: props.endTime,
+      duration: props.duration,
+    }).orThrow();
 
     const now = DateTimeManager.create();
 
@@ -533,20 +490,18 @@ export class Appointment extends AggregateRoot {
     const timezone = TimeZone.create(props.timezone).orThrow().value;
 
     return new Appointment({
-      id: props.id
-        ? UUID.create(props.id).orThrow().value
-        : UUID.generate().value,
+      id: UUID.createOrGenerate(props.id).value,
 
       patientName: props.patientName,
       patientPhone: Phone.create(props.patientPhone).orThrow().value,
       patientEmail: props.patientEmail
         ? Email.create(props.patientEmail).orThrow().value
         : null,
-      patientId: props.patientId ?? null,
+      patientId: UUID.create(props.patientId).orThrow().value,
       providerId: UUID.create(props.providerId).orThrow().value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       treatmentId: props.treatmentId
-        ? UUID.create(props.clinicId).orThrow().value
+        ? UUID.create(props.treatmentId).orThrow().value
         : null,
       startTime: dateRange.startDate,
       endTime: dateRange.endDate,
@@ -559,6 +514,8 @@ export class Appointment extends AggregateRoot {
       visitType: props.visitType ?? null,
       resourceId: props.resourceId ?? null,
       status: props.status ?? AppointmentStatusSchema.enum.PENDING,
+      checkedInAt: null,
+      reminderSentAt: null,
       canceledAt: null,
       canceledBy: null,
       cancelReason: null,
@@ -574,29 +531,25 @@ export class Appointment extends AggregateRoot {
       approvedBy: null,
       createdById: props.createdById ?? null,
       createdByRealName: props.createdByRealName ?? null,
+      version: 0,
     });
   }
 
-  public confirm(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this.businessRulesValidator.confirm().orThrow();
-
+  public confirm(): void {
     this._status = AppointmentStatusSchema.enum.CONFIRMED;
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.confirmed();
   }
 
-  public cancelSchedule(
-    canceledBy: string,
-    reason?: string,
-    options = DefaultValidateOptions
-  ): void {
-    if (shouldValidate(options))
-      this.businessRulesValidator.cancelSchedule.orThrow();
+  public cancelSchedule(props: CancelScheduleProps): void {
+    this.applyCancellation(props.canceledBy, props.reason);
 
-    this._applyCancellation(canceledBy, reason);
+    this._updatedAt = DateTimeManager.create();
 
-    // İptal event'i fırlatılır; sağlık turizmi iadesi + hasta bildirimi + audit
+    // sağlık turizmi iadesi + hasta bildirimi + audit
     // yan etkileri listener'da (AppointmentCancelledEvent) işlenir.
-    this._raiseCancelledEvent(canceledBy, reason);
+    this.raiseEvent.cancelled(props.canceledBy, props.reason);
   }
 
   /**
@@ -605,28 +558,21 @@ export class Appointment extends AggregateRoot {
    * NOT: Hastanın kendi iptal edip edemeyeceği (allowPatientCancel) ve iptalin
    * doğrudan mı yoksa "onay bekliyor" olarak mı işleneceği (cancelLimitHours)
    * kararı klinik ayarına bağlıdır ve handler'da verilir (settings okunur).
-   * Bu metod çağrıldığında iptal fiilen uygulanır ve event fırlatılır.
+   * Bu metod çağrıldığında iptal fiilen uygulanır ve event raise edilir.
    */
   public cancelBooking(patientId?: string, reason?: string): void {
     if (!patientId) {
-      throw new Error('Kullanıcı bulunamadı');
+      throw new AppointmentPatientRequiredException();
     }
-    this.businessRulesValidator.cancelBooking.orThrow();
-    this._applyCancellation(patientId, reason);
 
-    this._raiseCancelledEvent(patientId, reason);
+    this.applyCancellation(patientId, reason);
+
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.cancelled(patientId, reason);
   }
 
-  public complete(
-    eventPayload: Omit<
-      AppointmentCompletedEventPayload,
-      'appointmentId' | 'clinicId' | 'patientId' | 'providerId'
-    >,
-    options = DefaultValidateOptions
-  ): void {
-    if (shouldValidate(options))
-      this.businessRulesValidator.complete().orThrow();
-
+  public complete(eventPayload: IAuditLog): void {
     this._status = AppointmentStatusSchema.enum.COMPLETED;
     this._updatedAt = DateTimeManager.create();
 
@@ -635,39 +581,56 @@ export class Appointment extends AggregateRoot {
         ...eventPayload,
         appointmentId: this.id.value,
         clinicId: this.clinicId.value,
-        patientId: this.patientId?.value ?? null,
+        patientId: this.patientId.value,
         providerId: this.providerId.value,
       })
     );
   }
 
-  public markAsNoShow(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this.businessRulesValidator.markAsNoShow().orThrow();
-
+  public markAsNoShow(): void {
     this._status = AppointmentStatusSchema.enum.NOSHOW;
+    this._updatedAt = DateTimeManager.create();
   }
 
-  public reschedule(
-    startTime: Date,
-    endTime: Date,
-    providerId: string,
-    notes?: string,
-    treatmentId?: string | null,
-    options = DefaultValidateOptions
-  ): void {
-    this._applyReschedule(
-      startTime,
-      endTime,
-      providerId,
-      notes,
-      treatmentId,
-      options
-    );
+  /**
+   * Hasta kliniğe geldiğinde check-in (ARRIVED). Yalnız bekleyen/onaylanan
+   * randevular check-in edilebilir; geliş zamanı (bekleme sırası için) işaretlenir.
+   */
+  public checkIn(): void {
+    const now = DateTimeManager.create();
+    this._status = AppointmentStatusSchema.enum.ARRIVED;
+    this._checkedInAt = now;
+    this._updatedAt = now;
 
-    // Personel yaptığı için randevu direkt onaylı kalmaya devam edebilir
+    this.raiseEvent.checkedIn();
+  }
+
+  /**
+   * Randevu hatırlatmasını "gönderildi" olarak işaretler (aynı randevuya tekrar
+   * gönderimi önler) ve dış-kanal hatırlatmasını tetikleyen event'i fırlatır.
+   * `requireResponse` klinik ayarından (iki yönlü onay) taşınır.
+   */
+  public markReminderSent(requireResponse = false): void {
+    const now = DateTimeManager.create();
+    this._reminderSentAt = now;
+    this._updatedAt = now;
+
+    this.raiseEvent.reminderDue(requireResponse);
+  }
+
+  public reschedule(props: RescheduleRequestProps): void {
+    this.applyReschedule({
+      startTime: props.startTime,
+      endTime: props.endTime,
+      providerId: props.providerId,
+      notes: props.notes,
+      treatmentId: props.treatmentId,
+    });
+
     this._status = AppointmentStatusSchema.enum.CONFIRMED;
     this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.rescheduled();
   }
 
   /**
@@ -676,19 +639,67 @@ export class Appointment extends AggregateRoot {
    * bekliyor (PENDING) statüsüne düşürülür.
    */
   public rescheduleByPatient(props: RescheduleByPatientProps): void {
-    const { startTime, endTime, providerId, notes, treatmentId } = props;
+    const now = DateTimeManager.create();
+    const hoursLeft = DateTimeManager.diffInHours(this.startTime, now);
 
-    this.businessRulesValidator
-      .rescheduleByPatient(
-        this.startTime,
-        startTime,
-        props.rescheduleLimitHours
-      )
-      .orThrow();
+    const lastRescheduleTimeForPatient = props.rescheduleLimitHours;
 
-    this._applyReschedule(startTime, endTime, providerId, notes, treatmentId);
+    const isTooLate = hoursLeft < lastRescheduleTimeForPatient;
+
+    if (isTooLate) {
+      throw new AppointmentRescheduleWindowExpiredException(
+        lastRescheduleTimeForPatient
+      );
+    }
+
+    const isNewTimeInPast =
+      DateTimeManager.isBefore(props.startTime, now) ||
+      DateTimeManager.isSame(props.startTime, now);
+
+    if (isNewTimeInPast) {
+      throw new AppointmentPastDateException();
+    }
+
+    this.applyReschedule(props);
     this._status = AppointmentStatusSchema.enum.PENDING;
     this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.rescheduled();
+  }
+
+  /**
+   * Personel (resepsiyon) tarafından randevu içerik alanlarının düzenlenmesi.
+   * Zaman/doktor/durum DEĞİL — yalnız hasta iletişim, not, tedavi/muayene/ziyaret türü.
+   * undefined alan dokunulmaz; null gönderilen nullable alan temizlenir. Kullanıcı
+   * girişi VO'larla (Phone/Email/Name/UUID) doğrulanır.
+   */
+  public updateDetails(props: UpdateAppointmentDetailsProps): void {
+    if (isNotUndefined(props.patientName))
+      this._patientName = Name.create(props.patientName).orThrow();
+    if (isNotUndefined(props.patientPhone))
+      this._patientPhone = Phone.create(props.patientPhone).orThrow();
+    if (isNotUndefined(props.patientEmail))
+      this._patientEmail = props.patientEmail
+        ? Email.create(props.patientEmail).orThrow()
+        : null;
+    if (isNotUndefined(props.notes)) this._notes = props.notes;
+    if (isNotUndefined(props.treatmentType))
+      this._treatmentType = props.treatmentType;
+    if (isNotUndefined(props.treatmentId))
+      this._treatmentId = props.treatmentId
+        ? UUID.create(props.treatmentId).orThrow()
+        : null;
+    if (isNotUndefined(props.examinationType))
+      this._examinationType = props.examinationType;
+    if (isNotUndefined(props.visitType)) this._visitType = props.visitType;
+
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.detailsUpdated();
+  }
+
+  public rules(validateOptions: ValidateOptionsType = DefaultValidateOptions) {
+    return new AppointmentRules(this, validateOptions);
   }
 
   public toPersistence(): IAppointment {
@@ -703,6 +714,8 @@ export class Appointment extends AggregateRoot {
       treatmentType: this.treatmentType,
       notes: this.notes,
       status: this.status,
+      checkedInAt: this.checkedInAt,
+      reminderSentAt: this.reminderSentAt,
       canceledAt: this.canceledAt,
       canceledBy: this.canceledBy,
       cancelReason: this.cancelReason,
@@ -713,7 +726,7 @@ export class Appointment extends AggregateRoot {
       treatmentId: this.treatmentId?.value ?? null,
       clinicId: this.clinicId.value,
       providerId: this.providerId.value,
-      patientId: this.patientId?.value ?? null,
+      patientId: this.patientId.value,
       examinationType: this.examinationType,
       visitType: this.visitType,
       resourceId: this.resourceId ?? null,
@@ -725,72 +738,87 @@ export class Appointment extends AggregateRoot {
       approvedAt: this.approvedAt,
       approvedBy: this.approvedBy,
       createdById: this.createdById,
-      createdByRealName: this.createdByRealName,
+      createdByRealName: this.createdByRealName?.value ?? null,
+      version: this.version,
     };
   }
 
-  private _isConfirmed(error?: Error) {
+  private isNoShow(error?: Error) {
+    const is = this._status === AppointmentStatusSchema.enum.NOSHOW;
+    return Guard.monitor(
+      is,
+      is,
+      () => error ?? new AppointmentNotNoShowException()
+    );
+  }
+
+  private isCompleted(error?: Error) {
+    const isCompleted = this._status === AppointmentStatusSchema.enum.COMPLETED;
+
+    return Guard.monitor(
+      isCompleted,
+      isCompleted,
+      () =>
+        error ??
+        new AppointmentNotCompletedException(this.id.value, this.status)
+    );
+  }
+
+  private isCancelled(error?: Error) {
+    const isCancelled = this._status === AppointmentStatusSchema.enum.CANCELLED;
+    return Guard.monitor(
+      isCancelled,
+      isCancelled,
+      () =>
+        error ||
+        new AppointmentNotCancelledException(this.id.value, this.status)
+    );
+  }
+
+  private isConfirmed(error?: Error) {
     const isConfirmed = this._status === AppointmentStatusSchema.enum.CONFIRMED;
     return Guard.monitor(
       isConfirmed,
       isConfirmed,
-      () => error ?? new Error('Randevu durumu "onaylanmış" değil')
+      () =>
+        error ??
+        new AppointmentNotConfirmedException(this.id.value, this.status)
     );
   }
 
-  private _isPending(error?: Error) {
+  private isPending(error?: Error) {
     const isPending = this._status === AppointmentStatusSchema.enum.PENDING;
     return Guard.monitor(
       isPending,
       isPending,
-      () => error ?? new Error('Randevu beklemede değil.')
+      () =>
+        error ?? new AppointmentNotPendingException(this.id.value, this.status)
     );
   }
 
   /**
    * Yeniden zamanlama işlemlerinin ortak validasyon ve atama motoru (Private Helper)
    */
-  private _applyReschedule(
-    startTime: Date,
-    endTime: Date,
-    providerId: string,
-    notes?: string,
-    treatmentId?: string | null,
-    options = DefaultValidateOptions
-  ): void {
-    if (shouldValidate(options)) this._canBeRescheduled.orThrow();
+  private applyReschedule(props: RescheduleRequestProps): void {
+    this._providerId = UUID.create(props.providerId).orThrow();
 
-    this._timeRange = DateRange.create(startTime, endTime).orThrow();
-    this._providerId = UUID.create(providerId).orThrow();
+    this._timeRange = DateRange.create(
+      props.startTime,
+      props.endTime
+    ).orThrow();
 
-    if (notes !== undefined) this._notes = notes;
-    if (treatmentId)
-      this._treatmentId = UUID.create(treatmentId).instance ?? null;
+    if (isNotUndefined(props.notes)) this._notes = props.notes;
+
+    if (isDefined(props.treatmentId))
+      this._treatmentId = UUID.create(props.treatmentId).instance ?? null;
   }
 
-  private _applyCancellation(canceledBy: string, reason?: string): void {
+  private applyCancellation(canceledBy: string, reason?: string): void {
+    this._cancellation = Cancellation.create({
+      canceledBy,
+      reason,
+    }).orThrow();
+
     this._status = AppointmentStatusSchema.enum.CANCELLED;
-    this._canceledAt = DateTimeManager.create();
-    this._canceledBy = canceledBy;
-    if (reason) {
-      this._cancelReason = reason;
-    }
-  }
-
-  private _raiseCancelledEvent(canceledBy: string, reason?: string): void {
-    this.addDomainEvent(
-      new AppointmentCancelledEvent({
-        appointmentId: this._id.value,
-        clinicId: this._clinicId.value,
-        providerId: this._providerId.value,
-        patientId: this._patientId?.value ?? null,
-        patientName: this._patientName.value,
-        patientPhone: this._patientPhone.value,
-        patientEmail: this._patientEmail?.value ?? null,
-        startTime: this.startTime,
-        canceledBy,
-        cancelReason: reason,
-      })
-    );
   }
 }

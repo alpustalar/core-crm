@@ -62,8 +62,15 @@ export class SubscribeToPlanHandler
   async execute(
     command: SubscribeToPlanCommand
   ): Promise<SubscribeToPlanResult> {
-    const { organizationId, planId, priceAtPurchase, buyer, externalPriceId } =
-      command;
+    const {
+      organizationId,
+      planId,
+      priceAtPurchase,
+      buyer,
+      externalPriceId,
+      clinicId,
+      currency,
+    } = command.payload;
 
     // Faturalandırma hedefini org ayarından çöz (org merkezî mi, klinik mi — franchise).
     const { data: billingTarget } = await this.queryBus.execute(
@@ -71,10 +78,10 @@ export class SubscribeToPlanHandler
     );
     const isClinicBilled = billingTarget === BillingTargetSchema.enum.CLINIC;
 
-    if (isClinicBilled && !command.clinicId) {
+    if (isClinicBilled && !clinicId) {
       throw new SubscriptionClinicRequiredException();
     }
-    const ownerClinicId = isClinicBilled ? command.clinicId! : null;
+    const ownerClinicId = isClinicBilled ? clinicId! : null;
 
     const alreadyExists = await this.subscriptionQueryRepo.existsByOwner({
       organizationId,
@@ -94,7 +101,7 @@ export class SubscribeToPlanHandler
     const plan = await this.planQueryRepo.findByPlanId(planId);
     const price = plan
       ? plan.monthlyMoney
-      : Money.create(priceAtPurchase, command.currency).orThrow();
+      : Money.create(priceAtPurchase, currency).orThrow();
 
     let checkoutUrl: string | null = null;
     let externalId: string | undefined;

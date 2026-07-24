@@ -6,7 +6,7 @@ import { MetaAdsCommandModule } from '@modules/crm/meta-ads/application/commands
 import { MetaAdsQueryModule } from '@modules/crm/meta-ads/application/queries/query.module';
 import { MetaAdAccountRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-ad-account/meta-ad-account.repository.module';
 import { MetaMarketingApiModule } from '@modules/crm/meta-ads/infrastructure/http/meta-marketing-api.module';
-import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
+import { MetaAdsCacheService } from '@modules/crm/meta-ads/infrastructure/cache/meta-ads-cache.service';
 
 @Module({
   imports: [
@@ -14,9 +14,8 @@ import { RedisModule } from '@src/infrastructure/cache/redis/redis.module';
     MetaAdsQueryModule,
     MetaAdAccountRepositoryModule,
     MetaMarketingApiModule,
-    RedisModule,
   ],
   controllers: [MetaAdsController, MetaWebhookController, MetaOAuthController],
-  providers: [],
+  providers: [MetaAdsCacheService],
 })
 export class MetaAdsPresentationModule {}

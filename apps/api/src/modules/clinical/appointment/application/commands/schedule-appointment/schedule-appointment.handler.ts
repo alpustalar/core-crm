@@ -7,24 +7,22 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { POLICY_FACTORY } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { PolicyFactory } from '@modules/platform/policy/staff/application/policy-factory';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
+import { CreatePatientCommand } from '@modules/crm/patient/application/commands/create-patient/create-patient.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
+import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 import { TimeZoneSchema } from '@shared';
 
 const DEFAULT_DURATION_MINUTES = 30;
-
-interface ResolvePatientProps {
-  patientId?: string | null;
-  dtoPatientName?: string | null;
-  dtoPatientPhone: string;
-  dtoPatientEmail?: string | null;
-}
 
 @CommandHandler(ScheduleAppointmentCommand)
 export class ScheduleAppointmentHandler
@@ -39,24 +37,23 @@ export class ScheduleAppointmentHandler
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
-    private readonly queryBus: TSQueryBus,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: PolicyFactory,
+    private readonly policyFactory: IPolicyFactory,
+    private readonly appointmentCheckerService: AppointmentCheckerService,
+    private readonly queryBus: TSQueryBus,
+    private readonly commandBus: TSCommandBus,
     private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(
     command: ScheduleAppointmentCommand
   ): Promise<ScheduleAppointmentCommandResponse> {
-    const { ctx, dto } = command;
-    const { actor } = ctx;
-
-    if (!actor.clinicId) throw new ClinicNotAssignedException();
+    const { ctx, data } = command;
 
     this.policyFactory
-      .appointment(actor)
+      .appointment(ctx.actor, ctx.source)
       .evaluator.check(
-        (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
+        (p) => p.canScheduleAppointmentInClinic(data.clinicId),
         'Sadece kendi kliniğinizde randevu oluşturabilirsiniz.'
       )
       .orThrow(APPOINTMENT_EVENTS.SCHEDULE);
@@ -72,35 +69,77 @@ export class ScheduleAppointmentHandler
       endTime: dtoEndTime,
       duration,
       notes,
-    } = dto;
+      isConsultation,
+      clinicId,
+      organizationId,
+    } = data;
 
-    const { patientName, patientPhone, patientEmail } =
-      await this.resolvePatient({
-        patientId,
-        dtoPatientName,
-        dtoPatientPhone,
-        dtoPatientEmail,
+    // Çakışma (overbooking) kuralı klinik ayarından gelir (Redis'te cache'li — sık
+    // randevu oluşturmada her istekte DB'ye gidilmez). staffAllowOverbooking=false
+    // ise çakışma engellenir; true (varsayılan) ise personel çakışan saate de yazabilir.
+    const { data: settings } = await this.queryBus.execute(
+      new GetClinicAppointmentSettingsQuery(clinicId)
+    );
+
+    if (!settings.staffAllowOverbooking) {
+      const endTime = Appointment.calculateEndTime({
+        startTime,
+        endTime: dtoEndTime,
+        duration: duration ?? DEFAULT_DURATION_MINUTES,
+      }).orThrow();
+
+      await this.appointmentCheckerService.assertNoConflict({
+        providerId,
+        startTime,
+        endTime,
       });
+    }
+
+    // Walk-in / telefonla oluşturmada da hasta kaydı garanti edilir: mevcut hasta
+    // seçildiyse bilgileri okunur, seçilmediyse org+telefonla çöz-veya-oluştur yapılır
+    // (CreatePatientCommand mükerrer kaydı önler).
+    const {
+      patientId: resolvedPatientId,
+      patientName,
+      patientPhone,
+      patientEmail,
+    } = await this.resolveOrCreatePatient({
+      patientId,
+      organizationId,
+      clinicId,
+      dtoPatientName,
+      dtoPatientPhone,
+      dtoPatientEmail,
+    });
 
     if (!patientPhone) {
-      throw new Error('Patient phone is required');
+      throw new Error('Hasta telefonu bulunamadı.');
     }
 
     const appointment = Appointment.schedule({
       patientName,
       patientPhone,
       patientEmail: patientEmail ?? null,
-      patientId,
+      patientId: resolvedPatientId,
       providerId,
-      clinicId: actor.clinicId,
+      clinicId,
       treatmentId,
       startTime,
       endTime: dtoEndTime,
       duration: duration ?? DEFAULT_DURATION_MINUTES,
       notes,
       timezone: TimeZoneSchema.enum.Europe_Istanbul,
-      isConsultation: dto.isConsultation,
+      isConsultation,
     });
+
+    const validateOptions = this.policyFactory
+      .entity(ctx.actor, ctx.source)
+      .policy.getValidateOptions();
+
+    appointment
+      .rules(validateOptions)
+      .schedule({ startTime: data.startTime })
+      .orThrow();
 
     return this.transactionManager.run(async () => {
       const saved = await this.appointmentRepo.create(appointment);
@@ -108,19 +147,16 @@ export class ScheduleAppointmentHandler
     });
   }
 
-  private async resolvePatient({
-    patientId,
-    dtoPatientName,
-    dtoPatientPhone,
-    dtoPatientEmail,
-  }: ResolvePatientProps) {
-    if (patientId) {
+  private async resolveOrCreatePatient(input: ResolveOrCreatePatientInput) {
+    // Mevcut hasta seçildiyse (patientId) kaydından oku.
+    if (input.patientId) {
       const { data: patient } = await this.queryBus.execute(
-        new FindPatientByIdQuery(patientId, this.internalCtx)
+        new FindPatientByIdQuery(input.patientId, this.internalCtx)
       );
 
       if (patient) {
         return {
+          patientId: input.patientId,
           patientName: `${patient.firstName} ${patient.lastName}`,
           patientPhone: patient.phone,
           patientEmail: patient.email ?? undefined,
@@ -128,10 +164,30 @@ export class ScheduleAppointmentHandler
       }
     }
 
+    // Hasta seçilmemiş (walk-in/telefon) ya da kayıt bulunamadı: telefonla çöz-veya-oluştur.
+    const createdPatientId = await this.commandBus.execute(
+      new CreatePatientCommand({
+        phone: input.dtoPatientPhone,
+        organizationId: input.organizationId,
+        clinicId: input.clinicId,
+        firstName: input.dtoPatientName ?? input.dtoPatientPhone,
+      })
+    );
+
     return {
-      patientName: dtoPatientName!,
-      patientPhone: dtoPatientPhone,
-      patientEmail: dtoPatientEmail,
+      patientId: createdPatientId,
+      patientName: input.dtoPatientName ?? input.dtoPatientPhone,
+      patientPhone: input.dtoPatientPhone,
+      patientEmail: input.dtoPatientEmail,
     };
   }
+}
+
+interface ResolveOrCreatePatientInput {
+  patientId?: string | null;
+  organizationId: string;
+  clinicId: string;
+  dtoPatientName?: string | null;
+  dtoPatientPhone: string;
+  dtoPatientEmail?: string | null;
 }

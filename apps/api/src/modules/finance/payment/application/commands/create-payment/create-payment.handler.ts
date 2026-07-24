@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import {
   CreatePaymentCommand,
   CreatePaymentCommandResponse,
@@ -10,8 +9,7 @@ import {
   PAYMENT_COMMAND_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
-import { Decimal } from 'decimal.js';
-import { Money } from '@src/domain/value-objects/money.vo';
+import { Money, UUID } from '@src/domain/value-objects';
 
 @CommandHandler(CreatePaymentCommand)
 export class CreatePaymentHandler
@@ -26,32 +24,34 @@ export class CreatePaymentHandler
   async execute(
     command: CreatePaymentCommand
   ): Promise<CreatePaymentCommandResponse> {
-    const { dto, internalRelations } = command;
-    const paymentId = internalRelations?.paymentId ?? randomUUID();
-    const installmentId = internalRelations?.installmentId ?? randomUUID();
-    const amount = new Decimal(dto.amount);
-    const totalAmount = Money.create(amount, dto.currency).orThrow();
+    const { data, internalRelations } = command;
+    const paymentId = UUID.createOrGenerate(internalRelations?.paymentId);
+    const installmentId = UUID.createOrGenerate(
+      internalRelations?.installmentId
+    );
+
+    const totalAmount = Money.create(data.amount, data.currency).orThrow();
 
     const payment = Payment.create({
-      id: paymentId,
-      clinicId: dto.clinicId,
-      patientId: dto.patientId,
-      appointmentId: dto.appointmentId,
-      providerId: dto.providerId,
+      id: paymentId.value,
+      clinicId: data.clinicId,
+      patientId: data.patientId,
+      appointmentId: data.appointmentId,
+      providerId: data.providerId,
       totalAmount: totalAmount,
       installments: [
         {
-          id: installmentId,
+          id: installmentId.value,
           installmentNo: 1,
           money: totalAmount,
-          method: dto.method,
-          dueDate: dto.dueDate,
-          note: dto.note,
+          method: data.method,
+          dueDate: data.dueDate,
+          note: data.note,
         },
       ],
     });
 
-    const savedPayment = await this.paymentCommandRepo.save(payment);
+    const savedPayment = await this.paymentCommandRepo.create(payment);
     return savedPayment.id.value;
   }
 }

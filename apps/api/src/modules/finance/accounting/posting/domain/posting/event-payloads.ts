@@ -43,3 +43,10 @@ export interface PayrollAccruedEventPayload {
   taxWithholding: string; // GV stopajı + damga (360)
   employeeSgk: string; // işçi SGK kesintisi (361 = employeeSgk + employerSgk)
 }
+
+export interface CashSessionClosedEventPayload {
+  bankDepositTotal: string; // oturumdaki BANK_DEPOSIT toplamı (B 102 / A 100)
+  expenseTotal: string; // oturumdaki EXPENSE toplamı (B 770 / A 100)
+  difference: string; // sayım − beklenen (imzalı): + fazla (B 100 / A 679), − açık (B 689 / A 100)
+  currency?: CurrencyType; // yabancı kasa → posting fonksiyonel paraya çevirir (Model A)
+}

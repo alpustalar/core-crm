@@ -7,8 +7,10 @@ import { IGetContext } from '@common/decorators';
 export class MarkConversationReadCommand {
   readonly __responseType!: void;
   constructor(
-    public readonly clinicId: string,
-    public readonly conversationId: string,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      conversationId: string;
+      ctx: IGetContext;
+    }
   ) {}
 }

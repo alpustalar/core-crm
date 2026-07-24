@@ -16,12 +16,12 @@ export class HotelbedsHotel extends AggregateRoot {
     this._categoryCode = data.categoryCode;
 
     this._categoryName = data.categoryName
-      ? Name.create(data.categoryName).value
+      ? Name.fromTrusted(data.categoryName)
       : null;
     this._destinationCode = data.destinationCode;
 
     this._destinationName = data.destinationName
-      ? Name.create(data.destinationName).value
+      ? Name.fromTrusted(data.destinationName)
       : null;
 
     this._address = data.address;
@@ -121,7 +121,7 @@ export class HotelbedsHotel extends AggregateRoot {
       props.longitude
     ).instance;
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const id = UUID.createOrGenerate(props.id);
 
     const now = DateTimeManager.create();
 
@@ -156,6 +156,7 @@ export class HotelbedsHotel extends AggregateRoot {
    */
   public updateCoordinates(coordinates: Coordinates): void {
     this._coordinates = coordinates;
+    this._updatedAt = DateTimeManager.create();
   }
 
   // ────────────────────────────────────────────────────────────────────────────

@@ -34,7 +34,7 @@ export class ConnectClinicInstagramChannelHandler
   async execute(
     command: ConnectClinicInstagramChannelCommand
   ): Promise<string> {
-    const { clinicId, input, ctx } = command;
+    const { clinicId, input, ctx } = command.payload;
 
     // 1) Yetki kodu → erişim token'ı, ardından uzun-ömürlüye (~60 gün) çevir.
     const shortLived = await this.graphApi.exchangeCodeForToken(input.code);
@@ -55,7 +55,7 @@ export class ConnectClinicInstagramChannelHandler
     });
 
     const saved = await this.txManager.run(() =>
-      this.channelCommandRepo.save(channel)
+      this.channelCommandRepo.upsertByClinicId(channel)
     );
     return saved.id;
   }

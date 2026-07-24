@@ -4,7 +4,7 @@ import {
   TransferAvailabilityFilter,
   TransferAvailabilityItem,
   TransferBookingResult,
-} from '@modules/crm/health-tourism/transfer/domain/transfer.contracts';
+} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
 
 export const HOTELBEDS_TRANSFER_API_SERVICE = Symbol(
   'IHotelbedsTransferApiService'

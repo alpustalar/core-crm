@@ -38,12 +38,9 @@ export class CreateProviderAvailabilityHandler
   ) {}
 
   async execute(command: CreateProviderAvailabilityCommand): Promise<void> {
-    const {
-      ctx: { actor, source },
-      dto,
-    } = command;
+    const { ctx, data } = command;
 
-    const provider = await this.providerQueryRepo.findById(dto.providerId);
+    const provider = await this.providerQueryRepo.findById(data.providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -52,19 +49,20 @@ export class CreateProviderAvailabilityHandler
     await this.queryBus.execute(
       new AssertTimeWithinClinicHoursQuery(
         provider.clinicId.value,
-        dto.availabilities
+        data.availabilities
       )
     );
 
     this.policyFactory
-      .provider(actor)
-      .evaluator.systemBypass(source)
-      .check((p) => p.isTargetInActorsSameClinic(provider.clinicId.value))
+      .provider(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.isTargetInActorsSameClinic(provider.clinicId.value)
+      )
       .orThrow(PROVIDER_EVENTS.AVAILABILITY_CREATED);
 
-    const providerAvailabilities = dto.availabilities.map((item) =>
+    const providerAvailabilities = data.availabilities.map((item) =>
       ProviderAvailability.create({
-        providerId: dto.providerId,
+        providerId: data.providerId,
         dayOfWeek: DateTimeManager.getDayOfWeek(item.date),
         startMinute: item.startMinute,
         endMinute: item.endMinute,

@@ -1,10 +1,11 @@
 import { TaxParameter as ITaxParameter } from '@shared';
 import { Decimal } from 'decimal.js';
-import { randomUUID } from 'crypto';
 import { BadRequestException } from '@nestjs/common';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateTaxParameterProps } from '@modules/finance/accounting/tax-parameters/domain/tax-parameters.contracts';
 import { TaxParameterKeyType as TaxParameterKey } from '@input-type-schemas/TaxParameterKeySchema';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Parametrik vergi oranı. (clinicId, key) için tarih-versiyonlu bir oran satırı.
@@ -83,9 +84,9 @@ export class TaxParameter extends AggregateRoot {
       );
     }
 
-    const now = new Date();
+    const now = DateTimeManager.create();
     return new TaxParameter({
-      id: randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
       organizationId: props.organizationId,
       key: props.key,
@@ -112,7 +113,7 @@ export class TaxParameter extends AggregateRoot {
       );
     }
     this._validTo = validTo;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   /** Verilen tarihte bu oran yürürlükte mi? */

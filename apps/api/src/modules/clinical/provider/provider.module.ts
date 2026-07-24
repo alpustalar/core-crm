@@ -3,12 +3,14 @@ import { ProviderController } from '@modules/clinical/provider/presentation/cont
 import { ProviderPresentationModule } from '@modules/clinical/provider/presentation/provider-presentation.module';
 import { ProviderCommandsModule } from '@modules/clinical/provider/application/commands/commands.module';
 import { ProviderQueriesModule } from '@modules/clinical/provider/application/queries/queries.module';
+import { ProviderAiToolsModule } from '@modules/clinical/provider/application/ai-tools/provider-ai-tools.module';
 
 @Module({
   imports: [
     ProviderPresentationModule,
     ProviderCommandsModule,
     ProviderQueriesModule,
+    ProviderAiToolsModule,
   ],
   controllers: [ProviderController],
 })

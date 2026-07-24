@@ -13,6 +13,8 @@ import {
   BuildReversalDraftProps,
   CreateJournalEntryProps,
 } from '@modules/finance/accounting/posting/domain/posting.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 /**
  * Yevmiye fişi (aggregate root). Satırlarını (JournalLine) içinde tutar.
@@ -127,7 +129,7 @@ export class JournalEntry extends AggregateRoot {
   }
 
   public static createDraft(props: CreateJournalEntryProps): JournalEntry {
-    const id = props.id ?? crypto.randomUUID();
+    const id = UUID.createOrGenerate(props.id).value;
     const lines = props.lines.map((line) => JournalLine.create(id, line));
 
     const entry = new JournalEntry(
@@ -143,8 +145,8 @@ export class JournalEntry extends AggregateRoot {
         eventId: props.eventId ?? null,
         reversedById: null,
         performedById: props.performedById ?? null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: DateTimeManager.create(),
+        updatedAt: DateTimeManager.create(),
       },
       lines
     );
@@ -240,7 +242,7 @@ export class JournalEntry extends AggregateRoot {
       reversedById: this._reversedById,
       performedById: this._performedById,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 

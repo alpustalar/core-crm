@@ -1,7 +1,10 @@
 import { ClinicAppointmentSettings as IClinicAppointmentSettings } from '@shared';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
-import { CreateClinicAppointmentSettingsProps } from '@modules/organization/clinic/domain/contracts/clinic-appointment-settings.contracts';
+import {
+  CreateClinicAppointmentSettingsProps,
+  UpdateClinicAppointmentSettingsProps,
+} from '@modules/organization/clinic/domain/contracts/clinic-appointment-settings.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import { shouldValidate } from '@common/domain/utils/should-validate';
@@ -12,6 +15,7 @@ interface AppointmentSettingsInvariants {
   sendSmsReminderHours: number;
   maxActivePatientBookings: number;
   maxFutureBookingDays: number;
+  slotDurationMinutes: number;
 }
 
 /**
@@ -24,6 +28,7 @@ export class ClinicAppointmentSettings {
   constructor(data: IClinicAppointmentSettings) {
     this._id = UUID.fromTrusted(data.id);
     this._clinicId = UUID.fromTrusted(data.clinicId);
+    this._allowPatientBooking = data.allowPatientBooking;
     this._rescheduleLimitHours = data.rescheduleLimitHours;
     this._cancelLimitHours = data.cancelLimitHours;
     this._allowPatientCancel = data.allowPatientCancel;
@@ -33,6 +38,7 @@ export class ClinicAppointmentSettings {
     this._requireReminderResponse = data.requireReminderResponse;
     this._requireConfirmation = data.requireConfirmation;
     this._maxFutureBookingDays = data.maxFutureBookingDays;
+    this._slotDurationMinutes = data.slotDurationMinutes;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
@@ -47,8 +53,12 @@ export class ClinicAppointmentSettings {
           input.sendSmsReminderHours < 0;
         const bookingsInvalid = input.maxActivePatientBookings < 1;
         const futureDaysInvalid = input.maxFutureBookingDays < 1;
+        const slotDurationInvalid = input.slotDurationMinutes < 5;
         const isInvalid =
-          nonNegativeInvalid || bookingsInvalid || futureDaysInvalid;
+          nonNegativeInvalid ||
+          bookingsInvalid ||
+          futureDaysInvalid ||
+          slotDurationInvalid;
 
         return {
           isValid: !isInvalid,
@@ -61,6 +71,9 @@ export class ClinicAppointmentSettings {
             }
             if (futureDaysInvalid) {
               throw new Error('İleri randevu gün sınırı en az 1 olmalı.');
+            }
+            if (slotDurationInvalid) {
+              throw new Error('Slot süresi en az 5 dakika olmalı.');
             }
           },
         };
@@ -78,6 +91,13 @@ export class ClinicAppointmentSettings {
 
   get clinicId(): UUID {
     return this._clinicId;
+  }
+
+  private _allowPatientBooking: boolean;
+
+  /** Hasta kendi randevusunu panelden oluşturabilir mi? */
+  get allowPatientBooking(): boolean {
+    return this._allowPatientBooking;
   }
 
   private _rescheduleLimitHours: number;
@@ -143,6 +163,13 @@ export class ClinicAppointmentSettings {
     return this._maxFutureBookingDays;
   }
 
+  private _slotDurationMinutes: number;
+
+  /** Açık randevu slotları bu adımla (dakika) üretilir. */
+  get slotDurationMinutes(): number {
+    return this._slotDurationMinutes;
+  }
+
   private _createdAt: Date;
 
   get createdAt(): Date {
@@ -158,6 +185,13 @@ export class ClinicAppointmentSettings {
   /** Durum sorguları (Guard tabanlı). */
   public get validate() {
     return {
+      patientBooking: {
+        isAllowed: Guard.monitor(
+          this.allowPatientBooking,
+          this.allowPatientBooking,
+          () => new Error('Hasta panelden randevu oluşturamaz.')
+        ),
+      },
       confirmation: {
         isRequired: Guard.monitor(
           this.requireConfirmation,
@@ -196,6 +230,7 @@ export class ClinicAppointmentSettings {
     const sendSmsReminderHours = props.sendSmsReminderHours ?? 24;
     const maxActivePatientBookings = props.maxActivePatientBookings ?? 3;
     const maxFutureBookingDays = props.maxFutureBookingDays ?? 90;
+    const slotDurationMinutes = props.slotDurationMinutes ?? 30;
 
     if (shouldValidate(validateOptions))
       ClinicAppointmentSettings.businessRulesValidator
@@ -205,17 +240,15 @@ export class ClinicAppointmentSettings {
           sendSmsReminderHours,
           maxActivePatientBookings,
           maxFutureBookingDays,
+          slotDurationMinutes,
         })
         .orThrow();
 
-    const settingsId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
     const now = DateTimeManager.create();
     return new ClinicAppointmentSettings({
-      id: settingsId.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
+      allowPatientBooking: props.allowPatientBooking ?? true,
       rescheduleLimitHours,
       cancelLimitHours,
       allowPatientCancel: props.allowPatientCancel ?? true,
@@ -225,15 +258,71 @@ export class ClinicAppointmentSettings {
       requireReminderResponse: props.requireReminderResponse ?? false,
       requireConfirmation: props.requireConfirmation ?? false,
       maxFutureBookingDays,
+      slotDurationMinutes,
       createdAt: now,
       updatedAt: now,
     });
+  }
+
+  /**
+   * Ayarların kısmi güncellemesi. Yalnız gönderilen alanlar değişir; sayısal
+   * invariant'lar (saat sınırları ≥0, aktif randevu/ileri gün ≥1, slot ≥5dk)
+   * güncel değerlerle yeniden doğrulanır.
+   */
+  public update(
+    props: UpdateClinicAppointmentSettingsProps,
+    validateOptions = DefaultValidateOptions
+  ): void {
+    const rescheduleLimitHours =
+      props.rescheduleLimitHours ?? this._rescheduleLimitHours;
+    const cancelLimitHours = props.cancelLimitHours ?? this._cancelLimitHours;
+    const sendSmsReminderHours =
+      props.sendSmsReminderHours ?? this._sendSmsReminderHours;
+    const maxActivePatientBookings =
+      props.maxActivePatientBookings ?? this._maxActivePatientBookings;
+    const maxFutureBookingDays =
+      props.maxFutureBookingDays ?? this._maxFutureBookingDays;
+    const slotDurationMinutes =
+      props.slotDurationMinutes ?? this._slotDurationMinutes;
+
+    if (shouldValidate(validateOptions))
+      ClinicAppointmentSettings.businessRulesValidator
+        .create({
+          rescheduleLimitHours,
+          cancelLimitHours,
+          sendSmsReminderHours,
+          maxActivePatientBookings,
+          maxFutureBookingDays,
+          slotDurationMinutes,
+        })
+        .orThrow();
+
+    this._rescheduleLimitHours = rescheduleLimitHours;
+    this._cancelLimitHours = cancelLimitHours;
+    this._sendSmsReminderHours = sendSmsReminderHours;
+    this._maxActivePatientBookings = maxActivePatientBookings;
+    this._maxFutureBookingDays = maxFutureBookingDays;
+    this._slotDurationMinutes = slotDurationMinutes;
+
+    if (props.allowPatientBooking !== undefined)
+      this._allowPatientBooking = props.allowPatientBooking;
+    if (props.allowPatientCancel !== undefined)
+      this._allowPatientCancel = props.allowPatientCancel;
+    if (props.staffAllowOverbooking !== undefined)
+      this._staffAllowOverbooking = props.staffAllowOverbooking;
+    if (props.requireReminderResponse !== undefined)
+      this._requireReminderResponse = props.requireReminderResponse;
+    if (props.requireConfirmation !== undefined)
+      this._requireConfirmation = props.requireConfirmation;
+
+    this._updatedAt = DateTimeManager.create();
   }
 
   toPersistence(): IClinicAppointmentSettings {
     return {
       id: this.id.value,
       clinicId: this.clinicId.value,
+      allowPatientBooking: this.allowPatientBooking,
       rescheduleLimitHours: this.rescheduleLimitHours,
       cancelLimitHours: this.cancelLimitHours,
       allowPatientCancel: this.allowPatientCancel,
@@ -243,6 +332,7 @@ export class ClinicAppointmentSettings {
       requireReminderResponse: this.requireReminderResponse,
       requireConfirmation: this.requireConfirmation,
       maxFutureBookingDays: this.maxFutureBookingDays,
+      slotDurationMinutes: this.slotDurationMinutes,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

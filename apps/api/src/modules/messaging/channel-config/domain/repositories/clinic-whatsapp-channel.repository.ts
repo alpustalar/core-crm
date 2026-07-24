@@ -8,8 +8,10 @@ export const CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IClinicWhatsappChannelCommandRepository {
-  /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicWhatsappChannel): Promise<ClinicWhatsappChannel>;
+  /** clinicId unique → get-or-create (upsert). */
+  upsertByClinicId(
+    entity: ClinicWhatsappChannel
+  ): Promise<ClinicWhatsappChannel>;
 }
 
 export interface IClinicWhatsappChannelQueryRepository {

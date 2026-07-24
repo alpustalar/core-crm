@@ -12,6 +12,10 @@ import {
   IFxRateProvider,
 } from '@src/infrastructure/payment/links/fx-rate.port';
 import {
+  IServiceFeeProvider,
+  SERVICE_FEE_PROVIDER,
+} from '@src/infrastructure/payment/links/service-fee.port';
+import {
   BOOKING_PAYMENT_COMMAND_REPOSITORY,
   IBookingPaymentCommandRepository,
 } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
@@ -19,7 +23,7 @@ import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/doma
 import {
   BookingIntent,
   BookingPaymentLinks,
-} from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 import { BookingPaymentLinkGenerationException } from '@modules/crm/health-tourism/booking-payment/domain/exceptions/booking-payment.exceptions';
 import { InitiateBookingPaymentCommand } from './initiate-booking-payment.command';
 import {
@@ -44,6 +48,8 @@ export class InitiateBookingPaymentHandler
     private readonly stripeLink: IPaymentLinkProvider,
     @Inject(FX_RATE_PROVIDER)
     private readonly fx: IFxRateProvider,
+    @Inject(SERVICE_FEE_PROVIDER)
+    private readonly serviceFee: IServiceFeeProvider,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
     private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository,
     private readonly txManager: TransactionManager
@@ -55,7 +61,9 @@ export class InitiateBookingPaymentHandler
     const { input } = command;
 
     const saleCurrency = input.netCurrency;
-    const fee = input.serviceFeePercent > 0 ? input.serviceFeePercent : 0;
+    // Komisyon platform geliridir → oran klinikten değil platform-global ayardan gelir.
+    const feePercent = this.serviceFee.getServiceFeePercent();
+    const fee = feePercent > 0 ? feePercent : 0;
     const saleAmount = this.round2(input.netAmount * (1 + fee / 100));
 
     // FX → TRY (iyzico). Çözülemezse iyzico linki atlanır, Stripe yine üretilir.

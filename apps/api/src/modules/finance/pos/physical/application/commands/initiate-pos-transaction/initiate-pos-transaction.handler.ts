@@ -54,7 +54,7 @@ export class InitiatePosTransactionHandler
       throw new PosDeviceNotFoundException();
     }
 
-    device.validate.status.isActive().orThrow();
+    device.validate.status.isActive.orThrow();
 
     // Faz 1 — ödeme kaydı + PENDING işlem atomik olarak oluşturulur (TCP öncesi)
     const { posTransactionId, transaction } = await this.txManager.outboxRun(

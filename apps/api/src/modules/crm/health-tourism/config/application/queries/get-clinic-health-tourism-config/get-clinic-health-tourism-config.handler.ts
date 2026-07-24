@@ -37,9 +37,6 @@ export class GetClinicHealthTourismConfigHandler
         clinicLocationType: config.clinicLocationType,
         clinicLocationCode: config.clinicLocationCode,
         pickupAddress: config.pickupAddress,
-        serviceFeePercent: config.serviceFeePercent
-          ? config.serviceFeePercent.toNumber()
-          : null,
         defaultCurrency: config.defaultCurrency.value,
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,

@@ -16,6 +16,8 @@ import {
   LedgerSummary,
   PatientFinanceSummary,
   PatientLedgerItem,
+  PatientRevenue,
+  SumIncomeByPatientsFilter,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
 
@@ -184,5 +186,29 @@ export class FinanceLedgerQueryRepository
       balance: totalIncome.sub(totalExpenses).toFixed(2),
       entryCount,
     };
+  }
+
+  async sumIncomeByPatientIds(
+    filter: SumIncomeByPatientsFilter
+  ): Promise<PatientRevenue[]> {
+    if (filter.patientIds.length === 0) return [];
+
+    const rows = await this.db.financeLedger.groupBy({
+      by: ['patientId'],
+      where: {
+        patientId: { in: filter.patientIds },
+        type: LedgerType.INCOME,
+        status: 'COMPLETED',
+        entryDate: { gte: filter.from, lte: filter.to },
+      },
+      _sum: { amount: true },
+    });
+
+    return rows
+      .filter((r) => r.patientId !== null)
+      .map((r) => ({
+        patientId: r.patientId as string,
+        revenue: (r._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+      }));
   }
 }

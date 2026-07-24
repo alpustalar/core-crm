@@ -22,12 +22,15 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
         }),
       },
     },
-    close: jest.fn(),
   });
 
-  const build = (period: ReturnType<typeof makePeriod> | null) => {
+  const build = (
+    period: ReturnType<typeof makePeriod> | null,
+    claimed = true
+  ) => {
     const periodCommandRepo = {
       findById: jest.fn().mockResolvedValue(period),
+      claimForClosing: jest.fn().mockResolvedValue(claimed),
       save: jest.fn().mockResolvedValue(period),
     } as unknown as IAccountingPeriodCommandRepository;
     const commandBus = {
@@ -38,11 +41,7 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
     } as never;
 
     return {
-      handler: new ClosePeriodHandler(
-        periodCommandRepo,
-        commandBus,
-        txManager
-      ),
+      handler: new ClosePeriodHandler(periodCommandRepo, commandBus, txManager),
       periodCommandRepo,
       commandBus,
     };
@@ -51,11 +50,13 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
   const run = (handler: ClosePeriodHandler) =>
     handler.execute(new ClosePeriodCommand('period-1', ctx));
 
-  it('kapanış fişini üretir (posting), dönemi CLOSED yapar ve kaydeder', async () => {
+  it('dönemi atomik sahiplenir (claimForClosing) ve kapanış fişini üretir', async () => {
     const period = makePeriod();
     const { handler, periodCommandRepo, commandBus } = build(period);
 
     await run(handler);
+
+    expect(periodCommandRepo.claimForClosing).toHaveBeenCalledWith('period-1');
 
     const closingCall = (commandBus.execute as jest.Mock).mock.calls.find(
       ([c]) => c instanceof GenerateYearEndClosingCommand
@@ -68,18 +69,26 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
       dateFrom: period.startsAt,
       dateTo: period.endsAt,
     });
-    expect(period.close).toHaveBeenCalled();
-    expect(periodCommandRepo.save).toHaveBeenCalledWith(period);
   });
 
-  it('zaten kapatılmış dönem ConflictException atar, fiş üretmez', async () => {
+  it('zaten kapatılmış dönem (hızlı-ret) fiş üretmez, claim denemez', async () => {
     const period = makePeriod(true);
-    const { handler, commandBus } = build(period);
+    const { handler, periodCommandRepo, commandBus } = build(period);
+
+    await expect(run(handler)).rejects.toBeInstanceOf(
+      PeriodAlreadyClosedException
+    );
+    expect(periodCommandRepo.claimForClosing).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
+  });
+
+  it('eşzamanlı yarış: claim başarısızsa (false) fiş üretmez, hata atar', async () => {
+    const period = makePeriod();
+    const { handler, commandBus } = build(period, /* claimed */ false);
 
     await expect(run(handler)).rejects.toBeInstanceOf(
       PeriodAlreadyClosedException
     );
     expect(commandBus.execute).not.toHaveBeenCalled();
-    expect(period.close).not.toHaveBeenCalled();
   });
 });

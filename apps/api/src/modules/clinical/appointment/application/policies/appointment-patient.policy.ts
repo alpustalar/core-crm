@@ -5,21 +5,23 @@ import {
 import { PatientActorContext } from '@common/interfaces';
 import { PatientBasePolicy } from '@modules/platform/policy/patient/application/patient-base.policy';
 import { Appointment } from '@shared';
+import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
 
 export class AppointmentPatientPolicy extends PatientBasePolicy {
-  constructor(actor: PatientActorContext) {
-    super(actor);
+  constructor(actor: PatientActorContext, source: ExecutionSource) {
+    super(actor, source);
   }
 
   getSerializationOptions(appointment: Appointment): {
     isGroupActive: boolean;
     groups: AppointmentResponseGroup[];
   } {
-    const isSelf = this.isSelf(appointment);
+    const { PATIENT_DATA_OWNER, ADMIN } = AppointmentsResponseGroups;
 
-    const groups = isSelf
-      ? [AppointmentsResponseGroups.PATIENT_DATA_OWNER]
-      : [];
+    const groups: AppointmentResponseGroup[] = [];
+
+    if (this.isSelf(appointment)) groups.push(PATIENT_DATA_OWNER);
+    if (this.isSystem()) groups.push(ADMIN);
 
     return {
       isGroupActive: groups.length > 0,

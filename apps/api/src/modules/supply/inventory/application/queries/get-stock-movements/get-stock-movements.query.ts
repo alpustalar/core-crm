@@ -1,15 +1,16 @@
 import { IQuery } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { GetStockMovementsDto } from '@shared/modules/inventory/dto/queries';
 import { GetStockMovementsResponse } from './get-stock-movements.response';
-import { PaginationDto } from '@shared';
+import { GetStockMovements, Pagination } from '@shared';
+
+interface GetStockMovementsQueryPayload {
+  clinicId: string;
+  data: GetStockMovements;
+  pagination: Pagination;
+  ctx: IGetContext;
+}
 
 export class GetStockMovementsQuery implements IQuery {
   readonly __responseType!: GetStockMovementsResponse;
-  constructor(
-    public readonly clinicId: string,
-    public readonly dto: GetStockMovementsDto,
-    public readonly pagination: PaginationDto,
-    public readonly ctx: IGetContext
-  ) {}
+  constructor(public readonly payload: GetStockMovementsQueryPayload) {}
 }

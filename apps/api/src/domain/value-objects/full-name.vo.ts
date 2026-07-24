@@ -1,23 +1,25 @@
+import { z } from 'zod';
+import { InvalidFullNameException } from '@src/domain/exceptions';
+import { Name } from './name.vo';
+import { LastName } from './last-name.vo';
+
 export class FullName {
-  private readonly _value: string;
+  private static readonly schema = z
+    .string()
+    .trim()
+    .min(3, 'Tam isim çok kısa.');
   private readonly _firstName: string;
   private readonly _lastName: string;
 
-  private constructor(value: string) {
-    const cleaned = value.replace(/\s+/g, ' ').trim();
-    const parts = cleaned.split(' ');
-
-    this._lastName = parts.pop()?.toUpperCase() || '';
-    this._firstName = parts
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-      .join(' ');
-
-    this._value = `${this._firstName} ${this._lastName}`.trim();
+  private constructor(firstName: string, lastName: string) {
+    this._firstName = firstName;
+    this._lastName = lastName;
+    Object.freeze(this);
   }
 
   // Getters
   get value(): string {
-    return this._value;
+    return `${this._firstName} ${this._lastName}`;
   }
 
   get firstName(): string {
@@ -28,16 +30,56 @@ export class FullName {
     return this._lastName;
   }
 
-  public static create(value: string) {
-    return new FullName(value);
+  public static create(value: string | null | undefined) {
+    const result = this.schema.safeParse(value);
+
+    let instance: FullName | undefined;
+    let errorDetail = 'Geçersiz tam isim formatı.';
+
+    if (result.success) {
+      // 1. İsimleri parçala (çoklu boşlukları temizle)
+      const parts = result.data.split(/\s+/);
+
+      if (parts.length < 2) {
+        errorDetail = 'Tam isim en az bir isim ve bir soyadından oluşmalıdır.';
+      } else {
+        // 2. Sonuncuyu soyadı, kalanları isim olarak ayır
+        const lastNameRaw = parts.pop()!;
+        const firstNameRaw = parts.join(' ');
+
+        // 3. Mevcut VO'lar ile kuralları uygula
+        // Name.create -> Capitalize eder
+        // LastName.create -> UpperCase eder
+        const fName = Name.create(firstNameRaw).instance;
+        const lName = LastName.create(lastNameRaw).instance;
+
+        if (fName && lName) {
+          instance = new FullName(fName.value, lName.value);
+        } else {
+          errorDetail = 'İsim veya soyadı kurallara uygun değil.';
+        }
+      }
+    }
+
+    return {
+      instance,
+      orThrow(exception?: Error): FullName {
+        if (!instance) {
+          throw exception ?? new InvalidFullNameException();
+        }
+        return instance;
+      },
+    };
   }
 
   public static fromTrusted(value: string): FullName {
-    return new FullName(value);
-  }
+    const parts = value.trim().split(/\s+/);
+    const lastNameRaw = parts.pop()!;
+    const firstNameRaw = parts.join(' ');
 
-  public equals(other: FullName): boolean {
-    if (!other) return false;
-    return this._value === other.value;
+    const fName = Name.fromTrusted(firstNameRaw);
+    const lName = LastName.fromTrusted(lastNameRaw);
+
+    return new FullName(fName.value, lName.value);
   }
 }

@@ -1,41 +1,11 @@
+/* eslint-disable */
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { TimeConflictException } from '@src/domain/exceptions';
+import { Guard } from '@common/domain/guards';
 import {
   DateRangeExpiredException,
   InvalidDateRangeException,
-} from '@src/domain/exceptions/vo/date-range.exceptions';
-import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { TimeConflictException } from '@src/domain/exceptions/time-conflict.exception';
-
-interface IDateRangePublicValidator {
-  expiration: {
-    isValid: boolean;
-    isExpired: boolean;
-    orThrow: (exception?: Error) => void;
-  };
-  overlapping: (
-    other: DateRange,
-    throwMsg?: string
-  ) => {
-    isValid: boolean;
-    isOverlapping: boolean;
-    orThrow: () => DateRange;
-  };
-  enclosing: (other: DateRange) => {
-    isValid: boolean;
-    isEnclosing: boolean;
-    orThrow: (exception?: Error) => DateRange;
-  };
-}
-
-interface IDateRangeStaticValidator {
-  range: (
-    startDate?: Date,
-    endDate?: Date
-  ) => {
-    isValid: boolean;
-    isInvalid: boolean;
-    orThrow: (exception?: Error) => void;
-  };
-}
+} from '@src/domain/exceptions/date-range.exceptions';
 
 export class DateRange {
   private readonly _startDate: Date;
@@ -48,10 +18,10 @@ export class DateRange {
   }
 
   /**
-   * 🎯 2. Static Validate (Getter): Sınıf düzeyinde, henüz nesne yaratılmadan ham tarihleri doğrular
+   * henüz nesne yaratılmadan ham tarihleri doğrular
    * Örn: DateRange.validate.range(start, end).orThrow()
    */
-  public static get validate(): IDateRangeStaticValidator {
+  public static get validate() {
     return {
       range: (startDate?: Date, endDate?: Date) => {
         let hasError: boolean;
@@ -63,90 +33,80 @@ export class DateRange {
             DateTimeManager.isSame(endDate, startDate);
         }
 
-        return {
-          isValid: !hasError,
-          isInvalid: hasError,
-          orThrow: (exception?: Error) => {
-            if (hasError) {
-              throw exception ?? new InvalidDateRangeException();
-            }
-          },
-        };
+        const isValid = !hasError;
+
+        return Guard.monitor(
+          isValid,
+          isValid,
+          () => new InvalidDateRangeException()
+        );
       },
     };
   }
 
   get startDate(): Date {
-    return new Date(this._startDate.getTime());
+    return DateTimeManager.create(this._startDate.getTime());
   }
 
   get endDate(): Date {
-    return new Date(this._endDate.getTime());
+    return DateTimeManager.create(this._endDate.getTime());
   }
 
   /**
-   * 🎯 1. Public Validate (Getter): Üretilmiş tarih aralığı üzerindeki iş kurallarını işletir
+   * Üretilmiş tarih aralığı üzerindeki iş kurallarını işletir
    * Örn: appointmentRange.validate.conflict(existingRange, 'Mesaiden sonra rdv verilemez').orThrow()
    */
-  public get validate(): IDateRangePublicValidator {
-    const self = this;
-
+  public get validate() {
     return {
-      enclosing: (other: DateRange) => {
-        const isValid = self.isEnclosing(other);
+      isEnclosingWith: (other: DateRange) => {
+        const isValid = this.isEnclosing(other);
 
-        return {
+        return Guard.monitor(
           isValid,
-          isEnclosing: !isValid,
-          orThrow: (exception?: Error): DateRange => {
-            if (!isValid) {
-              throw (
-                exception ??
-                new Error('Belirtilen zaman aralığı hedef aralığı kapsamıyor.')
-              );
-            }
-            return self;
-          },
-        };
+          isValid,
+          () => new Error('Belirtilen zaman aralığı hedef aralığı kapsamıyor.')
+        );
       },
-      expiration: {
-        get isValid() {
-          const now = DateTimeManager.create();
-          return !DateTimeManager.isBefore(self._endDate, now);
-        },
-        get isExpired() {
-          const now = DateTimeManager.create();
-          return DateTimeManager.isBefore(self._endDate, now);
-        },
-        orThrow: (exception?: Error) => {
-          const now = DateTimeManager.create();
-          if (DateTimeManager.isBefore(self._endDate, now)) {
-            throw exception ?? new DateRangeExpiredException();
-          }
-        },
+      expiration: (exception) => {
+        const now = DateTimeManager.create();
+        const isValid = !DateTimeManager.isBefore(this._endDate, now);
+
+        const throwEx = exception() ?? new DateRangeExpiredException();
+
+        return Guard.monitor(isValid, isValid, () => throwEx);
       },
-      overlapping: (other: DateRange, throwMsg?: string) => {
+
+      isOverlappingWith: (other: DateRange, throwMsg?: string) => {
         const isOverlapping = DateTimeManager.isOverlapping(
-          { start: self._startDate, end: self._endDate },
+          { start: this._startDate, end: this._endDate },
           { start: other._startDate, end: other._endDate }
         );
 
-        return {
-          isValid: !isOverlapping,
-          isOverlapping: isOverlapping,
-          orThrow: (): DateRange => {
-            if (isOverlapping) {
-              throw new TimeConflictException(throwMsg);
-            }
-            return self;
-          },
-        };
+        const isValid = !isOverlapping;
+
+        return Guard.monitor(
+          isValid,
+          isValid,
+          () => new TimeConflictException(throwMsg)
+        );
+      },
+      isEqualWith: (otherRange: DateRange) => {
+        const isEqual = this.isEqualWith(otherRange);
+        return Guard.monitor(
+          isEqual,
+          isEqual,
+          () => new Error('Tarihler birbirine eşit değil')
+        );
       },
     };
   }
 
   get durationInMinutes(): number {
     return DateTimeManager.diffInMinutes(this._endDate, this._startDate);
+  }
+
+  get durationInFullDays(): number {
+    return DateTimeManager.diffInDays(this._endDate, this._startDate) + 1;
   }
 
   /**
@@ -156,9 +116,6 @@ export class DateRange {
     return new DateRange(startDate, endDate);
   }
 
-  /**
-   * 🎯 Akıllı Factory: Standart ordu nizamımız
-   */
   public static create(
     startDate: Date | null | undefined,
     endDate: Date | null | undefined
@@ -178,14 +135,8 @@ export class DateRange {
     }
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Boş veya hatalıysa undefined döner, .value.value çirkinliğini çözer.
-       */
       instance: error ? undefined : instance,
 
-      /**
-       * ➔ Zorunlu Senaryo: Bitiş tarihi başlangıçtan önceyse anında patlatır.
-       */
       orThrow(exception?: Error): DateRange {
         if (error || !instance) {
           throw exception ?? error ?? new InvalidDateRangeException();
@@ -195,7 +146,7 @@ export class DateRange {
     };
   }
 
-  public equals(other: DateRange): boolean {
+  private isEqualWith(other: DateRange) {
     return (
       this._startDate.getTime() === other._startDate.getTime() &&
       this._endDate.getTime() === other._endDate.getTime()

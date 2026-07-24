@@ -16,10 +16,10 @@ export class AccountCommandRepository
 
   async save(account: Account): Promise<Account> {
     const data = account.toPersistence();
-    const raw = await this.db.account.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
+    const { id, ...update } = data;
+    const raw = await this.db.account.update({
+      where: { id },
+      data: update,
     });
     account.flushEvents();
     return new Account(raw);

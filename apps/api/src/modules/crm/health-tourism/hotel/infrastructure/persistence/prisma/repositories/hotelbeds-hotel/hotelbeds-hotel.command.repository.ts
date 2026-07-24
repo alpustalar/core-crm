@@ -16,7 +16,7 @@ export class HotelbedsHotelCommandRepository
     super(prisma);
   }
 
-  async upsertMany(hotels: UpsertHotelbedsHotelInput[]): Promise<void> {
+  async syncMany(hotels: UpsertHotelbedsHotelInput[]): Promise<void> {
     if (hotels.length === 0) return;
 
     await this.prisma.$transaction(

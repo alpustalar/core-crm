@@ -2,12 +2,11 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CancelPaymentCommand } from './cancel-payment.command';
 import { CancelPaymentCommandResponse } from './cancel-payment.response';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { PaymentGuard } from '@modules/finance/payment/domain/value-objects/payment-guard.vo';
-import { IyzicoResultGuard } from '@modules/finance/pos/virtual/domain/value-objects/iyzico-result-guard.vo';
+import { IyzicoResultGuard } from '@src/domain/value-objects/iyzico-result-guard.vo';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 
 import { Inject } from '@nestjs/common';
 import {
@@ -30,6 +29,11 @@ import {
   IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(CancelPaymentCommand)
 export class CancelPaymentHandler
@@ -44,6 +48,8 @@ export class CancelPaymentHandler
     private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
   ) {}
@@ -54,23 +60,23 @@ export class CancelPaymentHandler
     const {
       dto: { paymentId },
       ip,
+      ctx,
     } = command;
+
+    const internalCtx = ExecutionContextFactory.createInternal();
 
     const { data: payment } = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
-    if (!payment) {
-      throw new PaymentNotFoundException(paymentId);
-    }
 
-    PaymentGuard.of(payment).validate.isComplete().orThrow();
+    if (!payment) throw new PaymentNotFoundException(paymentId);
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
     );
-    if (!completedInstallment) {
+
+    if (!completedInstallment)
       throw new CompletedInstallmentNotFoundException();
-    }
 
     const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
       completedInstallment.id
@@ -80,24 +86,27 @@ export class CancelPaymentHandler
       throw new IyzicoPaymentRecordNotFoundException();
     }
 
-    const conversationId = UUID.generate();
+    const generatedConversationUUID = UUID.generate();
 
     const sdkResult = await this.iyzicoProvider.cancelPayment({
-      conversationId: conversationId.value,
+      conversationId: generatedConversationUUID.value,
       paymentId: iyzicoTx.iyzicoPaymentId,
       ip,
     });
 
-    IyzicoResultGuard.of({
+    IyzicoResultGuard.create({
       status: sdkResult.status,
       errorMessage: sdkResult?.errorMessage,
     })
-      .assertSuccess()
+      .isSuccess()
       .orThrow();
 
     await this.txManager.outboxRun(async () => {
       await this.commandBus.execute(
-        new MarkInstallmentAsCancelledCommand(completedInstallment.id)
+        new MarkInstallmentAsCancelledCommand(
+          completedInstallment.id,
+          internalCtx
+        )
       );
 
       this.paymentEventPublisher.paymentCancelled({

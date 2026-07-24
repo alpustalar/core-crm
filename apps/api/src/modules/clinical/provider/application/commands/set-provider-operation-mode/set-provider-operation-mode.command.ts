@@ -1,10 +1,12 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { SetProviderOperationModeDto } from '@shared/modules/provider/dto/set-provider-operation-mode.dto';
+import { SetProviderOperationMode } from '@shared';
 
 export class SetProviderOperationModeCommand {
   constructor(
-    public readonly providerId: string,
-    public readonly dto: SetProviderOperationModeDto,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      readonly providerId: string;
+      readonly data: SetProviderOperationMode;
+      readonly ctx: IGetContext;
+    }
   ) {}
 }

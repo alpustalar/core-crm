@@ -21,10 +21,11 @@ export class FindPatientByContactHandler
   async execute(
     query: FindPatientByContactQuery
   ): Promise<FindPatientByContactResponse> {
+    const { payload } = query;
     const patient = await this.patientQueryRepo.findByContact({
-      organizationId: query.clinicId,
-      phone: query.phone,
-      email: query.email,
+      organizationId: payload.clinicId,
+      phone: payload.phone,
+      email: payload.email,
     });
 
     if (!patient) throw new PatientNotFoundException();

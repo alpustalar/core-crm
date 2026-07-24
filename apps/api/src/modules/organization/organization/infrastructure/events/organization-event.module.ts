@@ -3,8 +3,8 @@ import { OrganizationsSoftDeletedListener } from '@modules/organization/organiza
 import { OrganizationDeletionRequestedListener } from '@modules/organization/organization/infrastructure/events/listeners/organization-deletion-requested.listener';
 import { OrganizationEventPublisher } from '@modules/organization/organization/infrastructure/events/organization-event-publisher.service';
 import { ORGANIZATION_EVENT_PUBLISHER } from '@modules/organization/organization/domain/interfaces/organization-event-publisher.interface';
-import { MAIL_SERVICE } from '@modules/platform/mail/domain/interfaces/mail.service.interface';
-import { MailService } from '@modules/platform/mail/mail.service';
+import { MAIL_SERVICE } from '@src/infrastructure/mail/interfaces/mail.service.interface';
+import { MailService } from '@src/infrastructure/mail/mail.service';
 
 @Module({
   providers: [

@@ -9,6 +9,7 @@ import {
   HOTELBEDS_HOTEL_COMMAND_REPOSITORY,
   IHotelbedsHotelCommandRepository,
 } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-hotel.repository.interface';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 const COUNTRY_CODE = 'TR';
 const BATCH_SIZE = 1000;
@@ -24,7 +25,7 @@ export class SyncHotelContentHandler
     private readonly hotelbedsApi: IHotelbedsApiService,
 
     @Inject(HOTELBEDS_HOTEL_COMMAND_REPOSITORY)
-    private readonly hotelCommandRepo: IHotelbedsHotelCommandRepository,
+    private readonly hotelCommandRepo: IHotelbedsHotelCommandRepository
   ) {}
 
   async execute(): Promise<void> {
@@ -45,23 +46,23 @@ export class SyncHotelContentHandler
       if (total === 0) total = result.total;
       if (result.items.length === 0) break;
 
-      const now = new Date();
-      const upsertData = result.items.map((h) => ({
-        id: String(h.code),
-        name: h.name?.[0]?.content ?? String(h.code),
-        categoryCode: h.category?.code ?? 'UNKNOWN',
-        categoryName: h.category?.description?.[0]?.content,
-        destinationCode: h.destinationCode,
-        destinationName: h.destinationName?.[0]?.content,
-        address: h.address?.content,
-        latitude: h.coordinates?.latitude,
-        longitude: h.coordinates?.longitude,
-        images: h.images,
-        phones: h.phones,
+      const now = DateTimeManager.create();
+      const upsertData = result.items.map((hotelContent) => ({
+        id: String(hotelContent.code),
+        name: hotelContent.name?.[0]?.content ?? String(hotelContent.code),
+        categoryCode: hotelContent.category?.code ?? 'UNKNOWN',
+        categoryName: hotelContent.category?.description?.[0]?.content,
+        destinationCode: hotelContent.destinationCode,
+        destinationName: hotelContent.destinationName?.[0]?.content,
+        address: hotelContent.address?.content,
+        latitude: hotelContent.coordinates?.latitude,
+        longitude: hotelContent.coordinates?.longitude,
+        images: hotelContent.images,
+        phones: hotelContent.phones,
         lastSyncedAt: now,
       }));
 
-      await this.hotelCommandRepo.upsertMany(upsertData);
+      await this.hotelCommandRepo.syncMany(upsertData);
 
       synced += result.items.length;
       from += BATCH_SIZE;

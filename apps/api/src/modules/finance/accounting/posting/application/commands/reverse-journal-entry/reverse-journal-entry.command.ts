@@ -9,8 +9,10 @@ import { IGetContext } from '@common/decorators';
 export class ReverseJournalEntryCommand {
   readonly __responseType!: string;
   constructor(
-    public readonly entryId: string,
-    public readonly ctx: IGetContext,
-    public readonly reason?: string
+    public readonly payload: {
+      entryId: string;
+      ctx: IGetContext;
+      reason?: string;
+    }
   ) {}
 }

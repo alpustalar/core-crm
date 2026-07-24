@@ -7,10 +7,14 @@ import {
 } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetPipelineByIdQuery } from '@modules/crm/pipeline/application/queries/get-pipeline-by-id/get-pipeline-by-id.query';
+import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
+import { IGetContext } from '@common/decorators/get-context.decorator';
 import {
-  ENTITY_POLICY,
-  IEntityPolicy,
-} from '@modules/platform/policy/entity/domain/interfaces/entity-policy.interface';
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MarkLeadLostCommand)
 export class MarkLeadLostHandler
@@ -19,30 +23,49 @@ export class MarkLeadLostHandler
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadCommandRepo: ILeadCommandRepository,
-    @Inject(ENTITY_POLICY)
-    private readonly entityPolicy: IEntityPolicy,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: MarkLeadLostCommand): Promise<void> {
-    const { leadId, dto, ctx } = command;
-    const { actor, source } = ctx;
+    const { leadId, data, ctx } = command.payload;
+
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(data.clinicId))
+      .orThrow();
 
     await this.txManager.run(async () => {
       const lead = await this.leadCommandRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
-      const validateOptions = this.entityPolicy.getValidateOptions(
-        actor,
-        source
-      );
+      const validateOptions = this.policyFactory
+        .entity(ctx.actor, ctx.source)
+        .policy.getValidateOptions();
 
-      lead.markLost({
-        reason: dto.lostReason,
-        actor,
-        validateOptions,
-      });
+      lead.rules(validateOptions).markLost().orThrow();
+
+      lead.markLost(ctx.actor, data.lostReason);
+
+      // Kanban tutarlılığı: lead bir huniye bağlıysa LOST aşamasına taşı.
+      await this.syncLostStage(lead, ctx);
+
       await this.leadCommandRepo.save(lead);
     });
+  }
+
+  /** Lead'in hunisindeki LOST tipli aşamayı bulup stageId'yi senkronlar (varsa). */
+  private async syncLostStage(lead: Lead, ctx: IGetContext): Promise<void> {
+    if (!lead.pipelineId) return;
+
+    const { data: pipeline } = await this.queryBus.execute(
+      new GetPipelineByIdQuery(lead.pipelineId, ctx)
+    );
+    const lostStage = pipeline?.stages.find((s) => s.type === 'LOST');
+    if (pipeline && lostStage) {
+      lead.assignStage({ pipelineId: pipeline.id, stageId: lostStage.id });
+    }
   }
 }

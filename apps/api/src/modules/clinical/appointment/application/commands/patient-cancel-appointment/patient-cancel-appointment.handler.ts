@@ -58,9 +58,8 @@ export class PatientCancelAppointmentHandler
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.patientPolicyFactory
-      .appointment(actor)
-      .evaluator.systemBypass(source)
-      .check(
+      .appointment(actor, source)
+      .evaluator.check(
         (p) => p.canCancelOwnBooking(appointment.toPersistence()),
         'Bu randevuyu iptal etme yetkiniz yok.'
       )
@@ -81,7 +80,10 @@ export class PatientCancelAppointmentHandler
     // doğrudan iptal edemez; sekreter onayına düşen "iptal talebi" oluşturulur.
     const isWithinCancelWindow =
       appointment.startTime <=
-      DateTimeManager.addHours(new Date(), settings.cancelLimitHours);
+      DateTimeManager.addHours(
+        DateTimeManager.create(),
+        settings.cancelLimitHours
+      );
 
     if (isWithinCancelWindow) {
       return this.transactionManager.outboxRun(async () => {

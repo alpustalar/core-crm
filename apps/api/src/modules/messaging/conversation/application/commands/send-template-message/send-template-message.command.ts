@@ -1,5 +1,5 @@
 import { IGetContext } from '@common/decorators';
-import { TemplateHeaderMediaType } from '@modules/messaging/conversation/domain/types/create-message.props';
+import { TemplateHeaderMediaType } from '@modules/messaging/conversation/domain/contracts/message.contracts';
 
 export interface SendTemplateMessageInput {
   conversationId: string;
@@ -25,8 +25,10 @@ export interface SendTemplateMessageInput {
 export class SendTemplateMessageCommand {
   readonly __responseType!: string;
   constructor(
-    public readonly clinicId: string,
-    public readonly input: SendTemplateMessageInput,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      input: SendTemplateMessageInput;
+      ctx: IGetContext;
+    }
   ) {}
 }

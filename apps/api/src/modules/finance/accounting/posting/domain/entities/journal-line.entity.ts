@@ -3,6 +3,7 @@ import { JournalEntryLineAmount } from '@modules/finance/shared/domain/value-obj
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Decimal } from 'decimal.js';
 import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class JournalLine {
   private readonly _amount: JournalEntryLineAmount;
@@ -102,11 +103,11 @@ export class JournalLine {
       new Decimal(props.debit ?? 0),
       new Decimal(props.credit ?? 0),
       Currency.create(props.currency).instance ??
-        Currency.generate(Currency.enum.TRY)
+        Currency.fromTrusted(Currency.enum.TRY)
     );
 
     return new JournalLine({
-      id: crypto.randomUUID(),
+      id: UUID.createOrGenerate(props.id).value,
       entryId,
       accountId: props.accountId,
       partyId: props.partyId ?? null,

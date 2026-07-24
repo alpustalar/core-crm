@@ -4,12 +4,14 @@ import { UpdateOrganizationInfoCommandResponse } from './update-organization-inf
 import { Inject } from '@nestjs/common';
 import {
   IOrganizationCommandRepository,
-  IOrganizationQueryRepository,
   ORGANIZATION_COMMAND_REPOSITORY,
-  ORGANIZATION_QUERY_REPOSITORY,
 } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { OrganizationNotFoundException } from '@modules/organization/organization/domain/exceptions/organization.exceptions';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ORGANIZATION_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateOrganizationInfoCommand)
 export class UpdateOrganizationInfoHandler
@@ -20,31 +22,32 @@ export class UpdateOrganizationInfoHandler
     >
 {
   constructor(
-    private readonly commandBus: TSQueryBus,
-    @Inject(ORGANIZATION_QUERY_REPOSITORY)
-    private readonly orgQueryRepo: IOrganizationQueryRepository,
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
-    private readonly orgCommandRepo: IOrganizationCommandRepository
+    private readonly orgCommandRepo: IOrganizationCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     command: UpdateOrganizationInfoCommand
   ): Promise<UpdateOrganizationInfoCommandResponse> {
-    const { dto, organizationId, ctx } = command;
+    const { data, organizationId, ctx } = command.payload;
 
-    // TODO: policy kontrol yapılacak
-
-    if (!organizationId)
-      throw new OrganizationNotFoundException(organizationId);
-
-    const organization = await this.orgQueryRepo.findById(organizationId);
+    const organization = await this.orgCommandRepo.findById(organizationId);
 
     if (!organization) throw new OrganizationNotFoundException(organizationId);
 
-    organization.updateInfo(dto);
+    this.policyFactory
+      .organization(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessTargetOrganization(organization.id.value)
+      )
+      .orThrow(ORGANIZATION_EVENTS.UPDATED);
+
+    organization.updateInfo(data);
 
     const saved = await this.orgCommandRepo.save(organization);
 
-    return saved.id;
+    return saved.id.value;
   }
 }

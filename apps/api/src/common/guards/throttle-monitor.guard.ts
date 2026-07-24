@@ -3,6 +3,7 @@ import { ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerLimitDetail } from '@nestjs/throttler';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { THROTTLE_EVENTS } from '@src/domain/constants/events';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export interface RateLimitExceededPayload {
   ip: string;
@@ -34,7 +35,7 @@ export class ThrottleMonitorGuard extends ThrottlerGuard {
       limit: throttlerLimitDetail.limit,
       ttl: throttlerLimitDetail.ttl,
       totalHits: throttlerLimitDetail.totalHits,
-      timestamp: new Date(),
+      timestamp: DateTimeManager.create(),
     };
 
     this.eventEmitter.emit(THROTTLE_EVENTS.RATE_LIMIT_EXCEEDED, payload);

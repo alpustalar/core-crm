@@ -24,14 +24,13 @@ export class MetaLead extends AggregateRoot {
     this._adsetId = data.adsetId;
     this._adId = data.adId;
     this._name = data.name;
-    this._phone = data.phone ? Phone.fromTrusted(data.phone) : null;
-    this._email = data.email ? Email.fromTrusted(data.email) : null;
+    this._phone = Phone.create(data.phone).instance ?? null;
+    this._email = Email.create(data.email).instance ?? null;
     this._rawData = data.rawData;
     this._status = data.status;
     this._matchedPatientId = data.matchedPatientId;
-    this._matchedAppointmentId = data.matchedAppointmentId
-      ? UUID.fromTrusted(data.matchedAppointmentId)
-      : null;
+    this._matchedAppointmentId =
+      UUID.create(data.matchedAppointmentId).instance ?? null;
     this._matchedAt = data.matchedAt;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -133,8 +132,6 @@ export class MetaLead extends AggregateRoot {
   }
 
   public static create(props: CreateMetaLeadProps): MetaLead {
-    const leadId = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     const phoneVO = props.phone ? Phone.create(props.phone).orThrow() : null;
     const emailVO = props.email ? Email.create(props.email).orThrow() : null;
 
@@ -147,7 +144,7 @@ export class MetaLead extends AggregateRoot {
     const now = DateTimeManager.create();
 
     return new MetaLead({
-      id: leadId.value,
+      id: UUID.createOrGenerate(props.id).value,
       metaAdAccountId: props.metaAdAccountId,
       metaLeadId: props.metaLeadId,
       formId: props.formId ?? null,
@@ -171,13 +168,13 @@ export class MetaLead extends AggregateRoot {
   public matchToPatient(patientId: string): void {
     this._matchedPatientId = patientId;
     this._status = MetaLeadStatusSchema.enum.MATCHED;
-    this._matchedAt = new Date();
+    this._matchedAt = DateTimeManager.create();
   }
 
   public markConverted(appointmentId: string): void {
     this._matchedAppointmentId = UUID.create(appointmentId).orThrow();
     this._status = MetaLeadStatusSchema.enum.CONVERTED;
-    if (!this._matchedAt) this._matchedAt = new Date();
+    if (!this._matchedAt) this._matchedAt = DateTimeManager.create();
   }
 
   public markInvalid(): void {
@@ -190,24 +187,24 @@ export class MetaLead extends AggregateRoot {
 
   public toPersistence(): IMetaLead {
     return {
-      id: this._id.value,
-      metaAdAccountId: this._metaAdAccountId,
-      metaLeadId: this._metaLeadId,
-      formId: this._formId,
-      campaignId: this._campaignId,
-      campaignName: this._campaignName,
-      adsetId: this._adsetId,
-      adId: this._adId,
-      name: this._name,
-      phone: this._phone?.value ?? null,
-      email: this._email?.value ?? null,
-      rawData: this._rawData,
-      status: this._status,
-      matchedPatientId: this._matchedPatientId,
-      matchedAppointmentId: this._matchedAppointmentId?.value ?? null,
-      matchedAt: this._matchedAt,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      id: this.id.value,
+      metaAdAccountId: this.metaAdAccountId,
+      metaLeadId: this.metaLeadId,
+      formId: this.formId,
+      campaignId: this.campaignId,
+      campaignName: this.campaignName,
+      adsetId: this.adsetId,
+      adId: this.adId,
+      name: this.name,
+      phone: this.phone?.value ?? null,
+      email: this.email?.value ?? null,
+      rawData: this.rawData,
+      status: this.status,
+      matchedPatientId: this.matchedPatientId,
+      matchedAppointmentId: this.matchedAppointmentId?.value ?? null,
+      matchedAt: this.matchedAt,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

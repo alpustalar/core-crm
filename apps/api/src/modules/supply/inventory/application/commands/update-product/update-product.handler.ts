@@ -29,29 +29,30 @@ export class UpdateProductHandler
   ) {}
 
   async execute(command: UpdateProductCommand): Promise<void> {
-    const { productId, dto, ctx } = command;
-    const { actor } = ctx;
-
-    this.policyFactory
-      .clinic(actor)
-      .evaluator.systemBypass(ctx.source)
-      .check((p) => p.actorCanAccessTargetClinic(dto.clinicId))
-      .orThrow();
+    const { payload } = command;
+    const { productId, data, ctx } = payload;
 
     const product = await this.productCommandRepo.findById(productId);
     if (!product) throw new ProductNotFoundException();
 
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessTargetClinic(product.clinicId.value)
+      )
+      .orThrow();
+
     product.update({
-      name: dto.name,
-      barcode: dto.barcode,
-      brand: dto.brand,
-      description: dto.description,
-      unit: dto.unit,
-      vatRate: dto.vatRate,
-      criticalStockQty: dto.criticalStockQty,
-      reorderQty: dto.reorderQty,
-      categoryId: dto.categoryId,
-      supplierId: dto.supplierId,
+      name: data.name,
+      barcode: data.barcode,
+      brand: data.brand,
+      description: data.description,
+      unit: data.unit,
+      vatRate: data.vatRate,
+      criticalStockQty: data.criticalStockQty,
+      reorderQty: data.reorderQty,
+      categoryId: data.categoryId,
+      supplierId: data.supplierId,
     });
 
     await this.txManager.run(async () => {

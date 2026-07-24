@@ -32,6 +32,8 @@ export class RecordWhatsappQualityHandler
       qualityRating: command.qualityRating,
       messagingTier: command.messagingTier,
     });
-    await this.txManager.run(() => this.channelCommandRepo.save(channel));
+    await this.txManager.run(() =>
+      this.channelCommandRepo.upsertByClinicId(channel)
+    );
   }
 }

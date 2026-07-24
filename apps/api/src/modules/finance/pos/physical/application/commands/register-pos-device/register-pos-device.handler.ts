@@ -44,7 +44,7 @@ export class RegisterPosDeviceHandler
             port: input.port!,
           });
 
-    const saved = await this.posDeviceCommandRepo.save(device);
+    const saved = await this.posDeviceCommandRepo.create(device);
 
     return {
       id: saved.id.value,

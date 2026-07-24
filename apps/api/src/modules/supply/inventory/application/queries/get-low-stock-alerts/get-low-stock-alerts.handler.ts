@@ -26,17 +26,6 @@ export class GetLowStockAlertsHandler
     query: GetLowStockAlertsQuery
   ): Promise<GetLowStockAlertsResponse> {
     const { clinicId, ctx } = query;
-    const { actor } = ctx;
-
-    this.policyFactory
-      .clinic(actor)
-      .evaluator.check(
-        (p) => p.actorCanAccessTargetClinic(clinicId),
-        'Bu kliniğin stok uyarısı verilerine erişme yetkiniz yok'
-      )
-      .orThrow();
-
-    // TODO: clinic manage etmesine gerek yok. Capability guard kullanılacak
 
     const alerts = await this.productQueryRepo.getLowStockAlerts(clinicId);
     return { data: alerts };

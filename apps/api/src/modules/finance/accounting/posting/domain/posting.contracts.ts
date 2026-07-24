@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Decimal } from 'decimal.js';
 
 export const CreateJournalEntryLineInputSchema = z.object({
+  id: z.uuid().optional(),
   accountId: z.uuid(),
   partyId: z.uuid().nullable().optional(), // Cari, personel veya alt kırılım ID'si
 
@@ -22,22 +23,22 @@ export const CreateJournalEntryLineInputSchema = z.object({
   // Yabancı para izlenebilirliği — yalnız çevrilmiş satırlarda dolu (Model A).
   // original* = işlemin orijinal para birimindeki tutarı; fxRate = orijinal→fonksiyonel kuru.
   originalDebit: z
-    .custom<
-      string | Decimal
-    >((val) => typeof val === 'string' || val instanceof Decimal)
+    .custom<string | Decimal>(
+      (val) => typeof val === 'string' || val instanceof Decimal
+    )
     .nullable()
     .optional(),
   originalCredit: z
-    .custom<
-      string | Decimal
-    >((val) => typeof val === 'string' || val instanceof Decimal)
+    .custom<string | Decimal>(
+      (val) => typeof val === 'string' || val instanceof Decimal
+    )
     .nullable()
     .optional(),
   originalCurrency: z.string().nullable().optional(),
   fxRate: z
-    .custom<
-      string | Decimal
-    >((val) => typeof val === 'string' || val instanceof Decimal)
+    .custom<string | Decimal>(
+      (val) => typeof val === 'string' || val instanceof Decimal
+    )
     .nullable()
     .optional(),
 

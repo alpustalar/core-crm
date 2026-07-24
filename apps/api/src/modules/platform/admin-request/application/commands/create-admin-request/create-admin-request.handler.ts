@@ -1,6 +1,5 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { randomUUID } from 'crypto';
 import { CreateAdminRequestCommand } from './create-admin-request.command';
 import {
   ADMIN_REQUEST_COMMAND_REPOSITORY,
@@ -21,19 +20,19 @@ export class CreateAdminRequestHandler
   ) {}
 
   async execute(command: CreateAdminRequestCommand): Promise<string> {
-    const { dto, ctx } = command;
+    const { data, ctx } = command;
     const { actor } = ctx;
 
     return this.txManager.run(async () => {
       const entity = AdminRequest.create({
-        id: randomUUID(),
-        type: dto.type as AdminRequestType,
-        targetId: dto.targetId,
+        type: data.type as AdminRequestType,
+        targetId: data.targetId,
         requestedBy: actor.userId,
         organizationId: actor.organizationId ?? undefined,
+        clinicId: actor.clinicId ?? undefined,
       });
 
-      const saved = await this.adminRequestCommandRepo.save(entity);
+      const saved = await this.adminRequestCommandRepo.create(entity);
       return saved.id.value;
     });
   }

@@ -32,8 +32,20 @@ export class ClinicAppointmentSettingsCommandRepository
     entity: ClinicAppointmentSettings
   ): Promise<ClinicAppointmentSettings> {
     const data = entity.toPersistence();
-    // 1:1 satellite → upsert anahtarı clinicId (unique). id PK olduğu için
-    // update payload'ından çıkarılır (PK güncellenmez).
+    const { id, ...update } = data;
+    const raw = await this.db.clinicAppointmentSettings.update({
+      where: { id },
+      data: update,
+    });
+    return new ClinicAppointmentSettings(raw);
+  }
+
+  // 1:1 satellite → get-or-create; anahtar clinicId (unique). id PK olduğu için
+  // update payload'ından çıkarılır (PK güncellenmez).
+  async upsertByClinicId(
+    entity: ClinicAppointmentSettings
+  ): Promise<ClinicAppointmentSettings> {
+    const data = entity.toPersistence();
     const { id: _id, ...update } = data;
     const raw = await this.db.clinicAppointmentSettings.upsert({
       where: { clinicId: data.clinicId },

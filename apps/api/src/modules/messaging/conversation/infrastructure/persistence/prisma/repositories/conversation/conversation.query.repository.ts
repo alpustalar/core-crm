@@ -7,7 +7,7 @@ import { Conversation } from '@modules/messaging/conversation/domain/entities/co
 import {
   FindConversationByContactProps,
   FindConversationsFilter,
-} from '@modules/messaging/conversation/domain/types/find-conversations.filter';
+} from '@modules/messaging/conversation/domain/contracts/conversation.contracts';
 
 @Injectable()
 export class ConversationQueryRepository

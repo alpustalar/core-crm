@@ -6,10 +6,10 @@ import {
 } from '../config.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { Decimal } from 'decimal.js';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { isDefined } from '@common/utils';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { Guard } from '@common/domain/guards';
 
 /**
  * Kliniğin sağlık-turizmi (otel + transfer) config'i — 1:1 satellite. AI asistanı hangi
@@ -27,10 +27,6 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
     this._clinicLocationType = data.clinicLocationType;
     this._clinicLocationCode = data.clinicLocationCode;
     this._pickupAddress = data.pickupAddress;
-
-    this._serviceFeePercent = data.serviceFeePercent
-      ? Decimal(data.serviceFeePercent)
-      : null;
 
     this._defaultCurrency = Currency.fromTrusted(data.defaultCurrency);
     this._clinicId = UUID.fromTrusted(data.clinicId);
@@ -79,11 +75,6 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
     return this._pickupAddress;
   }
 
-  private _serviceFeePercent: Decimal | null;
-  get serviceFeePercent(): Decimal | null {
-    return this._serviceFeePercent;
-  }
-
   private _defaultCurrency: Currency;
   get defaultCurrency(): Currency {
     return this._defaultCurrency;
@@ -120,12 +111,20 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
     return { hotelCodes: null, destinationCode: this._destinationCode };
   }
 
+  public get validate() {
+    return {
+      status: {
+        isDisabled: this.isDisabled(),
+      },
+    };
+  }
+
   public static create(
     props: CreateClinicHealthTourismConfigProps
   ): ClinicHealthTourismConfig {
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const id = UUID.createOrGenerate(props.id);
 
     return new ClinicHealthTourismConfig({
       id: id.value,
@@ -139,10 +138,6 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
       clinicLocationCode: props.clinicLocationCode ?? null,
 
       pickupAddress: props.pickupAddress ?? null,
-
-      serviceFeePercent: props.serviceFeePercent
-        ? new Decimal(props.serviceFeePercent)
-        : null,
 
       defaultCurrency: props.defaultCurrency ?? Currency.enum.EUR,
 
@@ -175,12 +170,6 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
       this._pickupAddress = props.pickupAddress;
     }
 
-    if (isNotUndefined(props.serviceFeePercent)) {
-      this._serviceFeePercent =
-        props.serviceFeePercent === null
-          ? null
-          : new Decimal(props.serviceFeePercent);
-    }
     if (isDefined(props.defaultCurrency)) {
       this._defaultCurrency = Currency.create(props.defaultCurrency).orThrow();
     }
@@ -204,12 +193,20 @@ export class ClinicHealthTourismConfig extends AggregateRoot {
       clinicLocationType: this.clinicLocationType,
       clinicLocationCode: this.clinicLocationCode,
       pickupAddress: this.pickupAddress,
-      serviceFeePercent: this.serviceFeePercent,
       defaultCurrency: this.defaultCurrency.value,
       clinicId: this.clinicId.value,
       organizationId: this.organizationId.value,
       createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
     };
+  }
+
+  private isDisabled() {
+    const isDisabled = !this._isEnabled;
+    return Guard.monitor(
+      isDisabled,
+      isDisabled,
+      () => new Error('Ayarlar pasif değil')
+    );
   }
 }

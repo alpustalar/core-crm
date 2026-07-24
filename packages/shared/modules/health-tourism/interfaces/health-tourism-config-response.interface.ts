@@ -9,8 +9,6 @@ export interface HealthTourismConfigResponse {
   clinicLocationType: string | null;
   clinicLocationCode: string | null;
   pickupAddress: string | null;
-  /** Satış üzerine komisyon yüzdesi (ör. 12.5); yoksa null. */
-  serviceFeePercent: number | null;
   defaultCurrency: 'TRY' | 'USD' | 'EUR' | 'GBP';
   createdAt: Date;
   updatedAt: Date;

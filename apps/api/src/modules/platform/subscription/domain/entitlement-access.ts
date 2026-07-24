@@ -13,7 +13,7 @@ import { EntitlementSource } from '@modules/platform/subscription/domain/subscri
 export function subscriptionGrantsAccess(
   source: EntitlementSource,
   graceDays: number,
-  now: Date = new Date()
+  now: Date = DateTimeManager.create()
 ): boolean {
   if (source.trialEndsAt) {
     return source.trialEndsAt > now;

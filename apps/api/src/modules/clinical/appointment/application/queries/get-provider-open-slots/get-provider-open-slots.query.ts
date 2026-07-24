@@ -7,7 +7,7 @@ export class GetProviderOpenSlotsQuery implements IQuery {
   readonly __responseType!: GetProviderOpenSlotsResponse;
 
   constructor(
-    public readonly input: FindProviderOpenSlotsInput,
+    public readonly filter: FindProviderOpenSlotsInput,
     public readonly ctx: IGetContext
   ) {}
 }

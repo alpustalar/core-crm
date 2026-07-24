@@ -41,7 +41,7 @@ export class MarkConversationReadHandler
   ) {}
 
   async execute(command: MarkConversationReadCommand): Promise<void> {
-    const { clinicId, conversationId } = command;
+    const { clinicId, conversationId } = command.payload;
 
     const conversation =
       await this.conversationQueryRepo.findById(conversationId);

@@ -98,16 +98,13 @@ export class ProductBatch extends AggregateRoot {
   ): ProductBatch {
     if (props.expiresAt && props.expiresAt <= DateTimeManager.create()) {
       throw new Error(
-        '[Stok Disiplini] Son kullanma tarihi geçmiş bir ürün partisi (batch) oluşturulamaz.'
+        'Son kullanma tarihi geçmiş bir ürün partisi (batch) oluşturulamaz.'
       );
     }
 
     const totalAmount = props.purchasePrice.multiply(props.quantity.value);
 
-    const batchId = props.id
-      ? UUID.create(props.id).orThrow()
-      : UUID.generate();
-
+    const batchId = UUID.createOrGenerate(props.id);
     const batch = new ProductBatch({
       id: batchId.value,
       productId: UUID.create(props.productId).orThrow().value,
@@ -116,7 +113,7 @@ export class ProductBatch extends AggregateRoot {
       lotNumber: props.lotNumber,
       expiresAt: props.expiresAt,
       quantity: props.quantity.value,
-      purchasePrice: props.purchasePrice.amount,
+      purchasePrice: props.purchasePrice.value,
       currency: props.purchasePrice.currency,
       receivedAt: DateTimeManager.create(),
       notes: props.notes,
@@ -133,15 +130,15 @@ export class ProductBatch extends AggregateRoot {
         organizationId: props.organizationId,
         supplierId: props.supplierId,
         quantity: props.quantity.value.toString(),
-        unitPrice: props.purchasePrice.amount.toString(),
-        totalAmount: totalAmount.amount.toString(),
+        unitPrice: props.purchasePrice.value.toString(),
+        totalAmount: totalAmount.value.toString(),
       })
     );
 
     return batch;
   }
 
-  // TODO: burası event driven olacak. geriye hiçbir şey dönülmeyecek
+  // TODO: burası event driven olacak. geriye hiçbir şey dönülmeyecek. stock movement işlemleri yan etki diyebiliriz sanıırm. event üzerinden ilerlesin deduct quantity ve addquantity işlemleri
   public deductQuantity({
     qty,
     movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
@@ -155,7 +152,7 @@ export class ProductBatch extends AggregateRoot {
 
     incomingQuantity.validate.greaterThanZero.orThrow();
 
-    this._quantity = this._quantity.sub(incomingQuantity);
+    this._quantity = this.quantity.sub(incomingQuantity);
     this._updatedAt = DateTimeManager.create();
 
     return {
@@ -184,13 +181,13 @@ export class ProductBatch extends AggregateRoot {
 
     incomingQuantity.validate.greaterThanZero.orThrow();
 
-    this._quantity = this._quantity.add(incomingQuantity);
+    this._quantity = this.quantity.add(incomingQuantity);
     this._updatedAt = DateTimeManager.create();
 
     return {
-      productId: this._productId.value,
-      clinicId: this._clinicId.value,
-      batchId: this._id.value,
+      productId: this.productId.value,
+      clinicId: this.clinicId.value,
+      batchId: this.id.value,
       type: movementType,
       direction: StockMovementDirectionSchema.enum.IN,
       quantity: incomingQuantity.value,
@@ -207,7 +204,7 @@ export class ProductBatch extends AggregateRoot {
       lotNumber: this.lotNumber,
       expiresAt: this.expiresAt,
       quantity: this.quantity.value,
-      purchasePrice: this.purchasePrice.amount,
+      purchasePrice: this.purchasePrice.value,
       currency: this.purchasePrice.currency,
       receivedAt: this.receivedAt,
       notes: this.notes,

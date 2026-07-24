@@ -18,6 +18,7 @@ import {
   ConvertLeadDto,
   CreateLeadDto,
   MarkLeadLostDto,
+  MoveLeadToStageDto,
   UpdateLeadStatusDto,
 } from '@shared/modules/lead/dto/commands';
 import { GetLeadsDto } from '@shared/modules/lead/dto/queries';
@@ -25,6 +26,7 @@ import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create
 import { UpdateLeadStatusCommand } from '@modules/crm/lead/application/commands/update-lead-status/update-lead-status.command';
 import { ConvertLeadCommand } from '@modules/crm/lead/application/commands/convert-lead/convert-lead.command';
 import { MarkLeadLostCommand } from '@modules/crm/lead/application/commands/mark-lead-lost/mark-lead-lost.command';
+import { MoveLeadToStageCommand } from '@modules/crm/lead/application/commands/move-lead-to-stage/move-lead-to-stage.command';
 import { GetLeadsQuery } from '@modules/crm/lead/application/queries/get-leads/get-leads.query';
 import { GetLeadByIdQuery } from '@modules/crm/lead/application/queries/get-lead-by-id/get-lead-by-id.query';
 
@@ -42,7 +44,9 @@ export class LeadController {
     @Body() dto: CreateLeadDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new CreateLeadCommand(dto, clinicId, ctx));
+    return this.commandBus.execute(
+      new CreateLeadCommand({ data: dto, clinicId, ctx })
+    );
   }
 
   @Get('clinics/:clinicId/leads')
@@ -53,7 +57,7 @@ export class LeadController {
     @GetContext() ctx: IGetContext
   ) {
     return this.queryBus.execute(
-      new GetLeadsQuery(clinicId, dto, pagination, ctx)
+      new GetLeadsQuery({ clinicId, data: dto, pagination, ctx })
     );
   }
 
@@ -72,7 +76,7 @@ export class LeadController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new UpdateLeadStatusCommand(leadId, dto, ctx)
+      new UpdateLeadStatusCommand({ leadId, data: dto, ctx })
     );
   }
 
@@ -82,7 +86,9 @@ export class LeadController {
     @Body() dto: ConvertLeadDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new ConvertLeadCommand(leadId, dto, ctx));
+    return this.commandBus.execute(
+      new ConvertLeadCommand({ leadId, data: dto, ctx })
+    );
   }
 
   @Put('leads/:leadId/lost')
@@ -91,6 +97,19 @@ export class LeadController {
     @Body() dto: MarkLeadLostDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new MarkLeadLostCommand(leadId, dto, ctx));
+    return this.commandBus.execute(
+      new MarkLeadLostCommand({ leadId, data: dto, ctx })
+    );
+  }
+
+  @Put('leads/:leadId/stage')
+  moveToStage(
+    @Param('leadId', ParseUUIDPipe) leadId: string,
+    @Body() dto: MoveLeadToStageDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new MoveLeadToStageCommand({ leadId, data: dto, ctx })
+    );
   }
 }

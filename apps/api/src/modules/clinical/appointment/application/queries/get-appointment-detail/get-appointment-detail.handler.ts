@@ -1,8 +1,7 @@
-import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetAppointmentDetailQuery } from './get-appointment-detail.query';
 import { GetAppointmentDetailQueryResponse } from './get-appointment-detail.response';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
@@ -11,6 +10,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 
 @QueryHandler(GetAppointmentDetailQuery)
 export class GetAppointmentDetailHandler
@@ -28,24 +28,22 @@ export class GetAppointmentDetailHandler
     query: GetAppointmentDetailQuery
   ): Promise<GetAppointmentDetailQueryResponse> {
     const { ctx, appointmentId } = query;
-    const { actor } = ctx;
 
     const appointment =
       await this.appointmentRepo.findByIdWithDetails(appointmentId);
-    if (!appointment) {
-      throw new NotFoundException('Randevu bulunamadı.');
-    }
 
-    this.policyFactory
-      .appointment(actor)
-      .evaluator.check(
-        (p) => p.canScheduleAppointmentInClinic(appointment.clinicId),
-        'Bu randevuya erişim yetkiniz yok.'
-      )
-      .orThrow(APPOINTMENT_EVENTS.DETAIL);
+    if (!appointment) throw new AppointmentNotFoundException();
+
+    const serializationOptions = this.policyFactory
+      .appointment(ctx.actor, ctx.source)
+      .policy.getSerializationOptions({
+        clinicId: appointment.clinicId,
+        providerId: appointment.providerId,
+      });
 
     return {
       data: appointment,
+      meta: { serializationOptions },
     };
   }
 }

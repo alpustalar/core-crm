@@ -14,17 +14,31 @@ export class IyzicoTransactionCommandRepository
     super(prisma);
   }
 
-  async save(entity: IyzicoTransaction): Promise<IyzicoTransaction> {
+  async create(entity: IyzicoTransaction): Promise<IyzicoTransaction> {
     const data = entity.toPersistence();
     const rawResponse =
       data.rawResponse === null
         ? Prisma.JsonNull
         : (data.rawResponse as Prisma.InputJsonValue);
 
-    const raw = await this.db.iyzicoTransaction.upsert({
-      where: { id: data.id },
-      create: { ...data, rawResponse },
-      update: { ...data, rawResponse },
+    const raw = await this.db.iyzicoTransaction.create({
+      data: { ...data, rawResponse },
+    });
+    entity.flushEvents();
+    return new IyzicoTransaction(raw);
+  }
+
+  async save(entity: IyzicoTransaction): Promise<IyzicoTransaction> {
+    const data = entity.toPersistence();
+    const { id, ...rest } = data;
+    const rawResponse =
+      data.rawResponse === null
+        ? Prisma.JsonNull
+        : (data.rawResponse as Prisma.InputJsonValue);
+
+    const raw = await this.db.iyzicoTransaction.update({
+      where: { id },
+      data: { ...rest, rawResponse },
     });
     entity.flushEvents();
     return new IyzicoTransaction(raw);

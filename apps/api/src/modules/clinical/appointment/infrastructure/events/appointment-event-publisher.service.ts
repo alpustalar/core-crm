@@ -8,8 +8,12 @@ import {
   AppointmentsBulkSoftDeletedEvent,
   AppointmentsBulkSoftDeletedEventPayload,
 } from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
+import {
+  AppointmentsBulkCancelledEvent,
+  AppointmentsBulkCancelledEventPayload,
+} from '@modules/clinical/appointment/domain/events/appointments-bulk-cancelled.event';
 import { IAppointmentEventPublisher } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
-import { CONTEXT_SERVICE } from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+import { CONTEXT_SERVICE } from '@src/infrastructure/context/context.service.interface';
 
 @Injectable()
 export class AppointmentEventPublisher implements IAppointmentEventPublisher {
@@ -26,5 +30,9 @@ export class AppointmentEventPublisher implements IAppointmentEventPublisher {
 
   bulkSoftDeleted(payload: AppointmentsBulkSoftDeletedEventPayload) {
     this.contextService.addEvent(new AppointmentsBulkSoftDeletedEvent(payload));
+  }
+
+  bulkCancelled(payload: AppointmentsBulkCancelledEventPayload) {
+    this.contextService.addEvent(new AppointmentsBulkCancelledEvent(payload));
   }
 }

@@ -94,7 +94,9 @@ export class ProviderController {
     @Body() dto: UpdateProviderInfoDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new UpdateProviderInfoCommand(id, dto, ctx));
+    return this.commandBus.execute(
+      new UpdateProviderInfoCommand({ providerId: id, data: dto, ctx })
+    );
   }
 
   @Patch(':id/active')
@@ -104,7 +106,9 @@ export class ProviderController {
     @Body() dto: SetProviderActiveDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new SetProviderActiveCommand(id, dto, ctx));
+    return this.commandBus.execute(
+      new SetProviderActiveCommand({ providerId: id, data: dto, ctx })
+    );
   }
 
   @Patch(':id/operation-mode')
@@ -115,7 +119,7 @@ export class ProviderController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new SetProviderOperationModeCommand(id, dto, ctx)
+      new SetProviderOperationModeCommand({ providerId: id, data: dto, ctx })
     );
   }
 
@@ -127,7 +131,7 @@ export class ProviderController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new SetProviderExaminationCommand(id, dto, ctx)
+      new SetProviderExaminationCommand({ providerId: id, data: dto, ctx })
     );
   }
 }

@@ -20,3 +20,6 @@ export interface IInstagramGraphApi {
   /** IG/Page hesabını app webhook aboneliğine ekler (subscribed_fields=messages). */
   subscribeToWebhooks(igUserId: string, accessToken: string): Promise<void>;
 }
+
+export type InstagramGraphApiConfig = { appId: string; appSecret: string };
+export const INSTAGRAM_GRAPH_API_CONFIG = Symbol('InstagramGraphApiConfig');

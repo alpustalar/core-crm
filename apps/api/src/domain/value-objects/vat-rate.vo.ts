@@ -3,23 +3,45 @@ import {
   InvalidVatRateException,
   VatRateMustNotBeZeroException,
   VatRateNegativeException,
-} from '@src/domain/exceptions/vo/vat-rate.exceptions';
-
-interface IVatRateValidator {
-  hasTax: {
-    isValid: boolean;
-    orThrow: (exception?: Error) => VatRate;
-  };
-}
+} from '@src/domain/exceptions';
 
 export class VatRate {
-  // 🇹🇷 Türkiye 2026 güncel yasal KDV oranları (%0, %1, %10, %20)
+  // 2026 güncel yasal KDV oranları (%0, %1, %10, %20)
   private static readonly VALID_RATES = [0, 1, 10, 20];
   private readonly _value: Decimal;
 
   private constructor(value: Decimal) {
     this._value = value;
     Object.freeze(this);
+  }
+
+  /**
+   * 🎯 Akıllı Factory:
+   */
+  public static get validate() {
+    return {
+      input: (value: number | Decimal | null | undefined) => {
+        const val =
+          value === null || value === undefined
+            ? new Decimal(0)
+            : new Decimal(value);
+
+        if (val.isNegative())
+          return {
+            isValid: false,
+            error: 'KDV oranı negatif olamaz.',
+            type: 'NEGATIVE',
+          };
+        if (!VatRate.VALID_RATES.includes(val.toNumber()))
+          return {
+            isValid: false,
+            error: 'Yasal olmayan KDV oranı.',
+            type: 'INVALID',
+          };
+
+        return { isValid: true, data: val };
+      },
+    };
   }
 
   public get value(): Decimal {
@@ -36,20 +58,21 @@ export class VatRate {
     return new Decimal(1).plus(this.asMultiplier);
   }
 
-  public get validate(): IVatRateValidator {
-    const self = this;
-    const isZeroRate = self.isZero();
-
+  public get validate() {
     return {
-      hasTax: {
-        isValid: !isZeroRate,
-        orThrow: (exception?: Error): VatRate => {
-          if (isZeroRate) {
-            throw exception ?? new VatRateMustNotBeZeroException();
-          }
-          return self;
-        },
-      },
+      hasTax: (() => {
+        const isZeroRate = this.isZero();
+
+        return {
+          isValid: !isZeroRate,
+          orThrow: (exception?: Error): VatRate => {
+            if (isZeroRate) {
+              throw exception ?? new VatRateMustNotBeZeroException();
+            }
+            return this;
+          },
+        };
+      })(),
     };
   }
 
@@ -60,50 +83,21 @@ export class VatRate {
     return new VatRate(value instanceof Decimal ? value : new Decimal(value));
   }
 
-  /**
-   * 🎯 Akıllı Factory:
-   */
+  // 2. Disiplinli Factory
   public static create(value: number | Decimal | null | undefined) {
-    // KDV belirtilmemişse varsayılan olarak %0 (KDV Muaf) nesnesini güvenle hazırlarız
-    const isBlank = value === null || value === undefined;
-    const finalValue = isBlank
-      ? new Decimal(0)
-      : value instanceof Decimal
-        ? value
-        : new Decimal(value);
-
-    let instance: VatRate | undefined;
-    let error: Error | undefined;
-
-    try {
-      // 1. Negatif değer barikatı
-      if (finalValue.isNeg()) {
-        throw new VatRateNegativeException();
-      }
-
-      // 2. Yasal oran kontrolü
-      const rateAsNumber = finalValue.toNumber();
-      if (!VatRate.VALID_RATES.includes(rateAsNumber)) {
-        throw new InvalidVatRateException(rateAsNumber);
-      }
-
-      instance = new VatRate(finalValue);
-    } catch (e: any) {
-      error = e;
-    }
+    const validation = VatRate.validate.input(value);
+    const instance = validation.isValid
+      ? new VatRate(validation.data!)
+      : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Hata varsa undefined, yoksa VatRate nesnesi döner.
-       */
-      instance: error ? undefined : instance,
-
-      /**
-       * ➔ Zorunlu Senaryo: Hatalı veya illegal bir oran geldiyse küt diye patlatır.
-       */
+      instance,
       orThrow(exception?: Error): VatRate {
-        if (error || !instance) {
-          throw exception ?? error ?? new VatRateNegativeException();
+        if (!instance) {
+          // Hata türüne göre spesifik exception fırlatma
+          if (validation.type === 'NEGATIVE')
+            throw exception ?? new VatRateNegativeException();
+          throw exception ?? new InvalidVatRateException();
         }
         return instance;
       },

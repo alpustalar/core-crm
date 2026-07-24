@@ -8,8 +8,10 @@ export const CLINIC_INSTAGRAM_CHANNEL_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IClinicInstagramChannelCommandRepository {
-  /** clinicId unique → upsert tabanlı kayıt. */
-  save(entity: ClinicInstagramChannel): Promise<ClinicInstagramChannel>;
+  /** clinicId unique → get-or-create (upsert). */
+  upsertByClinicId(
+    entity: ClinicInstagramChannel
+  ): Promise<ClinicInstagramChannel>;
 }
 
 export interface IClinicInstagramChannelQueryRepository {

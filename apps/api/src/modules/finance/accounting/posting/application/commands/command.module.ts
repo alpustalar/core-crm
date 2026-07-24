@@ -9,6 +9,7 @@ import { PaymentReceivedRule } from '@modules/finance/accounting/posting/domain/
 import { SalesInvoiceIssuedRule } from '@modules/finance/accounting/posting/domain/posting/rules/sales-invoice-issued.rule';
 import { PurchaseInvoiceReceivedRule } from '@modules/finance/accounting/posting/domain/posting/rules/purchase-invoice-received.rule';
 import { PayrollAccruedRule } from '@modules/finance/accounting/posting/domain/posting/rules/payroll-accrued.rule';
+import { CashSessionClosedRule } from '@modules/finance/accounting/posting/domain/posting/rules/cash-session-closed.rule';
 import { FX_RATE_PROVIDER } from '@src/infrastructure/payment/links/fx-rate.port';
 import { StaticEnvFxRateProvider } from '@src/infrastructure/payment/links/adapters/static-env-fx-rate.provider';
 import { TcmbFxRateProvider } from '@src/infrastructure/payment/links/adapters/tcmb-fx-rate.provider';
@@ -27,24 +28,28 @@ const CommandHandlers = [
     SalesInvoiceIssuedRule,
     PurchaseInvoiceReceivedRule,
     PayrollAccruedRule,
+    CashSessionClosedRule,
     {
       provide: POSTING_RULES,
       useFactory: (
         paymentReceived: PaymentReceivedRule,
         salesInvoiceIssued: SalesInvoiceIssuedRule,
         purchaseInvoiceReceived: PurchaseInvoiceReceivedRule,
-        payrollAccrued: PayrollAccruedRule
+        payrollAccrued: PayrollAccruedRule,
+        cashSessionClosed: CashSessionClosedRule
       ) => [
         paymentReceived,
         salesInvoiceIssued,
         purchaseInvoiceReceived,
         payrollAccrued,
+        cashSessionClosed,
       ],
       inject: [
         PaymentReceivedRule,
         SalesInvoiceIssuedRule,
         PurchaseInvoiceReceivedRule,
         PayrollAccruedRule,
+        CashSessionClosedRule,
       ],
     },
     PostingRuleRegistry,

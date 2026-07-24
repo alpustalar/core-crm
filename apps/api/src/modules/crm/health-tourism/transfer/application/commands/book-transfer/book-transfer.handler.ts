@@ -32,45 +32,45 @@ export class BookTransferHandler
   ) {}
 
   async execute(command: BookTransferCommand): Promise<BookTransferResponse> {
-    const { dto, ctx } = command;
+    const { data, ctx } = command;
     const { actor } = ctx;
 
     const clientReference = `${actor.organizationId!.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
 
     const result = await this.transferApi.createBooking({
-      language: dto.language,
+      language: data.language,
       holder: {
-        name: dto.holderName,
-        surname: dto.holderSurname,
-        email: dto.holderEmail,
-        phone: dto.holderPhone,
+        name: data.holderName,
+        surname: data.holderSurname,
+        email: data.holderEmail,
+        phone: data.holderPhone,
       },
-      transfers: dto.transfers,
+      transfers: data.transfers,
       clientReference,
-      welcomeMessage: dto.welcomeMessage,
-      remark: dto.remark,
+      welcomeMessage: data.welcomeMessage,
+      remark: data.remark,
     });
 
     const transferBooking = HotelbedsTransferBooking.create({
       reference: result.reference,
       clientReference,
       status: HotelbedsTransferBookingStatusSchema.parse(result.status),
-      holderName: dto.holderName,
-      holderSurname: dto.holderSurname,
-      holderEmail: dto.holderEmail,
-      holderPhone: dto.holderPhone,
+      holderName: data.holderName,
+      holderSurname: data.holderSurname,
+      holderEmail: data.holderEmail,
+      holderPhone: data.holderPhone,
       transfers: result.transfers as JsonValueType,
       totalAmount: result.totalAmount,
       currency: Currency.create(result.currency).orThrow().value,
-      remarks: dto.remark,
+      remarks: data.remark,
       organizationId: actor.organizationId!,
-      clinicId: dto.clinicId ?? actor.clinicId ?? undefined,
-      patientId: dto.patientId,
-      leadId: dto.leadId,
+      clinicId: data.clinicId ?? actor.clinicId ?? undefined,
+      patientId: data.patientId,
+      leadId: data.leadId,
     });
 
     const booking = await this.txManager.run(async () => {
-      return this.bookingCommandRepo.save(transferBooking);
+      return this.bookingCommandRepo.create(transferBooking);
     });
 
     return booking.id.value;

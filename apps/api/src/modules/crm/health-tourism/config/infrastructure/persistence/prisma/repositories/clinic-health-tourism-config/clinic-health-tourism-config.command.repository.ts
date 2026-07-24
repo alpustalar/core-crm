@@ -33,20 +33,10 @@ export class ClinicHealthTourismConfigCommandRepository
     entity: ClinicHealthTourismConfig
   ): Promise<ClinicHealthTourismConfig> {
     const data = entity.toPersistence();
-    const raw = await this.db.clinicHealthTourismConfig.upsert({
-      where: { clinicId: data.clinicId },
-      create: data,
-      update: {
-        isEnabled: data.isEnabled,
-        destinationCode: data.destinationCode,
-        nearbyHotelCodes: data.nearbyHotelCodes,
-        airportIata: data.airportIata,
-        clinicLocationType: data.clinicLocationType,
-        clinicLocationCode: data.clinicLocationCode,
-        pickupAddress: data.pickupAddress,
-        serviceFeePercent: data.serviceFeePercent,
-        defaultCurrency: data.defaultCurrency,
-      },
+    const { id, ...update } = data;
+    const raw = await this.db.clinicHealthTourismConfig.update({
+      where: { id },
+      data: update,
     });
     entity.flushEvents();
     return new ClinicHealthTourismConfig(raw);

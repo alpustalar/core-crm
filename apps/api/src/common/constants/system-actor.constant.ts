@@ -1,10 +1,16 @@
 import { LogSource } from '@src/domain/constants/log-action.constant';
-import { ActorContext } from '@common/interfaces';
+import { ActorContext, PatientActorContext } from '@common/interfaces';
 
 export const SYSTEM_ACTOR: ActorContext = {
   userId: 'SYSTEM',
   email: 'system@bursadentistry.com',
-  rolePriority: 999,
+  rolePriority: 100,
   capabilities: ['*'],
   source: LogSource.SYSTEM,
+};
+
+export const SYSTEM_PATIENT_ACTOR: PatientActorContext = {
+  patientId: 'SYSTEM_PATIENT',
+  organizationId: 'SYSTEM_ORGANIZATION',
+  phone: '05155555555',
 };

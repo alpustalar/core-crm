@@ -4,6 +4,7 @@ import duration from 'dayjs/plugin/duration';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 import {
   TimeZoneSchema,
@@ -15,6 +16,7 @@ dayjs.extend(duration);
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(isSameOrBefore);
 
 const DEFAULT_TZ: TimeZoneType = TimeZoneSchema.enum.Europe_Istanbul;
 
@@ -165,6 +167,46 @@ export class DateTimeManager {
       dayjs(range1.end).isAfter(range2.start)
     );
   }
+  /**
+   * Verilen bir tarihe esnek zaman birimleri (seconds, minutes, hours, days) ekler.
+   * Tarih verilmezse 'şu an'ı baz alır (Immutable).
+   *
+   * @example
+   * DateTimeManager.plus({ seconds: 120 })
+   * DateTimeManager.plus({ minutes: 30 }, myDate)
+   */
+  static plus(
+    options: DurationOptions,
+    baseDate: Date = new Date(),
+    tz: TimeZoneType = DEFAULT_TZ
+  ): Date {
+    let d = this.tz(baseDate, tz);
+
+    if (options.seconds) d = d.add(options.seconds, 'second');
+    if (options.minutes) d = d.add(options.minutes, 'minute');
+    if (options.hours) d = d.add(options.hours, 'hour');
+    if (options.days) d = d.add(options.days, 'day');
+
+    return d.toDate();
+  }
+
+  /**
+   * Verilen bir tarihten esnek zaman birimleri çıkarır.
+   */
+  static minus(
+    options: DurationOptions,
+    baseDate: Date = new Date(),
+    tz: TimeZoneType = DEFAULT_TZ
+  ): Date {
+    let d = this.tz(baseDate, tz);
+
+    if (options.seconds) d = d.subtract(options.seconds, 'second');
+    if (options.minutes) d = d.subtract(options.minutes, 'minute');
+    if (options.hours) d = d.subtract(options.hours, 'hour');
+    if (options.days) d = d.subtract(options.days, 'day');
+
+    return d.toDate();
+  }
 
   /**
    * İki Date nesnesinin aynı gün olup olmadığını kontrol eder
@@ -186,6 +228,23 @@ export class DateTimeManager {
     tz: TimeZoneType = DEFAULT_TZ
   ): Date {
     return this.tz(date, tz).add(minutes, 'minute').toDate();
+  }
+
+  static toMillis(
+    date: Date | string = new Date(),
+    tz: TimeZoneType = DEFAULT_TZ
+  ): number {
+    return this.tz(date, tz).valueOf();
+  }
+
+  /**
+   * Verilen bir tarih objesinin (veya şu anın) ISO string değerini döner.
+   */
+  static toIsoString(
+    date: Date | string = new Date(),
+    tz: TimeZoneType = DEFAULT_TZ
+  ): string {
+    return this.tz(date, tz).toISOString();
   }
 
   static addDays(
@@ -223,6 +282,14 @@ export class DateTimeManager {
     tz: TimeZoneType = DEFAULT_TZ
   ): Date {
     return this.tz(date, tz).add(hours, 'hour').toDate();
+  }
+
+  static addSeconds(
+    date: Date,
+    seconds: number,
+    tz: TimeZoneType = DEFAULT_TZ
+  ): Date {
+    return this.tz(date, tz).add(seconds, 'second').toDate();
   }
 
   static startOfDay(date: Date, tz: TimeZoneType = DEFAULT_TZ): Date {
@@ -277,6 +344,14 @@ export class DateTimeManager {
   }
 
   /**
+   * İnsan-okunur tarih-saat döner: DD.MM.YYYY HH:mm (ör. 09.07.2026 14:30).
+   * Bildirim metinleri gibi kullanıcıya gösterilen yerlerde kullanılır.
+   */
+  static formatDateTime(date: Date, tz: TimeZoneType = DEFAULT_TZ): string {
+    return this.tz(date, tz).format('DD.MM.YYYY HH:mm');
+  }
+
+  /**
    * Ayraçsız gün anahtarı döner: DDMMYYYY (ör. 01072026). TCMB günlük kur dosya adı
    * (`/kurlar/YYYYMM/DDMMYYYY.xml`) gibi ayraçsız tarih bekleyen dış servisler için.
    */
@@ -324,6 +399,18 @@ export class DateTimeManager {
   }
 
   /**
+   * Birinci tarihin ikinci tarihten küçük (önce) olup olmadığını ya da iki tarihin eşit olup olmadığını kontrol eder.
+   */
+
+  static isBeforeOrEqual(
+    date1: dayjs.ConfigType,
+    date2: dayjs.ConfigType,
+    granularity?: dayjs.OpUnitType
+  ) {
+    return dayjs(date1).isSameOrBefore(date2, granularity);
+  }
+
+  /**
    * İki tarihin birbirine eşit olup olmadığını kontrol eder.
    * ⚠️ KRİTİK: granularity boş bırakılırsa milisaniyesine kadar eşitliğe bakar.
    * Eğer iki tarihin saatine bakmaksızın "aynı gün" olup olmadığını kontrol etmek istersen 'day' geçmelisin.
@@ -346,7 +433,39 @@ export class DateTimeManager {
     return tz.includes('/') ? tz : tz.replace('_', '/');
   }
 
+  /**
+   * Verilen zaman birimlerini saniyeye (seconds) çevirir.
+   * Redis TTL, JWT expiration ve cache süreleri için idealdir.
+   *
+   * @example
+   * DateTimeManager.toSeconds({ minutes: 30 }) // 1800
+   * DateTimeManager.toSeconds({ hours: 1, minutes: 30 }) // 5400
+   */
+  static toSeconds({
+    seconds = 0,
+    minutes = 0,
+    hours = 0,
+    days = 0,
+  }: DurationOptions): number {
+    return seconds + minutes * 60 + hours * 3600 + days * 86400;
+  }
+
+  /**
+   * Verilen zaman birimlerini milisaniyeye (ms) çevirir.
+   * setTimeout, BullMQ delay veya JS Date operasyonları için.
+   */
+  static toMilliseconds(options: DurationOptions): number {
+    return this.toSeconds(options) * 1000;
+  }
+
   private static tz(date?: Date | string, tz: TimeZoneType = DEFAULT_TZ) {
     return dayjs(date).tz(DateTimeManager.toIana(tz));
   }
+}
+
+export interface DurationOptions {
+  seconds?: number;
+  minutes?: number;
+  hours?: number;
+  days?: number;
 }

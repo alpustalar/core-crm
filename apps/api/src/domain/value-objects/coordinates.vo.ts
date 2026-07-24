@@ -1,12 +1,13 @@
-import {
-  InvalidCoordinatesFormatException,
-  InvalidLatitudeException,
-  InvalidLongitudeException,
-} from '@src/domain/exceptions/vo/coordinates.exceptions';
 import { Guard } from '@common/domain/guards';
 import { isDefined } from '@common/utils';
+import { z } from 'zod';
+import { InvalidCoordinatesFormatException } from '@src/domain/exceptions';
 
 export class Coordinates {
+  private static readonly schema = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+  });
   private readonly _latitude: number;
   private readonly _longitude: number;
 
@@ -18,6 +19,15 @@ export class Coordinates {
 
   public static get validate() {
     return {
+      input: (latitude?: number | null, longitude?: number | null) => {
+        const result = Coordinates.schema.safeParse({ latitude, longitude });
+
+        return {
+          isValid: result.success,
+          error: result.error?.issues[0]?.message,
+          data: result.success ? result.data : undefined,
+        };
+      },
       params: {
         /**
          * 🚧 Enlem ve boylam çiftinden birinin eksik gelip gelmediğini kontrol eder
@@ -53,49 +63,24 @@ export class Coordinates {
     return this._longitude;
   }
 
-  /**
-   * 🎯 Güvenilir Kurucu: Persisted (DB) koordinatlardan doğrudan VO üretir; aralık doğrulaması atlanır.
-   */
   public static fromTrusted(latitude: number, longitude: number): Coordinates {
     return new Coordinates(latitude, longitude);
   }
 
   public static create(latitude?: number | null, longitude?: number | null) {
-    const isBlank =
-      latitude === undefined ||
-      latitude === null ||
-      longitude === undefined ||
-      longitude === null;
+    const validation = Coordinates.validate.input(latitude, longitude);
 
-    let instance: Coordinates | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        if (latitude < -90 || latitude > 90) {
-          throw new InvalidLatitudeException(latitude);
-        }
-        if (longitude < -180 || longitude > 180) {
-          throw new InvalidLongitudeException(longitude);
-        }
-        instance = new Coordinates(latitude, longitude);
-      } catch (e: any) {
-        error = e;
-      }
-    }
+    const instance = validation.isValid
+      ? new Coordinates(validation.data!.latitude, validation.data!.longitude)
+      : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Geçersizse veya boşsa undefined döner (Akışı kesmez)
-       */
-      instance: error ? undefined : instance,
-
-      /**
-       * ➔ Zorunlu Senaryo: Veri eksikse veya limit dışıysa anında fırlatır
-       */
+      instance,
       orThrow(exception?: Error): Coordinates {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidCoordinatesFormatException();
+        if (!instance) {
+          throw (
+            exception ?? new InvalidCoordinatesFormatException(validation.error)
+          );
         }
         return instance;
       },

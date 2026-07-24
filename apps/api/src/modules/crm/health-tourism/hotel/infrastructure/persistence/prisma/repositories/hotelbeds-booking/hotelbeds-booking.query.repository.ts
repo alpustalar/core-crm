@@ -5,7 +5,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IHotelbedsBookingQueryRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
-import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/hotel.contracts';
+import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
 
 @Injectable()
 export class HotelbedsBookingQueryRepository

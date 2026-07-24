@@ -7,8 +7,8 @@ import {
   IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
-  MESSAGE_QUERY_REPOSITORY,
   IMessageQueryRepository,
+  MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { GetConversationMessagesQuery } from './get-conversation-messages.query';
@@ -33,21 +33,23 @@ export class GetConversationMessagesHandler
     query: GetConversationMessagesQuery
   ): Promise<GetConversationMessagesResponse> {
     const conversation = await this.conversationQueryRepo.findById(
-      query.conversationId
+      query.payload.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== query.clinicId) {
+    if (conversation.clinicId !== query.payload.clinicId) {
       throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
     }
 
     const result = await this.messageQueryRepo.findManyByConversation(
-      query.conversationId,
-      query.pagination
+      query.payload.conversationId,
+      query.payload.pagination
     );
 
     return {
       data: result.items.map((m) => this.toView(m)),
-      meta: { pagination: buildPaginationMeta(query.pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(query.payload.pagination, result.total),
+      },
     };
   }
 

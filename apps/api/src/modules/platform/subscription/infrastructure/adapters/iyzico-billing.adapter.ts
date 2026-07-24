@@ -4,7 +4,7 @@ import { ROUTE_PATHS } from '@common/constants/routes.constant';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IyzicoProvider } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/iyzico.provider';
-import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/retrieve-checkout-form.result';
+import { RetrieveCheckoutFormResult } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/retrieve-checkout-form.result';
 import { randomUUID } from 'crypto';
 import {
   CapturedSavedCard,
@@ -115,6 +115,14 @@ export class IyzicoBillingAdapter implements IBillingAdapter {
     };
   }
 
+  async cancelPayment(iyzicoPaymentId: string, ip: string): Promise<void> {
+    await this.iyzicoProvider.cancelPayment({
+      conversationId: randomUUID(),
+      paymentId: iyzicoPaymentId,
+      ip,
+    });
+  }
+
   /** Checkout retrieve sonucundan kart saklama token'larını + alıcı snapshot'ını çıkarır. */
   private mapSavedCard(
     result: RetrieveCheckoutFormResult
@@ -147,14 +155,6 @@ export class IyzicoBillingAdapter implements IBillingAdapter {
         address: buyer.address,
       },
     };
-  }
-
-  async cancelPayment(iyzicoPaymentId: string, ip: string): Promise<void> {
-    await this.iyzicoProvider.cancelPayment({
-      conversationId: randomUUID(),
-      paymentId: iyzicoPaymentId,
-      ip,
-    });
   }
 
   private buildCallbackUrl(): string {

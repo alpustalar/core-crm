@@ -9,7 +9,7 @@ import {
   ArAgingFilter,
   CollectedInstallmentRow,
   ProviderRevenueFilterData,
-} from '@modules/finance/payment/domain/payment.contracts';
+} from '@modules/finance/payment/domain/contracts/payment.contracts';
 
 /** Henüz tahsil edilmemiş (açık) taksit durumları. */
 const OUTSTANDING_STATUSES = [

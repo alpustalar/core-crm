@@ -6,7 +6,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IPartyQueryRepository } from '@modules/finance/party/domain/repositories/party.repository';
 import { Party } from '@modules/finance/party/domain/entities/party.entity';
-import { FindPartiesFilter } from '@modules/finance/party/domain/party.contracts';
+import { FindPartiesFilter } from '@modules/finance/party/domain/contracts/party.contracts';
 
 @Injectable()
 export class PartyQueryRepository

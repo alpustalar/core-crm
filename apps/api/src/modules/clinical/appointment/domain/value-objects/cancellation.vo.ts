@@ -1,52 +1,48 @@
-import {
-  AppointmentCancellationTimeException,
-  InvalidAppointmentCancellationException,
-} from '../exceptions/appointment.exceptions';
+import { InvalidAppointmentCancellationException } from '../exceptions/appointment.exceptions';
 import { CreateCancellationProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { DateTimeManager, isEmpty } from '@common/utils';
 
 export class Cancellation {
   private readonly _canceledAt: Date;
   private readonly _canceledBy: string;
   private readonly _reason: string | null;
 
-  // Constructor'ı dışarıya kapatıyoruz ki sadece static create üzerinden üretilebilsin (Zorunlu değil ama DDD best practice)
-  private constructor(props: CreateCancellationProps) {
+  private constructor(props: {
+    canceledAt: Date;
+    canceledBy: string;
+    reason: string | null | undefined;
+  }) {
     this._canceledAt = props.canceledAt;
     this._canceledBy = props.canceledBy;
     this._reason = props.reason ?? null;
+    Object.freeze(this);
   }
 
   get canceledAt(): Date {
     return this._canceledAt;
   }
-
   get canceledBy(): string {
     return this._canceledBy;
   }
-
   get reason(): string | null {
     return this._reason;
   }
 
-  public static create(
-    canceledAt: Date,
-    canceledBy: string,
-    reason?: string | null
-  ): Cancellation {
-    if (!canceledBy || canceledBy.trim() === '') {
-      throw new InvalidAppointmentCancellationException();
-    }
+  public static create(props: CreateCancellationProps) {
+    const { canceledBy, reason } = props;
 
-    const now = new Date();
+    const now = DateTimeManager.create();
 
-    if (canceledAt < now) {
-      throw new AppointmentCancellationTimeException();
-    }
+    const instance = !isEmpty(canceledBy)
+      ? new Cancellation({ canceledAt: now, canceledBy, reason })
+      : undefined;
 
-    return new Cancellation({
-      canceledAt,
-      canceledBy,
-      reason,
-    });
+    return {
+      instance,
+      orThrow: () => {
+        if (!instance) throw new InvalidAppointmentCancellationException();
+        return instance;
+      },
+    };
   }
 }

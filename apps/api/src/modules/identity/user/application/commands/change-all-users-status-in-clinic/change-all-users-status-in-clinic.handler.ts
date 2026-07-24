@@ -9,7 +9,6 @@ import { ChangeAllUsersStatusInClinicCommand } from '@modules/identity/user/appl
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ChangeAllUsersStatusInClinicResponse } from '@modules/identity/user/application/commands/change-all-users-status-in-clinic/change-all-users-status-in-clinic.response';
-import { RedisService } from '@src/infrastructure/cache/redis/redis.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(ChangeAllUsersStatusInClinicCommand)
@@ -25,7 +24,6 @@ export class ChangeAllUsersStatusInClinicHandler
     private readonly userCommandRepo: IUserCommandRepository,
     @Inject(USER_QUERY_REPOSITORY)
     private readonly userQueryRepo: IUserQueryRepository,
-    private readonly redis: RedisService,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -34,18 +32,12 @@ export class ChangeAllUsersStatusInClinicHandler
     command: ChangeAllUsersStatusInClinicCommand
   ): Promise<ChangeAllUsersStatusInClinicResponse> {
     const { status, clinicId } = command;
-
-    const { items } = await this.txManager.run(async () => {
+    await this.txManager.run(async () => {
       await this.userCommandRepo.changeStatus(status, clinicId);
       return await this.userQueryRepo.findAllByStatusWithClinicId(
         status,
         clinicId
       );
     });
-
-    if (items && items.length > 0) {
-      const userIds = items.map((u) => u.id);
-      await this.redis.deleteManyActorContexts(userIds.map((id) => id.value));
-    }
   }
 }

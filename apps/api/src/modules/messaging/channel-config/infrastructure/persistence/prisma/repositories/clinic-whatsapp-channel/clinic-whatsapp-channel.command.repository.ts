@@ -13,7 +13,10 @@ export class ClinicWhatsappChannelCommandRepository
     super(prisma);
   }
 
-  async save(entity: ClinicWhatsappChannel): Promise<ClinicWhatsappChannel> {
+  // 1:1 satellite (clinicId unique) → get-or-create (upsert).
+  async upsertByClinicId(
+    entity: ClinicWhatsappChannel
+  ): Promise<ClinicWhatsappChannel> {
     const data = entity.toPersistence();
     const raw = await this.db.clinicWhatsappChannel.upsert({
       where: { clinicId: data.clinicId },

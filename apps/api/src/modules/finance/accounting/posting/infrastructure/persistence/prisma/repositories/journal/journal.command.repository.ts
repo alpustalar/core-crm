@@ -3,24 +3,25 @@ import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry-unique-constraint.exception';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IJournalCommandRepository } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { JournalLine } from '@modules/finance/accounting/posting/domain/entities/journal-line.entity';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 type JournalEntryWithLines = Prisma.JournalEntryGetPayload<{
   include: { lines: true };
 }>;
 
 @Injectable()
-export class JournalCommandRepository
-  extends BaseRepository
-  implements IJournalCommandRepository
-{
+export class JournalCommandRepository extends BaseRepository {
   constructor(prisma: PrismaService) {
     super(prisma);
   }
 
-  async save(entry: JournalEntry): Promise<JournalEntry> {
+  async findById(id: string): Promise<JournalEntry | null> {
+    const raw = await this.db.journalEntry.findUnique({ where: { id } });
+    return raw ? new JournalEntry(raw) : null;
+  }
+  async create(entry: JournalEntry): Promise<JournalEntry> {
     const data = entry.toPersistence();
     const lines = entry.linesToPersistence();
 
@@ -63,7 +64,7 @@ export class JournalCommandRepository
       data: {
         status: data.status,
         reversedById: data.reversedById,
-        updatedAt: new Date(),
+        updatedAt: DateTimeManager.create(),
       },
     });
   }

@@ -4,7 +4,12 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { ILeadQueryRepository } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
-import { FindLeadsFilter } from '@modules/crm/lead/domain/contracts/lead-contracts';
+import {
+  AdAttributedLead,
+  FindAdAttributedLeadsFilter,
+  FindLeadsFilter,
+} from '@modules/crm/lead/domain/contracts/lead-contracts';
+import { LeadStatusSchema } from '@shared';
 
 @Injectable()
 export class LeadQueryRepository
@@ -35,5 +40,34 @@ export class LeadQueryRepository
     });
 
     return this.mapPagination(result, (r) => new Lead(r));
+  }
+
+  async findAdAttributedConverted(
+    filter: FindAdAttributedLeadsFilter
+  ): Promise<AdAttributedLead[]> {
+    const rows = await this.db.lead.findMany({
+      where: {
+        clinicId: filter.clinicId,
+        status: LeadStatusSchema.enum.CONVERTED,
+        patientId: { not: null },
+        campaignId: { not: null },
+        createdAt: { gte: filter.from, lte: filter.to },
+      },
+      select: {
+        campaignId: true,
+        campaignName: true,
+        adId: true,
+        patientId: true,
+        createdAt: true,
+      },
+    });
+
+    return rows.map((r) => ({
+      campaignId: r.campaignId as string,
+      campaignName: r.campaignName,
+      adId: r.adId,
+      patientId: r.patientId as string,
+      createdAt: r.createdAt,
+    }));
   }
 }

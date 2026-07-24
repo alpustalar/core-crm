@@ -9,8 +9,8 @@ export const TREATMENT_PACKAGE_QUERY_REPO = Symbol(
   'ITreatmentPackageQueryRepository'
 );
 
-export interface ITreatmentPackageCommandRepository
-  extends IBaseCommandRepository<TreatmentPackage> {}
+export type ITreatmentPackageCommandRepository =
+  IBaseCommandRepository<TreatmentPackage>;
 
 export interface ITreatmentPackageQueryRepository {
   findById(id: string): Promise<TreatmentPackage | null>;

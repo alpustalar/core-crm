@@ -17,6 +17,8 @@ import { ROUTE_PATHS, THROTTLE_CONFIG } from '@common/constants';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { StripeClientFactory } from '@src/infrastructure/payment/links/adapters/stripe-client.factory';
 import { ConfirmBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/confirm-booking-payment/confirm-booking-payment.command';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { BookingPaymentProviderSchema } from '@shared';
 
 /**
  * Stripe webhook — sağlık turizmi (otel/transfer) ödemesinin yurt dışı (EUR/USD) bacağı.
@@ -57,9 +59,7 @@ export class StripeWebhookController {
     }
 
     if (event.type === 'checkout.session.completed') {
-      await this.onCheckoutCompleted(
-        event.data.object as Stripe.Checkout.Session
-      );
+      await this.onCheckoutCompleted(event.data.object);
     }
 
     return { received: true };
@@ -86,8 +86,9 @@ export class StripeWebhookController {
     await this.commandBus.execute(
       new ConfirmBookingPaymentCommand({
         bookingPaymentId,
-        provider: 'STRIPE',
+        provider: BookingPaymentProviderSchema.enum.STRIPE,
         providerRef: paymentIntent,
+        ctx: ExecutionContextFactory.createInternal(),
       })
     );
   }

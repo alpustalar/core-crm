@@ -25,7 +25,7 @@ export class ConfigureClinicAiAgentHandler
   ) {}
 
   async execute(command: ConfigureClinicAiAgentCommand): Promise<string> {
-    const { clinicId, input, ctx } = command;
+    const { clinicId, input, ctx } = command.payload;
 
     // apiKey verildiyse şifrele; verilmediyse undefined → mevcut korunur (update) / null (create).
     const encryptedApiKey = input.apiKey
@@ -52,7 +52,7 @@ export class ConfigureClinicAiAgentHandler
     });
 
     const saved = await this.txManager.run(() =>
-      this.configCommandRepo.save(config)
+      this.configCommandRepo.upsertByClinicId(config)
     );
     return saved.id.value;
   }

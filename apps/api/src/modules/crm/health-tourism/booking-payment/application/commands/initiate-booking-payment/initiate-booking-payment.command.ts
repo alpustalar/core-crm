@@ -3,7 +3,7 @@ import {
   BookingIntent,
   BookingPaymentTypeValue,
   Currency,
-} from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 import { InitiateBookingPaymentResponse } from './initiate-booking-payment.response';
 
 export interface InitiateBookingPaymentBuyer {
@@ -16,10 +16,13 @@ export interface InitiateBookingPaymentBuyer {
 export interface InitiateBookingPaymentInput {
   bookingType: BookingPaymentTypeValue;
   intent: BookingIntent;
-  /** HotelBeds net maliyet (satış = net × (1 + serviceFeePercent/100)). */
+  /**
+   * HotelBeds net maliyet. Satış tutarı = net × (1 + platform komisyonu/100). Komisyon
+   * platform geliridir (klinik değil) ve handler tarafından platform-global ayardan uygulanır;
+   * çağıran (AI aracı) komisyonu bilmez/geçmez.
+   */
   netAmount: number;
   netCurrency: Currency;
-  serviceFeePercent: number;
   buyer: InitiateBookingPaymentBuyer;
   clinicId: string;
   organizationId: string;

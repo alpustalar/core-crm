@@ -5,20 +5,22 @@ import { PatientActorContext } from '@common/interfaces';
 import { AppointmentPatientPolicy } from '@modules/clinical/appointment/application/policies/appointment-patient.policy';
 import { PatientBasePolicy } from '@modules/platform/policy/patient/application/patient-base.policy';
 import { PatientPolicyEvaluator } from '@modules/platform/policy/patient/application/patient-policy-evaluator';
+import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
 
 @Injectable()
 export class PatientPolicyFactory implements IPatientPolicyFactory {
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
-  appointment(actor: PatientActorContext) {
-    return this.build(AppointmentPatientPolicy, actor);
+  appointment(actor: PatientActorContext, source: ExecutionSource) {
+    return this.build(AppointmentPatientPolicy, actor, source);
   }
 
   private build<T extends PatientBasePolicy>(
-    PolicyClass: new (actor: PatientActorContext) => T,
-    actor: PatientActorContext
+    PolicyClass: new (actor: PatientActorContext, source: ExecutionSource) => T,
+    actor: PatientActorContext,
+    source: ExecutionSource
   ) {
-    const policy = new PolicyClass(actor);
+    const policy = new PolicyClass(actor, source);
     const evaluator = new PatientPolicyEvaluator(policy, this.eventEmitter);
     return { evaluator, policy };
   }

@@ -4,6 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import type { ISubscriptionCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
 
 @Injectable()
 export class SubscriptionCommandRepository
@@ -26,15 +27,22 @@ export class SubscriptionCommandRepository
 
   async save(entity: Subscription): Promise<Subscription> {
     const toPersistence = entity.toPersistence();
+    const { id, version, ...data } = toPersistence;
 
-    const { id, ...data } = toPersistence;
-    const raw = await this.db.subscription.update({
-      where: { id },
-      data,
+    // Optimistic concurrency guard: version hâlâ okuduğumuz değerse günceller ve
+    // artırır (ör. yenileme job'u vs. kullanıcı iptali yarışı). Etkilenen satır 0 →
+    // kayıt bu arada değişmiş → ConcurrencyConflictException (409).
+    const result = await this.db.subscription.updateMany({
+      where: { id, version },
+      data: { ...data, version: version + 1 },
     });
 
+    if (result.count === 0) {
+      throw new ConcurrencyConflictException('Subscription', id);
+    }
+
     entity.flushEvents();
-    return new Subscription(raw);
+    return new Subscription({ ...toPersistence, version: version + 1 });
   }
 
   async sync(subscription: Subscription): Promise<Subscription | null> {

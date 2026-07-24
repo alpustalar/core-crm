@@ -1,12 +1,12 @@
-import { BookHotelDto } from '@shared/modules/health-tourism/dto/commands';
 import { IGetContext } from '@common/decorators/get-context.decorator';
 import { BookHotelResponse } from './book-hotel.response';
+import { BookHotel } from '@shared/modules/health-tourism';
 
 export class BookHotelCommand {
   readonly __responseType!: BookHotelResponse;
 
   constructor(
-    public readonly dto: BookHotelDto,
-    public readonly ctx: IGetContext,
+    public readonly data: BookHotel,
+    public readonly ctx: IGetContext
   ) {}
 }

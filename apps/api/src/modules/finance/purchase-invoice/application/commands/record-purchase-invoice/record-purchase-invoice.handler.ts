@@ -18,47 +18,66 @@ import {
   PartyTypeSchema,
 } from '@shared';
 import { RecordPurchaseInvoiceCommand } from './record-purchase-invoice.command';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
-import { OrganizationNotAssignedException } from '@src/domain/exceptions/organization-not-assigned.exception';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { PriceBreakdown } from '@modules/finance/shared/domain/value-objects/price-breakdown.vo';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(RecordPurchaseInvoiceCommand)
 export class RecordPurchaseInvoiceHandler
   implements ICommandHandler<RecordPurchaseInvoiceCommand, string>
 {
   private readonly logger = new Logger(RecordPurchaseInvoiceHandler.name);
+  private internalCtx = ExecutionContextFactory.createInternal();
 
   constructor(
     @Inject(PURCHASE_INVOICE_COMMAND_REPOSITORY)
     private readonly purchaseInvoiceCommandRepo: IPurchaseInvoiceCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus
   ) {}
 
   async execute(command: RecordPurchaseInvoiceCommand): Promise<string> {
-    const { dto, ctx } = command;
-    const clinicId = ctx.actor.clinicId;
-    const organizationId = ctx.actor.organizationId;
-    if (!clinicId) throw new ClinicNotAssignedException();
-    if (!organizationId) throw new OrganizationNotAssignedException();
+    const { data, ctx } = command;
 
-    const generatedPurchaseInvoiceId = crypto.randomUUID();
-    const netTotal = new Decimal(dto.netTotal);
-    const vatTotal = new Decimal(dto.vatTotal);
-    const grandTotal = netTotal.plus(vatTotal);
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicAndOrganization(
+          data.clinicId,
+          data.organizationId
+        )
+      )
+      .orThrow();
+
+    const generatedPurchaseInvoiceId = UUID.generate();
+
+    const priceBreakdown = PriceBreakdown.create({
+      currency: data.currency,
+      netAmount: data.netTotal,
+      vatAmount: data.vatTotal,
+    }).orThrow();
 
     const invoice = PurchaseInvoice.create({
-      id: generatedPurchaseInvoiceId,
-      clinicId,
-      organizationId,
-      supplierId: dto.supplierId,
-      invoiceNumber: dto.invoiceNumber ?? null,
-      invoiceDate: dto.invoiceDate,
-      lineAccountCode: dto.lineAccountCode,
-      vatRate: dto.vatRate,
-      netTotal,
-      vatTotal,
-      grandTotal,
-      currency: dto.currency,
+      id: generatedPurchaseInvoiceId.value,
+      clinicId: data.clinicId,
+      organizationId: data.organizationId,
+      supplierId: data.supplierId,
+      invoiceNumber: data.invoiceNumber ?? null,
+      invoiceDate: data.invoiceDate,
+      lineAccountCode: data.lineAccountCode,
+      vatRate: data.vatRate,
+      netTotal: priceBreakdown.netAmount.value,
+      vatTotal: priceBreakdown.vatAmount.value,
+      grandTotal: priceBreakdown.grandTotal.value,
+      currency: priceBreakdown.grandTotal.currency,
     });
 
     // Belge kaydı + muhasebe köprüsü aynı outboxRun içinde; köprü hatası try/catch ile
@@ -66,23 +85,23 @@ export class RecordPurchaseInvoiceHandler
     await this.txManager.outboxRun(async () => {
       await this.purchaseInvoiceCommandRepo.create(invoice);
       await this.recordPurchaseInvoiceReceived({
-        purchaseInvoiceId: generatedPurchaseInvoiceId,
-        clinicId,
-        organizationId,
-        supplierId: dto.supplierId,
-        supplierName: dto.supplierName,
-        supplierTaxNumber: dto.supplierTaxNumber,
-        supplierTaxOffice: dto.supplierTaxOffice,
-        invoiceDate: dto.invoiceDate,
-        lineAccountCode: dto.lineAccountCode,
-        netTotal,
-        vatTotal,
-        grandTotal,
-        ctx,
+        purchaseInvoiceId: generatedPurchaseInvoiceId.value,
+        clinicId: data.clinicId,
+        organizationId: data.organizationId,
+        supplierId: data.supplierId,
+        supplierName: data.supplierName,
+        supplierTaxNumber: data.supplierTaxNumber,
+        supplierTaxOffice: data.supplierTaxOffice,
+        invoiceDate: data.invoiceDate,
+        lineAccountCode: data.lineAccountCode,
+        netTotal: priceBreakdown.netAmount.value,
+        vatTotal: priceBreakdown.vatAmount.value,
+        grandTotal: priceBreakdown.grandTotal.value,
+        ctx: this.internalCtx,
       });
     });
 
-    return generatedPurchaseInvoiceId;
+    return generatedPurchaseInvoiceId.value;
   }
 
   /**
@@ -108,16 +127,13 @@ export class RecordPurchaseInvoiceHandler
             taxNumber: input.supplierTaxNumber ?? null,
             taxOffice: input.supplierTaxOffice ?? null,
           },
-          input.ctx
+          this.internalCtx
         )
       );
-
-      // TODO: burdaki source module dedupe key gibi alanları daha sistemik bi hale getiricez belki bi fonksiyon içinde constantlarla kullanılabilir
 
       await this.commandBus.execute(
         new RecordFinancialEventCommand(
           {
-            organizationId: input.organizationId,
             clinicId: input.clinicId,
             type: FinancialEventTypeSchema.enum.PURCHASE_INVOICE_RECEIVED,
             occurredAt: input.invoiceDate,
@@ -128,11 +144,13 @@ export class RecordPurchaseInvoiceHandler
               grandTotal: input.grandTotal.toFixed(2),
               lineAccountCode: input.lineAccountCode,
             },
-            sourceModule: 'purchase-invoice',
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.PURCHASE_INVOICE,
             sourceRefId: input.purchaseInvoiceId,
-            dedupeKey: `purchase-invoice:${input.purchaseInvoiceId}`,
+            dedupeKey: FinancialEventDedupeKeys.purchase_invoice(
+              input.purchaseInvoiceId
+            ),
           },
-          input.ctx
+          this.internalCtx
         )
       );
     } catch (error) {

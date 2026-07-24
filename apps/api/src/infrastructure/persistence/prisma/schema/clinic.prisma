@@ -113,7 +113,7 @@ model ClinicPortalSettings {
   primaryColor String  @default("#00bcd4") @map("primary_color")
   customTitle  String? @map("custom_title") // Örn: "Acıbadem Diş Özel Hasta Paneli"
 
-  allowOnlineBooking Boolean @default(true) @map("allow_online_booking") // Hastalar portaldan kendi randevu alabilsin mi?
+  showOnlineBooking  Boolean @default(true) @map("allow_online_booking") // Portalda hastalar için randevu alma kısmı gözüksün mü
   showMedicalRecords Boolean @default(true) @map("show_medical_records") // Reçete, tanı ve anamnez formları hastaya açık olsun mu?
   showFinancials     Boolean @default(false) @map("show_financials") // Hasta kendi kalan borç/alacak tablosunu görsün mü?
   showRaysAndImages  Boolean @default(true) @map("show_rays_and_images") // Röntgen ve klinik içi fotoğraflar portala düşsün mu?
@@ -130,7 +130,8 @@ model ClinicAppointmentSettings {
   id       String @id
   clinicId String @unique @map("clinic_id")
 
-  // Hastanın iptal/erteleme kuralları
+  // Hastanın randevu alma / iptal / erteleme kuralları
+  allowPatientBooking  Boolean @default(true) @map("allow_patient_booking") // Hasta panelden kendi randevusunu oluşturabilsin mi?
   rescheduleLimitHours Int     @default(6) @map("reschedule_limit_hours") // Kaç saat kalana kadar erteleyebilir
   cancelLimitHours     Int     @default(24) @map("cancel_limit_hours") // Kaç saat kalana kadar iptal edebilir
   allowPatientCancel   Boolean @default(true) @map("allow_patient_cancel") // Hasta panelden kendi iptal edebilsin mi?
@@ -146,6 +147,9 @@ model ClinicAppointmentSettings {
   // Çift rezervasyon / Onay kuralları
   requireConfirmation  Boolean @default(false) @map("require_confirmation") // Randevu alındığında sekreter onayı gereksin mi?
   maxFutureBookingDays Int     @default(90) @map("max_future_booking_days") // En fazla kaç gün sonrasına randevu açılabilir?
+
+  // Slot üretimi: açık randevu slotları bu adımla (dakika) hesaplanır
+  slotDurationMinutes Int @default(30) @map("slot_duration_minutes") // Varsayılan randevu slot uzunluğu (dakika)
 
   // İlişki (One-to-One)
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)

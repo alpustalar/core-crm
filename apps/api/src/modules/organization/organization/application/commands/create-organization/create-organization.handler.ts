@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateOrganizationCommand } from './create-organization.command';
 import {
@@ -13,8 +12,9 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
 
-// REGISTER İŞLEMLERİ BURADAN YAPILMIYOR. BU SADECE CREATE HANDLERI.
+// REGISTER İŞLEMLERİ BURADAN YAPILMAZ
 
 @CommandHandler(CreateOrganizationCommand)
 export class CreateOrganizationHandler
@@ -31,7 +31,7 @@ export class CreateOrganizationHandler
   async execute(
     command: CreateOrganizationCommand
   ): Promise<CreateOrganizationResponse> {
-    const { dto, ctx, internalRelations } = command;
+    const { data, ctx, internalRelations } = command.payload;
     const { source, actor } = ctx;
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
@@ -40,16 +40,17 @@ export class CreateOrganizationHandler
       }
     } else {
       this.policyFactory
-        .user(actor)
+        .user(actor, source)
         .evaluator.check(
           (p) => p.isSystemAdmin(),
           'Admin yetkisine sahip olmalısınız.'
-        );
+        )
+        .orThrow();
     }
 
-    const id = internalRelations?.id ?? randomUUID();
-    const org = Organization.create({ ...dto, id });
-    const saved = await this.orgRepository.save(org);
-    return saved.id;
+    const id = internalRelations?.id ?? UUID.generate().value;
+    const org = Organization.create({ ...data, id });
+    const saved = await this.orgRepository.create(org);
+    return saved.id.value;
   }
 }

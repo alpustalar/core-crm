@@ -27,12 +27,12 @@ export class OrganizationCommandRepository
   }
 
   async save(entity: Organization): Promise<Organization> {
-    const data = entity.toPersistence();
+    const persistenceData = entity.toPersistence();
+    const { id, ...data } = persistenceData;
 
-    const raw = await this.db.organization.upsert({
-      where: { id: entity.id },
-      create: data,
-      update: data,
+    const raw = await this.db.organization.update({
+      where: { id },
+      data,
     });
 
     entity.flushEvents();
@@ -41,11 +41,11 @@ export class OrganizationCommandRepository
 
   async saveMany(entities: Organization[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
-      const data = entity.toPersistence();
-      return this.db.organization.upsert({
-        where: { id: entity.id },
-        create: data,
-        update: data,
+      const persistenceData = entity.toPersistence();
+      const { id, ...data } = persistenceData;
+      return this.db.organization.update({
+        where: { id },
+        data,
       });
     });
 

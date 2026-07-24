@@ -5,6 +5,7 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class ClinicCommandRepository
@@ -35,23 +36,38 @@ export class ClinicCommandRepository
         organizationId,
         status: { not: GlobalStatusSchema.enum.DELETED },
       },
-      data: { status: GlobalStatusSchema.enum.DELETED, deletedAt: new Date() },
+      data: {
+        status: GlobalStatusSchema.enum.DELETED,
+        deletedAt: DateTimeManager.create(),
+      },
     });
     return { deletedCount };
   }
 
   async save(entity: Clinic): Promise<Clinic> {
-    const data = entity.toPersistence();
-    const raw = await this.db.clinic.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
+    const persistenceData = entity.toPersistence();
+    const { id, ...data } = persistenceData;
+    const raw = await this.db.clinic.update({
+      where: { id },
+      data,
     });
     entity.flushEvents();
     return new Clinic(raw);
   }
 
-  async saveMany(entities: Clinic[]): Promise<void> {
+  async sync(entity: Clinic): Promise<Clinic> {
+    const create = entity.toPersistence();
+    const { id, ...update } = create;
+    const raw = await this.db.clinic.upsert({
+      where: { id },
+      create,
+      update,
+    });
+    entity.flushEvents();
+    return new Clinic(raw);
+  }
+
+  async syncMany(entities: Clinic[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const data = entity.toPersistence();
       return this.db.clinic.upsert({

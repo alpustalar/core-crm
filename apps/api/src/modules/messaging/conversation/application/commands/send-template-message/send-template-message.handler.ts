@@ -31,7 +31,7 @@ export class SendTemplateMessageHandler
   ) {}
 
   async execute(command: SendTemplateMessageCommand): Promise<string> {
-    const { clinicId, input, ctx } = command;
+    const { clinicId, input, ctx } = command.payload;
 
     const conversation = await this.conversationQueryRepo.findById(
       input.conversationId
@@ -70,7 +70,7 @@ export class SendTemplateMessageHandler
         },
       },
     });
-    const saved = await this.messageCommandRepo.save(message);
+    const saved = await this.messageCommandRepo.create(message);
 
     await this.sendMessageProducer.enqueueSend(saved.id);
 

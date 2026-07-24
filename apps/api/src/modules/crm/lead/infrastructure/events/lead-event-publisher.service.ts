@@ -13,7 +13,7 @@ import { ILeadEventPublisher } from '@modules/crm/lead/domain/interfaces/lead-ev
 import {
   CONTEXT_SERVICE,
   IContextService,
-} from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+} from '@src/infrastructure/context/context.service.interface';
 
 @Injectable()
 export class LeadEventPublisher implements ILeadEventPublisher {

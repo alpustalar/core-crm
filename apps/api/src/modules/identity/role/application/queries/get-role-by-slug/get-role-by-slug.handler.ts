@@ -3,8 +3,8 @@ import { Inject } from '@nestjs/common';
 import { GetRoleBySlugQuery } from './get-role-by-slug.query';
 import { GetRoleBySlugQueryResponse } from './get-role-by-slug.response';
 import {
-  IRoleRepository,
-  ROLE_REPO,
+  IRoleQueryRepository,
+  ROLE_QUERY_REPOSITORY,
 } from '@modules/identity/role/domain/repositories/role.repository.interface';
 
 @QueryHandler(GetRoleBySlugQuery)
@@ -12,8 +12,8 @@ export class GetRoleBySlugHandler
   implements IQueryHandler<GetRoleBySlugQuery, GetRoleBySlugQueryResponse>
 {
   constructor(
-    @Inject(ROLE_REPO)
-    private readonly roleRepository: IRoleRepository
+    @Inject(ROLE_QUERY_REPOSITORY)
+    private readonly roleRepository: IRoleQueryRepository
   ) {}
 
   async execute(

@@ -12,6 +12,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 @CommandHandler(ConfirmAppointmentCommand)
 export class ConfirmAppointmentHandler
@@ -25,7 +26,8 @@ export class ConfirmAppointmentHandler
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentCommandRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -33,22 +35,29 @@ export class ConfirmAppointmentHandler
   ): Promise<ConfirmAppointmentCommandResponse> {
     const { appointmentId, ctx } = command;
 
-    const { actor } = ctx;
     const appointment =
       await this.appointmentCommandRepo.findById(appointmentId);
 
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
-      .appointment(actor)
+      .appointment(ctx.actor, ctx.source)
       .evaluator.check(
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuya erişim yetkiniz yok.'
       )
       .orThrow(APPOINTMENT_EVENTS.CONFIRMED);
 
+    const validateOptions = this.policyFactory
+      .entity(ctx.actor, ctx.source)
+      .policy.getValidateOptions();
+
+    appointment.rules(validateOptions).confirm.orThrow();
+
     appointment.confirm();
 
-    await this.appointmentCommandRepo.save(appointment);
+    await this.txManager.run(async () => {
+      await this.appointmentCommandRepo.save(appointment);
+    });
   }
 }

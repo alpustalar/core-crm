@@ -103,9 +103,9 @@ model ClinicHealthTourismConfig {
   clinicLocationCode String? @map("clinic_location_code") // otel ATLAS kodu / GPS koordinatı
   pickupAddress      String? @map("pickup_address") // klinik adresi (transfer + bilgi)
 
-  // FİYAT
-  serviceFeePercent Decimal? @map("service_fee_percent") @db.Decimal(5, 2) // satış üzerine komisyon %
-  defaultCurrency   Currency @default(EUR) @map("default_currency")
+  // FİYAT — satış komisyonu (service_fee_percent) burada YOK: komisyon PLATFORM geliridir,
+  // klinik başına ayarlanmaz. Oran platform-global env (HEALTH_TOURISM_SERVICE_FEE_PERCENT).
+  defaultCurrency Currency @default(EUR) @map("default_currency")
 
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 

@@ -12,5 +12,4 @@ export const UpdateProductSchema = z.object({
   reorderQty: z.number().min(0).optional(),
   categoryId: z.string().optional().nullable(),
   supplierId: z.string().optional().nullable(),
-  clinicId: z.uuid(),
 });

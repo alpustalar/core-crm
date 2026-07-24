@@ -8,12 +8,19 @@ import { CompleteAppointmentHandler } from './complete-appointment/complete-appo
 import { CancelAppointmentHandler } from './cancel-appointment/cancel-appointment.handler';
 import { PatientCancelAppointmentHandler } from './patient-cancel-appointment/patient-cancel-appointment.handler';
 import { Module } from '@nestjs/common';
-import { BookAppointmentHandler } from './book-appointment/book-appointment.handler';
 import { PatientBookAppointmentHandler } from './patient-book-appointment/patient-book-appointment.handler';
+import { BookAppointmentByContactHandler } from './book-appointment-by-contact/book-appointment-by-contact.handler';
+import { UpdateAppointmentDetailsHandler } from './update-appointment-details/update-appointment-details.handler';
+import { CancelProviderDayHandler } from './cancel-provider-day/cancel-provider-day.handler';
+import { CheckInAppointmentHandler } from './check-in-appointment/check-in-appointment.handler';
+import { LockAppointmentSlotHandler } from './lock-appointment-slot/lock-appointment-slot.handler';
+import { ReleaseAppointmentSlotHandler } from './release-appointment-slot/release-appointment-slot.handler';
+import { ProcessAppointmentRemindersHandler } from './process-appointment-reminders/process-appointment-reminders.handler';
 import { AppointmentEventModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
 import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
+import { AppointmentCacheService } from '@modules/clinical/appointment/infrastructure/cache/appointment-cache.service';
 
 const CommandHandlers = [
   StaffRescheduleHandler,
@@ -25,13 +32,23 @@ const CommandHandlers = [
   CompleteAppointmentHandler,
   CancelAppointmentHandler,
   PatientCancelAppointmentHandler,
-  BookAppointmentHandler,
   PatientBookAppointmentHandler,
+  BookAppointmentByContactHandler,
+  UpdateAppointmentDetailsHandler,
+  CancelProviderDayHandler,
+  CheckInAppointmentHandler,
+  LockAppointmentSlotHandler,
+  ReleaseAppointmentSlotHandler,
+  ProcessAppointmentRemindersHandler,
 ];
 
 @Module({
   imports: [AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
-  providers: [...CommandHandlers, AppointmentCheckerService],
+  providers: [
+    ...CommandHandlers,
+    AppointmentCheckerService,
+    AppointmentCacheService,
+  ],
   exports: [...CommandHandlers],
 })
 export class AppointmentCommandModule {}

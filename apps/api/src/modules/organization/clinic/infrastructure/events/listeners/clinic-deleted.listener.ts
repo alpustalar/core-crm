@@ -8,7 +8,7 @@ import { ClinicSoftDeleteRequestedEvent } from '@modules/organization/clinic/dom
 import {
   IMailService,
   MAIL_SERVICE,
-} from '@modules/platform/mail/domain/interfaces/mail.service.interface';
+} from '@src/infrastructure/mail/interfaces/mail.service.interface';
 
 @Injectable()
 export class ClinicDeletedListener {

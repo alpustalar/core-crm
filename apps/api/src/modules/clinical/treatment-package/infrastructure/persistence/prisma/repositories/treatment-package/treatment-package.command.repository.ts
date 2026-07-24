@@ -34,12 +34,13 @@ export class TreatmentPackageCommandRepository
     const providerIds = treatmentPackage.providerIdsToSync;
     const items = treatmentPackage.itemsToSync;
 
+    const { id: _pkgId, ...updateData } = data;
+
     const executeQueries = async (dbInstance: any) => {
-      // 1. Ana tabloyu (TreatmentPackage) upsert et
-      const raw = await dbInstance.treatmentPackage.upsert({
+      // 1. Ana tabloyu (TreatmentPackage) güncelle
+      const raw = await dbInstance.treatmentPackage.update({
         where: { id: treatmentPackage.id },
-        create: data,
-        update: data,
+        data: updateData,
       });
 
       // 2. Sağlayıcılar (Providers) için senkronizasyon (Sadece değiştiyse/tanımlandıysa)

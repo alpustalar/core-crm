@@ -1,6 +1,6 @@
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
 import { BaseEvent } from '@common/interfaces';
-import { INVOICE_EVENTS } from '@src/domain/constants/events/invoice.constants';
+import { INVOICE_EVENTS } from '@src/domain/constants/events/invoice.constant';
 
 export interface InvoiceIssuedEventPayload extends IAuditLog {
   invoiceId: string;

@@ -11,7 +11,6 @@ import {
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
@@ -34,26 +33,14 @@ export class ConvertUserToProviderHandler
   async execute(
     command: ConvertUserToProviderCommand
   ): Promise<ConvertUserToProviderResponse> {
-    const { ctx, dto } = command;
-    const { actor, source } = ctx;
-
     this.policyFactory
-      .provider(actor)
-      .evaluator.bypassIf(ExecutionPolicy.isSystemInitiated(source))
-      .check((p) => p.isTargetInActorsManagedClinic(dto.clinicId))
+      .provider(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) =>
+        p.isTargetInActorsSameClinic(command.data.clinicId)
+      )
       .orThrow(PROVIDER_EVENTS.CREATED);
 
-    const provider = Provider.create({
-      userId: dto.userId,
-      clinicId: dto.clinicId,
-      providerTitleId: dto.titleId,
-      providerSpecialtyId: dto.specialtyId,
-      publicPhone: dto.publicPhone,
-      publicEmail: dto.publicEmail,
-      isActive: dto.isActive,
-      acceptsConsultation: dto.acceptsConsultation,
-      operationMode: dto.operationMode,
-    });
+    const provider = Provider.create(command.data);
 
     await this.transactionManager.run(() =>
       this.providerCommandRepo.create(provider)

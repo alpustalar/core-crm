@@ -2,14 +2,11 @@ import { Expose, Type } from 'class-transformer';
 import { ProviderResponseDto } from '@modules/clinical/provider/presentation/dto/provider-response.dto';
 import { Role, UserResponse } from '@shared';
 import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
-import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
+import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
 
 export class RelationalDto {
-  @Expose()
-  id: string;
-
-  @Expose()
-  name: string;
+  @Expose() id: string;
+  @Expose() name: string;
 }
 
 const { DATA_OWNER, INTERNAL, MANAGEMENT, ADMIN } = UserResponseGroups;
@@ -33,28 +30,28 @@ export class UserResponseDto implements UserResponse {
   // --------------------
   // Ownership & Privacy (Self + Management)
   // --------------------
-  @Expose({ groups: [DATA_OWNER, MANAGEMENT] })
+  @Expose({ groups: [ADMIN, DATA_OWNER, MANAGEMENT] })
   email: string;
 
-  @Expose({ groups: [DATA_OWNER, MANAGEMENT] })
+  @Expose({ groups: [ADMIN, DATA_OWNER, MANAGEMENT] })
   role: Role;
 
-  @Expose({ groups: [DATA_OWNER, MANAGEMENT] })
+  @Expose({ groups: [ADMIN, DATA_OWNER, MANAGEMENT] })
   emailVerified: boolean;
 
-  @Expose({ groups: [DATA_OWNER, MANAGEMENT] })
+  @Expose({ groups: [ADMIN, DATA_OWNER, MANAGEMENT] })
   lastLogin: Date;
 
   // --------------------
   // Management & Operational (Internal Team)
   // --------------------
-  @Expose({ groups: [MANAGEMENT, INTERNAL] })
+  @Expose({ groups: [ADMIN, MANAGEMENT, INTERNAL] })
   status: GlobalStatus;
 
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose({ groups: [ADMIN, MANAGEMENT] })
   createdAt: Date;
 
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose({ groups: [ADMIN, MANAGEMENT] })
   updatedAt: Date;
 
   @Expose({ groups: [ADMIN] })
@@ -63,11 +60,11 @@ export class UserResponseDto implements UserResponse {
   // --------------------
   // Relational Data (Context Specific)
   // --------------------
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose({ groups: [ADMIN, MANAGEMENT] })
   @Type(() => RelationalDto)
   managedClinics?: RelationalDto[];
 
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose({ groups: [ADMIN, MANAGEMENT] })
   @Type(() => RelationalDto)
   ownedOrganizations?: RelationalDto[];
 

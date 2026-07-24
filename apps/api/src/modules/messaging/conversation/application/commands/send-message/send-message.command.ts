@@ -1,6 +1,6 @@
 import { MessageType } from '@prisma/client';
 import { IGetContext } from '@common/decorators';
-import { OutboundMediaType } from '@modules/messaging/conversation/domain/types/create-message.props';
+import { OutboundMediaType } from '@modules/messaging/conversation/domain/contracts/message.contracts';
 
 export interface SendMessageInput {
   conversationId: string;
@@ -18,8 +18,10 @@ export interface SendMessageInput {
 export class SendMessageCommand {
   readonly __responseType!: string;
   constructor(
-    public readonly clinicId: string,
-    public readonly input: SendMessageInput,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      input: SendMessageInput;
+      ctx: IGetContext;
+    }
   ) {}
 }

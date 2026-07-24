@@ -2,10 +2,12 @@ import { Module } from '@nestjs/common';
 import { IyzicoModule } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/iyzico.module';
 import { IYZICO_PAYMENT_LINK, STRIPE_PAYMENT_LINK } from './payment-link.port';
 import { FX_RATE_PROVIDER } from './fx-rate.port';
+import { SERVICE_FEE_PROVIDER } from './service-fee.port';
 import { IyzicoPaymentLinkAdapter } from './adapters/iyzico-payment-link.adapter';
 import { StripePaymentLinkAdapter } from './adapters/stripe-payment-link.adapter';
 import { StripeClientFactory } from './adapters/stripe-client.factory';
 import { StaticEnvFxRateProvider } from './adapters/static-env-fx-rate.provider';
+import { StaticEnvServiceFeeProvider } from './adapters/static-env-service-fee.provider';
 import { TcmbFxRateProvider } from './adapters/tcmb-fx-rate.provider';
 
 /**
@@ -22,12 +24,15 @@ import { TcmbFxRateProvider } from './adapters/tcmb-fx-rate.provider';
     // TCMB işlem-tarihli kur (statutory); çözülemezse StaticEnv fallback'e düşer.
     StaticEnvFxRateProvider,
     { provide: FX_RATE_PROVIDER, useClass: TcmbFxRateProvider },
+    // Platform satış komisyonu oranı (env) — sağlık turizmi geliri.
+    { provide: SERVICE_FEE_PROVIDER, useClass: StaticEnvServiceFeeProvider },
   ],
   exports: [
     StripeClientFactory,
     IYZICO_PAYMENT_LINK,
     STRIPE_PAYMENT_LINK,
     FX_RATE_PROVIDER,
+    SERVICE_FEE_PROVIDER,
   ],
 })
 export class PaymentLinkModule {}

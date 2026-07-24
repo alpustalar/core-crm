@@ -1,22 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { AppointmentStatusSchema, Pagination } from '@shared';
+import { Appointment, AppointmentStatusSchema, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { DateTimeManager } from '@common/utils';
 import {
   AppointmentWithDetails,
+  ClinicCalendarEventRow,
+  ClinicStatusCount,
   ConflictingAppointment,
+  ConflictingAppointmentView,
   FindByOrganizationIdData,
   FindClinicCalendarData,
+  FindClinicCalendarEventsData,
+  FindClinicDailyCountsData,
   FindConflictingAppointmentData,
   FindProviderCalendarData,
+  FindUpcomingRemindersData,
+  FindWaitingRoomData,
   OccupiedSlot,
-  PaginatedAppointments,
   ProviderDailyLoad,
+  SearchClinicAppointmentsData,
+  WaitingRoomRow,
 } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { Paginated } from '@common/interfaces/paginated.type';
 
 @Injectable()
 export class AppointmentQueryRepository
@@ -27,11 +35,10 @@ export class AppointmentQueryRepository
     super(prisma);
   }
 
-  async findById(appointmentId: string): Promise<Appointment | null> {
-    const raw = await this.db.appointment.findUnique({
+  findById(appointmentId: string): Promise<Appointment | null> {
+    return this.db.appointment.findUnique({
       where: { id: appointmentId },
     });
-    return raw ? new Appointment(raw) : null;
   }
 
   findByIdWithDetails(
@@ -72,13 +79,46 @@ export class AppointmentQueryRepository
     });
   }
 
-  async findProviderCalendar({
+  // Çakışma görünürlüğü: aynı doktorda verilen aralıkla çakışan (iptal/gelmedi hariç)
+  // tüm randevular. ENGELLEMEZ — yalnız personele gösterim için hafif projeksiyon.
+  findConflictingAppointments({
+    providerId,
+    startTime,
+    endTime,
+    ignoreAppointmentId,
+  }: FindConflictingAppointmentData): Promise<ConflictingAppointmentView[]> {
+    return this.db.appointment.findMany({
+      where: {
+        providerId,
+        isDeleted: false,
+        id: ignoreAppointmentId ? { not: ignoreAppointmentId } : undefined,
+        status: {
+          notIn: [
+            AppointmentStatusSchema.enum.CANCELLED,
+            AppointmentStatusSchema.enum.NOSHOW,
+          ],
+        },
+        startTime: { lt: endTime },
+        endTime: { gt: startTime },
+      },
+      select: {
+        id: true,
+        patientName: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+      },
+      orderBy: { startTime: 'asc' },
+    });
+  }
+
+  findProviderCalendar({
     pagination,
     providerId,
     startDate,
     endDate,
-  }: FindProviderCalendarData): PaginatedAppointments {
-    const result = await paginate({
+  }: FindProviderCalendarData): Promise<Paginated<Appointment>> {
+    return paginate({
       delegate: this.db.appointment,
       pagination,
       where: {
@@ -88,43 +128,72 @@ export class AppointmentQueryRepository
         endTime: { lte: endDate },
       },
     });
-    return {
-      items: result.items.map((r) => new Appointment(r)),
-      total: result.total,
-    };
   }
 
-  async findClinicCalendar({
+  findClinicCalendar({
     clinicId,
     startDate,
     endDate,
     pagination,
-  }: FindClinicCalendarData): PaginatedAppointments {
-    const result = await paginate({
+    providerId,
+    status,
+  }: FindClinicCalendarData): Promise<Paginated<Appointment>> {
+    return paginate({
       delegate: this.db.appointment,
       pagination,
       where: {
         clinicId,
         isDeleted: false,
+        providerId,
+        status,
         startTime: { gte: startDate },
         endTime: { lte: endDate },
       },
     });
-    return {
-      items: result.items.map((r) => new Appointment(r)),
-      total: result.total,
-    };
   }
 
-  async findByOrganizationId({
+  // Tam takvim: aralıktaki tüm randevular (sayfasız, hafif projeksiyon). Randevu,
+  // başlangıç zamanına göre aralığa girer; providerId verilirse tek doktora daralır.
+  findClinicCalendarEvents({
+    clinicId,
+    startDate,
+    endDate,
+    providerId,
+    status,
+  }: FindClinicCalendarEventsData): Promise<ClinicCalendarEventRow[]> {
+    return this.db.appointment.findMany({
+      where: {
+        clinicId,
+        isDeleted: false,
+        providerId: providerId ?? undefined,
+        status,
+        startTime: { gte: startDate, lte: endDate },
+      },
+      select: {
+        id: true,
+        providerId: true,
+        patientId: true,
+        patientName: true,
+        patientPhone: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+        treatmentType: true,
+        isConsultation: true,
+      },
+      orderBy: { startTime: 'asc' },
+    });
+  }
+
+  findByOrganizationId({
     organizationId,
     pagination,
     clinicId,
     status,
     startDate,
     endDate,
-  }: FindByOrganizationIdData): PaginatedAppointments {
-    const result = await paginate({
+  }: FindByOrganizationIdData): Promise<Paginated<Appointment>> {
+    return paginate({
       delegate: this.db.appointment,
       pagination,
       where: {
@@ -136,65 +205,166 @@ export class AppointmentQueryRepository
           (startDate ?? endDate) ? { gte: startDate, lte: endDate } : undefined,
       },
     });
-    return {
-      items: result.items.map((r) => new Appointment(r)),
-      total: result.total,
-    };
   }
 
-  async findByPatientId(
+  findByPatientId(
     pagination: Pagination,
     patientId: string
-  ): PaginatedAppointments {
-    const result = await paginate({
+  ): Promise<Paginated<Appointment>> {
+    return paginate({
       delegate: this.db.appointment,
       pagination,
       where: { patientId, isDeleted: false },
     });
-    return {
-      items: result.items.map((r) => new Appointment(r)),
-      total: result.total,
-    };
   }
 
-  async findActionRequired(
+  findActionRequired(
     clinicId: string,
     pagination: Pagination
-  ): PaginatedAppointments {
-    const result = await paginate({
+  ): Promise<Paginated<Appointment>> {
+    return paginate({
       delegate: this.db.appointment,
       pagination,
       where: {
         clinicId,
         isDeleted: false,
         status: { not: AppointmentStatusSchema.enum.PENDING },
-        startTime: { gte: new Date() },
+        startTime: { gte: DateTimeManager.create() },
       },
     });
-    return {
-      items: result.items.map((r) => new Appointment(r)),
-      total: result.total,
-    };
   }
 
-  async findUpcomingReminders(
-    pagination: Pagination,
-    hoursAhead: number = 24
-  ): PaginatedAppointments {
-    const now = new Date();
-    const result = await paginate({
+  // Resepsiyon: ad/telefon (case-insensitive contains) + opsiyonel status/doktor/tarih
+  // aralığı ile klinik randevu araması. clinicId aktörün kliniğidir (handler geçirir).
+  searchClinicAppointments({
+    clinicId,
+    pagination,
+    search,
+    status,
+    providerId,
+    startDate,
+    endDate,
+  }: SearchClinicAppointmentsData): Promise<Paginated<Appointment>> {
+    return paginate({
       delegate: this.db.appointment,
       pagination,
       where: {
+        clinicId,
+        isDeleted: false,
+        status,
+        providerId,
+        startTime:
+          (startDate ?? endDate) ? { gte: startDate, lte: endDate } : undefined,
+        ...(search
+          ? {
+              OR: [
+                { patientName: { contains: search, mode: 'insensitive' } },
+                { patientPhone: { contains: search } },
+              ],
+            }
+          : {}),
+      },
+    });
+  }
+
+  async findUpcomingReminders({
+    clinicId,
+    pagination,
+    hoursAhead = 24,
+  }: FindUpcomingRemindersData): Promise<Paginated<Appointment>> {
+    const now = DateTimeManager.create();
+
+    return await paginate({
+      delegate: this.db.appointment,
+      pagination,
+      where: {
+        clinicId,
         isDeleted: false,
         status: AppointmentStatusSchema.enum.CONFIRMED,
         startTime: { gte: now, lte: DateTimeManager.addHours(now, hoursAhead) },
       },
     });
-    return {
-      items: result.items.map((r) => new Appointment(r)),
-      total: result.total,
-    };
+  }
+
+  // Resepsiyon günlük özeti: gün sınırları handler'da klinik yerelinde hesaplanır,
+  // burada yalnız status bazlı sayım yapılır (tek groupBy sorgusu).
+  async countClinicAppointmentsByStatus({
+    clinicId,
+    providerId,
+    dayStart,
+    dayEnd,
+  }: FindClinicDailyCountsData): Promise<ClinicStatusCount[]> {
+    const rows = await this.db.appointment.groupBy({
+      by: ['status'],
+      where: {
+        clinicId,
+        isDeleted: false,
+        providerId,
+        startTime: { gte: dayStart, lte: dayEnd },
+      },
+      _count: { _all: true },
+    });
+    return rows.map((r) => ({ status: r.status, count: r._count._all }));
+  }
+
+  async findUpcomingPendingApproval(
+    clinicId: string,
+    pagination: Pagination
+  ): Promise<Paginated<Appointment>> {
+    return await paginate({
+      delegate: this.db.appointment,
+      pagination,
+      where: {
+        clinicId,
+        isDeleted: false,
+        status: AppointmentStatusSchema.enum.PENDING,
+        startTime: { gte: DateTimeManager.create() },
+      },
+    });
+  }
+
+  // Hastanın aktif (gelecek + iptal/tamamlanmamış) randevu sayısı — hasta kanalı
+  // booking'lerinde maxActivePatientBookings sınırını denetlemek için.
+  countActiveByPatient(patientId: string): Promise<number> {
+    return this.db.appointment.count({
+      where: {
+        patientId,
+        isDeleted: false,
+        status: {
+          in: [
+            AppointmentStatusSchema.enum.PENDING,
+            AppointmentStatusSchema.enum.CONFIRMED,
+          ],
+        },
+        startTime: { gte: DateTimeManager.create() },
+      },
+    });
+  }
+
+  // Bekleme odası: kliniğe gelmiş (ARRIVED) hastalar, geliş sırasına göre (checkedInAt).
+  findWaitingRoom({
+    clinicId,
+    providerId,
+  }: FindWaitingRoomData): Promise<WaitingRoomRow[]> {
+    return this.db.appointment.findMany({
+      where: {
+        clinicId,
+        isDeleted: false,
+        status: AppointmentStatusSchema.enum.ARRIVED,
+        providerId: providerId ?? undefined,
+      },
+      select: {
+        id: true,
+        providerId: true,
+        patientId: true,
+        patientName: true,
+        patientPhone: true,
+        startTime: true,
+        checkedInAt: true,
+        treatmentType: true,
+      },
+      orderBy: { checkedInAt: 'asc' },
+    });
   }
 
   async getProviderDailyLoad(

@@ -4,12 +4,12 @@ import {
   GlobalStatusType,
 } from '@input-type-schemas/GlobalStatusSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { UpdateUserByStaffEvent } from '@modules/identity/user/domain/events/update-user-by-staff.event';
+import { UserUpdatedEvent } from '@modules/identity/user/domain/events/user-updated.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   CreateUserProps,
   UpdateDetailsProps,
-} from '@modules/identity/user/domain/user.contracts';
+} from '@modules/identity/user/domain/contracts/user.contracts';
 import {
   InvalidUserDeletionException,
   InvalidUserUpdateException,
@@ -21,8 +21,13 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Img } from '@src/domain/value-objects/img.vo';
 import { Phone } from '@src/domain/value-objects/phone.vo';
 import { Guard } from '@common/domain/guards';
+import { FullName } from '@src/domain/value-objects/full-name.vo';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
+import { isDefined } from '@common/utils';
+import { Priority } from '@src/domain/value-objects/priority.vo';
+import { UserDeletedEvent } from '@modules/identity/user/domain/events/delete-user.event';
 
-export type UserRoleRef = { id: string; priority: number };
+export type UserRoleRef = { id: string; priority: Priority };
 export type UserWorkingClinicRef = { id: string };
 
 export type UserWithRelations = IUser & {
@@ -37,7 +42,7 @@ export class User extends AggregateRoot {
   constructor(data: UserWithRelations) {
     super();
     this._id = FirebaseUid.fromTrusted(data.id);
-    this._displayName = data.displayName;
+    this._displayName = FullName.fromTrusted(data.displayName);
     this._email = Email.fromTrusted(data.email);
     this._emailVerified = data.emailVerified;
     this._status = data.status;
@@ -91,9 +96,9 @@ export class User extends AggregateRoot {
     return this._id;
   }
 
-  private _displayName: string;
+  private _displayName: FullName;
 
-  get displayName(): string {
+  get displayName(): FullName {
     return this._displayName;
   }
 
@@ -191,12 +196,24 @@ export class User extends AggregateRoot {
     );
   }
 
+  get canSoftDelete() {
+    let canSoft = true;
+
+    if (this.role && this.role.priority.validate.isAdmin.value) canSoft = false;
+
+    return Guard.monitor(
+      canSoft,
+      canSoft,
+      () => new InvalidUserDeletionException()
+    );
+  }
+
   static create(props: CreateUserProps): User {
     const now = DateTimeManager.create();
     return new User({
       id: FirebaseUid.create(props.id).orThrow().value,
       email: Email.create(props.email).orThrow().value,
-      displayName: props.displayName,
+      displayName: FullName.fromTrusted(props.displayName).value,
       emailVerified: false,
       status: GlobalStatusSchema.enum.ACTIVE,
       roleId: UUID.create(props.roleId).orThrow().value,
@@ -232,7 +249,7 @@ export class User extends AggregateRoot {
 
   isManagerOf(clinicId: string): boolean {
     return (
-      this._managedClinicIds?.some(({ value: id }) => id === clinicId) ?? false
+      this.managedClinicIds?.some(({ value: id }) => id === clinicId) ?? false
     );
   }
 
@@ -240,20 +257,25 @@ export class User extends AggregateRoot {
     if (this.isDeleted) {
       throw new InvalidUserUpdateException(this.id.value);
     }
-    if (props.displayName !== undefined) this._displayName = props.displayName;
-    if (props.picture !== undefined)
+    if (isDefined(props.displayName))
+      this._displayName = FullName.create(props.displayName).orThrow();
+    if (isNotUndefined(props.picture))
       this._picture = Img.create(props.picture).orThrow();
-    if (props.phoneNumber !== undefined)
-      this._phoneNumber = Phone.create(props.phoneNumber).orThrow();
-    if (props.status !== undefined) this._status = props.status;
-    if (props.roleId !== undefined)
+    if (isNotUndefined(props.phoneNumber))
+      this._phoneNumber = props.phoneNumber
+        ? Phone.create(props.phoneNumber).orThrow()
+        : null;
+    if (isDefined(props.status)) this._status = props.status;
+    if (isDefined(props.roleId))
       this._roleId = UUID.create(props.roleId).orThrow();
-    if (props.clinicId !== undefined)
+    if (isDefined(props.clinicId))
       this._clinicId = UUID.create(props.clinicId).orThrow();
 
+    this._updatedAt = DateTimeManager.create();
+
     this.addDomainEvent(
-      new UpdateUserByStaffEvent({
-        userId: this._id.value,
+      new UserUpdatedEvent({
+        userId: this.id.value,
         actorId,
         action: LogAction.USER_UPDATE,
         type: LogType.INFO,
@@ -264,40 +286,43 @@ export class User extends AggregateRoot {
 
   changeStatus(status: GlobalStatusType): void {
     this._status = status;
+    this._updatedAt = DateTimeManager.create();
   }
 
-  canSoftDelete(): boolean {
-    return !(this.role && this.role.priority >= 100);
-  }
+  softDelete(actorId: string): void {
+    this.canSoftDelete.orThrow();
+    if (this.isDeleted) return;
 
-  softDelete(): void {
-    if (!this.canSoftDelete()) {
-      throw new InvalidUserDeletionException();
-    }
+    this.addDomainEvent(
+      new UserDeletedEvent({
+        userId: this.id.value,
+        action: LogAction.USER_DELETE,
+        type: LogType.INFO,
+        details: 'Kullanıcı silindi',
+        actorId,
+      })
+    );
 
-    if (this.isDeleted) {
-      return;
-    }
-
-    this._deletedAt = new Date();
+    this._deletedAt = DateTimeManager.create();
+    this._updatedAt = DateTimeManager.create();
     this._status = GlobalStatusSchema.enum.DELETED;
   }
 
   toPersistence(): IUser {
     return {
-      id: this._id.value,
-      displayName: this._displayName,
-      email: this._email.value,
-      emailVerified: this._emailVerified,
-      status: this._status,
-      roleId: this._roleId.value,
-      picture: this._picture?.value ?? null,
-      phoneNumber: this._phoneNumber?.value ?? null,
-      clinicId: this._clinicId?.value ?? null,
-      lastLogin: this._lastLogin,
-      createdAt: this._createdAt,
-      updatedAt: DateTimeManager.create(),
-      deletedAt: this._deletedAt,
+      id: this.id.value,
+      displayName: this.displayName.value,
+      email: this.email.value,
+      emailVerified: this.emailVerified,
+      status: this.status,
+      roleId: this.roleId.value,
+      picture: this.picture?.value ?? null,
+      phoneNumber: this.phoneNumber?.value ?? null,
+      clinicId: this.clinicId?.value ?? null,
+      lastLogin: this.lastLogin,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
     };
   }
 }

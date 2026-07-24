@@ -3,7 +3,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
 import { PartyRoleType as PartyRole } from '@input-type-schemas/PartyRoleSchema';
 import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
-import { CreatePartyProps } from '@modules/finance/party/domain/party.contracts';
+import { CreatePartyProps } from '@modules/finance/party/domain/contracts/party.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { DateTimeManager, isDefined } from '@common/utils';
@@ -151,10 +151,9 @@ export class Party extends AggregateRoot {
   }
 
   public static create(props: CreatePartyProps): Party {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     const now = DateTimeManager.create();
     return new Party({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       organizationId: UUID.create(props.organizationId).orThrow().value,
       type: props.type,
@@ -293,7 +292,7 @@ export class Party extends AggregateRoot {
       originId: this._originId,
       isActive: this._isActive,
       createdAt: this._createdAt,
-      updatedAt: new Date(),
+      updatedAt: DateTimeManager.create(),
     };
   }
 

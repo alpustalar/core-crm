@@ -29,6 +29,6 @@ export class CreateLedgerEntyHandler
       money: Money.create(dto.amount, dto.currency).orThrow(),
     });
 
-    await this.financeLedgerCommandRepo.save(entry);
+    await this.financeLedgerCommandRepo.create(entry);
   }
 }

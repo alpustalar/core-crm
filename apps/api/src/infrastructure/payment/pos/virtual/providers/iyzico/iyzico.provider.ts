@@ -4,23 +4,23 @@ import { getGlobalPrefix, ROUTE_PATHS } from '@common/constants';
 import { ENV } from '@common/constants/env.constant';
 import { ConfigService } from '@nestjs/config';
 import Iyzipay from 'iyzipay';
-import { IIyzicoProvider } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import type { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/payment-initialize.request';
+import { IIyzicoProvider } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
+import type { PaymentInitializeRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/payment-initialize.request';
 import {
-  RetrieveCheckoutFormResult,
   RetrieveCheckoutFormBuyer,
+  RetrieveCheckoutFormResult,
   RetrieveCheckoutFormSavedCard,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/retrieve-checkout-form.result';
-import { CancelPaymentRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/cancel-payment.request';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/retrieve-checkout-form.result';
+import { CancelPaymentRequest } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/cancel-payment.request';
 import type {
   CreateSubMerchantRequest,
   SubMerchantResult,
   UpdateSubMerchantRequest,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/create-submerchant.request';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/create-submerchant.request';
 import type {
   ChargeWithSavedCardRequest,
   ChargeWithSavedCardResult,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/types/charge-with-saved-card.request';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/types/charge-with-saved-card.request';
 
 const PLACEHOLDER_IDENTITY_NUMBER = '11111111111';
 
@@ -129,58 +129,6 @@ export class IyzicoProvider implements IIyzicoProvider {
     };
   }
 
-  /** Checkout retrieve yanıtından kart saklama token'larını çıkarır (SDK tipinde cardUserKey yok). */
-  private extractSavedCard(
-    sdkResult: Iyzipay.CheckoutFormRetrieveResult
-  ): RetrieveCheckoutFormSavedCard | undefined {
-    const raw = sdkResult as unknown as {
-      cardUserKey?: string;
-      cardToken?: string;
-      paymentCard?: {
-        cardToken?: string;
-        cardUserKey?: string;
-        binNumber?: string;
-        lastFourDigits?: string;
-        cardAssociation?: string;
-        cardFamily?: string;
-      };
-    };
-
-    const cardUserKey = raw.cardUserKey ?? raw.paymentCard?.cardUserKey;
-    const cardToken = raw.cardToken ?? raw.paymentCard?.cardToken;
-
-    if (!cardUserKey || !cardToken) return undefined;
-
-    return {
-      cardUserKey,
-      cardToken,
-      binNumber: raw.paymentCard?.binNumber,
-      lastFourDigits: raw.paymentCard?.lastFourDigits,
-      cardAssociation: raw.paymentCard?.cardAssociation,
-      cardFamily: raw.paymentCard?.cardFamily,
-    };
-  }
-
-  /** Checkout retrieve yanıtından alıcı bilgisini çıkarır (yenileme snapshot'ı için). */
-  private extractBuyer(
-    sdkResult: Iyzipay.CheckoutFormRetrieveResult
-  ): RetrieveCheckoutFormBuyer | undefined {
-    const buyer = sdkResult.buyer;
-    if (!buyer) return undefined;
-
-    return {
-      id: buyer.id,
-      name: buyer.name,
-      surname: buyer.surname,
-      email: buyer.email,
-      gsmNumber: buyer.gsmNumber,
-      ip: buyer.ip,
-      city: sdkResult.billingAddress?.city ?? buyer.city,
-      address:
-        sdkResult.billingAddress?.address ?? buyer.registrationAddress,
-    };
-  }
-
   getInstallmentInfo({
     locale = 'TR',
     conversationId,
@@ -231,5 +179,56 @@ export class IyzicoProvider implements IIyzicoProvider {
         (result as any).errorMessage ?? 'Alt üye işyeri güncellenemedi.'
       );
     }
+  }
+
+  /** Checkout retrieve yanıtından kart saklama token'larını çıkarır (SDK tipinde cardUserKey yok). */
+  private extractSavedCard(
+    sdkResult: Iyzipay.CheckoutFormRetrieveResult
+  ): RetrieveCheckoutFormSavedCard | undefined {
+    const raw = sdkResult as unknown as {
+      cardUserKey?: string;
+      cardToken?: string;
+      paymentCard?: {
+        cardToken?: string;
+        cardUserKey?: string;
+        binNumber?: string;
+        lastFourDigits?: string;
+        cardAssociation?: string;
+        cardFamily?: string;
+      };
+    };
+
+    const cardUserKey = raw.cardUserKey ?? raw.paymentCard?.cardUserKey;
+    const cardToken = raw.cardToken ?? raw.paymentCard?.cardToken;
+
+    if (!cardUserKey || !cardToken) return undefined;
+
+    return {
+      cardUserKey,
+      cardToken,
+      binNumber: raw.paymentCard?.binNumber,
+      lastFourDigits: raw.paymentCard?.lastFourDigits,
+      cardAssociation: raw.paymentCard?.cardAssociation,
+      cardFamily: raw.paymentCard?.cardFamily,
+    };
+  }
+
+  /** Checkout retrieve yanıtından alıcı bilgisini çıkarır (yenileme snapshot'ı için). */
+  private extractBuyer(
+    sdkResult: Iyzipay.CheckoutFormRetrieveResult
+  ): RetrieveCheckoutFormBuyer | undefined {
+    const buyer = sdkResult.buyer;
+    if (!buyer) return undefined;
+
+    return {
+      id: buyer.id,
+      name: buyer.name,
+      surname: buyer.surname,
+      email: buyer.email,
+      gsmNumber: buyer.gsmNumber,
+      ip: buyer.ip,
+      city: sdkResult.billingAddress?.city ?? buyer.city,
+      address: sdkResult.billingAddress?.address ?? buyer.registrationAddress,
+    };
   }
 }

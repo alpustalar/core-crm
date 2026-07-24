@@ -18,10 +18,12 @@ import { ConnectMetaAccountDto } from '@shared/modules/meta-ads/dto/commands';
 import {
   GetMetaLeadsDto,
   GetMetaReportDto,
+  GetRoiReportDto,
 } from '@shared/modules/meta-ads/dto/queries';
 import { ConnectMetaAccountCommand } from '@modules/crm/meta-ads/application/commands/connect-meta-account/connect-meta-account.command';
 import { MatchLeadToPatientCommand } from '@modules/crm/meta-ads/application/commands/match-lead-to-patient/match-lead-to-patient.command';
 import { GetMetaReportQuery } from '@modules/crm/meta-ads/application/queries/get-meta-report/get-meta-report.query';
+import { GetAgencyRoiReportQuery } from '@modules/crm/meta-ads/application/queries/get-agency-roi-report/get-agency-roi-report.query';
 import { GetMetaLeadsQuery } from '@modules/crm/meta-ads/application/queries/get-meta-leads/get-meta-leads.query';
 import { GetMetaAccountsQuery } from '@modules/crm/meta-ads/application/queries/get-meta-accounts/get-meta-accounts.query';
 import { PaginationDto } from '@shared';
@@ -41,7 +43,7 @@ export class MetaAdsController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new ConnectMetaAccountCommand(dto, clinicId, ctx)
+      new ConnectMetaAccountCommand({ data: dto, ctx, clinicId })
     );
   }
 
@@ -69,6 +71,23 @@ export class MetaAdsController {
     );
   }
 
+  @Get('clinics/:clinicId/roi')
+  getRoiReport(
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Query() dto: GetRoiReportDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.queryBus.execute(
+      new GetAgencyRoiReportQuery({
+        clinicId,
+        from: dto.from,
+        to: dto.to,
+        ctx,
+        campaignId: dto.campaignId,
+      })
+    );
+  }
+
   @Get('clinics/:clinicId/leads')
   getLeads(
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
@@ -88,7 +107,7 @@ export class MetaAdsController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new MatchLeadToPatientCommand(leadId, patientId, ctx)
+      new MatchLeadToPatientCommand({ leadId, patientId, ctx })
     );
   }
 }

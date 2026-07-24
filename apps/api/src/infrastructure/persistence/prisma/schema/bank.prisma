@@ -1,0 +1,95 @@
+// Banka (Bank Reconciliation): banka hesabı + ekstre import (API'siz, JSON satır) + mutabakat.
+// `finance/bank` modülü. Ekstre satırları içerideki kayıtlarla (muhasebe 102 defteri,
+// tahsilatlar, kasa banka-yatırma) ELLE eşleştirilir; oto-eşleştirme sonraki tur.
+// Muhasebe posting'i YOK — 102 Bankalar zaten payment/kasa köprüsünden besleniyor;
+// bu modül POSTLAMAZ, yalnızca MUTABAKAT yapar (mükerrer önlenir).
+// clinicId/organizationId denormalize scalar (bounded-context: navigation yok).
+
+enum BankAccountStatus {
+  ACTIVE // kullanımda
+  ARCHIVED // arşivlendi
+}
+
+enum BankStatementLineMatchStatus {
+  UNMATCHED // henüz eşleşmedi
+  MATCHED // içerideki bir kayıtla eşleşti
+  IGNORED // mutabakat dışı bırakıldı (bilinçli atlandı)
+}
+
+model BankAccount {
+  id             String @id
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+
+  name      String
+  bankName  String  @map("bank_name")
+  iban      String?
+  accountNo String? @map("account_no")
+
+  currency Currency          @default(TRY)
+  status   BankAccountStatus @default(ACTIVE)
+
+  openingBalance Decimal @default(0) @map("opening_balance") @db.Decimal(16, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  statements BankStatement[]
+
+  @@index([clinicId, status])
+  @@index([organizationId])
+  @@map("bank_accounts")
+}
+
+model BankStatement {
+  id             String @id
+  bankAccountId  String @map("bank_account_id")
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+
+  periodStart    DateTime @map("period_start")
+  periodEnd      DateTime @map("period_end")
+  openingBalance Decimal? @map("opening_balance") @db.Decimal(16, 2)
+  closingBalance Decimal? @map("closing_balance") @db.Decimal(16, 2)
+  fileName       String?  @map("file_name")
+  importedById   String   @map("imported_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bankAccount BankAccount         @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  lines       BankStatementLine[]
+
+  @@index([bankAccountId, periodStart])
+  @@index([clinicId])
+  @@map("bank_statements")
+}
+
+model BankStatementLine {
+  id              String @id
+  bankStatementId String @map("bank_statement_id")
+  bankAccountId   String @map("bank_account_id")
+  clinicId        String @map("clinic_id")
+  organizationId  String @map("organization_id")
+
+  transactionDate  DateTime @map("transaction_date")
+  description      String
+  amount           Decimal  @db.Decimal(16, 2) // imzalı: + giriş / − çıkış
+  balanceAfter     Decimal? @map("balance_after") @db.Decimal(16, 2)
+  reference        String?
+  counterpartyName String?  @map("counterparty_name")
+
+  matchStatus    BankStatementLineMatchStatus @default(UNMATCHED) @map("match_status")
+  matchedRef     String?                      @map("matched_ref") // eşleşen içeri kayıt referansı (financialEventId / journalId / serbest)
+  matchNote      String?                      @map("match_note")
+  reconciledById String?                      @map("reconciled_by_id")
+  reconciledAt   DateTime?                    @map("reconciled_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  statement BankStatement @relation(fields: [bankStatementId], references: [id], onDelete: Cascade)
+
+  @@index([bankStatementId])
+  @@index([bankAccountId, matchStatus])
+  @@index([clinicId, transactionDate])
+  @@map("bank_statement_lines")
+}

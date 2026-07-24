@@ -105,7 +105,7 @@ export interface VatDeclaration {
 
 export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
-  save(entry: JournalEntry): Promise<JournalEntry>;
+  create(entry: JournalEntry): Promise<JournalEntry>;
 
   /** Şube (defter) + dönem için bir sonraki boşluksuz fiş numarası. */
   nextEntryNo(clinicId: string, periodId: string): Promise<bigint>;

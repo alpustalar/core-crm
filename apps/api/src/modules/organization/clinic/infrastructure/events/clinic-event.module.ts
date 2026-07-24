@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ClinicDeletedListener } from '@modules/organization/clinic/infrastructure/events/listeners';
 import { CLINIC_EVENT_PUBLISHER } from '@modules/organization/clinic/domain/interfaces/clinic.event-publisher.interface';
 import { ClinicEventPublisher } from '@modules/organization/clinic/infrastructure/events/clinic-event-publisher.service';
-import { MAIL_SERVICE } from '@modules/platform/mail/domain/interfaces/mail.service.interface';
-import { MailService } from '@modules/platform/mail/mail.service';
+import { MAIL_SERVICE } from '@src/infrastructure/mail/interfaces/mail.service.interface';
+import { MailService } from '@src/infrastructure/mail/mail.service';
 
 @Module({
   providers: [

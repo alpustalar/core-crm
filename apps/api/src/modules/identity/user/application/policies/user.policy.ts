@@ -1,27 +1,31 @@
 import { ActorContext } from '@common/interfaces';
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
-import { User } from '@modules/identity/user/domain/entities/user.entity';
-import { UserResponseGroups } from '@modules/identity/user/domain/user.contracts';
+import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
+import { Priority } from '@src/domain/value-objects/priority.vo';
+import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
 
-export type HasPriority = {
+type HasPriority = {
   priority: number;
   role?: {
     priority: number;
   };
 };
 
-export type HasPriorityAndClinicId = {
+type PriorityAndClinicId = {
   clinicId: string;
 } & HasPriority;
 
 const { ADMIN, INTERNAL, FINANCIAL, DATA_OWNER, MANAGEMENT } =
   UserResponseGroups;
+
 export class UserPolicy extends ClinicPolicy {
   private readonly actorCapabilities: string[];
+  private readonly priority: Priority;
 
-  constructor(actor: ActorContext) {
-    super(actor);
+  constructor(actor: ActorContext, source: ExecutionSource) {
+    super(actor, source);
     this.actorCapabilities = actor.capabilities || [];
+    this.priority = Priority.fromTrusted(actor.rolePriority);
   }
   /**
    * Kullanıcının kendisi mi?
@@ -40,6 +44,18 @@ export class UserPolicy extends ClinicPolicy {
     return this.actorCanManageTargetClinic(targetUserClinicId);
   }
 
+  actorCanUpdateTargetUser(
+    targetUserPriority: Priority | undefined,
+    targetUserClinicId: string | undefined
+  ) {
+    const priority = this.getTargetPriority(targetUserPriority);
+    return (
+      this.isPrivilegedUser() ||
+      this.actorHasHigherPriorityThanTarget(priority) ||
+      this.isTargetInActorsManagedClinic(targetUserClinicId)
+    );
+  }
+
   /**
    * Hedef kendi çalıştığı clinic'te mi? (Read için)
    */
@@ -53,29 +69,32 @@ export class UserPolicy extends ClinicPolicy {
    * Privileged user mu? (Priority >= 80)
    */
   isPrivilegedUser(): boolean {
-    return this.actorPriority >= 80;
+    return this.priority.validate.isPrivilegedUser.value;
   }
   /**
    * Aktör, hedeften KESİN OLARAK ÜST mü?
    */
   actorHasHigherPriorityThanTarget(
-    targetUser: HasPriority | number | undefined | null
+    targetPriority: Priority | number | string | undefined | null
   ): boolean {
-    return this.actorPriority > this.getTargetPriority(targetUser);
+    return this.priority.validate.isHigherThan(
+      this.getTargetPriority(targetPriority)
+    ).value;
   }
 
   /**
    * Aktör ve hedef AYNI seviyede mi?
    */
-  actorHasEqualPriorityWithTarget(target: HasPriority | number): boolean {
-    return this.actorPriority === this.getTargetPriority(target);
+  actorHasEqualPriorityWithTarget(target: Priority | number | string): boolean {
+    return this.priority.validate.isEqual(this.getTargetPriority(target)).value;
   }
 
   /**
    * Aktör, hedeften DÜŞÜK mü?
    */
-  actorHasLowerPriorityThanTarget(target: HasPriority | number): boolean {
-    return this.actorPriority < this.getTargetPriority(target);
+  actorHasLowerPriorityThanTarget(target: Priority | number | string): boolean {
+    return this.priority.validate.isLowerThan(this.getTargetPriority(target))
+      .value;
   }
   //? ==========================================
   //? PRIORITY CHECKS (Cached)
@@ -84,18 +103,18 @@ export class UserPolicy extends ClinicPolicy {
   /**
    * Kullanıcıyı tamamen yönetebilir mi? (Update/Delete)*
    */
-  actorCanManageTargetUser(targetUser: HasPriorityAndClinicId): boolean {
+  actorCanManageTargetUser(targetUser: PriorityAndClinicId): boolean {
     if (!this.isTargetInActorsManagedClinic(targetUser.clinicId)) {
       return false;
     }
-    return this.actorHasHigherPriorityThanTarget(targetUser);
+    return this.actorHasHigherPriorityThanTarget(targetUser.priority);
   }
 
   /**
    * Kullanıcıyı silebilir mi?
    */
   actorCanDeleteTargetUser(
-    targetUser: HasPriorityAndClinicId & { id: string }
+    targetUser: PriorityAndClinicId & { id: string }
   ): boolean {
     if (this.isSelf(targetUser.id)) {
       return false;
@@ -113,21 +132,20 @@ export class UserPolicy extends ClinicPolicy {
    * NOT: Hem targetUser.role hem newRole.priority gerekli
    */
   actorCanChangeTargetUserRole(
-    targetUser: HasPriorityAndClinicId,
+    targetUser: PriorityAndClinicId,
     newRolePriority: number
   ): boolean {
     if (!this.actorCanManageTargetUser(targetUser)) {
       return false;
     }
-
-    return this.actorHasHigherPriorityThanTarget({ priority: newRolePriority });
+    return this.actorHasHigherPriorityThanTarget(newRolePriority);
   }
 
   /**
    * kullanıcı geri dönüş grupları
    */
 
-  getSerializeOptions(
+  getSerializationOptions(
     targetUserId: string,
     targetUserClinicId: string | null | undefined
   ) {
@@ -136,13 +154,12 @@ export class UserPolicy extends ClinicPolicy {
     const isSelf = this.isSelf(targetUserId);
     const isAdmin = this.isSystemAdmin();
 
-    const groups = [
-      isSelf && DATA_OWNER,
-      isManager && MANAGEMENT,
-      isManager && FINANCIAL,
-      isSameClinic && INTERNAL,
-      isAdmin && ADMIN,
-    ].filter((group) => typeof group === 'string');
+    const groups: string[] = [];
+
+    if (isSelf) groups.push(DATA_OWNER);
+    if (isManager) groups.push(MANAGEMENT, FINANCIAL);
+    if (isSameClinic) groups.push(INTERNAL);
+    if (isAdmin) groups.push(ADMIN);
 
     return {
       isGroupActive: isSameClinic || isSelf || isManager || isAdmin,
@@ -166,24 +183,34 @@ export class UserPolicy extends ClinicPolicy {
   }
 
   private getTargetPriority(
-    target: User | HasPriority | number | undefined | null
-  ): number {
+    target: Priority | number | undefined | null | string
+  ): Priority {
+    let priorityNumber: number | undefined;
     if (!target) {
-      return 0;
+      priorityNumber = 0;
     }
 
     if (typeof target === 'number') {
-      return target;
+      priorityNumber = target;
     }
 
-    if ('role' in target && target.role) {
-      return target.role.priority;
+    const hasPriority = isHasPriority(target);
+
+    if (hasPriority) {
+      priorityNumber = target?.role?.priority
+        ? target?.role?.priority
+        : target.priority;
     }
 
-    if ('priority' in target) {
-      return target.priority;
-    }
-
-    return 0;
+    priorityNumber = priorityNumber || 0;
+    return Priority.create(priorityNumber).orThrow();
   }
+}
+
+function isHasPriority(param: unknown): param is HasPriority {
+  if (param === null || typeof param !== 'object') return false;
+
+  if (!('priority' in param)) return false;
+
+  return param.priority instanceof Priority;
 }

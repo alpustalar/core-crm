@@ -10,13 +10,6 @@ import { CreateProviderExceptionProps } from '@modules/clinical/provider/domain/
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
 
-interface IProviderExceptionValidator {
-  type: {
-    isOff: Guard<boolean>;
-    isOn: Guard<boolean>;
-  };
-}
-
 export class ProviderException extends AggregateRoot {
   constructor(data: IProviderException) {
     super();
@@ -65,7 +58,7 @@ export class ProviderException extends AggregateRoot {
     return this._createdAt;
   }
 
-  public get validate(): IProviderExceptionValidator {
+  public get validate() {
     return {
       type: { isOff: this.isOff, isOn: this.isOn },
     };
@@ -90,8 +83,6 @@ export class ProviderException extends AggregateRoot {
     );
   }
   public static create(props: CreateProviderExceptionProps): ProviderException {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     const providerId = UUID.create(props.providerId).orThrow();
 
     const dateRange = DateRange.create(
@@ -102,7 +93,7 @@ export class ProviderException extends AggregateRoot {
     const now = DateTimeManager.create();
 
     return new ProviderException({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       providerId: providerId.value,
       type: props.type,
       startTime: dateRange.startDate,

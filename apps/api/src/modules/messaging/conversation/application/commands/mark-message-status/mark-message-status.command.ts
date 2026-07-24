@@ -16,12 +16,14 @@ export interface MarkMessageStatusPricing {
 export class MarkMessageStatusCommand {
   readonly __responseType!: void;
   constructor(
-    public readonly externalId: string,
-    public readonly status: MessageStatus,
-    public readonly errorReason?: string | null,
-    /** WhatsApp hata kodu (FAILED durumunda; ör. '131047'). */
-    public readonly errorCode?: string | null,
-    /** Konuşma kategorisi/faturalanabilirlik (maliyet takibi). */
-    public readonly pricing?: MarkMessageStatusPricing
+    public readonly payload: {
+      externalId: string;
+      status: MessageStatus;
+      errorReason?: string | null;
+      /** WhatsApp hata kodu (FAILED durumunda; ör. '131047'). */
+      errorCode?: string | null;
+      /** Konuşma kategorisi/faturalanabilirlik (maliyet takibi). */
+      pricing?: MarkMessageStatusPricing;
+    }
   ) {}
 }

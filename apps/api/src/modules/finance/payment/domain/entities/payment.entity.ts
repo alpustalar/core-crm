@@ -11,11 +11,13 @@ import {
   InstallmentTotalMismatchException,
   InvalidInstallmentPlanException,
 } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
-import { CreatePaymentProps } from '@modules/finance/payment/domain/payment.contracts';
+import { CreatePaymentProps } from '@modules/finance/payment/domain/contracts/payment.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 import { Guard } from '@common/domain/guards';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { PaymentRules } from '@modules/finance/payment/domain/rules/payment.rules';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 
 export type PaymentWithInstallmentsData = IPayment & {
   installments: PaymentInstallment[];
@@ -104,26 +106,22 @@ export class Payment extends AggregateRoot {
 
   public get validate() {
     return {
-      and: {
-        getInstallmentWithAnId: (installmentId: string) =>
-          this._validateAndFindInstallment(installmentId),
+      andFind: {
+        installmentWithAnId: (installmentId: string) =>
+          this.validateAndFindInstallment(installmentId),
       },
       status: {
-        isRefunded: this._isRefunded(),
-        isCompleted: this._isCompleted(),
-        isCancelled: this._isCancelled(),
-        isPending: this._isPending(),
-        isPartial: this._isPartial(),
-        can: {
-          cancel: this._canCancel(),
-          refund: this._canRefund(),
-        },
+        isRefunded: this.isRefunded(),
+        isCompleted: this.isCompleted(),
+        isCancelled: this.isCancelled(),
+        isPending: this.isPending(),
+        isPartial: this.isPartial(),
       },
     };
   }
 
   static create(props: CreatePaymentProps): Payment {
-    const now = new Date();
+    const now = DateTimeManager.create();
 
     if (!props.installments || props.installments.length === 0) {
       throw new InvalidInstallmentPlanException();
@@ -145,8 +143,7 @@ export class Payment extends AggregateRoot {
       );
     }
 
-    const paymentId =
-      UUID.create(props.id).instance?.value ?? UUID.generate().value;
+    const paymentId = UUID.createOrGenerate(props.id).value;
 
     return new Payment({
       id: paymentId,
@@ -154,7 +151,7 @@ export class Payment extends AggregateRoot {
       patientId: FirebaseUid.create(props.patientId).orThrow().value,
       appointmentId: UUID.create(props.clinicId).instance?.value ?? null,
       providerId: UUID.create(props.providerId).instance?.value ?? null,
-      totalAmount: props.totalAmount.amount,
+      totalAmount: props.totalAmount.value,
       currency: props.totalAmount.currency,
       status: PaymentStatusSchema.enum.PENDING,
       createdAt: now,
@@ -164,7 +161,7 @@ export class Payment extends AggregateRoot {
           id: inst.id,
           paymentId,
           installmentNo: inst.installmentNo,
-          amount: inst.money.amount,
+          amount: inst.money.value,
           currency: inst.money.currency,
           method: inst.method ?? PaymentMethodSchema.enum.CREDIT_CARD,
           status: InstallmentStatusSchema.enum.PENDING,
@@ -176,6 +173,10 @@ export class Payment extends AggregateRoot {
         };
       }),
     });
+  }
+
+  public rules(validateOptions: ValidateOptionsType) {
+    return new PaymentRules(this, validateOptions);
   }
 
   getCompletedInstallments(): Guard<PaymentInstallment[] | undefined> {
@@ -194,12 +195,12 @@ export class Payment extends AggregateRoot {
 
   completeInstallment(installmentId: string): void {
     const installment =
-      this._validateAndFindInstallment(installmentId).orThrow();
+      this.validateAndFindInstallment(installmentId).orThrow();
     if (installment.status === InstallmentStatusSchema.enum.COMPLETED) return;
 
-    this._mutateInstallment(installmentId, {
+    this.mutateInstallment(installmentId, {
       status: InstallmentStatusSchema.enum.COMPLETED,
-      paidAt: new Date(),
+      paidAt: DateTimeManager.create(),
     });
 
     const pendingCount = this._installments.filter(
@@ -215,8 +216,8 @@ export class Payment extends AggregateRoot {
   }
 
   cancelInstallment(installmentId: string): void {
-    this._validateAndFindInstallment(installmentId).orThrow();
-    this._mutateInstallment(installmentId, {
+    this.validateAndFindInstallment(installmentId).orThrow();
+    this.mutateInstallment(installmentId, {
       status: InstallmentStatusSchema.enum.CANCELLED,
     });
 
@@ -230,16 +231,16 @@ export class Payment extends AggregateRoot {
   }
 
   refundInstallment(installmentId: string): void {
-    this._validateAndFindInstallment(installmentId).orThrow();
-    this._mutateInstallment(installmentId, {
+    this.validateAndFindInstallment(installmentId).orThrow();
+    this.mutateInstallment(installmentId, {
       status: InstallmentStatusSchema.enum.REFUNDED,
     });
     this._status = PaymentStatusSchema.enum.REFUNDED;
   }
 
   failInstallment(installmentId: string): void {
-    this._validateAndFindInstallment(installmentId).orThrow();
-    this._mutateInstallment(installmentId, {
+    this.validateAndFindInstallment(installmentId).orThrow();
+    this.mutateInstallment(installmentId, {
       status: InstallmentStatusSchema.enum.PENDING,
     });
   }
@@ -252,7 +253,7 @@ export class Payment extends AggregateRoot {
       appointmentId: this._appointmentId?.value ?? null,
       providerId: this._providerId?.value ?? null,
 
-      totalAmount: this._totalAmount.amount,
+      totalAmount: this._totalAmount.value,
       currency: this._totalAmount.currency,
 
       status: this._status,
@@ -261,7 +262,7 @@ export class Payment extends AggregateRoot {
     };
   }
 
-  private _isCompleted(): Guard<boolean> {
+  private isCompleted(): Guard<boolean> {
     const isCompleted = this._status === PaymentStatusSchema.enum.COMPLETED;
     return Guard.monitor(
       isCompleted,
@@ -270,7 +271,7 @@ export class Payment extends AggregateRoot {
     );
   }
 
-  private _isCancelled(): Guard<boolean> {
+  private isCancelled(): Guard<boolean> {
     const isCancelled = this._status === PaymentStatusSchema.enum.CANCELLED;
     return Guard.monitor(
       isCancelled,
@@ -279,7 +280,7 @@ export class Payment extends AggregateRoot {
     );
   }
 
-  private _isRefunded(): Guard<boolean> {
+  private isRefunded(): Guard<boolean> {
     const isRefunded = this._status === PaymentStatusSchema.enum.REFUNDED;
     return Guard.monitor(
       isRefunded,
@@ -288,7 +289,7 @@ export class Payment extends AggregateRoot {
     );
   }
 
-  private _isPending(): Guard<boolean> {
+  private isPending(): Guard<boolean> {
     const isPending = this._status === PaymentStatusSchema.enum.PENDING;
     return Guard.monitor(
       isPending,
@@ -297,7 +298,7 @@ export class Payment extends AggregateRoot {
     );
   }
 
-  private _isPartial(): Guard<boolean> {
+  private isPartial(): Guard<boolean> {
     const isPartial = this._status === PaymentStatusSchema.enum.PARTIAL;
     return Guard.monitor(
       isPartial,
@@ -306,32 +307,7 @@ export class Payment extends AggregateRoot {
     );
   }
 
-  private _canRefund() {
-    const can = !this._isCancelled().value && !this._isPending().value;
-    return Guard.monitor(
-      can,
-      can,
-      () =>
-        new Error(
-          `İptal edilmiş veya bekleyen ödemeler iade edilemez. Mevcut durum: ${this._status}`
-        )
-    );
-  }
-
-  private _canCancel() {
-    const can = !this._isCompleted().value && !this._isRefunded().value;
-
-    return Guard.monitor(
-      can,
-      can,
-      () =>
-        new Error(
-          `Tamamlanmış veya iade süreci başlamış ödemeler iptal edilemez. İade metodunu kullanın. Mevcut durum: ${this._status}`
-        )
-    );
-  }
-
-  private _mutateInstallment(
+  private mutateInstallment(
     installmentId: string,
     patch: Partial<PaymentInstallment>
   ): void {
@@ -343,7 +319,7 @@ export class Payment extends AggregateRoot {
     this._updatedAt = now; // Ana aggregate'in de güncellenme tarihini tetikle
   }
 
-  private _recalculateStatusAfterInstallmentChange(): void {
+  private recalculateStatusAfterInstallmentChange(): void {
     const totalCount = this._installments.length;
     const completedCount = this._installments.filter(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
@@ -376,7 +352,7 @@ export class Payment extends AggregateRoot {
     }
   }
 
-  private _validateAndFindInstallment(
+  private validateAndFindInstallment(
     installmentId: string
   ): Guard<PaymentInstallment | undefined> {
     const installment = this._installments.find((i) => i.id === installmentId);

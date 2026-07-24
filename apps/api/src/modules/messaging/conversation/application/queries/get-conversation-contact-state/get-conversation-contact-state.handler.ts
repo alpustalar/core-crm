@@ -24,9 +24,9 @@ export class GetConversationContactStateHandler
     query: GetConversationContactStateQuery
   ): Promise<GetConversationContactStateResponse> {
     const conversation = await this.conversationQueryRepo.findByContact({
-      clinicId: query.clinicId,
-      channel: query.channel,
-      contactPhone: query.contactPhone,
+      clinicId: query.payload.clinicId,
+      channel: query.payload.channel,
+      contactPhone: query.payload.contactPhone,
     });
     if (!conversation) return { data: null };
 

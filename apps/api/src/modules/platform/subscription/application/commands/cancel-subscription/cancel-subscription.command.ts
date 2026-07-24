@@ -1,11 +1,13 @@
-import { ActorContext } from '@common/interfaces';
+import { IGetContext } from '@common/decorators';
 
 export class CancelSubscriptionCommand {
   readonly __responseType!: void;
   constructor(
-    public readonly subscriptionId: string,
-    /** true → anında CANCELED; false → dönem sonunda iptal (cancelAtPeriodEnd). */
-    public readonly immediate: boolean,
-    public readonly actor: ActorContext
+    public readonly payload: {
+      subscriptionId: string;
+      /** true → anında CANCELED; false → dönem sonunda iptal (cancelAtPeriodEnd). */
+      immediate: boolean;
+      ctx: IGetContext;
+    }
   ) {}
 }

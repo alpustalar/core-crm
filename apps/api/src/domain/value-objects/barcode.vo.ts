@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { InvalidBarcodeException } from '@src/domain/exceptions/vo/barcode.exceptions';
+import { InvalidBarcodeException } from '@src/domain/exceptions';
 
 export class Barcode {
   private static readonly schema = z
@@ -10,52 +10,46 @@ export class Barcode {
 
   private readonly _value: string;
 
-  private constructor(value: string, trusted = false) {
-    if (!trusted && !Barcode.schema.safeParse(value).success) {
-      throw new InvalidBarcodeException();
-    }
+  private constructor(value: string) {
     this._value = value;
+    Object.freeze(this);
   }
 
-  /**
-   * 🎯 Güvenilir Kurucu: Persisted (DB) veriden doğrudan VO üretir; doğrulama atlanır.
-   */
-  public static fromTrusted(value: string): Barcode {
-    return new Barcode(value, true);
+  public static get validate() {
+    return {
+      input: (value: string | null | undefined) => {
+        const result = Barcode.schema.safeParse(value);
+
+        return {
+          isValid: result.success,
+          error: result.error?.issues[0]?.message,
+          value: result.success ? result.data : undefined,
+        };
+      },
+    };
   }
 
   get value(): string {
     return this._value;
   }
 
-  /**
-   * 🎯 Akıllı Factory: Geriye doğrudan Guard'lanmış bir proxy nesne döner.
-   * Bu nesne hem saf değeri taşır hem de orThrow yeteneğine sahiptir.
-   */
+  public static fromTrusted(value: string): Barcode {
+    return new Barcode(value);
+  }
+
   public static create(value: string | null | undefined) {
-    const isBlank = !value || value.trim().length === 0;
+    const validation = Barcode.validate.input(value);
 
-    let instance: Barcode | undefined;
-    let error: Error | undefined;
-
-    if (!isBlank) {
-      try {
-        instance = new Barcode(value);
-      } catch {
-        error = new InvalidBarcodeException();
-      }
-    }
+    const instance = validation.isValid
+      ? new Barcode(validation.value!)
+      : undefined;
 
     return {
-      /**
-       * ➔ Opsiyonel Senaryo: Boş veya geçersizse undefined döner (akışı kesmez).
-       */
-      instance: error ? undefined : instance,
+      instance,
 
-    
       orThrow(exception?: Error): Barcode {
-        if (error || !instance) {
-          throw exception ?? error ?? new InvalidBarcodeException();
+        if (!instance) {
+          throw exception ?? new InvalidBarcodeException();
         }
         return instance;
       },

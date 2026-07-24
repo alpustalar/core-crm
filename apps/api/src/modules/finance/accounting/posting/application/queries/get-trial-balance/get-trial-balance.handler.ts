@@ -34,7 +34,7 @@ export class GetTrialBalanceHandler
   ) {}
 
   async execute(query: GetTrialBalanceQuery): Promise<GetTrialBalanceResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query;
+    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
 
     const rows = await this.journalQueryRepo.trialBalance({
       clinicId,

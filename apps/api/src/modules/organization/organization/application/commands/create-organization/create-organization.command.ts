@@ -1,11 +1,13 @@
-import { CreateOrganizationDto } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateOrganizationInternalRelationsProps } from '@modules/organization/organization/domain/organization.contracts';
+import { CreateOrganizationInternalRelationsProps } from '@modules/organization/organization/domain/contracts/organization.contracts';
+import { CreateOrganization } from '@shared/modules/organization/types';
 
 export class CreateOrganizationCommand {
   constructor(
-    public readonly dto: CreateOrganizationDto,
-    public readonly ctx: IGetContext,
-    public readonly internalRelations?: CreateOrganizationInternalRelationsProps
+    public readonly payload: {
+      data: CreateOrganization;
+      ctx: IGetContext;
+      internalRelations?: CreateOrganizationInternalRelationsProps;
+    }
   ) {}
 }

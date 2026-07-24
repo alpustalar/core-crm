@@ -34,6 +34,8 @@ import {
   IyzicoTerminalSalesTypeSchema,
   IyzicoTerminalStatusSchema,
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 @CommandHandler(IyzicoTerminalSaleCommand)
 export class IyzicoTerminalSaleHandler
@@ -64,7 +66,7 @@ export class IyzicoTerminalSaleHandler
       throw new PosDeviceNotFoundException();
     }
 
-    device.validate.status.isActive().orThrow();
+    device.validate.status.isActive.orThrow();
 
     // Provider doğrulaması + kimlik çözümleme (yanlış provider'da domain hatası fırlatır)
 
@@ -147,7 +149,7 @@ export class IyzicoTerminalSaleHandler
             await this.recordPosPaymentReceived({
               patientId: input.patientId,
               clinicId: input.clinicId,
-              amount: transaction.amount.amount.toString(),
+              amount: transaction.amount.value.toString(),
               posTransactionId,
             });
           }
@@ -240,7 +242,7 @@ export class IyzicoTerminalSaleHandler
     const ctx = ExecutionContextFactory.createInternal();
 
     try {
-      const { partyId, organizationId } = await this.commandBus.execute(
+      const { partyId } = await this.commandBus.execute(
         new EnsurePartyForPatientCommand(
           input.patientId,
           input.clinicId,
@@ -249,17 +251,17 @@ export class IyzicoTerminalSaleHandler
         )
       );
 
-      // TODO: burda string kısımlar bi sabitte gerekli yerlerde modüler şekilde tutulacak
       await this.commandBus.execute(
         new RecordFinancialEventCommand(
           {
-            organizationId,
             clinicId: input.clinicId,
             type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: { method: 'POS_CARD', amount: input.amount, partyId },
-            sourceModule: 'pos',
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.POS,
             sourceRefId: input.posTransactionId,
-            dedupeKey: `payment-received:pos:${input.posTransactionId}`,
+            dedupeKey: FinancialEventDedupeKeys.payment_received_pos(
+              input.posTransactionId
+            ),
           },
           ctx
         )

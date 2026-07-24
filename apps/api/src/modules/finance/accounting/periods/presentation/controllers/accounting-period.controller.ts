@@ -1,10 +1,11 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
@@ -26,22 +27,26 @@ export class AccountingPeriodController {
   ) {}
 
   @Post()
-  openPeriod(@GetContext() ctx: IGetContext, @Body('year') year: number) {
+  openPeriod(
+    @GetContext() ctx: IGetContext,
+    @Body('year') year: number,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string
+  ) {
     return this.commandBus.execute(
-      new OpenPeriodCommand(
-        this.resolveClinicId(ctx),
-        this.resolveOrganizationId(ctx),
+      new OpenPeriodCommand({
+        clinicId,
         year,
-        ctx
-      )
+        ctx,
+      })
     );
   }
 
   @Get()
-  getPeriods(@GetContext() ctx: IGetContext) {
-    return this.queryBus.execute(
-      new GetAccountingPeriodsQuery(this.resolveClinicId(ctx), ctx)
-    );
+  getPeriods(
+    @GetContext() ctx: IGetContext,
+    @Param('clinicId', ParseUUIDPipe) clinicId: string
+  ) {
+    return this.queryBus.execute(new GetAccountingPeriodsQuery(clinicId, ctx));
   }
 
   @Post(':id/lock')
@@ -58,21 +63,5 @@ export class AccountingPeriodController {
   @Post(':id/close')
   closePeriod(@GetContext() ctx: IGetContext, @Param('id') id: string) {
     return this.commandBus.execute(new ClosePeriodCommand(id, ctx));
-  }
-
-  private resolveClinicId(ctx: IGetContext): string {
-    const clinicId = ctx.actor.clinicId;
-    if (!clinicId) {
-      throw new BadRequestException('Aktörün clinic bağlamı yok.');
-    }
-    return clinicId;
-  }
-
-  private resolveOrganizationId(ctx: IGetContext): string {
-    const organizationId = ctx.actor.organizationId;
-    if (!organizationId) {
-      throw new BadRequestException('Aktörün organization bağlamı yok.');
-    }
-    return organizationId;
   }
 }

@@ -4,8 +4,10 @@ import { IGetContext } from '@common/decorators/get-context.decorator';
 
 export class UpdateLeadStatusCommand implements ICommand {
   constructor(
-    public readonly leadId: string,
-    public readonly dto: UpdateLeadStatusDto,
-    public readonly ctx: IGetContext,
+    public readonly payload: {
+      leadId: string;
+      data: UpdateLeadStatusDto;
+      ctx: IGetContext;
+    }
   ) {}
 }

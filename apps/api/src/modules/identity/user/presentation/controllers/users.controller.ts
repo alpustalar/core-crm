@@ -9,7 +9,6 @@ import {
   Post,
   Query,
   UseGuards,
-  UseInterceptors,
   Version,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -21,9 +20,9 @@ import { THROTTLE_CONFIG } from '@common/constants';
 import {
   CheckEmailDto,
   PaginationDto,
+  User,
   UserSoftDeleteByActorDto,
 } from '@shared';
-import { Serialize } from '@modules/identity/user/presentation/decorators/serialize.decorator';
 import {
   GetContext,
   IGetContext,
@@ -33,10 +32,12 @@ import { SoftDeleteUserByStaffCommand } from '@modules/identity/user/application
 import { SendVerificationEmailCommand } from '@modules/identity/user/application/commands/send-verification-email';
 import { FindOneWithIdOrEmailQuery } from '@modules/identity/user/application/queries/find-one-with-id-or-email';
 import { FindAllUsersForManagerQuery } from '@modules/identity/user/application/queries/find-all-users-for-manager';
-import { UserTransformInterceptor } from '@modules/identity/user/presentation/user-transform.interceptor';
+
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { UpdateUserByStaffDto } from '@shared/modules/user/dto/commands/update-user-by-staff.dto';
+import { UserResponseDto } from '@modules/identity/user/presentation/dto';
+import { Serialize } from '@common/decorators/serialize.decorator';
 
 const { USER } = CAPABILITIES;
 
@@ -48,11 +49,10 @@ export class UserController {
     private readonly queryBus: TSQueryBus
   ) {}
 
-  @UseInterceptors(UserTransformInterceptor)
   @Get('details/:userIdOrEmail')
   @Version('1')
   @HasCapability(USER.read)
-  @Serialize()
+  @Serialize<User, UserResponseDto>(UserResponseDto)
   findOneWithUserIdOrEmail(
     @GetContext() ctx: IGetContext,
     @Param('userIdOrEmail') userIdOrEmail: string
@@ -77,7 +77,9 @@ export class UserController {
     @Body() dto: UpdateUserByStaffDto,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new UpdateUserByStaffCommand(id, dto, ctx));
+    return this.commandBus.execute(
+      new UpdateUserByStaffCommand({ targetUserId: id, data: dto, ctx })
+    );
   }
 
   @Patch('soft-delete')
@@ -94,7 +96,7 @@ export class UserController {
   @Get('all')
   @Version('1')
   @HasCapability(USER.read)
-  @Serialize()
+  @Serialize<User, UserResponseDto>(UserResponseDto)
   findAllUsers(
     @Query() paginationDto: PaginationDto,
     @GetContext() ctx: IGetContext

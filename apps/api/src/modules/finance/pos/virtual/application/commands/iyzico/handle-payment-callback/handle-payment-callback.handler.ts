@@ -7,7 +7,7 @@ import { IyzicoTransactionNotFoundException } from '@modules/finance/pos/virtual
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
@@ -15,9 +15,6 @@ import { MarkInstallmentAsFailedCommand } from '@modules/finance/payment/applica
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
-import PaymentMethodSchema, {
-  PaymentMethodType as PaymentMethod,
-} from '@input-type-schemas/PaymentMethodSchema';
 import {
   IIyzicoTransactionCommandRepository,
   IIyzicoTransactionQueryRepository,
@@ -25,6 +22,8 @@ import {
   IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 
 @CommandHandler(HandlePaymentCallbackCommand)
 export class HandlePaymentCallbackHandler
@@ -66,7 +65,7 @@ export class HandlePaymentCallbackHandler
       const transaction = new IyzicoTransaction(iyzicoTx);
 
       // Idempotency: başarıyla işlenmiş bir işlem callback/webhook yarışında tekrar gelirse yok say.
-      if (transaction.isSuccess()) {
+      if (transaction.validate.status.isSuccess.value) {
         this.logger.warn(
           `Ödeme zaten önceden işlenmiş (Idempotency). conversationId=${conversationId}`
         );
@@ -96,7 +95,6 @@ export class HandlePaymentCallbackHandler
           installmentId: installment.id,
           paymentId: payment.id,
           amount: installment.amount.toString(),
-          method: installment.method,
         });
       } else {
         transaction.markAsFailed({
@@ -121,62 +119,47 @@ export class HandlePaymentCallbackHandler
    * Tahsilatı muhasebe katmanına köprüler: hastanın carisini garanti eder ve
    * PAYMENT_RECEIVED ekonomik olayını yazar. dedupeKey ile idempotenttir; olay
    * Outbox'a düşer, posting listener'ı fişi (108/120) asenkron üretir.
+   *
+   * Hata YUTULMAZ: aynı outboxRun içindeyiz — köprü patlarsa tüm transaction
+   * (markAsSuccess + taksit dahil) rollback olmalı ki para defterde kaybolmasın.
+   * iyzico callback'i 500 döner, retrieveCheckoutForm + dedupeKey idempotent
+   * olduğundan webhook retry temiz şekilde yeniden işler.
    */
   private async recordPaymentReceived(
     input: RecordPaymentReceivedInput
   ): Promise<void> {
     const ctx = ExecutionContextFactory.createInternal();
 
-    try {
-      const { partyId, organizationId } = await this.commandBus.execute(
-        new EnsurePartyForPatientCommand(
-          input.patientId,
-          input.clinicId,
-          PartyRoleSchema.enum.CUSTOMER,
-          ctx
-        )
-      );
+    const { partyId } = await this.commandBus.execute(
+      new EnsurePartyForPatientCommand(
+        input.patientId,
+        input.clinicId,
+        PartyRoleSchema.enum.CUSTOMER,
+        ctx
+      )
+    );
 
-      await this.commandBus.execute(
-        new RecordFinancialEventCommand(
-          {
-            organizationId,
-            clinicId: input.clinicId,
-            type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
-            payload: {
-              method: this.mapToCashMethod(input.method),
-              amount: input.amount,
-              partyId,
-            },
-            sourceModule: 'payment',
-            sourceRefId: input.paymentId,
-            dedupeKey: `payment-received:${input.installmentId}`,
+    await this.commandBus.execute(
+      new RecordFinancialEventCommand(
+        {
+          clinicId: input.clinicId,
+          type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
+          payload: {
+            // Sanal POS tahsilatı her zaman kart → 108 Diğer Hazır Değerler.
+            // (Komisyon/valör ayrıştırması banka settlement fazında yapılır.)
+            method: 'POS_CARD',
+            amount: input.amount,
+            partyId,
           },
-          ctx
-        )
-      );
-    } catch (error) {
-      // Köprü hatası tahsilatı bozmamalı; olay sonradan yeniden üretilebilir.
-      this.logger.error(
-        `Muhasebe köprüsü başarısız: installmentId=${input.installmentId}`,
-        error
-      );
-    }
-  }
-
-  /** Prisma PaymentMethod → posting kuralının beklediği kasa/banka/POS biçimi. */
-  private mapToCashMethod(
-    method: PaymentMethod
-  ): 'CASH' | 'BANK_TRANSFER' | 'POS_CARD' {
-    switch (method) {
-      case PaymentMethodSchema.enum.CASH:
-        return 'CASH';
-      case PaymentMethodSchema.enum.BANK_TRANSFER:
-      case PaymentMethodSchema.enum.EFT:
-        return 'BANK_TRANSFER';
-      default:
-        return 'POS_CARD';
-    }
+          sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.PAYMENT,
+          sourceRefId: input.paymentId,
+          dedupeKey: FinancialEventDedupeKeys.payment_received(
+            input.installmentId
+          ),
+        },
+        ctx
+      )
+    );
   }
 }
 
@@ -186,5 +169,4 @@ interface RecordPaymentReceivedInput {
   installmentId: string;
   paymentId: string;
   amount: string;
-  method: PaymentMethod;
 }

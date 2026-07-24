@@ -14,6 +14,7 @@ import { InitializeChartOfAccountsCommand } from './initialize-chart-of-accounts
  * Bir clinic (şube/defter) için klinik TDHP hesap planını kurar.
  * İdempotent için: hesap planı zaten varsa hiçbir şey yapmaz
  */
+
 @CommandHandler(InitializeChartOfAccountsCommand)
 export class InitializeChartOfAccountsHandler
   implements ICommandHandler<InitializeChartOfAccountsCommand, void>
@@ -27,7 +28,7 @@ export class InitializeChartOfAccountsHandler
   ) {}
 
   async execute(command: InitializeChartOfAccountsCommand): Promise<void> {
-    const { clinicId, organizationId } = command;
+    const { clinicId, organizationId, ctx } = command.payload;
 
     await this.txManager.run(async () => {
       const alreadyInitialized =
@@ -38,6 +39,7 @@ export class InitializeChartOfAccountsHandler
         clinicId,
         organizationId,
       });
+
       await this.accountCommandRepo.createChart(accounts);
     });
   }

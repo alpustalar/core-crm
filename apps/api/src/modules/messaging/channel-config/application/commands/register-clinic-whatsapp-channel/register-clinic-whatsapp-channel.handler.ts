@@ -38,7 +38,7 @@ export class RegisterClinicWhatsappChannelHandler
     });
 
     const saved = await this.txManager.run(() =>
-      this.channelCommandRepo.save(channel)
+      this.channelCommandRepo.upsertByClinicId(channel)
     );
     return saved.id;
   }

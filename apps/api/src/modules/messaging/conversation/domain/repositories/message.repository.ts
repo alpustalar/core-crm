@@ -5,6 +5,7 @@ export const MESSAGE_COMMAND_REPOSITORY = Symbol('IMessageCommandRepository');
 export const MESSAGE_QUERY_REPOSITORY = Symbol('IMessageQueryRepository');
 
 export interface IMessageCommandRepository {
+  create(entity: Message): Promise<Message>;
   save(entity: Message): Promise<Message>;
 }
 

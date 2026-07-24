@@ -10,7 +10,7 @@ import {
   BookingPaymentStatusValue,
   BookingPaymentTypeValue,
   CreateBookingPaymentProps,
-} from '../booking-payment.contracts';
+} from '../contracts/booking-payment.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Url } from '@src/domain/value-objects/url.vo';
@@ -19,9 +19,8 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Decimal } from 'decimal.js';
 import { Guard } from '@common/domain/guards';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
-import { isNotSystemOverride } from '@common/domain/utils/is-not-system-override';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { BookingPaymentRules } from '@modules/crm/health-tourism/booking-payment/domain/rules/booking-payment.rules';
 
 /**
  * Sağlık turizmi ödeme-önce (payment-first) tahsilat saga kaydı. Hasta ödeme yapmadan
@@ -207,69 +206,21 @@ export class BookingPayment extends AggregateRoot {
   public get validate() {
     return {
       status: {
-        isPaid: this._isPaid,
-        isPending: this._isPending,
-        isSettled: this._isSettled,
-        can: {
-          markPaid: this._businessRulesValidator.markPaid(),
-          markBooked: this._businessRulesValidator.markBooked(),
-          markExpired: this._businessRulesValidator.markExpired(),
-        },
-      },
-    };
-  }
-
-  private get _businessRulesValidator() {
-    return {
-      markPaid: () => {
-        const isInvalid = !this._isPending.value;
-        return {
-          isValid: !isInvalid,
-          isInvalid,
-          orThrow: () => {
-            throw new Error(
-              `Ödeme yalnız PENDING durumunda işaretlenebilir (mevcut: ${this._status}).`
-            );
-          },
-        };
-      },
-      markBooked: () => {
-        const isInvalid = this._status !== BookingPaymentStatusSchema.enum.PAID;
-        return {
-          isValid: !isInvalid,
-          isInvalid,
-          orThrow: () => {
-            throw new Error(
-              `Rezervasyon yalnız PAID durumunda tamamlanabilir (mevcut: ${this._status}).`
-            );
-          },
-        };
-      },
-      markExpired: () => {
-        const isInvalid =
-          this._status !== BookingPaymentStatusSchema.enum.PENDING;
-
-        return {
-          isValid: !isInvalid,
-          isInvalid,
-          orThrow: () => {
-            throw new Error(
-              `Yalnız PENDING durumundaki kayıt expire edilebilir (mevcut: ${this._status}).`
-            );
-          },
-        };
+        isPaid: this.isPaid,
+        isPending: this.isPending,
+        isSettled: this.isSettled,
       },
     };
   }
 
   // ------------------------------------------------------------ state machine
 
-  private get _isPaid() {
+  private get isPaid() {
     const is = this._status === BookingPaymentStatusSchema.enum.PAID;
     return Guard.monitor(is, is, () => new Error('Ödeme tamamlanmamış'));
   }
 
-  private get _isPending() {
+  private get isPending() {
     const is = this._status === BookingPaymentStatusSchema.enum.PENDING;
     return Guard.monitor(
       is,
@@ -278,7 +229,7 @@ export class BookingPayment extends AggregateRoot {
     );
   }
 
-  private get _isSettled() {
+  private get isSettled() {
     const is =
       this._status === BookingPaymentStatusSchema.enum.PAID ||
       this._status === BookingPaymentStatusSchema.enum.BOOKED;
@@ -287,9 +238,8 @@ export class BookingPayment extends AggregateRoot {
 
   public static create(props: CreateBookingPaymentProps): BookingPayment {
     const now = DateTimeManager.create();
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
     return new BookingPayment({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       bookingType: props.bookingType,
       status: BookingPaymentStatusSchema.enum.PENDING,
       saleCurrency: props.saleCurrency,
@@ -321,11 +271,12 @@ export class BookingPayment extends AggregateRoot {
     });
   }
 
+  public rules(validateOptions: ValidateOptionsType) {
+    return new BookingPaymentRules(this, validateOptions);
+  }
+
   /** initiate sırasında üretilen sağlayıcı link bilgilerini saklar. */
-  public attachLinks(
-    links: BookingPaymentLinks,
-    options = DefaultValidateOptions
-  ): void {
+  public attachLinks(links: BookingPaymentLinks): void {
     if (isNotUndefined(links.iyzicoConversationId)) {
       this._iyzicoConversationId = links.iyzicoConversationId;
     }
@@ -333,25 +284,17 @@ export class BookingPayment extends AggregateRoot {
       this._iyzicoToken = links.iyzicoToken;
 
     if (isNotUndefined(links.iyzicoUrl))
-      if (isNotSystemOverride(options)) {
-        this._iyzicoUrl = links.iyzicoUrl
-          ? Url.create(links.iyzicoUrl).orThrow()
-          : null;
-      } else {
-        this._iyzicoUrl = Url.fromTrusted(links.iyzicoUrl);
-      }
+      this._iyzicoUrl = links.iyzicoUrl
+        ? Url.create(links.iyzicoUrl).orThrow()
+        : null;
 
     if (isNotUndefined(links.stripeSessionId)) {
       this._stripeSessionId = links.stripeSessionId;
     }
     if (isNotUndefined(links.stripeUrl)) {
-      if (isNotSystemOverride(options)) {
-        this._stripeUrl = links.stripeUrl
-          ? Url.create(links.stripeUrl).orThrow()
-          : null;
-      } else {
-        this._stripeUrl = Url.fromTrusted(links.stripeUrl);
-      }
+      this._stripeUrl = links.stripeUrl
+        ? Url.create(links.stripeUrl).orThrow()
+        : null;
     }
 
     this._updatedAt = DateTimeManager.create();
@@ -360,12 +303,8 @@ export class BookingPayment extends AggregateRoot {
   /** PENDING → PAID. providerRef iade için saklanır. */
   public markPaid(
     provider: BookingPaymentProviderValue,
-    providerRef: string,
-    options = DefaultValidateOptions
+    providerRef: string
   ): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.markPaid().orThrow();
-
     const now = DateTimeManager.create();
 
     this._status = BookingPaymentStatusSchema.enum.PAID;
@@ -376,14 +315,7 @@ export class BookingPayment extends AggregateRoot {
   }
 
   /** PAID → BOOKED. HotelBeds rezervasyonu tamamlandı. */
-  public markBooked(
-    reference: string,
-    bookingId?: string | null,
-    options = DefaultValidateOptions
-  ): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.markBooked().orThrow();
-
+  public markBooked(reference: string, bookingId?: string | null): void {
     this._status = BookingPaymentStatusSchema.enum.BOOKED;
     this._bookingReference = reference;
     this._bookingId = bookingId ?? null;
@@ -398,10 +330,7 @@ export class BookingPayment extends AggregateRoot {
   }
 
   /** PENDING → EXPIRED (link süresi doldu, ödeme yapılmadı). */
-  public markExpired(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.markExpired().orThrow();
-
+  public markExpired(): void {
     this._status = BookingPaymentStatusSchema.enum.EXPIRED;
     this._updatedAt = DateTimeManager.create();
   }
@@ -420,9 +349,9 @@ export class BookingPayment extends AggregateRoot {
       bookingType: this.bookingType,
       status: this.status,
       saleCurrency: this.saleCurrency.value,
-      saleAmount: this.saleAmount.amount,
-      tryAmount: this.tryAmount.amount,
-      netAmount: this.netAmount.amount,
+      saleAmount: this.saleAmount.value,
+      tryAmount: this.tryAmount.value,
+      netAmount: this.netAmount.value,
       fxRate: this.fxRate,
       intent: this.intent,
       iyzicoConversationId: this.iyzicoConversationId,

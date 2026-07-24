@@ -17,5 +17,6 @@ export interface SendBookingConfirmationInput {
  * handler'ı bu komutu bus ile dispatch eder.
  */
 export class SendBookingConfirmationCommand implements ICommand {
+  readonly __responseType!: void;
   constructor(public readonly input: SendBookingConfirmationInput) {}
 }

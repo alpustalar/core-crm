@@ -2,22 +2,28 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { APPOINTMENT_JOBS, QUEUES } from '@common/constants';
-import { AppointmentBulkScope } from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
+import { AppointmentEventBulkScope } from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { ProcessAppointmentRemindersCommand } from '@modules/clinical/appointment/application/commands/process-appointment-reminders/process-appointment-reminders.command';
 
 interface NotifyBulkSoftDeletedJobData {
-  scope: AppointmentBulkScope;
+  scope: AppointmentEventBulkScope;
   clinicId?: string;
   organizationId?: string;
   affectedCount: number;
 }
 
 /**
- * Toplu randevu silme sonrası asenkron yan etkileri yürütür: ilgili hastalara
- * bildirim (mail/mesaj) + ilgili Redis anahtarlarının temizliği.
+ * Randevu kuyruğu işleri: toplu silme sonrası yan etkiler (bildirim + Redis
+ * temizliği) ve periyodik hatırlatma taraması (SCAN_DUE_REMINDERS → command).
  */
 @Processor(QUEUES.APPOINTMENT)
 export class AppointmentNotificationProcessor extends WorkerHost {
   private readonly logger = new Logger(AppointmentNotificationProcessor.name);
+
+  constructor(private readonly commandBus: TSCommandBus) {
+    super();
+  }
 
   async process(job: Job): Promise<void> {
     switch (job.name) {
@@ -25,6 +31,9 @@ export class AppointmentNotificationProcessor extends WorkerHost {
         await this.handleBulkSoftDeleted(
           job.data as NotifyBulkSoftDeletedJobData
         );
+        break;
+      case APPOINTMENT_JOBS.SCAN_DUE_REMINDERS:
+        await this.commandBus.execute(new ProcessAppointmentRemindersCommand());
         break;
       default:
         this.logger.warn(`Tanımlanmamış Appointment job: ${job.name}`);

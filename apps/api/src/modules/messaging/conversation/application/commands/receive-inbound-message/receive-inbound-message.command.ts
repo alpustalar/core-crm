@@ -1,6 +1,6 @@
 import { MessageChannel, MessageType } from '@prisma/client';
-import { InboundMessagePayload } from '@modules/messaging/conversation/domain/types/create-message.props';
-import { InboundReferral } from '@modules/messaging/conversation/domain/types/inbound-referral';
+import { InboundMessagePayload } from '@modules/messaging/conversation/domain/contracts/message.contracts';
+import { InboundReferral } from '@modules/messaging/conversation/domain/contracts/meta-webhook.contracts';
 
 export interface ReceiveInboundMessageInput {
   /** Hangi kanaldan geldiği; verilmezse WHATSAPP varsayılır (geriye dönük uyumluluk). */

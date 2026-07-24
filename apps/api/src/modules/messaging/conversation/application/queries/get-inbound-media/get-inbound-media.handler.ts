@@ -7,8 +7,8 @@ import {
   IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
-  MESSAGE_QUERY_REPOSITORY,
   IMessageQueryRepository,
+  MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { parseWhatsappMediaRef } from '@modules/messaging/conversation/domain/media-reference';
 import { GetInboundMediaQuery } from './get-inbound-media.query';
@@ -26,19 +26,18 @@ export class GetInboundMediaHandler
     private readonly queryBus: TSQueryBus
   ) {}
 
-  async execute(
-    query: GetInboundMediaQuery
-  ): Promise<GetInboundMediaResponse> {
-    const message = await this.messageQueryRepo.findById(query.messageId);
-    if (!message || message.conversationId !== query.conversationId) {
+  async execute(query: GetInboundMediaQuery): Promise<GetInboundMediaResponse> {
+    const { payload } = query;
+    const message = await this.messageQueryRepo.findById(payload.messageId);
+    if (!message || message.conversationId !== payload.conversationId) {
       throw new NotFoundException('Mesaj bulunamadı.');
     }
 
     const conversation = await this.conversationQueryRepo.findById(
-      query.conversationId
+      payload.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== query.clinicId) {
+    if (conversation.clinicId !== payload.clinicId) {
       throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
     }
 
@@ -47,7 +46,7 @@ export class GetInboundMediaHandler
 
     // Medya Meta'dan anlık çekilir (saklanmaz); credential klinik kanalından çözülür.
     return this.queryBus.execute(
-      new FetchWhatsappMediaQuery(query.clinicId, mediaId)
+      new FetchWhatsappMediaQuery(payload.clinicId, mediaId)
     );
   }
 }

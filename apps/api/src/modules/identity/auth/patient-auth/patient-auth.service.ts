@@ -2,7 +2,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
-} from '@modules/identity/auth/firebase/domain/interfaces/firebase.service.interface';
+} from '@src/infrastructure/firebase/firebase.service.interface';
 
 import { FindPatientByFirebaseUidQuery } from '@modules/crm/patient/application/queries/find-patient-by-firebase-uid/find-patient-by-firebase-uid.query';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
@@ -51,7 +51,7 @@ export class PatientAuthService {
     const firebaseUid = decodedToken.uid;
 
     const { data: patient } = await this.queryBus.execute(
-      new FindPatientByContactQuery(organizationId, phone)
+      new FindPatientByContactQuery({ clinicId, phone })
     );
 
     if (!patient) {

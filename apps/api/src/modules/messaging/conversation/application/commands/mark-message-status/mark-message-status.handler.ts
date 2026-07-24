@@ -33,25 +33,26 @@ export class MarkMessageStatusHandler
   ) {}
 
   async execute(command: MarkMessageStatusCommand): Promise<void> {
+    const { payload } = command;
     const message = await this.messageQueryRepo.findByExternalId(
-      command.externalId
+      payload.externalId
     );
     // bilinmeyen mesaj - bizim göndermediğimiz olay ise --->>> yoksay
     if (!message) return;
 
-    this.applyStatus(message, command);
-    message.recordPricing(command.pricing?.category, command.pricing?.billable);
+    this.applyStatus(message, payload);
+    message.recordPricing(payload.pricing?.category, payload.pricing?.billable);
 
     await this.txManager.run(async () => {
       await this.messageCommandRepo.save(message);
 
       // Konuşma penceresi bitişi geldiyse yazışmaya yaz (yalnız pencere açıldığında gelir).
-      if (command.pricing?.windowExpiresAt) {
+      if (payload.pricing?.windowExpiresAt) {
         const conversation = await this.conversationQueryRepo.findById(
           message.conversationId
         );
         if (conversation) {
-          conversation.setWindowExpiry(command.pricing.windowExpiresAt);
+          conversation.setWindowExpiry(payload.pricing.windowExpiresAt);
           await this.conversationCommandRepo.save(conversation);
         }
       }
@@ -60,12 +61,12 @@ export class MarkMessageStatusHandler
 
   private applyStatus(
     message: Message,
-    command: MarkMessageStatusCommand
+    payload: MarkMessageStatusCommand['payload']
   ): void {
-    message.transitionStatus(command.status, {
-      errorReason: command.errorReason,
-      errorCode: command.errorCode,
-      externalId: command.externalId ?? message.externalId,
+    message.transitionStatus(payload.status, {
+      errorReason: payload.errorReason,
+      errorCode: payload.errorCode,
+      externalId: payload.externalId ?? message.externalId,
     });
   }
 }

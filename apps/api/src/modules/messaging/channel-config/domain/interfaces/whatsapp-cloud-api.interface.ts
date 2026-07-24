@@ -107,3 +107,10 @@ export interface IWhatsappCloudApi {
     accessToken: string
   ): Promise<WhatsappMediaContent | null>;
 }
+
+export type WhatsappCloudApiConfig = {
+  appId: string;
+  appSecret: string;
+};
+
+export const WHATSAPP_CLOUD_API_CONFIG = Symbol('WhatsappCloudApiConfig');

@@ -1,5 +1,5 @@
 import { BaseEvent } from '@common/interfaces/base-event.interface';
-import { ADMIN_REQUEST_EVENTS } from '@src/domain/constants/events/admin-request.constants';
+import { ADMIN_REQUEST_EVENTS } from '@src/domain/constants/events/admin-request.constant';
 import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
 
 export interface AdminRequestCreatedEventPayload {

@@ -1,8 +1,7 @@
-import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetClinicAppointmentsQuery } from './get-clinic-appointments.query';
 import { GetClinicAppointmentsQueryResponse } from './get-clinic-appointments.response';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
@@ -31,37 +30,29 @@ export class GetClinicAppointmentsHandler
   async execute(
     query: GetClinicAppointmentsQuery
   ): Promise<GetClinicAppointmentsQueryResponse> {
-    const { ctx, pagination, dto } = query;
-    const { actor } = ctx;
+    const { ctx, filter, pagination } = query.payload;
 
-    if (!actor.clinicId) {
-      throw new BadRequestException('Actor için klinik tanımlanmamış.');
-    }
+    const serializationOptions = this.policyFactory
+      .appointment(ctx.actor, ctx.source)
+      .policy.getSerializationOptions({
+        clinicId: filter.clinicId,
+        providerId: filter.providerId,
+      });
 
-    this.policyFactory
-      .appointment(actor)
-      .evaluator.check(
-        (p) => p.canScheduleAppointmentInClinic(actor.clinicId),
-        'Bu kliniğe ait randevulara erişim yetkiniz yok.'
-      )
-      .orThrow(APPOINTMENT_EVENTS.LIST_CLINIC);
-
-    const paginatedAppointments = await this.appointmentRepo.findClinicCalendar(
-      {
-        clinicId: actor.clinicId,
-        startDate: dto.startDate,
-        endDate: dto.endDate,
-        pagination: pagination,
-      }
-    );
+    const { items, total } = await this.appointmentRepo.findClinicCalendar({
+      clinicId: filter.clinicId,
+      startDate: filter.startDate,
+      endDate: filter.endDate,
+      pagination: pagination,
+      providerId: filter.providerId,
+      status: filter.status,
+    });
 
     return {
-      data: paginatedAppointments.items.map((item) => item.toPersistence()),
+      data: items,
       meta: {
-        pagination: buildPaginationMeta(
-          pagination,
-          paginatedAppointments.total
-        ),
+        pagination: buildPaginationMeta(pagination, total),
+        serializationOptions,
       },
     };
   }

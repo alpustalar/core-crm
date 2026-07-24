@@ -3,8 +3,8 @@ import { ClinicAiAgentConfig } from './clinic-ai-agent-config.entity';
 describe('ClinicAiAgentConfig entity', () => {
   const create = () =>
     ClinicAiAgentConfig.create({
-      clinicId: 'clinic-1',
-      organizationId: 'org-1',
+      clinicId: '11111111-1111-4111-8111-111111111111',
+      organizationId: '22222222-2222-4222-8222-222222222222',
     });
 
   it('create: güvenli varsayılanlar (pasif, anthropic/haiku, pencere-içi)', () => {
@@ -56,8 +56,8 @@ describe('ClinicAiAgentConfig entity', () => {
 
   it('updateSettings: apiKey undefined → mevcut anahtar korunur', () => {
     const config = ClinicAiAgentConfig.create({
-      clinicId: 'clinic-1',
-      organizationId: 'org-1',
+      clinicId: '11111111-1111-4111-8111-111111111111',
+      organizationId: '22222222-2222-4222-8222-222222222222',
       apiKey: 'mevcut-key',
     });
 

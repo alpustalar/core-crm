@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { LeadSourceSchema } from '@input-type-schemas/LeadSourceSchema';
 import { LeadMediumSchema } from '@input-type-schemas/LeadMediumSchema';
 import { LeadStatusSchema } from '@input-type-schemas/LeadStatusSchema';
+import { PipelineStageTypeSchema } from '@input-type-schemas/PipelineStageTypeSchema';
 import { LogSource } from '@src/domain/constants/log-action.constant';
 import { Pagination } from '@shared/common';
 import { ActorContext } from '@common/interfaces';
-import { ValidateOptionsType } from '@common/domain/constants/default-options.constant';
 
 // ==========================================
 // 1. LEAD OLUŞTURMA SÖZLEŞMESİ (CREATE LEAD)
@@ -14,6 +14,7 @@ import { ValidateOptionsType } from '@common/domain/constants/default-options.co
 export const CreateLeadSchema = z.object({
   id: z.uuid().optional(),
   clinicId: z.uuid(),
+  organizationId: z.uuid(),
   source: LeadSourceSchema,
   name: z.string().optional(),
   phone: z.string().optional(),
@@ -21,6 +22,10 @@ export const CreateLeadSchema = z.object({
   notes: z.string().optional(),
   assignedToId: z.uuid().optional(),
   whatsAppConversationId: z.string().optional(),
+
+  // Satış hunisi başlangıç pozisyonu (opsiyonel; handler varsayılan huniye atayabilir).
+  pipelineId: z.uuid().optional(),
+  stageId: z.uuid().optional(),
 
   // Attribution — reklam/kaynak kökeni (CTWA referral veya Meta Lead Ads formu).
   medium: LeadMediumSchema.optional(),
@@ -51,28 +56,59 @@ export const FindLeadsFilterSchema = z.object({
 
 export type FindLeadsFilter = z.infer<typeof FindLeadsFilterSchema>;
 
-export const MarkLostLeadSchema = z.object({
-  reason: z.string().optional(),
-  actor: z
-    .custom<ActorContext>((val) => val !== null && typeof val === 'object')
-    .optional(),
-  validateOptions: z
-    .custom<ValidateOptionsType>(
-      (val) => val !== null && typeof val === 'object'
-    )
-    .optional(),
-});
+// ==========================================
+// REKLAM ROI — reklam-atıflı dönüşen lead read-model'i
+// ==========================================
 
-export type MarkLostLeadProps = z.infer<typeof MarkLostLeadSchema>;
+/** Reklam kampanyasına atfedilen, hastaya dönüşmüş lead (ROI gelir eşleştirmesi için). */
+export interface AdAttributedLead {
+  campaignId: string;
+  campaignName: string | null;
+  adId: string | null;
+  patientId: string;
+  createdAt: Date;
+}
+
+export const FindAdAttributedLeadsFilterSchema = z.object({
+  clinicId: z.uuid(),
+  from: z.coerce.date(),
+  to: z.coerce.date(),
+});
+export type FindAdAttributedLeadsFilter = z.infer<
+  typeof FindAdAttributedLeadsFilterSchema
+>;
 
 export const ConvertLeadSchema = z.object({
   patientId: z.string().optional(),
   appointmentId: z.string().optional(),
-  validateOptions: z
-    .custom<ValidateOptionsType>(
-      (val) => val !== null && typeof val === 'object'
-    )
-    .optional(),
+  actor: z.custom<ActorContext>(
+    (val) => val !== null && typeof val === 'object'
+  ),
 });
 
 export type ConvertLeadProps = z.infer<typeof ConvertLeadSchema>;
+
+// ==========================================
+// SATIŞ HUNİSİ — aşama taşıma (Kanban board)
+// ==========================================
+
+/**
+ * Lead'i hedef aşamaya taşır. `stageType` (OPEN/WON/LOST) coarse LeadStatus'ü
+ * senkronlar: WON→CONVERTED, LOST→LOST, terminalden OPEN'a→yeniden aktif (QUALIFIED).
+ */
+export const MoveLeadToStageSchema = z.object({
+  pipelineId: z.uuid(),
+  stageId: z.uuid(),
+  stageType: PipelineStageTypeSchema,
+  reason: z.string().optional(),
+});
+
+export type MoveLeadToStageProps = z.infer<typeof MoveLeadToStageSchema>;
+
+/** Yalnız huni + aşama kimliğini atar; LeadStatus'e dokunmaz (convert/lost senkronu). */
+export const AssignLeadStageSchema = z.object({
+  pipelineId: z.uuid(),
+  stageId: z.uuid(),
+});
+
+export type AssignLeadStageProps = z.infer<typeof AssignLeadStageSchema>;

@@ -10,9 +10,11 @@ import { GetBalanceSheetResponse } from './get-balance-sheet.response';
 export class GetBalanceSheetQuery implements IQuery {
   readonly __responseType!: GetBalanceSheetResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly ctx: IGetContext,
-    public readonly dateFrom?: Date,
-    public readonly dateTo?: Date
+    public readonly payload: {
+      clinicId: string;
+      ctx: IGetContext;
+      dateFrom?: Date;
+      dateTo?: Date;
+    }
   ) {}
 }

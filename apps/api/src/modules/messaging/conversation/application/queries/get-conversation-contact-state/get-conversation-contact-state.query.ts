@@ -10,8 +10,10 @@ import { GetConversationContactStateResponse } from './get-conversation-contact-
 export class GetConversationContactStateQuery implements IQuery {
   readonly __responseType!: GetConversationContactStateResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly channel: MessageChannel,
-    public readonly contactPhone: string
+    public readonly payload: {
+      clinicId: string;
+      channel: MessageChannel;
+      contactPhone: string;
+    }
   ) {}
 }

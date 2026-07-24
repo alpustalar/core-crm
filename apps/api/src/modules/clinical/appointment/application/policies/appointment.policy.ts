@@ -4,50 +4,42 @@ import {
   AppointmentResponseGroup,
   AppointmentsResponseGroups,
 } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import { SerializationOptionsResponse } from '@common/interfaces/serialization-policy.interface';
 
 export class AppointmentPolicy extends ClinicPolicy {
-  constructor(actor: ActorContext) {
-    super(actor);
+  constructor(actor: ActorContext, source: ExecutionSource) {
+    super(actor, source);
   }
 
-  // capability guard ile kullanılacak
   canScheduleAppointmentInClinic(clinicId: string | undefined): boolean {
     return this.actorCanAccessTargetClinic(clinicId);
   }
 
-  getSerializationOptions(appointment: {
-    patientId?: string | null;
+  public getSerializationOptions(payload: {
     clinicId: string;
-    providerId: string;
-  }): { isGroupActive: boolean; groups: AppointmentResponseGroup[] } {
-    const isSelf = !!(
-      this.actor.patientId && appointment.patientId === this.actor.patientId
-    );
-
-    const isProvider = !!(
-      this.actor.providerId && appointment.providerId === this.actor.providerId
+    providerId?: string;
+  }): SerializationOptionsResponse<AppointmentResponseGroup> {
+    const isProviderDataOwner = !!(
+      this.actor.providerId && payload.providerId === this.actor.providerId
     );
     const isAdmin = this.isSystemAdmin();
+    const isSameClinic = this.actorCanAccessTargetClinic(payload.clinicId);
+    const isManager = this.actorCanManageTargetClinic(payload.clinicId);
 
-    const isSameClinic = this.actorCanAccessTargetClinic(appointment.clinicId);
-    const isManager = this.actorCanManageTargetClinic(appointment.clinicId);
+    const { ADMIN, INTERNAL, FINANCIAL, MANAGEMENT, PROVIDER_DATA_OWNER } =
+      AppointmentsResponseGroups;
 
-    const groups: AppointmentResponseGroup[] = [
-      isSelf && AppointmentsResponseGroups.PROVIDER_DATA_OWNER,
-      isProvider && AppointmentsResponseGroups.INTERNAL,
-      isManager && AppointmentsResponseGroups.MANAGEMENT,
-      isManager && AppointmentsResponseGroups.FINANCIAL,
-      isAdmin && AppointmentsResponseGroups.ADMIN,
-    ].filter((group) => typeof group !== 'boolean');
+    const groups: AppointmentResponseGroup[] = [];
+
+    if (isSameClinic) groups.push(INTERNAL);
+    if (isProviderDataOwner) groups.push(PROVIDER_DATA_OWNER);
+    if (isManager) groups.push(MANAGEMENT, FINANCIAL);
+    if (isAdmin) groups.push(ADMIN);
 
     return {
-      isGroupActive: !!(
-        isManager ||
-        isSameClinic ||
-        isSelf ||
-        isAdmin ||
-        isProvider
-      ),
+      isGroupActive:
+        isManager || isSameClinic || isAdmin || isProviderDataOwner,
       groups,
     };
   }

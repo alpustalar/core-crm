@@ -1,5 +1,5 @@
 export * from './change-user-password.dto';
-export * from './create-user.dto';
+export * from '../../../registration/dto/commands/register-user-or-provider-account.dto';
 export * from './send-user-password-reset-by-actor.dto';
 export * from './update-user-by-staff.dto';
 export * from './user-soft-delete-by-actor.dto';

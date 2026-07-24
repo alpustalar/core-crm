@@ -3,6 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IProductBatchQueryRepository } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class ProductBatchQueryRepository
@@ -27,7 +28,10 @@ export class ProductBatchQueryRepository
         productId,
         clinicId,
         quantity: { gt: 0 },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: DateTimeManager.create() } },
+        ],
       },
       orderBy: { expiresAt: 'asc' },
     });

@@ -2,6 +2,7 @@ import { GetTaxRateHandler } from './get-tax-rate.handler';
 import { GetTaxRateQuery } from './get-tax-rate.query';
 import { TaxParameterNotConfiguredException } from '@modules/finance/accounting/tax-parameters/domain/exceptions/tax-parameter-not-configured.exception';
 import { TaxParameterKeySchema } from '@shared';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 describe('GetTaxRateHandler', () => {
   const make = (effective: { rateNumber: number } | null) => {
@@ -41,7 +42,7 @@ describe('GetTaxRateHandler', () => {
         new GetTaxRateQuery(
           'clinic-1',
           TaxParameterKeySchema.enum.VAT_HEALTH,
-          new Date()
+          DateTimeManager.create()
         )
       )
     ).rejects.toThrow(TaxParameterNotConfiguredException);

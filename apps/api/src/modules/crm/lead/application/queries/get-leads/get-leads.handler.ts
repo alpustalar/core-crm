@@ -7,6 +7,10 @@ import {
   LEAD_QUERY_REPOSITORY,
 } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetLeadsQuery)
 export class GetLeadsHandler
@@ -14,23 +18,32 @@ export class GetLeadsHandler
 {
   constructor(
     @Inject(LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: ILeadQueryRepository
+    private readonly leadQueryRepo: ILeadQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetLeadsQuery): Promise<GetLeadsResponse> {
-    const { clinicId, dto, pagination } = query;
+    const { clinicId, data, pagination, ctx } = query.payload;
 
     const result = await this.leadQueryRepo.findMany({
       clinicId,
-      status: dto.status,
-      source: dto.source,
-      assignedToId: dto.assignedToId,
+      status: data.status,
+      source: data.source,
+      assignedToId: data.assignedToId,
       pagination,
     });
 
+    const serializationOptions = this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .policy.getSerializationOptions({ clinicId });
+
     return {
       data: result.items.map((item) => item.toPersistence()),
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions,
+      },
     };
   }
 }

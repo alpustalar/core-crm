@@ -71,7 +71,7 @@ export class PaxVoidHandler
       throw new PosDeviceNotFoundException();
     }
 
-    device.validate.status.isActive().orThrow();
+    device.validate.status.isActive.orThrow();
 
     const posTransaction = PosTransaction.create({
       posDeviceId: device.id.value,

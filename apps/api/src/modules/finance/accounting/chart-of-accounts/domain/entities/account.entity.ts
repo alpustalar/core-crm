@@ -19,6 +19,7 @@ import {
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { Guard } from '@common/domain/guards';
 
 export interface BuildChartInput {
   clinicId: string;
@@ -115,19 +116,26 @@ export class Account extends AggregateRoot {
     return this._updatedAt;
   }
 
+  public get validate() {
+    return {
+      isDebitNormal: (() => {
+        const isNormal = this.isDebitNormal();
+        return Guard.monitor(isNormal, isNormal, () => new Error(''));
+      })(),
+    };
+  }
+
   public static create(props: CreateAccountProps): Account {
     const accountCode = AccountCode.create(props.code);
     const currencyStr =
       Currency.create(props.currency)?.instance?.value ?? null;
-
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
 
     const now = DateTimeManager.create();
 
     const name = Name.create(props.name).orThrow();
 
     return new Account({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       organizationId: UUID.create(props.organizationId).orThrow().value,
       code: accountCode.value,
@@ -197,11 +205,11 @@ export class Account extends AggregateRoot {
 
     return Account.create({
       ...props,
-      parentId: this._id.value,
-      clinicId: this._clinicId.value,
-      organizationId: this._organizationId.value,
-      type: this._type, // Ana hesaptan miras
-      normalSide: this._normalSide, // Ana hesaptan miras
+      parentId: this.id.value,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      type: this.type, // Ana hesaptan miras
+      normalSide: this.normalSide, // Ana hesaptan miras
       isPostable: true, // Yeni açılan uç hesap varsayılan olarak aktiftir
     });
   }
@@ -220,30 +228,30 @@ export class Account extends AggregateRoot {
 
   public rename(newName: string): void {
     this._name = Name.create(newName).orThrow();
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public togglePostable(status: boolean): void {
     this._isPostable = status;
-    this._updatedAt = new Date();
+    this._updatedAt = DateTimeManager.create();
   }
 
   public toPersistence(): IAccount {
     return {
-      id: this._id.value,
-      clinicId: this._clinicId.value,
-      organizationId: this._organizationId.value,
-      code: this._code.value,
-      name: this._name.value,
-      parentId: this._parentId,
-      type: this._type,
-      normalSide: this._normalSide,
-      isPostable: this._isPostable,
-      requiresParty: this._requiresParty,
-      currency: this._currency ? this._currency.value : null,
-      isActive: this._isActive,
-      createdAt: this._createdAt,
-      updatedAt: new Date(),
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      code: this.code.value,
+      name: this.name.value,
+      parentId: this.parentId,
+      type: this.type,
+      normalSide: this.normalSide,
+      isPostable: this.isPostable,
+      requiresParty: this.requiresParty,
+      currency: this.currency ? this.currency.value : null,
+      isActive: this.isActive,
+      createdAt: this.createdAt,
+      updatedAt: DateTimeManager.create(),
     };
   }
 }

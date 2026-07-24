@@ -14,6 +14,7 @@ import {
   IyzicoTerminalOperationError,
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(IyzicoTerminalEodCommand)
 export class IyzicoTerminalEodHandler
@@ -39,7 +40,7 @@ export class IyzicoTerminalEodHandler
       throw new PosDeviceNotFoundException();
     }
 
-    device.validate.status.isActive().orThrow();
+    device.validate.status.isActive.orThrow();
 
     const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
 
@@ -66,7 +67,9 @@ export class IyzicoTerminalEodHandler
         voidAmount: result.voidAmount,
         refundCount: result.refundCount,
         refundAmount: result.refundAmount,
-        currency: result.currency,
+        currency: result.currency
+          ? Currency.create(result.currency).orThrow().value
+          : undefined,
         errorCode: result.errorCode,
         errorMessage: result.errorMessage,
       };

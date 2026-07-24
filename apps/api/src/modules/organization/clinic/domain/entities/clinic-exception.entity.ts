@@ -2,6 +2,7 @@ import { ClinicException as IClinicException } from '@shared';
 import { ClinicExceptionCreateProps } from '@modules/organization/clinic/domain/contracts/clinic-exception.contracts';
 import { Guard } from '@common/domain/guards';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class ClinicException {
   // 🎯 Proje standardına uygun olarak PUBLIC constructor kalıyor
@@ -49,7 +50,7 @@ export class ClinicException {
    * Bu istisna gününün geçmişte kalıp kalmadığını söyler
    */
   public get isPast() {
-    const today = this.normalizeDate(new Date());
+    const today = this.normalizeDate(DateTimeManager.create());
     const isPast = this._date.getTime() < today.getTime();
     return Guard.monitor(
       isPast,
@@ -73,10 +74,8 @@ export class ClinicException {
    * 🎯 Yeni bir klinik istisnası (Resmi tatil, özel kapatma vs.) oluşturma kapısı
    */
   public static create(props: ClinicExceptionCreateProps): ClinicException {
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
-
     return new ClinicException({
-      id: id.value,
+      id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
       date: props.date,
       isClosed: props.isClosed ?? true,

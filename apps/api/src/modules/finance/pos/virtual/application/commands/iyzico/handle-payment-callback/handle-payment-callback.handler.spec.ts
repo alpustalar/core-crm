@@ -1,3 +1,7 @@
+/**
+ * @deprecated logic e2e kontrol edildi
+ * */
+
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { HandlePaymentCallbackHandler } from './handle-payment-callback.handler';
@@ -6,7 +10,7 @@ import { HandlePaymentCallbackCommand } from './handle-payment-callback.command'
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 import {
   IIyzicoTransactionCommandRepository,
   IIyzicoTransactionQueryRepository,
@@ -20,10 +24,12 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { MarkInstallmentAsPaidCommand } from '@modules/finance/payment/application/commands/mark-installment-as-paid/mark-installment-as-paid.command';
 import { MarkInstallmentAsFailedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-failed/mark-installment-as-failed.command';
+import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import {
   IyzicoTransactionStatusSchema,
   IyzicoTransactionStatusType,
 } from '@input-type-schemas/IyzicoTransactionStatusSchema';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 const makeTransaction = (
   status: IyzicoTransactionStatusType = IyzicoTransactionStatusSchema.enum
@@ -40,8 +46,8 @@ const makeTransaction = (
     status,
     errorCode: null,
     errorMessage: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: DateTimeManager.create(),
+    updatedAt: DateTimeManager.create(),
     installment: {
       id: 'inst-1',
       amount: { toString: () => '1000.00' },
@@ -78,17 +84,26 @@ describe('HandlePaymentCallbackHandler', () => {
       callbackUrl: 'http://localhost/callback',
     };
 
-    const mockIyzicoQueryRepo: jest.Mocked<IIyzicoTransactionQueryRepository> = {
-      findTransactionByConversationId: jest.fn(),
-      findByInstallmentId: jest.fn(),
-    };
+    const mockIyzicoQueryRepo: jest.Mocked<IIyzicoTransactionQueryRepository> =
+      {
+        findTransactionByConversationId: jest.fn(),
+        findByInstallmentId: jest.fn(),
+      };
 
     const mockIyzicoCommandRepo: jest.Mocked<IIyzicoTransactionCommandRepository> =
       {
+        create: jest.fn(async (e: IyzicoTransaction) => e),
         save: jest.fn(async (e: IyzicoTransaction) => e),
       };
 
-    const mockCommandBus = { execute: jest.fn().mockResolvedValue(undefined) };
+    // Muhasebe köprüsü EnsurePartyForPatientCommand'dan { partyId, organizationId } bekler.
+    const mockCommandBus = {
+      execute: jest.fn(async (cmd: unknown) =>
+        cmd instanceof EnsurePartyForPatientCommand
+          ? { partyId: 'party-1', organizationId: 'org-1' }
+          : undefined
+      ),
+    };
 
     const mockTxManager = {
       outboxRun: jest
@@ -179,8 +194,7 @@ describe('HandlePaymentCallbackHandler', () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoCommandRepo.save).toHaveBeenCalledTimes(1);
-      const saved = iyzicoCommandRepo.save.mock
-        .calls[0][0] as IyzicoTransaction;
+      const saved = iyzicoCommandRepo.save.mock.calls[0][0];
       expect(saved.status).toBe(IyzicoTransactionStatusSchema.enum.SUCCESS);
       expect(saved.iyzicoPaymentId).toBe('iyzico-pay-1');
       expect(saved.iyzicoPaymentTransactionId).toBe('iyzico-tx-item-1');
@@ -223,8 +237,7 @@ describe('HandlePaymentCallbackHandler', () => {
       await handler.execute(makeCommand());
 
       expect(iyzicoCommandRepo.save).toHaveBeenCalledTimes(1);
-      const saved = iyzicoCommandRepo.save.mock
-        .calls[0][0] as IyzicoTransaction;
+      const saved = iyzicoCommandRepo.save.mock.calls[0][0];
       expect(saved.status).toBe(IyzicoTransactionStatusSchema.enum.FAILURE);
       expect(saved.errorCode).toBe('5007');
       expect(saved.errorMessage).toBe('Yetersiz bakiye');

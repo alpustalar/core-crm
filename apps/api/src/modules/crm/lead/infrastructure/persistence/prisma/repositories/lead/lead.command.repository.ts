@@ -27,12 +27,11 @@ export class LeadCommandRepository
   }
 
   async save(entity: Lead): Promise<Lead> {
-    const create = entity.toPersistence();
-    const { id, ...update } = create;
-    const raw = await this.db.lead.upsert({
+    const data = entity.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.lead.update({
       where: { id },
-      create,
-      update,
+      data: update,
     });
     entity.flushEvents();
     return new Lead(raw);

@@ -8,9 +8,11 @@ import { GetConversationsResponse } from './get-conversations.response';
 export class GetConversationsQuery implements IQuery {
   readonly __responseType!: GetConversationsResponse;
   constructor(
-    public readonly clinicId: string,
-    public readonly dto: GetConversationsDto,
-    public readonly pagination: Pagination,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      clinicId: string;
+      filter: GetConversationsDto;
+      pagination: Pagination;
+      ctx: IGetContext;
+    }
   ) {}
 }

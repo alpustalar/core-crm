@@ -1,9 +1,9 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateTreatmentPackageDto } from '@shared/modules/treatment-package/dto/command';
+import { CreateTreatmentPackage } from '@shared';
 
 export class CreateTreatmentPackageCommand {
   constructor(
-    public readonly dto: CreateTreatmentPackageDto,
+    public readonly data: CreateTreatmentPackage,
     public readonly ctx: IGetContext
   ) {}
 }

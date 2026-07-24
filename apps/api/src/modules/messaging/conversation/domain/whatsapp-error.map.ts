@@ -17,7 +17,10 @@ const ERROR_MAP: Record<number, WhatsappErrorInfo> = {
       '24 saatlik müşteri hizmetleri penceresi kapalı — serbest mesaj gönderilemez (yalnızca onaylı şablon).',
     retriable: false,
   },
-  131026: { reason: 'Mesaj iletilemedi (alıcı uygun değil).', retriable: false },
+  131026: {
+    reason: 'Mesaj iletilemedi (alıcı uygun değil).',
+    retriable: false,
+  },
   131051: { reason: 'Desteklenmeyen mesaj tipi.', retriable: false },
   131052: { reason: 'Medya indirilemedi.', retriable: false },
   131053: { reason: 'Medya yüklenemedi.', retriable: false },

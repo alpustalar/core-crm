@@ -20,12 +20,12 @@ export class CancelSubscriptionHandler
 
   async execute(command: CancelSubscriptionCommand): Promise<void> {
     const subscription = await this.subscriptionCommandRepo.findById(
-      command.subscriptionId
+      command.payload.subscriptionId
     );
     if (!subscription) throw new SubscriptionNotFoundException();
 
     await this.txManager.run(async () => {
-      if (command.immediate) {
+      if (command.payload.immediate) {
         subscription.cancel(); // anında CANCELED
       } else {
         subscription.scheduleCancellation(); // dönem sonunda iptal

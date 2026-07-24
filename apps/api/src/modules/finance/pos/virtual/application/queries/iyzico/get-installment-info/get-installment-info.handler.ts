@@ -1,8 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetInstallmentInfoQuery } from './get-installment-info.query';
 import { GetInstallmentInfoQueryResponse } from './get-installment-info.response';
-import { randomUUID } from 'crypto';
-import { IyzicoSdkStatus } from '@src/infrastructure/payment/pos/virtual/providers/iyzico';
 import { Inject } from '@nestjs/common';
 import { IyzicoInstallmentInfoFailedException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
 
@@ -10,8 +8,10 @@ import Iyzipay from 'iyzipay';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
-} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/domain/interfaces/iyzico.provider.interface';
-import { InstallmentOption } from '@modules/finance/payment/domain/payment.contracts';
+} from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
+import { InstallmentOption } from '@modules/finance/payment/domain/contracts/payment.contracts';
+import { UUID } from '@src/domain/value-objects';
+import { IyzicoResultGuard } from '@src/domain/value-objects/iyzico-result-guard.vo';
 
 @QueryHandler(GetInstallmentInfoQuery)
 export class GetInstallmentInfoHandler
@@ -26,28 +26,33 @@ export class GetInstallmentInfoHandler
   async execute(
     query: GetInstallmentInfoQuery
   ): Promise<GetInstallmentInfoQueryResponse> {
-    const { dto } = query;
-    const { binNumber, price } = dto;
+    const { binNumber, price } = query.data;
+
+    const generatedConversationUUID = UUID.generate();
 
     const sdkResult = await this.iyzicoProvider.getInstallmentInfo({
       locale: 'TR',
-      conversationId: randomUUID(),
+      conversationId: generatedConversationUUID.value,
       price: price.toFixed(2),
       binNumber,
     });
 
-    if (sdkResult.status.toLowerCase() !== IyzicoSdkStatus.SUCCESS) {
-      throw new IyzicoInstallmentInfoFailedException(sdkResult.errorMessage);
-    }
+    IyzicoResultGuard.create(sdkResult)
+      .isSuccess()
+      .orThrow(
+        new IyzicoInstallmentInfoFailedException(sdkResult.errorMessage)
+      );
 
     return {
       data: {
         options: (sdkResult.installmentDetails ?? []).map(
-          (d: Iyzipay.InstallmentDetail): InstallmentOption => ({
-            installmentNumber: d.installmentNumber,
-            totalPrice: Number(d.totalPrice),
-            installmentPrice: Number(d.installmentPrice),
-            installmentRate: d.installmentRate,
+          (
+            installmentDetail: Iyzipay.InstallmentDetail
+          ): InstallmentOption => ({
+            installmentNumber: installmentDetail.installmentNumber,
+            totalPrice: Number(installmentDetail.totalPrice),
+            installmentPrice: Number(installmentDetail.installmentPrice),
+            installmentRate: installmentDetail.installmentRate,
           })
         ),
       },

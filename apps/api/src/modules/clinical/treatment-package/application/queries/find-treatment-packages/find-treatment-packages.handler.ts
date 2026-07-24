@@ -6,7 +6,7 @@ import {
   ITreatmentPackageQueryRepository,
   TREATMENT_PACKAGE_QUERY_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindTreatmentPackagesQuery)
 export class FindTreatmentPackagesHandler
@@ -21,15 +21,29 @@ export class FindTreatmentPackagesHandler
   async execute(
     query: FindTreatmentPackagesQuery
   ): Promise<FindTreatmentPackagesResponse> {
-    const { dto, ctx } = query;
-    const { actor } = ctx;
+    const { filter, ctx } = query;
 
-    if (!actor.clinicId) throw new ClinicNotAssignedException();
-
-    return this.treatmentPackageQueryRepo.findMany(
-      actor.clinicId,
-      dto.pagination,
-      dto.isActive
+    const { items, total } = await this.treatmentPackageQueryRepo.findMany(
+      filter.clinicId,
+      filter.pagination,
+      filter.isActive
     );
+
+    return {
+      data: items.map((item) => {
+        const persistenceData = item.toPersistence();
+        const relations = {
+          items: item.items,
+          providers: item.providers,
+        };
+        return {
+          ...persistenceData,
+          ...relations,
+        };
+      }),
+      meta: {
+        pagination: buildPaginationMeta(filter.pagination, total),
+      },
+    };
   }
 }

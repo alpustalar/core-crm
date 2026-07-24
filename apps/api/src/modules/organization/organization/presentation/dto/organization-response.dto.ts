@@ -1,29 +1,45 @@
-import { Expose } from 'class-transformer';
-import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
-import { IOrganizationResponse } from '@shared';
+import { Expose, Type } from 'class-transformer';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
+import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
 
-export class OrganizationResponseDto implements IOrganizationResponse {
-  @Expose()
-  id: string;
+const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 
-  @Expose()
-  name: string;
+export class OrganizationResponseDto {
+  @Expose() id: string;
 
-  @Expose()
-  slug: string;
+  // --- Genel Organizasyon Kimlik ve İletişim Bilgileri (Herkes Görebilir) ---
+  @Expose() name: string;
+  @Expose() slug: string;
+  @Expose() phone: string | null;
+  @Expose() email: string | null;
 
-  @Expose()
-  phone: string | null;
+  // --- Lokasyon Bilgileri (İç Operasyon ve Üst Roller) ---
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  address: string | null;
 
-  @Expose()
-  email: string | null;
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  city: string | null;
 
-  @Expose()
-  status: GlobalStatusType;
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  district: string | null;
 
-  @Expose()
+  // --- Operasyonel Ayarlar ve Durum (İç Operasyon ve Üst Roller) ---
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
+  status: GlobalStatus;
+
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
   timezone: string;
 
-  @Expose()
+  // --- Sistem ve Audit Zaman Damgaları (Sadece Yönetim ve Admin) ---
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
   createdAt: Date;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  updatedAt: Date;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  deletedAt: Date | null;
 }

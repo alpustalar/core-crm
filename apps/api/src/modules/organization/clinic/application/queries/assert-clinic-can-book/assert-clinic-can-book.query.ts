@@ -4,8 +4,10 @@ export class AssertClinicCanBookQuery implements IQuery {
   readonly __responseType!: void;
 
   constructor(
-    public readonly clinicId: string,
-    public readonly startTime: Date,
-    public readonly endTime: Date
+    public readonly payload: {
+      clinicId: string;
+      startTime: Date;
+      endTime: Date;
+    }
   ) {}
 }

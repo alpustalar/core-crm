@@ -20,7 +20,7 @@ export class GetJournalEntriesHandler
   async execute(
     query: GetJournalEntriesQuery
   ): Promise<GetJournalEntriesResponse> {
-    const { organizationId, pagination, status, periodId } = query;
+    const { organizationId, pagination, status, periodId } = query.payload;
 
     const { items, total } = await this.journalQueryRepo.findMany(
       { organizationId, status, periodId },

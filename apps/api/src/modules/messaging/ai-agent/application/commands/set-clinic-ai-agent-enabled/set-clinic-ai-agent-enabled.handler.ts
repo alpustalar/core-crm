@@ -22,14 +22,19 @@ export class SetClinicAiAgentEnabledHandler
   ) {}
 
   async execute(command: SetClinicAiAgentEnabledCommand): Promise<void> {
-    const config = await this.configQueryRepo.findByClinicId(command.clinicId);
+    const { payload } = command;
+    const config = await this.configQueryRepo.findByClinicId(payload.clinicId);
     if (!config) {
-      throw new NotFoundException('AI asistan config bulunamadı; önce yapılandırın.');
+      throw new NotFoundException(
+        'AI asistan config bulunamadı; önce yapılandırın.'
+      );
     }
 
-    if (command.enabled) config.enable();
+    if (payload.enabled) config.enable();
     else config.disable();
 
-    await this.txManager.run(() => this.configCommandRepo.save(config));
+    await this.txManager.run(() =>
+      this.configCommandRepo.upsertByClinicId(config)
+    );
   }
 }

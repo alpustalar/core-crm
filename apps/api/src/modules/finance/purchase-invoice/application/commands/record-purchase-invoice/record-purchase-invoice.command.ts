@@ -5,7 +5,7 @@ import { RecordPurchaseInvoice } from '@shared/modules/purchase-invoice/types/co
 export class RecordPurchaseInvoiceCommand implements ICommand {
   readonly __responseType!: string;
   constructor(
-    public readonly dto: RecordPurchaseInvoice,
+    public readonly data: RecordPurchaseInvoice,
     public readonly ctx: IGetContext
   ) {}
 }

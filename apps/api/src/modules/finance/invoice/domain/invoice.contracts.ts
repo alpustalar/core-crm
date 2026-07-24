@@ -1,6 +1,12 @@
 import { z } from 'zod';
-import { InvoiceStatusSchema } from '@input-type-schemas/InvoiceStatusSchema';
-import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
+import {
+  InvoiceStatusSchema,
+  InvoiceStatusType,
+} from '@input-type-schemas/InvoiceStatusSchema';
+import {
+  CurrencySchema,
+  CurrencyType,
+} from '@input-type-schemas/CurrencySchema';
 import { InvoiceTriggers } from '@modules/finance/invoice/domain/constants/invoice-triggers';
 import { Decimal } from 'decimal.js';
 import { LogSource } from '@src/domain/constants/log-action.constant';
@@ -73,3 +79,42 @@ export const ApplyEDocumentResultPropsSchema = z.object({
 export type ApplyEDocumentResultProps = z.infer<
   typeof ApplyEDocumentResultPropsSchema
 >;
+
+// ==========================================
+// FATURA LİSTELEME (READ-MODEL) SÖZLEŞMELERİ
+// ==========================================
+
+/** Fatura listeleme filtresi — org zorunlu (tenant sınırı), klinik opsiyonel daraltma. */
+export interface FindInvoicesFilter {
+  organizationId: string;
+  clinicId?: string;
+}
+
+/** Fatura listeleme okuma modeli (entity DEĞİL; HTTP sınırında serileştirilebilir düz veri). */
+export interface InvoiceListItem {
+  id: string;
+  organizationId: string;
+  clinicId: string;
+  patientId: string;
+  grandTotal: string;
+  currency: CurrencyType;
+  status: InvoiceStatusType;
+  invoiceNumber: string | null;
+  issuedAt: Date | null;
+  createdAt: Date;
+}
+
+/** Fatura detay okuma modeli (tek kayıt) — get-by-id ve get-by-payment ortak kullanır. */
+export interface InvoiceView {
+  id: string;
+  organizationId: string;
+  clinicId: string;
+  patientId: string;
+  netTotal: string;
+  vatTotal: string;
+  grandTotal: string;
+  vatRate: Decimal;
+  currency: CurrencyType;
+  issuedAt: Date | null;
+  status: InvoiceStatusType;
+}

@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Job } from 'bullmq';
 import { QUEUES } from '@common/constants';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Processor(QUEUES.OUTBOX)
 export class OutboxProcessor extends WorkerHost {
@@ -32,10 +33,13 @@ export class OutboxProcessor extends WorkerHost {
         await this.eventEmitter.emitAsync(record.type, record.payload);
         await this.prisma.outbox.update({
           where: { id: record.id },
-          data: { processedAt: new Date() },
+          data: { processedAt: DateTimeManager.create() },
         });
       } catch (error) {
-        this.logger.error(`Outbox record failed: id=${record.id} type=${record.type}`, error);
+        this.logger.error(
+          `Outbox record failed: id=${record.id} type=${record.type}`,
+          error
+        );
       }
     }
   }

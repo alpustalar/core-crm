@@ -1,0 +1,48 @@
+/// Satış hunisi aşama tipi. Sistem mantığı (Lead kazanıldı/kaybedildi senkronu) aşama
+/// ADINA değil TİPİNE bakar: OPEN = açık aşama, WON = kazanıldı, LOST = kaybedildi.
+enum PipelineStageType {
+  OPEN
+  WON
+  LOST
+}
+
+/// Klinik-seviye satış hunisi (organizationId denormalize — org+klinik birlikte taşınır).
+/// Her kliniğe bir varsayılan huni seed'lenir; ekipler kendi hunilerini/aşamalarını
+/// düzenleyebilir. Lead'ler aşamalara (stage) bağlanır.
+model Pipeline {
+  id             String  @id
+  organizationId String  @map("organization_id")
+  clinicId       String  @map("clinic_id")
+  name           String
+  isDefault      Boolean @default(false) @map("is_default")
+  isDeleted      Boolean @default(false) @map("is_deleted")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  stages PipelineStage[]
+
+  @@index([organizationId])
+  @@index([clinicId, isDefault])
+  @@map("pipelines")
+}
+
+/// Huni içindeki sıralı aşama (ör. Yeni → Nitelikli → Teklif → Kazanıldı/Kaybedildi).
+/// `order` sıralamayı, `type` sistem davranışını (WON/LOST senkronu) belirler.
+model PipelineStage {
+  id         String            @id
+  pipelineId String            @map("pipeline_id")
+  name       String
+  order      Int
+  type       PipelineStageType @default(OPEN)
+  color      String? // UI ipucu (hex)
+  isDeleted  Boolean           @default(false) @map("is_deleted")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([pipelineId, order])
+  @@map("pipeline_stages")
+}

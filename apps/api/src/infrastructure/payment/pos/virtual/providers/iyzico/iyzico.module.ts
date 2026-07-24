@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IyzicoClient } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/iyzico.client';
 import { IyzicoProvider } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/iyzico.provider';
-import { IYZICO_PROVIDER } from './domain/interfaces/iyzico.provider.interface';
+import { IYZICO_PROVIDER } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 
 @Module({
   providers: [

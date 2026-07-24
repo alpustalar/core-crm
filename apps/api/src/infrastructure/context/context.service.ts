@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DomainEventMetadata } from '@common/interfaces';
 import { txStorage } from '../persistence/prisma/transaction/als-storage';
-import { IContextService } from '@src/infrastructure/context/domain/interfaces/context.service.interface';
+import { IContextService } from '@src/infrastructure/context/context.service.interface';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 type WithMetadata = {
   metadata?: Partial<DomainEventMetadata>;
@@ -27,7 +28,7 @@ export class ContextService implements IContextService {
       metadata: {
         correlationId: existingMeta?.correlationId ?? store.correlationId,
         eventId: existingMeta?.eventId ?? crypto.randomUUID(),
-        occurredAt: existingMeta?.occurredAt ?? new Date(),
+        occurredAt: existingMeta?.occurredAt ?? DateTimeManager.create(),
         version: existingMeta?.version ?? 1,
       },
     });

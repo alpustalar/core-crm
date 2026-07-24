@@ -104,7 +104,7 @@ export class ClinicAiAgentConfig extends AggregateRoot {
   ): ClinicAiAgentConfig {
     const now = DateTimeManager.create();
 
-    const id = props.id ? UUID.create(props.id).orThrow() : UUID.generate();
+    const id = UUID.createOrGenerate(props.id);
 
     return new ClinicAiAgentConfig({
       id: id.value,
@@ -127,14 +127,11 @@ export class ClinicAiAgentConfig extends AggregateRoot {
     if (isDefined(props.isEnabled)) this._isEnabled = props.isEnabled;
     if (isDefined(props.provider)) this._provider = props.provider;
     if (isDefined(props.model)) this._model = props.model;
-    if (isDefined(props.systemPrompt)) {
-      this._systemPrompt = props.systemPrompt;
-    }
+    if (isDefined(props.systemPrompt)) this._systemPrompt = props.systemPrompt;
     if (isDefined(props.apiKey)) this._apiKey = props.apiKey;
     if (isDefined(props.maxTokens)) this._maxTokens = props.maxTokens;
-    if (isDefined(props.replyOnlyWithinWindow)) {
+    if (isDefined(props.replyOnlyWithinWindow))
       this._replyOnlyWithinWindow = props.replyOnlyWithinWindow;
-    }
   }
 
   public enable(): void {
@@ -147,7 +144,7 @@ export class ClinicAiAgentConfig extends AggregateRoot {
 
   /** AI yanıt verebilir mi? (etkin + anahtar var ya da platform fallback'i çağıran tarafça karşılanır) */
   public canReply(): boolean {
-    return this._isEnabled;
+    return this.isEnabled;
   }
 
   public toPersistence(): IClinicAiAgentConfig {

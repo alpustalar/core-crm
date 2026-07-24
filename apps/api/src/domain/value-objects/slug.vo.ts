@@ -1,5 +1,5 @@
 import { slugIt } from '@common/utils';
-import { EmptySlugSourceException } from '@src/domain/exceptions/vo/slug.exceptions';
+import { EmptySlugSourceException } from '@src/domain/exceptions';
 
 export class Slug {
   private constructor(rawString: string) {
@@ -11,16 +11,10 @@ export class Slug {
     return this._value;
   }
 
-  /**
-   * 🎯 Güvenilir Kurucu: Persisted (DB) slug'dan doğrudan VO üretir; yeniden slugify atlanır.
-   */
   public static fromTrusted(value: string): Slug {
     return new Slug(value);
   }
 
-  /**
-   * 🎯 Factory Method: Ham string unvan veya isimden güvenli slug üretir
-   */
   public static create(rawString: string): Slug {
     if (!rawString || rawString.trim().length === 0) {
       throw new EmptySlugSourceException();

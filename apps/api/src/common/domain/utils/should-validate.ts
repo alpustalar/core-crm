@@ -1,7 +1,5 @@
-import {
-  DefaultValidateOptions,
-  ValidateOptionsType,
-} from '@common/domain/constants/default-options.constant';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 
 export const shouldValidate = (
   options: ValidateOptionsType = DefaultValidateOptions

@@ -4,7 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPartyCommandRepository } from '@modules/finance/party/domain/repositories/party.repository';
 import { Party } from '@modules/finance/party/domain/entities/party.entity';
-import { PartyAlreadyExistsError } from '@modules/finance/party/domain/errors/party.errors';
+import { PartyAlreadyExistsError } from '@modules/finance/party/domain/exceptions/party.exceptions';
 
 @Injectable()
 export class PartyCommandRepository
@@ -15,14 +15,10 @@ export class PartyCommandRepository
     super(prisma);
   }
 
-  async save(party: Party): Promise<Party> {
+  async create(party: Party): Promise<Party> {
     const data = party.toPersistence();
     try {
-      const raw = await this.db.party.upsert({
-        where: { id: data.id },
-        create: data,
-        update: data,
-      });
+      const raw = await this.db.party.create({ data });
       party.flushEvents();
       return new Party(raw);
     } catch (error) {
@@ -34,5 +30,16 @@ export class PartyCommandRepository
       }
       throw error;
     }
+  }
+
+  async save(party: Party): Promise<Party> {
+    const data = party.toPersistence();
+    const { id, ...update } = data;
+    const raw = await this.db.party.update({
+      where: { id },
+      data: update,
+    });
+    party.flushEvents();
+    return new Party(raw);
   }
 }

@@ -5,10 +5,11 @@ import {
 } from './initiate-booking-payment.command';
 import { IPaymentLinkProvider } from '@src/infrastructure/payment/links/payment-link.port';
 import { IFxRateProvider } from '@src/infrastructure/payment/links/fx-rate.port';
+import { IServiceFeeProvider } from '@src/infrastructure/payment/links/service-fee.port';
 import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
-import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/booking-payment.contracts';
+import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 
 describe('InitiateBookingPaymentHandler — iki link + FX', () => {
   const hotelIntent: HotelBookingIntent = {
@@ -27,7 +28,6 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
     intent: hotelIntent,
     netAmount: 100,
     netCurrency: 'EUR',
-    serviceFeePercent: 20,
     buyer: { name: 'Ali', surname: 'Veli', email: '', phone: '+90555' },
     clinicId: '11111111-1111-4111-8111-111111111111',
     organizationId: '22222222-2222-4222-8222-222222222222',
@@ -42,6 +42,7 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
     fxThrows?: boolean;
     iyzicoThrows?: boolean;
     stripeThrows?: boolean;
+    serviceFeePercent?: number;
   }) => {
     const saved: BookingPayment[] = [];
 
@@ -82,8 +83,13 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
       }),
     } as unknown as IFxRateProvider;
 
+    // Komisyon artık platform-global ayardan gelir (klinikten değil). Test %20 kullanır.
+    const serviceFee = {
+      getServiceFeePercent: jest.fn(() => opts?.serviceFeePercent ?? 20),
+    } as unknown as IServiceFeeProvider;
+
     const repo = {
-      save: jest.fn(async (e: BookingPayment) => {
+      create: jest.fn(async (e: BookingPayment) => {
         saved.push(e);
         return e;
       }),
@@ -98,6 +104,7 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
         iyzicoLink,
         stripeLink,
         fx,
+        serviceFee,
         repo,
         txManager
       ),
@@ -126,7 +133,7 @@ describe('InitiateBookingPaymentHandler — iki link + FX', () => {
       amount: 120,
       currency: 'EUR',
     });
-    expect(repo.save).toHaveBeenCalledTimes(1);
+    expect(repo.create).toHaveBeenCalledTimes(1);
     expect(saved[0].status).toBe('PENDING');
     expect(saved[0].iyzicoUrl?.value).toBe('https://iyzi/pay');
     expect(saved[0].stripeSessionId).toBe('cs_1');

@@ -3,12 +3,12 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   FIREBASE_SERVICE,
   IFirebaseService,
-} from '@modules/identity/auth/firebase/domain/interfaces/firebase.service.interface';
+} from '@src/infrastructure/firebase/firebase.service.interface';
 import { Inject } from '@nestjs/common';
 import {
   IMailService,
   MAIL_SERVICE,
-} from '@modules/platform/mail/domain/interfaces/mail.service.interface';
+} from '@src/infrastructure/mail/interfaces/mail.service.interface';
 import { SendVerificationEmailResponse } from '@modules/identity/user/application/commands/send-verification-email/send-verification-email.response';
 
 @CommandHandler(SendVerificationEmailCommand)

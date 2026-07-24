@@ -3,6 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaAdAccountQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class MetaAdAccountQueryRepository
@@ -34,7 +35,7 @@ export class MetaAdAccountQueryRepository
   }
 
   async findExpiringSoon(withinDays: number): Promise<MetaAdAccount[]> {
-    const threshold = new Date();
+    const threshold = DateTimeManager.create();
     threshold.setDate(threshold.getDate() + withinDays);
     const rows = await this.db.metaAdAccount.findMany({
       where: {
