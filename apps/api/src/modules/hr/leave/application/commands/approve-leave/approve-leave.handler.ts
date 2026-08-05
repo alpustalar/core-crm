@@ -27,9 +27,10 @@ import { LEAVE_EVENTS } from '@src/domain/constants/events';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(ApproveLeaveCommand)
-export class ApproveLeaveHandler
-  implements ICommandHandler<ApproveLeaveCommand, void>
-{
+export class ApproveLeaveHandler implements ICommandHandler<
+  ApproveLeaveCommand,
+  void
+> {
   public internalCtx: IGetContext;
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
@@ -68,7 +69,7 @@ export class ApproveLeaveHandler
 
       leave.approve(ctx.actor.userId, data.note);
 
-      await this.leaveCommandRepo.save(leave);
+      await this.leaveCommandRepo.update(leave);
     });
   }
 

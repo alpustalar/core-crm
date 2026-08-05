@@ -2,10 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SoftDeleteAppointmentsByClinicIdCommand } from './soft-delete-appointments-by-clinic-id.command';
 import { SoftDeleteAppointmentsByClinicIdCommandResponse } from './soft-delete-appointments-by-clinic-id.response';
 import { Inject } from '@nestjs/common';
-import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { InternalOnly } from '@common/decorators';
 import {
   APPOINTMENT_EVENT_PUBLISHER,
@@ -13,15 +9,16 @@ import {
 } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { AppointmentEventBulkScopes } from '@modules/clinical/appointment/domain/events/appointments-bulk-soft-deleted.event';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(SoftDeleteAppointmentsByClinicIdCommand)
-export class SoftDeleteAppointmentsByClinicIdHandler
-  implements
-    ICommandHandler<
-      SoftDeleteAppointmentsByClinicIdCommand,
-      SoftDeleteAppointmentsByClinicIdCommandResponse
-    >
-{
+export class SoftDeleteAppointmentsByClinicIdHandler implements ICommandHandler<
+  SoftDeleteAppointmentsByClinicIdCommand,
+  SoftDeleteAppointmentsByClinicIdCommandResponse
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,

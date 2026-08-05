@@ -1,10 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CompleteAppointmentCommand } from './complete-appointment.command';
 import { Inject } from '@nestjs/common';
-import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -13,14 +10,19 @@ import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(CompleteAppointmentCommand)
-export class CompleteAppointmentHandler
-  implements ICommandHandler<CompleteAppointmentCommand, void>
-{
+export class CompleteAppointmentHandler implements ICommandHandler<
+  CompleteAppointmentCommand,
+  void
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -32,8 +34,7 @@ export class CompleteAppointmentHandler
     // Tamamlanma ödeme kilidi gibi kritik yan etkiler tetikler
     // — eventler outbox ile
     await this.txManager.outboxRun(async () => {
-      const appointment =
-        await this.appointmentCommandRepo.findById(appointmentId);
+      const appointment = await this.appointmentRepo.findById(appointmentId);
 
       if (!appointment) throw new AppointmentNotFoundException();
 
@@ -58,7 +59,7 @@ export class CompleteAppointmentHandler
         source: ctx.actor.source,
       });
 
-      await this.appointmentCommandRepo.save(appointment);
+      await this.appointmentRepo.update(appointment);
     });
   }
 }

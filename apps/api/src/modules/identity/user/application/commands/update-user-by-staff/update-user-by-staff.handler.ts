@@ -15,10 +15,10 @@ import { UpdateUserByStaffCommand } from './update-user-by-staff.command';
 import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
 
 @CommandHandler(UpdateUserByStaffCommand)
-export class UpdateUserByStaffHandler
-  implements
-    ICommandHandler<UpdateUserByStaffCommand, UpdateUserByStaffResponse>
-{
+export class UpdateUserByStaffHandler implements ICommandHandler<
+  UpdateUserByStaffCommand,
+  UpdateUserByStaffResponse
+> {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userCommandRepo: IUserCommandRepository,
@@ -62,7 +62,7 @@ export class UpdateUserByStaffHandler
     targetUser.updateDetails(data, ctx.actor.userId);
 
     await this.txManager.run(async () => {
-      await this.userCommandRepo.save(targetUser);
+      await this.userCommandRepo.update(targetUser);
     });
   }
 }

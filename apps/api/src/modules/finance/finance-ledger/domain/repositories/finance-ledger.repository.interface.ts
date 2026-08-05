@@ -54,7 +54,7 @@ export const FINANCE_LEDGER_QUERY_REPOSITORY = Symbol(
 
 export interface IFinanceLedgerCommandRepository {
   create(entry: FinanceLedgerEntity): Promise<FinanceLedgerEntity>;
-  saveMany(entries: FinanceLedgerEntity[]): Promise<void>;
+  updateMany(entries: FinanceLedgerEntity[]): Promise<void>;
   updateStatus(id: string, status: LedgerStatus): Promise<void>;
   updateManyStatusByPaymentId(
     paymentId: string,

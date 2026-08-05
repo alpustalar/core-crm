@@ -58,7 +58,7 @@ export class PurchaseOrderCommandRepository
   }
 
   /** Başlık durumunu + kalemlerin teslim alınan miktarını günceller (mal kabul). */
-  async save(entity: PurchaseOrder): Promise<PurchaseOrder> {
+  async update(entity: PurchaseOrder): Promise<PurchaseOrder> {
     const { id, ...update } = entity.toPersistence();
     const raw = await this.db.purchaseOrder.update({
       where: { id },
@@ -85,7 +85,9 @@ export class PurchaseOrderCommandRepository
     return raw ? this.toEntity(raw) : null;
   }
 
-  private toEntity(raw: IPurchaseOrder & { items: RawOrderItem[] }): PurchaseOrder {
+  private toEntity(
+    raw: IPurchaseOrder & { items: RawOrderItem[] }
+  ): PurchaseOrder {
     const { items, ...header } = raw;
     const lines: PurchaseOrderLine[] = items.map((item) => ({
       id: item.id,

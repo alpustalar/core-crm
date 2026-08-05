@@ -28,7 +28,7 @@ export class ProductCategoryCommandRepository
     return raw ? new ProductCategory(raw) : null;
   }
 
-  async save(category: ProductCategory): Promise<ProductCategory> {
+  async update(category: ProductCategory): Promise<ProductCategory> {
     const data = category.toPersistence();
 
     const raw = await this.db.productCategory.update({

@@ -14,12 +14,13 @@ import {
 import { ACTIVITY_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(DeleteActivityCommand)
-export class DeleteActivityHandler
-  implements ICommandHandler<DeleteActivityCommand, void>
-{
+export class DeleteActivityHandler implements ICommandHandler<
+  DeleteActivityCommand,
+  void
+> {
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
-    private readonly activityCommandRepo: IActivityCommandRepository,
+    private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +30,7 @@ export class DeleteActivityHandler
     const { activityId, ctx } = command;
 
     await this.txManager.run(async () => {
-      const activity = await this.activityCommandRepo.findById(activityId);
+      const activity = await this.activityRepo.findById(activityId);
 
       if (!activity) throw new ActivityNotFoundException(activityId);
 
@@ -40,7 +41,7 @@ export class DeleteActivityHandler
         )
         .orThrow(ACTIVITY_EVENTS.DELETED);
 
-      await this.activityCommandRepo.deleteById(activityId);
+      await this.activityRepo.deleteById(activityId);
     });
   }
 }

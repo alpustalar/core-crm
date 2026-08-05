@@ -24,7 +24,7 @@ export class ProviderExceptionCommandRepository
     entity.flushEvents();
     return new ProviderException(raw);
   }
-  async save(entity: ProviderException): Promise<ProviderException> {
+  async update(entity: ProviderException): Promise<ProviderException> {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
     const raw = await this.db.providerException.update({

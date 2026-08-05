@@ -28,9 +28,10 @@ import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatus
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @CommandHandler(PaxRefundCommand)
-export class PaxRefundHandler
-  implements ICommandHandler<PaxRefundCommand, PaxRefundResponse>
-{
+export class PaxRefundHandler implements ICommandHandler<
+  PaxRefundCommand,
+  PaxRefundResponse
+> {
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
@@ -104,7 +105,7 @@ export class PaxRefundHandler
       await this.txManager.outboxRun(async () => {
         if (result.approved) {
           refundTx.markSuccess(result.externalRef, result.rawResponse);
-          await this.posTransactionCommandRepo.save(refundTx);
+          await this.posTransactionCommandRepo.update(refundTx);
           if (originalTx.paymentId) {
             await this.posPaymentSync.markRefunded({
               paymentId: originalTx.paymentId,
@@ -113,7 +114,7 @@ export class PaxRefundHandler
           }
         } else {
           refundTx.markFailed(result.rawResponse);
-          await this.posTransactionCommandRepo.save(refundTx);
+          await this.posTransactionCommandRepo.update(refundTx);
         }
       });
 
@@ -144,7 +145,7 @@ export class PaxRefundHandler
       if (err instanceof PaxConnectionError) {
         await this.txManager.run(async () => {
           refundTx.markFailed();
-          await this.posTransactionCommandRepo.save(refundTx);
+          await this.posTransactionCommandRepo.update(refundTx);
         });
         this.logger.error(
           `PAX iade bağlantı hatası: id=${refundTransactionId}`

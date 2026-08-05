@@ -23,9 +23,10 @@ import {
 import { MarkConversationReadCommand } from './mark-conversation-read.command';
 
 @CommandHandler(MarkConversationReadCommand)
-export class MarkConversationReadHandler
-  implements ICommandHandler<MarkConversationReadCommand, void>
-{
+export class MarkConversationReadHandler implements ICommandHandler<
+  MarkConversationReadCommand,
+  void
+> {
   private readonly logger = new Logger(MarkConversationReadHandler.name);
 
   constructor(
@@ -67,7 +68,7 @@ export class MarkConversationReadHandler
 
     conversation.markAgentRead();
     await this.txManager.run(() =>
-      this.conversationCommandRepo.save(conversation)
+      this.conversationCommandRepo.update(conversation)
     );
   }
 }

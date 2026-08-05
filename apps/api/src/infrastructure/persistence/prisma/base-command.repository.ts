@@ -5,7 +5,7 @@ export abstract class BaseCommandRepository<TEntity>
   extends BaseRepository
   implements IBaseCommandRepository<TEntity>
 {
-  abstract save(entity: TEntity): Promise<TEntity>;
+  abstract update(entity: TEntity): Promise<TEntity>;
   abstract create(entity: TEntity): Promise<TEntity>;
   abstract findById(id: string): Promise<TEntity | null>;
 }

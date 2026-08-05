@@ -30,7 +30,7 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
 
     const leadCommandRepo = {
       create: jest.fn().mockResolvedValue(fakeLead),
-      save: jest.fn().mockResolvedValue(fakeLead),
+      update: jest.fn().mockResolvedValue(fakeLead),
     } as unknown as IMetaLeadCommandRepository;
 
     const leadQueryRepo = {
@@ -38,7 +38,9 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
     } as unknown as IMetaLeadQueryRepository;
 
     const accountQueryRepo = {
-      findById: jest.fn().mockResolvedValue({ clinicId: { value: 'clinic-1' } }),
+      findById: jest
+        .fn()
+        .mockResolvedValue({ clinicId: { value: 'clinic-1' } }),
     } as unknown as IMetaAdAccountQueryRepository;
 
     const eventPublisher = {
@@ -86,14 +88,14 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
     const cmd = (t.commandBus.execute as jest.Mock).mock
       .calls[0][0] as CreateLeadCommand;
     expect(cmd).toBeInstanceOf(CreateLeadCommand);
-    expect(cmd.clinicId).toBe('clinic-1');
-    expect(cmd.dto.source).toBe('META_FORM');
-    expect(cmd.dto.medium).toBe('FORM');
-    expect(cmd.dto.metaLeadId).toBe('ml-uuid-1');
-    expect(cmd.dto.campaignId).toBe('camp-1');
-    expect(cmd.dto.campaignName).toBe('Yaz Kampanyası');
-    expect(cmd.dto.adId).toBe('ad-1');
-    expect(cmd.dto.phone).toBe('+905550001122');
+    expect(cmd.payload.clinicId).toBe('clinic-1');
+    expect(cmd.payload.data.source).toBe('META_FORM');
+    expect(cmd.payload.data.medium).toBe('FORM');
+    expect(cmd.payload.data.metaLeadId).toBe('ml-uuid-1');
+    expect(cmd.payload.data.campaignId).toBe('camp-1');
+    expect(cmd.payload.data.campaignName).toBe('Yaz Kampanyası');
+    expect(cmd.payload.data.adId).toBe('ad-1');
+    expect(cmd.payload.data.phone).toBe('+905550001122');
   });
 
   it('MetaLead zaten var (idempotency) → köprü çalışmaz, Lead üretilmez', async () => {

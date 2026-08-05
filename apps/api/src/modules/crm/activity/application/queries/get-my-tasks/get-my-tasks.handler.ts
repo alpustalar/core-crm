@@ -9,19 +9,20 @@ import {
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetMyTasksQuery)
-export class GetMyTasksHandler
-  implements IQueryHandler<GetMyTasksQuery, GetMyTasksResponse>
-{
+export class GetMyTasksHandler implements IQueryHandler<
+  GetMyTasksQuery,
+  GetMyTasksResponse
+> {
   constructor(
     @Inject(ACTIVITY_QUERY_REPOSITORY)
-    private readonly activityQueryRepo: IActivityQueryRepository
+    private readonly activityRepo: IActivityQueryRepository
   ) {}
 
   async execute(query: GetMyTasksQuery): Promise<GetMyTasksResponse> {
     const { data, pagination, ctx } = query.payload;
     const { actor } = ctx;
 
-    const result = await this.activityQueryRepo.findMyTasks({
+    const result = await this.activityRepo.findMyTasks({
       assignedToId: actor.userId,
       clinicId: actor.clinicId,
       status: data.status,
@@ -29,7 +30,7 @@ export class GetMyTasksHandler
     });
 
     return {
-      data: result.items.map((item) => item.toPersistence()),
+      data: result.items,
       meta: { pagination: buildPaginationMeta(pagination, result.total) },
     };
   }

@@ -6,8 +6,8 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -22,14 +22,15 @@ import { ProviderShift } from '@modules/clinical/provider/domain/entities/provid
 import { AssertTimeWithinClinicHoursQuery } from '@modules/organization/clinic/application/queries/assert-time-within-clinic-hours/assert-time-within-clinic-hours.query';
 
 @CommandHandler(CreateProviderShiftCommand)
-export class CreateProviderShiftHandler
-  implements ICommandHandler<CreateProviderShiftCommand, void>
-{
+export class CreateProviderShiftHandler implements ICommandHandler<
+  CreateProviderShiftCommand,
+  void
+> {
   constructor(
-    @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    @Inject(PROVIDER_COMMAND_REPOSITORY)
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(PROVIDER_SHIFT_COMMAND_REPOSITORY)
-    private readonly providerShiftCommandRepo: IProviderShiftCommandRepository,
+    private readonly providerShiftRepo: IProviderShiftCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager,
@@ -42,7 +43,8 @@ export class CreateProviderShiftHandler
       data: { providerId, shifts },
     } = command;
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
+
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
@@ -66,7 +68,7 @@ export class CreateProviderShiftHandler
         })
       );
 
-      await this.providerShiftCommandRepo.replaceShiftsForDates(preparedShifts);
+      await this.providerShiftRepo.replaceShiftsForDates(preparedShifts);
     });
   }
 }

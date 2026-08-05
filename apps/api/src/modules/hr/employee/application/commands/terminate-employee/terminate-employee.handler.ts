@@ -56,14 +56,14 @@ export class TerminateEmployeeHandler implements ICommandHandler<
         .orThrow(EMPLOYEE_EVENTS.TERMINATE);
 
       employee.terminate(terminationDate);
-      await this.employeeCommandRepo.save(employee);
+      await this.employeeCommandRepo.update(employee);
 
       // Aktif sözleşmeyi de sonlandır.
       const active =
         await this.contractCommandRepo.findActiveByEmployeeId(employeeId);
       if (active) {
         active.end(terminationDate);
-        await this.contractCommandRepo.save(active);
+        await this.contractCommandRepo.update(active);
       }
 
       this.eventPublisher.employeeTerminated({

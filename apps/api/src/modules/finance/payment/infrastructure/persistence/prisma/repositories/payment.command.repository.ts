@@ -53,7 +53,7 @@ export class PaymentCommandRepository
     return entity;
   }
 
-  async save(entity: Payment): Promise<Payment> {
+  async update(entity: Payment): Promise<Payment> {
     const persistenceData = entity.toPersistence();
 
     const { id, ...data } = persistenceData;
@@ -80,7 +80,7 @@ export class PaymentCommandRepository
     return entity;
   }
 
-  async saveMany(entities: Payment[]): Promise<void> {
+  async updateMany(entities: Payment[]): Promise<void> {
     const allOps = entities.flatMap((entity) => {
       const data = entity.toPersistence();
       const paymentOp = this.db.payment.upsert({

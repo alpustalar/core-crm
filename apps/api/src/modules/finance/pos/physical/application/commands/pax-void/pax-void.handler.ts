@@ -29,9 +29,10 @@ import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatus
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler
-  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
-{
+export class PaxVoidHandler implements ICommandHandler<
+  PaxVoidCommand,
+  PaxVoidResponse
+> {
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
@@ -103,7 +104,7 @@ export class PaxVoidHandler
       await this.txManager.outboxRun(async () => {
         if (result.approved) {
           voidTx.markSuccess(result.externalRef, result.rawResponse);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
           if (originalTx.paymentId) {
             await this.posPaymentSync.markRefunded({
               paymentId: originalTx.paymentId,
@@ -112,7 +113,7 @@ export class PaxVoidHandler
           }
         } else {
           voidTx.markFailed(result.rawResponse);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
         }
       });
 
@@ -142,7 +143,7 @@ export class PaxVoidHandler
       if (err instanceof PaxConnectionError) {
         await this.txManager.run(async () => {
           voidTx.markFailed();
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
         });
         this.logger.error(`PAX void bağlantı hatası: id=${voidTransactionId}`);
         return { posTransactionId: voidTransactionId, status: 'FAILED' };

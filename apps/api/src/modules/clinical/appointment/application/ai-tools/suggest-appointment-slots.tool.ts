@@ -22,7 +22,7 @@ const SuggestAppointmentSlotsInputSchema = z.object({
 
 /**
  * Bir doktorun verilen gündeki hazır boş slotlarını (klinik yerel saatinde) döner.
- * AI bu çıktıyı doğrudan hastaya sunar — boş slot aritmetiği LLM'e bırakılmaz.
+ * AI bu çıktıyı doğrudan hastaya sunar — boş slot aritmetiği ai'a bırakılmaz.
  */
 @AiTool()
 @Injectable()
@@ -98,7 +98,7 @@ export class SuggestAppointmentSlotsTool implements IAiSubToolHandler {
       content: JSON.stringify({
         date,
         durationMinutes,
-        slots: slots.map((s) => s.time),
+        slots: slots.map((openSlot) => openSlot.time),
       }),
     };
   }

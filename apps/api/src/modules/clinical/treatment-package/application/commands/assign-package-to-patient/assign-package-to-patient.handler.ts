@@ -3,8 +3,8 @@ import { Inject } from '@nestjs/common';
 import { AssignPackageToPatientCommand } from './assign-package-to-patient.command';
 import type { AssignPackageToPatientResponse } from './assign-package-to-patient.response';
 import {
-  ITreatmentPackageQueryRepository,
-  TREATMENT_PACKAGE_QUERY_REPO,
+  ITreatmentPackageCommandRepository,
+  TREATMENT_PACKAGE_COMMAND_REPO,
 } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import {
   IPatientTreatmentPackageCommandRepository,
@@ -23,18 +23,15 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(AssignPackageToPatientCommand)
-export class AssignPackageToPatientHandler
-  implements
-    ICommandHandler<
-      AssignPackageToPatientCommand,
-      AssignPackageToPatientResponse
-    >
-{
+export class AssignPackageToPatientHandler implements ICommandHandler<
+  AssignPackageToPatientCommand,
+  AssignPackageToPatientResponse
+> {
   constructor(
-    @Inject(TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
+    @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
+    private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    private readonly patientTreatmentPackageRepo: IPatientTreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
@@ -46,7 +43,7 @@ export class AssignPackageToPatientHandler
   ): Promise<AssignPackageToPatientResponse> {
     const { data, ctx } = command;
 
-    const pkg = await this.treatmentPackageQueryRepo.findById(data.packageId);
+    const pkg = await this.treatmentPackageRepo.findById(data.packageId);
     if (!pkg) throw new TreatmentPackageNotFoundException();
 
     this.policyFactory
@@ -82,7 +79,7 @@ export class AssignPackageToPatientHandler
         paymentId: generatedPaymentUUID.value,
       });
 
-      await this.patientTreatmentPackageCommandRepo.create(patientTreatmentPkg);
+      await this.patientTreatmentPackageRepo.create(patientTreatmentPkg);
 
       return {
         id: patientTreatmentPkg.id.value,

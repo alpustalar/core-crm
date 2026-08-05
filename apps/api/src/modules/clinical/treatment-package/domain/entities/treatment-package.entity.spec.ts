@@ -4,8 +4,12 @@ import {
   TreatmentPackageDeletedEvent,
   TreatmentPackageUpdatedEvent,
 } from '@modules/clinical/treatment-package/domain/events';
-import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+import {
+  CreateTreatmentPackageProps,
+  CreateTreatmentPackageSchema,
+} from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
 describe('TreatmentPackage entity', () => {
   const CLINIC_ID = '11111111-1111-4111-8111-111111111111';
@@ -22,13 +26,13 @@ describe('TreatmentPackage entity', () => {
   };
 
   describe('create', () => {
-    it('aktif paket üretir, ismi trimler, id atar ve created event fırlatır', () => {
+    it('aktif paket üretir, id atar ve created event fırlatır', () => {
       const pkg = TreatmentPackage.create(baseProps);
 
       expect(pkg.id).toBeDefined();
-      expect(pkg.name.value).toBe('Saç Ekimi Paketi'); // trim
+      expect(pkg.name).toBe('  Saç Ekimi Paketi  '); // trim artık entity'de yapılmıyor (şema katmanına taşındı)
       expect(pkg.isActive).toBe(true);
-      expect(pkg.isDeleted).toBe(false);
+      expect(pkg.validate.isDeleted.value).toBe(false);
       expect(pkg.price.value.toNumber()).toBe(15000);
       expect(pkg.totalSessionCount).toBe(5); // examination + control
 
@@ -57,15 +61,16 @@ describe('TreatmentPackage entity', () => {
       expect(pkg.itemsToSync).toEqual([]);
     });
 
-    it('boş isim reddedilir', () => {
+    it('boş isim reddedilir (şema katmanı)', () => {
+      // İsim boşluğu validasyonu artık entity'de değil, CreateTreatmentPackageSchema'da (DTO sınırında).
       expect(() =>
-        TreatmentPackage.create({ ...baseProps, name: '   ' })
-      ).toThrow('Tedavi paketi adı uygun değil');
+        CreateTreatmentPackageSchema.parse({ ...baseProps, name: '' })
+      ).toThrow('Paket adı zorunludur');
     });
 
     it('negatif fiyat reddedilir (Money katmanı)', () => {
       // Money migration sonrası negatiflik Money VO'da reddedilir (entity'ye ulaşmaz).
-      expect(() => Money.create(-1, 'TRY').orThrow()).toThrow(
+      expect(() => Money.validate.input(-1, 'TRY').orThrow()).toThrow(
         'Para miktarı negatif olamaz.'
       );
     });
@@ -78,7 +83,7 @@ describe('TreatmentPackage entity', () => {
 
       pkg.update({ name: 'Yeni İsim', price: Money.create(20000, 'TRY').orThrow() });
 
-      expect(pkg.name.value).toBe('Yeni İsim');
+      expect(pkg.name).toBe('Yeni İsim');
       expect(pkg.price.value.toNumber()).toBe(20000);
       expect(pkg.validityDays).toBe(365); // dokunulmadı
 
@@ -99,12 +104,13 @@ describe('TreatmentPackage entity', () => {
       expect(pkg.providerIdsToSync).toEqual(['prov-9']);
     });
 
-    it('silinmiş paket güncellenemez', () => {
+    it('silinmiş paket güncellenemez (rules katmanı)', () => {
+      // update() artık kendi içinde kontrol etmiyor; kural handler'da rules() üzerinden uygulanır.
       const pkg = TreatmentPackage.create(baseProps);
       pkg.softDelete();
-      expect(() => pkg.update({ name: 'X' })).toThrow(
-        'Silinmiş tedavi paketi güncellenemez.'
-      );
+      expect(() =>
+        pkg.rules(DefaultValidateOptions).update({ name: 'X' }).orThrow()
+      ).toThrow('Silinmiş tedavi paketi güncellenemez.');
     });
   });
 
@@ -115,7 +121,7 @@ describe('TreatmentPackage entity', () => {
 
       pkg.softDelete();
 
-      expect(pkg.isDeleted).toBe(true);
+      expect(pkg.validate.isDeleted.value).toBe(true);
       expect(pkg.deletedAt).toBeInstanceOf(Date);
       expect(pkg.isActive).toBe(false);
 

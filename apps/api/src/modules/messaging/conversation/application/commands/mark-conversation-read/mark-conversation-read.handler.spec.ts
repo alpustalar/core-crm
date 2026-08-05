@@ -38,7 +38,7 @@ describe('MarkConversationReadHandler', () => {
     } as unknown as IConversationQueryRepository;
 
     const conversationCommandRepo = {
-      save: jest.fn(async (c: Conversation) => {
+      update: jest.fn(async (c: Conversation) => {
         saved = c;
         return c;
       }),
@@ -76,7 +76,7 @@ describe('MarkConversationReadHandler', () => {
     });
 
     await handler.execute(
-      new MarkConversationReadCommand('clinic-1', 'conv-1', ctx)
+      new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-1', ctx })
     );
 
     expect(channel.markRead).toHaveBeenCalledWith(
@@ -95,7 +95,7 @@ describe('MarkConversationReadHandler', () => {
     });
 
     await handler.execute(
-      new MarkConversationReadCommand('clinic-1', 'conv-1', ctx)
+      new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-1', ctx })
     );
 
     expect(channel.markRead).not.toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe('MarkConversationReadHandler', () => {
     });
 
     await handler.execute(
-      new MarkConversationReadCommand('clinic-1', 'conv-1', ctx)
+      new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-1', ctx })
     );
 
     expect(getSaved()!.unreadCount).toBe(0);
@@ -119,7 +119,9 @@ describe('MarkConversationReadHandler', () => {
   it('yazışma yoksa NotFoundException', async () => {
     const { handler } = build({ conversation: null });
     await expect(
-      handler.execute(new MarkConversationReadCommand('clinic-1', 'conv-x', ctx))
+      handler.execute(
+        new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-x', ctx })
+      )
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -127,7 +129,7 @@ describe('MarkConversationReadHandler', () => {
     const { handler } = build({ conversation: conversation() });
     await expect(
       handler.execute(
-        new MarkConversationReadCommand('clinic-OTHER', 'conv-1', ctx)
+        new MarkConversationReadCommand({ clinicId: 'clinic-OTHER', conversationId: 'conv-1', ctx })
       )
     ).rejects.toBeInstanceOf(ForbiddenException);
   });

@@ -3,7 +3,7 @@ import { DomainException } from '@src/domain/exceptions/domain.exception';
 import { ERROR_CODES } from '@common/constants/error-codes.constant';
 
 /**
- * Optimistic concurrency çakışması — version-guard'lı bir `save()` sırasında kayıt
+ * Optimistic concurrency çakışması — version-guard'lı bir `update()` sırasında kayıt
  * başka bir işlem tarafından güncellenmişse fırlatılır (etkilenen satır = 0). Frontend
  * 409 alır, en güncel veriyi yeniden çekip işlemi tekrar denemelidir.
  */

@@ -15,16 +15,13 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateTreatmentPackageCommand)
-export class CreateTreatmentPackageHandler
-  implements
-    ICommandHandler<
-      CreateTreatmentPackageCommand,
-      CreateTreatmentPackageResponse
-    >
-{
+export class CreateTreatmentPackageHandler implements ICommandHandler<
+  CreateTreatmentPackageCommand,
+  CreateTreatmentPackageResponse
+> {
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
+    private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -52,7 +49,7 @@ export class CreateTreatmentPackageHandler
     });
 
     return this.txManager.run(async () => {
-      await this.treatmentPackageCommandRepo.create(treatmentPackage);
+      await this.treatmentPackageRepo.create(treatmentPackage);
       return treatmentPackage.id.value;
     });
   }

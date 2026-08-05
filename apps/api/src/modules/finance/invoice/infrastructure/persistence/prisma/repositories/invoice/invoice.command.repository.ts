@@ -38,7 +38,7 @@ export class InvoiceCommandRepository
     return new Invoice(raw);
   }
 
-  async save(entity: Invoice): Promise<Invoice> {
+  async update(entity: Invoice): Promise<Invoice> {
     const data = entity.toPersistence();
     const raw = await this.db.invoice.update({
       where: { id: data.id },

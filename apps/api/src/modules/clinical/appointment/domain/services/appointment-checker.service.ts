@@ -1,17 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { CheckConflictProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { AppointmentSlotConflictException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query-repository.interface';
 
 @Injectable()
 export class AppointmentCheckerService {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository
+    private readonly appointmentRepo: IAppointmentQueryRepository
   ) {}
 
   async assertNoConflict({
@@ -27,14 +28,12 @@ export class AppointmentCheckerService {
       duration,
     }).orThrow();
 
-    const conflict = await this.appointmentQueryRepo.findConflictingAppointment(
-      {
-        providerId,
-        startTime,
-        endTime,
-        ignoreAppointmentId,
-      }
-    );
+    const conflict = await this.appointmentRepo.findConflictingAppointment({
+      providerId,
+      startTime,
+      endTime,
+      ignoreAppointmentId,
+    });
 
     if (conflict) {
       throw new AppointmentSlotConflictException(

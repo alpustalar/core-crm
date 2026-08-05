@@ -31,7 +31,7 @@ export class ProductCommandRepository
     return new Product(raw);
   }
 
-  async save(product: Product): Promise<Product> {
+  async update(product: Product): Promise<Product> {
     const create = product.toPersistence();
     const { id, ...data } = create;
 

@@ -17,9 +17,10 @@ import { Message } from '@modules/messaging/conversation/domain/entities/message
 import { MarkMessageStatusCommand } from './mark-message-status.command';
 
 @CommandHandler(MarkMessageStatusCommand)
-export class MarkMessageStatusHandler
-  implements ICommandHandler<MarkMessageStatusCommand, void>
-{
+export class MarkMessageStatusHandler implements ICommandHandler<
+  MarkMessageStatusCommand,
+  void
+> {
   constructor(
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
@@ -44,7 +45,7 @@ export class MarkMessageStatusHandler
     message.recordPricing(payload.pricing?.category, payload.pricing?.billable);
 
     await this.txManager.run(async () => {
-      await this.messageCommandRepo.save(message);
+      await this.messageCommandRepo.update(message);
 
       // Konuşma penceresi bitişi geldiyse yazışmaya yaz (yalnız pencere açıldığında gelir).
       if (payload.pricing?.windowExpiresAt) {
@@ -53,7 +54,7 @@ export class MarkMessageStatusHandler
         );
         if (conversation) {
           conversation.setWindowExpiry(payload.pricing.windowExpiresAt);
-          await this.conversationCommandRepo.save(conversation);
+          await this.conversationCommandRepo.update(conversation);
         }
       }
     });

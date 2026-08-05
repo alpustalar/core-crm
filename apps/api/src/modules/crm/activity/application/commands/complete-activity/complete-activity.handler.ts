@@ -13,12 +13,13 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CompleteActivityCommand)
-export class CompleteActivityHandler
-  implements ICommandHandler<CompleteActivityCommand, void>
-{
+export class CompleteActivityHandler implements ICommandHandler<
+  CompleteActivityCommand,
+  void
+> {
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
-    private readonly activityCommandRepo: IActivityCommandRepository,
+    private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -28,7 +29,7 @@ export class CompleteActivityHandler
     const { activityId, ctx } = command;
 
     await this.txManager.run(async () => {
-      const activity = await this.activityCommandRepo.findById(activityId);
+      const activity = await this.activityRepo.findById(activityId);
       if (!activity) throw new ActivityNotFoundException(activityId);
 
       const validateOptions = this.policyFactory
@@ -39,7 +40,7 @@ export class CompleteActivityHandler
 
       activity.complete();
 
-      await this.activityCommandRepo.save(activity);
+      await this.activityRepo.update(activity);
     });
   }
 }

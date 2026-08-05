@@ -3,7 +3,7 @@ import { GetClinicDailySummaryQuery } from './get-clinic-daily-summary.query';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ClinicStatusCount } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
 
 /**
  * Resepsiyon günlük özeti. status sayımlarının düz özete katlandığı (eksik status = 0),
@@ -21,12 +21,12 @@ describe('GetClinicDailySummaryHandler (günlük özet)', () => {
 
     const policyFactory = {
       appointment: () => ({
-        evaluator: {
-          check: () => ({
-            orThrow: () => {
-              if (!canAccess) throw new Error('yetki yok');
-            },
-          }),
+        policy: {
+          getSerializationOptions: jest.fn(() =>
+            canAccess
+              ? { isGroupActive: true, groups: ['INTERNAL'] }
+              : { isGroupActive: false, groups: [] }
+          ),
         },
       }),
     } as never;
@@ -96,7 +96,7 @@ describe('GetClinicDailySummaryHandler (günlük özet)', () => {
     expect(captured.dayEnd).toBeInstanceOf(Date);
   });
 
-  it('klinik atanmamışsa ClinicNotAssignedException fırlatır', async () => {
+  it('klinik atanmamışsa ClinicNotFoundException fırlatır', async () => {
     const { handler, ctx } = build({ clinicId: null });
     await expect(
       handler.execute(
@@ -105,18 +105,18 @@ describe('GetClinicDailySummaryHandler (günlük özet)', () => {
           ctx
         )
       )
-    ).rejects.toBeInstanceOf(ClinicNotAssignedException);
+    ).rejects.toBeInstanceOf(ClinicNotFoundException);
   });
 
-  it('yetki yoksa hata fırlatır', async () => {
+  it('yetki yoksa serializationOptions pasif döner (alan filtreleme transform interceptor katmanında yapılır)', async () => {
     const { handler, ctx } = build({ canAccess: false });
-    await expect(
-      handler.execute(
-        new GetClinicDailySummaryQuery(
-          { date: new Date('2026-05-03T00:00:00Z') } as never,
-          ctx
-        )
+    const { meta } = await handler.execute(
+      new GetClinicDailySummaryQuery(
+        { date: new Date('2026-05-03T00:00:00Z') } as never,
+        ctx
       )
-    ).rejects.toThrow('yetki yok');
+    );
+    expect(meta?.serializationOptions?.isGroupActive).toBe(false);
+    expect(meta?.serializationOptions?.groups).toEqual([]);
   });
 });

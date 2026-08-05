@@ -24,7 +24,7 @@ export class ActivityCommandRepository
     return raw ? new Activity(raw) : null;
   }
 
-  async save(entity: Activity): Promise<Activity> {
+  async update(entity: Activity): Promise<Activity> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.activity.update({ where: { id }, data: update });

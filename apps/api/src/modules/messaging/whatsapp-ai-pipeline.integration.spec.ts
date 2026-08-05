@@ -119,7 +119,9 @@ class InMemoryTransactionManager {
 }
 
 /** İçeri eklenen job'u ilgili processor'da satır içi çalıştıran sahte kuyruk. */
-const inlineQueue = (processor: { process: (job: unknown) => Promise<void> }) => ({
+const inlineQueue = (processor: {
+  process: (job: unknown) => Promise<void>;
+}) => ({
   add: async (name: string, data: unknown) => {
     await processor.process({ name, data, attemptsMade: 0 });
   },
@@ -141,7 +143,12 @@ const waitFor = async (
 
 const buildApp = async (): Promise<INestApplication> => {
   const messageCommandRepo = {
-    save: async (m: Message) => {
+    create: async (m: Message) => {
+      messageStore.set(m.id, m);
+      m.flushEvents();
+      return m;
+    },
+    update: async (m: Message) => {
       messageStore.set(m.id, m);
       m.flushEvents();
       return m;
@@ -158,7 +165,12 @@ const buildApp = async (): Promise<INestApplication> => {
     },
   };
   const conversationCommandRepo = {
-    save: async (c: Conversation) => {
+    create: async (c: Conversation) => {
+      conversationStore.set(c.id, c);
+      c.flushEvents();
+      return c;
+    },
+    update: async (c: Conversation) => {
       conversationStore.set(c.id, c);
       c.flushEvents();
       return c;
@@ -169,8 +181,7 @@ const buildApp = async (): Promise<INestApplication> => {
     findByContact: async (props: { clinicId: string; contactPhone: string }) =>
       [...conversationStore.values()].find(
         (c) =>
-          c.clinicId === props.clinicId &&
-          c.contactPhone === props.contactPhone
+          c.clinicId === props.clinicId && c.contactPhone === props.contactPhone
       ) ?? null,
   };
 

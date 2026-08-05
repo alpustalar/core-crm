@@ -11,6 +11,8 @@ import {
 } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 import { BookHotelCommand } from '@modules/crm/health-tourism/hotel/application/commands/book-hotel/book-hotel.command';
 import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.command';
+import { IGetContext } from '@common/decorators';
+import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 
 describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
   // Entity.create UUID VO doğrulaması yaptığından fixture id'leri geçerli UUID olmalı.
@@ -18,6 +20,16 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
   const ORG_ID = '22222222-2222-4222-8222-222222222222';
   const PATIENT_ID = '33333333-3333-4333-8333-333333333333';
   const LEAD_ID = '44444444-4444-4444-8444-444444444444';
+
+  const ctx: IGetContext = {
+    actor: {
+      userId: 'user-1',
+      clinicId: CLINIC_ID,
+      organizationId: ORG_ID,
+      managedClinics: [{ id: CLINIC_ID }],
+    } as IGetContext['actor'],
+    source: ExecutionSources.USER_ACTION,
+  };
 
   const hotelIntent: HotelBookingIntent = {
     type: 'HOTEL',
@@ -88,20 +100,32 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
 
     const commandRepo = {
       findById: jest.fn(async () => bp),
-      save: jest.fn(async (e: BookingPayment) => e),
+      update: jest.fn(async (e: BookingPayment) => e),
     } as unknown as IBookingPaymentCommandRepository;
+
+    const policyFactory = {
+      clinic: jest.fn().mockReturnValue({
+        evaluator: {
+          check: jest.fn().mockReturnValue({
+            orThrow: () => undefined,
+          }),
+        },
+      }),
+    } as any;
 
     return {
       handler: new ConfirmBookingPaymentHandler(
         commandBus,
         iyzicoLink,
         stripeLink,
-        commandRepo
+        commandRepo,
+        policyFactory
       ),
       commandBus,
       iyzicoLink,
       stripeLink,
       commandRepo,
+      policyFactory,
     };
   };
 
@@ -114,6 +138,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
+              ctx,
       })
     );
 
@@ -137,6 +162,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
+              ctx,
       })
     );
 
@@ -165,6 +191,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'IYZICO',
         providerRef: 'tx_2',
+              ctx,
       })
     );
 
@@ -188,6 +215,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
+              ctx,
       })
     );
 
@@ -209,6 +237,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
           bookingPaymentId: 'yok',
           provider: 'STRIPE',
           providerRef: 'pi_1',
+                  ctx,
         })
       )
     ).rejects.toBeInstanceOf(BookingPaymentNotFoundException);

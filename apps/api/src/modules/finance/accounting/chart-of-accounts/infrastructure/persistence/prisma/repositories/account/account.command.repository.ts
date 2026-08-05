@@ -14,7 +14,7 @@ export class AccountCommandRepository
     super(prisma);
   }
 
-  async save(account: Account): Promise<Account> {
+  async update(account: Account): Promise<Account> {
     const data = account.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.account.update({
@@ -25,7 +25,7 @@ export class AccountCommandRepository
     return new Account(raw);
   }
 
-  async saveMany(accounts: Account[]): Promise<void> {
+  async updateMany(accounts: Account[]): Promise<void> {
     const ops = accounts.map((account) => {
       const data = account.toPersistence();
       return this.db.account.upsert({

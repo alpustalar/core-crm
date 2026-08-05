@@ -93,7 +93,7 @@ export class UserCommandRepository
     });
   }
 
-  async save(entity: User): Promise<User> {
+  async update(entity: User): Promise<User> {
     const create = entity.toPersistence();
     const { id, ...update } = create;
     const raw = await this.db.user.update({

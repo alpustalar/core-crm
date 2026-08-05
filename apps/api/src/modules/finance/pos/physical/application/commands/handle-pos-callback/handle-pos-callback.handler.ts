@@ -18,10 +18,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 @CommandHandler(HandlePosCallbackCommand)
-export class HandlePosCallbackHandler
-  implements
-    ICommandHandler<HandlePosCallbackCommand, HandlePosCallbackResponse>
-{
+export class HandlePosCallbackHandler implements ICommandHandler<
+  HandlePosCallbackCommand,
+  HandlePosCallbackResponse
+> {
   private readonly logger = new Logger(HandlePosCallbackHandler.name);
 
   constructor(
@@ -70,7 +70,7 @@ export class HandlePosCallbackHandler
             transaction.markFailed(posCallbackResult.rawResponse);
         }
 
-        await this.posTransactionCommandRepo.save(transaction);
+        await this.posTransactionCommandRepo.update(transaction);
 
         if (transaction.paymentId) {
           if (posCallbackResult.status === PosCallbackStatuses.SUCCESS) {

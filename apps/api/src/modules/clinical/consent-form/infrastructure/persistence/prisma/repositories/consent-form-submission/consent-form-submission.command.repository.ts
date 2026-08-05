@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IConsentFormSubmissionCommandRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form.repository';
+
 import { ConsentFormSubmission } from '@modules/clinical/consent-form/domain/entities/consent-form-submission.entity';
+import { IConsentFormSubmissionCommandRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.command.repository';
 
 @Injectable()
 export class ConsentFormSubmissionCommandRepository
@@ -29,7 +30,7 @@ export class ConsentFormSubmissionCommandRepository
   }
 
   /** Submission immutable — bu metod interface uyumu için var, pratikte çağrılmaz. */
-  async save(entity: ConsentFormSubmission): Promise<ConsentFormSubmission> {
+  async update(entity: ConsentFormSubmission): Promise<ConsentFormSubmission> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.consentFormSubmission.update({

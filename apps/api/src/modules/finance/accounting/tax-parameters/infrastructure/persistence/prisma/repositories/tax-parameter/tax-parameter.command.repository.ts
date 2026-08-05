@@ -26,7 +26,7 @@ export class TaxParameterCommandRepository
     return new TaxParameter(raw);
   }
 
-  async save(entity: TaxParameter) {
+  async update(entity: TaxParameter) {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.taxParameter.update({
@@ -37,7 +37,7 @@ export class TaxParameterCommandRepository
     return new TaxParameter(raw);
   }
 
-  async saveMany(entities: TaxParameter[]): Promise<void> {
+  async updateMany(entities: TaxParameter[]): Promise<void> {
     const queries = entities.map((entity) => {
       const data = entity.toPersistence();
       return this.db.taxParameter.upsert({

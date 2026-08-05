@@ -3,10 +3,6 @@ import { GetProviderAvailabilityQuery } from './get-provider-availability.query'
 import { GetProviderAvailabilityQueryResponse } from './get-provider-availability.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
@@ -20,15 +16,16 @@ import { ExceptionTypeSchema } from '@input-type-schemas/ExceptionTypeSchema';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetProviderAvailabilityQuery)
-export class GetProviderAvailabilityHandler
-  implements
-    IQueryHandler<
-      GetProviderAvailabilityQuery,
-      GetProviderAvailabilityQueryResponse
-    >
-{
+export class GetProviderAvailabilityHandler implements IQueryHandler<
+  GetProviderAvailabilityQuery,
+  GetProviderAvailabilityQueryResponse
+> {
   constructor(
     private readonly queryBus: TSQueryBus,
     @Inject(APPOINTMENT_QUERY_REPOSITORY)

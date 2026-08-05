@@ -28,7 +28,7 @@ export class ModuleCommandRepository
     return new Module(raw);
   }
 
-  async save(entity: Module): Promise<Module> {
+  async update(entity: Module): Promise<Module> {
     const data = entity.toPersistence();
     const { id: _id, ...update } = data;
     const raw = await this.db.module.update({

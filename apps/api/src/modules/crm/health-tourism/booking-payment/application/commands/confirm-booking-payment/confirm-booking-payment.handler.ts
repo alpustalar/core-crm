@@ -40,9 +40,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ConfirmBookingPaymentCommand)
-export class ConfirmBookingPaymentHandler
-  implements ICommandHandler<ConfirmBookingPaymentCommand, void>
-{
+export class ConfirmBookingPaymentHandler implements ICommandHandler<
+  ConfirmBookingPaymentCommand,
+  void
+> {
   private readonly logger = new Logger(ConfirmBookingPaymentHandler.name);
 
   constructor(
@@ -52,7 +53,7 @@ export class ConfirmBookingPaymentHandler
     @Inject(STRIPE_PAYMENT_LINK)
     private readonly stripeLink: IPaymentLinkProvider,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository,
+    private readonly bookingPaymentRepo: IBookingPaymentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -60,7 +61,7 @@ export class ConfirmBookingPaymentHandler
   async execute(command: ConfirmBookingPaymentCommand): Promise<void> {
     const { bookingPaymentId, provider, providerRef, ctx } = command.input;
 
-    const bp = await this.bookingPaymentCommandRepo.findById(bookingPaymentId);
+    const bp = await this.bookingPaymentRepo.findById(bookingPaymentId);
     if (!bp) {
       throw new BookingPaymentNotFoundException(
         `Ödeme kaydı bulunamadı: ${bookingPaymentId}`
@@ -86,7 +87,7 @@ export class ConfirmBookingPaymentHandler
 
     // PENDING → PAID
     bp.markPaid(provider, providerRef);
-    await this.bookingPaymentCommandRepo.save(bp);
+    await this.bookingPaymentRepo.update(bp);
 
     // Diğer linki geçersiz kıl (best-effort).
     await this.expireOtherLink(provider, bp);
@@ -95,7 +96,7 @@ export class ConfirmBookingPaymentHandler
     try {
       const bookingId = await this.book(bp);
       bp.markBooked(bookingId, bookingId);
-      await this.bookingPaymentCommandRepo.save(bp);
+      await this.bookingPaymentRepo.update(bp);
       this.logger.log(
         `Rezervasyon tamamlandı (bp=${bookingPaymentId}, bookingId=${bookingId}).`
       );
@@ -111,12 +112,12 @@ export class ConfirmBookingPaymentHandler
         `HotelBeds rezervasyonu başarısız (bp=${bookingPaymentId}): ${reason}`
       );
       bp.markFailed(reason);
-      await this.bookingPaymentCommandRepo.save(bp);
+      await this.bookingPaymentRepo.update(bp);
       // Tahsil edildi ama rezervasyon açılamadı → ödemeyi iade et.
       try {
         await this.refundCharge(provider, providerRef, bp);
         bp.markRefunded(reason);
-        await this.bookingPaymentCommandRepo.save(bp);
+        await this.bookingPaymentRepo.update(bp);
       } catch (refundErr) {
         // TODO: slack bildirimi yollanacak
         this.logger.error(

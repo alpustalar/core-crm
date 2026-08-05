@@ -9,9 +9,10 @@ import { ReopenPeriodCommand } from './reopen-period.command';
 import { PeriodNotFoundException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 
 @CommandHandler(ReopenPeriodCommand)
-export class ReopenPeriodHandler
-  implements ICommandHandler<ReopenPeriodCommand, void>
-{
+export class ReopenPeriodHandler implements ICommandHandler<
+  ReopenPeriodCommand,
+  void
+> {
   constructor(
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
     private readonly periodCommandRepo: IAccountingPeriodCommandRepository,
@@ -24,7 +25,7 @@ export class ReopenPeriodHandler
 
     period.reopen();
     await this.txManager.run(async () => {
-      await this.periodCommandRepo.save(period);
+      await this.periodCommandRepo.update(period);
     });
   }
 }

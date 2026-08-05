@@ -21,10 +21,10 @@ import { TokenCipherService } from '@src/infrastructure/security/crypto/token-ci
 import { DateTimeManager } from '@common/utils';
 
 @CommandHandler(SyncCampaignMetricsCommand)
-export class SyncCampaignMetricsHandler
-  implements
-    ICommandHandler<SyncCampaignMetricsCommand, SyncCampaignMetricsResponse>
-{
+export class SyncCampaignMetricsHandler implements ICommandHandler<
+  SyncCampaignMetricsCommand,
+  SyncCampaignMetricsResponse
+> {
   private readonly logger = new Logger(SyncCampaignMetricsHandler.name);
 
   constructor(
@@ -63,7 +63,7 @@ export class SyncCampaignMetricsHandler
         );
 
         if (insights.length > 0) {
-          await this.metaCampaignMetricCommandRepo.saveMany(
+          await this.metaCampaignMetricCommandRepo.updateMany(
             insights.map((insight) => ({
               id: randomUUID(),
               metaAdAccountId: account.id.value,
@@ -82,7 +82,7 @@ export class SyncCampaignMetricsHandler
 
         const updatedAccount = account;
         updatedAccount.markSynced();
-        await this.accountCommandRepo.save(updatedAccount);
+        await this.accountCommandRepo.update(updatedAccount);
       } catch (err) {
         this.logger.error(
           `Meta Ads senkronizasyonu başarısız: ${account.adAccountId}`,

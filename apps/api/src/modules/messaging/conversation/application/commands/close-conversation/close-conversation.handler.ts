@@ -10,9 +10,10 @@ import {
 import { CloseConversationCommand } from './close-conversation.command';
 
 @CommandHandler(CloseConversationCommand)
-export class CloseConversationHandler
-  implements ICommandHandler<CloseConversationCommand, void>
-{
+export class CloseConversationHandler implements ICommandHandler<
+  CloseConversationCommand,
+  void
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationQueryRepo: IConversationQueryRepository,
@@ -32,7 +33,7 @@ export class CloseConversationHandler
 
     conversation.close();
     await this.txManager.run(() =>
-      this.conversationCommandRepo.save(conversation)
+      this.conversationCommandRepo.update(conversation)
     );
   }
 }

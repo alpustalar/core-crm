@@ -18,9 +18,9 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
 
   const patient = {
     patientId: PATIENT,
-    patientName: 'Ayşe Yılmaz',
-    patientPhone: '+905551112233',
-    patientEmail: null,
+    firstName: 'Ayşe Yılmaz',
+    phone: '+905551112233',
+    email: null,
   };
 
   const dto = {
@@ -50,9 +50,9 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
         return Promise.resolve({ id: { value: 'apt-1' } });
       }
     );
-    const appointmentCommandRepo = { create: createSpy } as never;
-
-    const appointmentQueryRepo = {
+    // countActiveByPatient artık command repo'da (query repo command handler'dan kaldırıldı).
+    const appointmentCommandRepo = {
+      create: createSpy,
       countActiveByPatient: jest.fn(() =>
         Promise.resolve(options.activeCount ?? 0)
       ),
@@ -79,7 +79,6 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
     return {
       handler: new PatientBookAppointmentHandler(
         appointmentCommandRepo,
-        appointmentQueryRepo,
         appointmentCheckerService,
         queryBus,
         transactionManager
@@ -96,7 +95,11 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
 
     await expect(
       handler.execute(
-        new PatientBookAppointmentCommand(dto as never, patient, {} as never)
+        new PatientBookAppointmentCommand({
+          data: dto as never,
+          ctx: {} as never,
+          aiConversationPatient: patient as never,
+        })
       )
     ).rejects.toBeInstanceOf(MaxActiveBookingsExceededException);
     expect(createSpy).not.toHaveBeenCalled();
@@ -110,7 +113,11 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
     });
 
     await handler.execute(
-      new PatientBookAppointmentCommand(dto as never, patient, {} as never)
+      new PatientBookAppointmentCommand({
+        data: dto as never,
+        ctx: {} as never,
+        aiConversationPatient: patient as never,
+      })
     );
 
     expect(status).toBe('CONFIRMED');
@@ -124,7 +131,11 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
     });
 
     await handler.execute(
-      new PatientBookAppointmentCommand(dto as never, patient, {} as never)
+      new PatientBookAppointmentCommand({
+        data: dto as never,
+        ctx: {} as never,
+        aiConversationPatient: patient as never,
+      })
     );
 
     expect(status).toBe('PENDING');

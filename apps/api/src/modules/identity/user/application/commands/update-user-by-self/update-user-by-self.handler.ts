@@ -10,9 +10,10 @@ import { UpdateUserBySelfResponse } from './update-user-by-self.response';
 import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
 
 @CommandHandler(UpdateUserBySelfCommand)
-export class UpdateUserBySelfHandler
-  implements ICommandHandler<UpdateUserBySelfCommand, UpdateUserBySelfResponse>
-{
+export class UpdateUserBySelfHandler implements ICommandHandler<
+  UpdateUserBySelfCommand,
+  UpdateUserBySelfResponse
+> {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userCommandRepo: IUserCommandRepository,
@@ -36,7 +37,7 @@ export class UpdateUserBySelfHandler
     );
 
     await this.txManager.run(async () => {
-      await this.userCommandRepo.save(user);
+      await this.userCommandRepo.update(user);
     });
   }
 }

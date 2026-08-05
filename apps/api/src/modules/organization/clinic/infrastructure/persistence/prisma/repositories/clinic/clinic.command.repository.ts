@@ -44,7 +44,7 @@ export class ClinicCommandRepository
     return { deletedCount };
   }
 
-  async save(entity: Clinic): Promise<Clinic> {
+  async update(entity: Clinic): Promise<Clinic> {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
     const raw = await this.db.clinic.update({

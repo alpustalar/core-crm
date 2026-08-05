@@ -20,15 +20,13 @@ export class ClinicFinanceSettingsCommandRepository
     return raw ? new ClinicFinanceSettings(raw) : null;
   }
 
-  async create(
-    entity: ClinicFinanceSettings
-  ): Promise<ClinicFinanceSettings> {
+  async create(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
     const data = entity.toPersistence();
     const raw = await this.db.clinicFinanceSettings.create({ data });
     return new ClinicFinanceSettings(raw);
   }
 
-  async save(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
+  async update(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.clinicFinanceSettings.update({

@@ -15,9 +15,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateClinicCommand)
-export class UpdateClinicHandler
-  implements ICommandHandler<UpdateClinicCommand, void>
-{
+export class UpdateClinicHandler implements ICommandHandler<
+  UpdateClinicCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
     private readonly clinicQueryRepo: IClinicQueryRepository,
@@ -44,7 +45,7 @@ export class UpdateClinicHandler
 
     await this.txManager.run(async () => {
       clinic.update(data);
-      await this.clinicCommandRepo.save(clinic);
+      await this.clinicCommandRepo.update(clinic);
     });
   }
 }

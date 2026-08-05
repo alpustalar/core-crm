@@ -26,7 +26,7 @@ export class LeadCommandRepository
     return raw ? new Lead(raw) : null;
   }
 
-  async save(entity: Lead): Promise<Lead> {
+  async update(entity: Lead): Promise<Lead> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.lead.update({
@@ -37,7 +37,7 @@ export class LeadCommandRepository
     return new Lead(raw);
   }
 
-  async saveMany(leads: Lead[]): Promise<void> {
+  async updateMany(leads: Lead[]): Promise<void> {
     const prismaQueries = leads.map((lead) => {
       const data = lead.toPersistence();
       return this.db.lead.upsert({

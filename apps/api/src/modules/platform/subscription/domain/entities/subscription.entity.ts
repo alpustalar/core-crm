@@ -60,7 +60,7 @@ export class Subscription extends AggregateRoot {
 
   private _version: number;
 
-  /** Optimistic concurrency version'ı — repository save() guard'ında kullanılır. */
+  /** Optimistic concurrency version'ı — repository update() guard'ında kullanılır. */
   get version(): number {
     return this._version;
   }

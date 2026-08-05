@@ -1,4 +1,3 @@
-export * from './actor.decorator';
 export * from './user-ip.decorator';
 export * from './has-capability.decorator';
 export * from './requires-module.decorator';

@@ -21,9 +21,10 @@ import { Decimal } from 'decimal.js';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(RecordProductUsageCommand)
-export class RecordProductUsageHandler
-  implements ICommandHandler<RecordProductUsageCommand, void>
-{
+export class RecordProductUsageHandler implements ICommandHandler<
+  RecordProductUsageCommand,
+  void
+> {
   constructor(
     @Inject(PRODUCT_QUERY_REPOSITORY)
     private readonly productQueryRepo: IProductQueryRepository,
@@ -70,7 +71,7 @@ export class RecordProductUsageHandler
     const stockMovement = StockMovement.create(stockMovementProps);
 
     await this.txManager.run(async () => {
-      await this.productBatchCommandRepo.save(batch);
+      await this.productBatchCommandRepo.update(batch);
       await this.stockMovementCommandRepo.create(stockMovement);
     });
   }

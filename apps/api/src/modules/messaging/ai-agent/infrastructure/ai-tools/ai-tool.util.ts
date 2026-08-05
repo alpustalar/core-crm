@@ -1,9 +1,9 @@
-import { IGetPatientContext } from '@common/decorators';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 import {
   AppointmentStatusSchema,
   AppointmentStatusType as AppointmentStatus,
 } from '@input-type-schemas/AppointmentStatusSchema';
+import { IGetPatientContext } from '@common/decorators/get-patient-context.decorator';
 
 /** Randevu statüsü "aktif" mi (iptal/tamamlandı/gelmedi değil)? */
 export function isActiveAppointmentStatus(status: AppointmentStatus): boolean {
@@ -21,14 +21,16 @@ export function createPatientActorContext({
   patientId,
   organizationId,
   clinicId,
+  firstName,
 }: {
   phone: string;
   patientId: string;
   organizationId: string;
   clinicId: string;
+  firstName: string;
 }): IGetPatientContext {
   return {
-    actor: { phone, patientId, organizationId, clinicId },
+    actor: { phone, patientId, organizationId, clinicId, firstName },
     source: ExecutionSources.AI_EXECUTION,
   };
 }

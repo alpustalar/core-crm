@@ -16,9 +16,10 @@ import {
 import { ClinicGovernmentSpecs } from '@modules/organization/clinic-governance/domain/entities/clinic-government-specs.entity';
 
 @CommandHandler(UpsertClinicGovernmentSpecsCommand)
-export class UpsertClinicGovernmentSpecsHandler
-  implements ICommandHandler<UpsertClinicGovernmentSpecsCommand, void>
-{
+export class UpsertClinicGovernmentSpecsHandler implements ICommandHandler<
+  UpsertClinicGovernmentSpecsCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY)
     private readonly specsQueryRepo: IClinicGovernmentSpecsQueryRepository,
@@ -49,7 +50,7 @@ export class UpsertClinicGovernmentSpecsHandler
           companyTaxNumber: data.companyTaxNumber ?? null,
           legalType: data.legalType,
         });
-        await this.specsCommandRepo.save(existing);
+        await this.specsCommandRepo.update(existing);
         return;
       }
 

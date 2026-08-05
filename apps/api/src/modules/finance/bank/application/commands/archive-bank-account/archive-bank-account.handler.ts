@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ArchiveBankAccountCommand)
-export class ArchiveBankAccountHandler
-  implements ICommandHandler<ArchiveBankAccountCommand, void>
-{
+export class ArchiveBankAccountHandler implements ICommandHandler<
+  ArchiveBankAccountCommand,
+  void
+> {
   constructor(
     @Inject(BANK_ACCOUNT_COMMAND_REPOSITORY)
     private readonly accountCommandRepo: IBankAccountCommandRepository,
@@ -40,7 +41,7 @@ export class ArchiveBankAccountHandler
     account.archive();
 
     await this.txManager.run(async () => {
-      await this.accountCommandRepo.save(account);
+      await this.accountCommandRepo.update(account);
     });
   }
 }

@@ -4,8 +4,8 @@ export const ACCOUNT_COMMAND_REPOSITORY = Symbol('IAccountCommandRepository');
 export const ACCOUNT_QUERY_REPOSITORY = Symbol('IAccountQueryRepository');
 
 export interface IAccountCommandRepository {
-  save(account: Account): Promise<Account>;
-  saveMany(accounts: Account[]): Promise<void>;
+  update(account: Account): Promise<Account>;
+  updateMany(accounts: Account[]): Promise<void>;
 
   /**
    * Tenant açılışında hesap planı ağacını tek seferde kurar.

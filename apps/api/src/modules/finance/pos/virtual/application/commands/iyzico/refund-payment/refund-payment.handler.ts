@@ -33,10 +33,10 @@ import { Currency, UUID } from '@src/domain/value-objects';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(RefundPaymentCommand)
-export class RefundPaymentHandler
-  implements
-    ICommandHandler<RefundPaymentCommand, RefundPaymentCommandResponse>
-{
+export class RefundPaymentHandler implements ICommandHandler<
+  RefundPaymentCommand,
+  RefundPaymentCommandResponse
+> {
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
@@ -100,7 +100,7 @@ export class RefundPaymentHandler
 
     await this.txManager.outboxRun(async () => {
       iyzicoTx.markAsRefunded({ rawResponse: sdkResult });
-      await this.iyzicoCommandRepo.save(iyzicoTx);
+      await this.iyzicoCommandRepo.update(iyzicoTx);
 
       await this.commandBus.execute(
         new MarkInstallmentAsRefundedCommand({

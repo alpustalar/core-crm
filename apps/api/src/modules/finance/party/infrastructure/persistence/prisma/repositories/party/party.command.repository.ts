@@ -32,7 +32,7 @@ export class PartyCommandRepository
     }
   }
 
-  async save(party: Party): Promise<Party> {
+  async update(party: Party): Promise<Party> {
     const data = party.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.party.update({

@@ -27,7 +27,7 @@ describe('ConnectClinicWhatsappChannelHandler (Embedded Signup self-service)', (
     } as unknown as IWhatsappCloudApi;
 
     const channelCommandRepo = {
-      save: jest.fn(async (c: ClinicWhatsappChannel) => {
+      upsertByClinicId: jest.fn(async (c: ClinicWhatsappChannel) => {
         saved = c;
         return c;
       }),

@@ -172,7 +172,7 @@ export class AppointmentCacheService {
   }
 
   /**
-   * Projedeki tek zaman kaynağı (DateTimeManager) ile kilit bitiş zamanını hesaplar.
+   *  kilit bitiş zamanını hesaplar.
    */
   private calculateLockExpiry(ttlSeconds: number) {
     const lockedUntilDate = DateTimeManager.plus({ seconds: ttlSeconds });

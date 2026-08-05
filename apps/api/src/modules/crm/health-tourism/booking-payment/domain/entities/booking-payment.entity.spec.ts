@@ -3,6 +3,7 @@ import {
   CreateBookingPaymentProps,
   HotelBookingIntent,
 } from '../contracts/booking-payment.contracts';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
 describe('BookingPayment entity — durum makinesi', () => {
   const hotelIntent: HotelBookingIntent = {
@@ -64,15 +65,20 @@ describe('BookingPayment entity — durum makinesi', () => {
     expect(bp.validate.status.isSettled.value).toBe(true);
   });
 
-  it('markPaid ikinci kez → hata (idempotency koruması)', () => {
+  it('markPaid ikinci kez → hata (idempotency koruması, rules katmanı)', () => {
+    // Durum geçiş koruması artık entity metodunda değil, rules() üzerinden uygulanıyor.
     const bp = BookingPayment.create(baseProps);
     bp.markPaid('IYZICO', 'tx_1');
-    expect(() => bp.markPaid('STRIPE', 'pi_2')).toThrow();
+    expect(() =>
+      bp.rules(DefaultValidateOptions).markPaid().orThrow()
+    ).toThrow();
   });
 
-  it('markBooked yalnız PAID sonrası; PENDING’den → hata', () => {
+  it('markBooked yalnız PAID sonrası; PENDING’den → hata (rules katmanı)', () => {
     const bp = BookingPayment.create(baseProps);
-    expect(() => bp.markBooked('REF-1')).toThrow();
+    expect(() =>
+      bp.rules(DefaultValidateOptions).markBooked().orThrow()
+    ).toThrow();
     bp.markPaid('STRIPE', 'pi_1');
     bp.markBooked('BK-1', 'BK-1');
     expect(bp.status).toBe('BOOKED');
@@ -80,14 +86,16 @@ describe('BookingPayment entity — durum makinesi', () => {
     expect(bp.validate.status.isSettled.value).toBe(true);
   });
 
-  it('markExpired yalnız PENDING; ödenmişten → hata', () => {
+  it('markExpired yalnız PENDING; ödenmişten → hata (rules katmanı)', () => {
     const bp = BookingPayment.create(baseProps);
     bp.markExpired();
     expect(bp.status).toBe('EXPIRED');
 
     const paid = BookingPayment.create(baseProps);
     paid.markPaid('IYZICO', 'tx');
-    expect(() => paid.markExpired()).toThrow();
+    expect(() =>
+      paid.rules(DefaultValidateOptions).markExpired().orThrow()
+    ).toThrow();
   });
 
   it('markFailed + markRefunded: book başarısız → iade akışı', () => {

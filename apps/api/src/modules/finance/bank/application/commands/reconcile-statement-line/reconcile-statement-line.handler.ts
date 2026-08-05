@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ReconcileStatementLineCommand)
-export class ReconcileStatementLineHandler
-  implements ICommandHandler<ReconcileStatementLineCommand, void>
-{
+export class ReconcileStatementLineHandler implements ICommandHandler<
+  ReconcileStatementLineCommand,
+  void
+> {
   constructor(
     @Inject(BANK_STATEMENT_LINE_COMMAND_REPOSITORY)
     private readonly lineCommandRepo: IBankStatementLineCommandRepository,
@@ -45,7 +46,7 @@ export class ReconcileStatementLineHandler
     });
 
     await this.txManager.run(async () => {
-      await this.lineCommandRepo.save(line);
+      await this.lineCommandRepo.update(line);
     });
   }
 }

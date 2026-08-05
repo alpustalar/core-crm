@@ -57,7 +57,7 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
     } as unknown as ISubscriptionQueryRepository;
 
     const subscriptionCommandRepo = {
-      save: jest.fn(async (s: Subscription) => s),
+      update: jest.fn(async (s: Subscription) => s),
     } as unknown as ISubscriptionCommandRepository;
 
     const paymentMethodQueryRepo = {
@@ -98,7 +98,7 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
     expect(t.chargeSavedCard).toHaveBeenCalledTimes(1);
     expect(sub.status).toBe('ACTIVE');
     expect(sub.currentPeriodEnd).toBeInstanceOf(Date);
-    expect(t.subscriptionCommandRepo.save).toHaveBeenCalledTimes(1);
+    expect(t.subscriptionCommandRepo.update).toHaveBeenCalledTimes(1);
   });
 
   it('kayıtlı kart yok → tahsilat denenmez, PAST_DUE', async () => {
@@ -138,6 +138,6 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
   it('dönemi geçmiş abonelik yoksa hiçbir şey yapılmaz', async () => {
     const t = build({ due: [] });
     await t.handler.execute();
-    expect(t.subscriptionCommandRepo.save).not.toHaveBeenCalled();
+    expect(t.subscriptionCommandRepo.update).not.toHaveBeenCalled();
   });
 });

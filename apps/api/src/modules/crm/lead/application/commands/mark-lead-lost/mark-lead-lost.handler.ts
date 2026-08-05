@@ -17,9 +17,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MarkLeadLostCommand)
-export class MarkLeadLostHandler
-  implements ICommandHandler<MarkLeadLostCommand, void>
-{
+export class MarkLeadLostHandler implements ICommandHandler<
+  MarkLeadLostCommand,
+  void
+> {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadCommandRepo: ILeadCommandRepository,
@@ -52,7 +53,7 @@ export class MarkLeadLostHandler
       // Kanban tutarlılığı: lead bir huniye bağlıysa LOST aşamasına taşı.
       await this.syncLostStage(lead, ctx);
 
-      await this.leadCommandRepo.save(lead);
+      await this.leadCommandRepo.update(lead);
     });
   }
 

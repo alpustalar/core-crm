@@ -33,7 +33,7 @@ export class MessageCommandRepository
     return new Message(raw);
   }
 
-  async save(entity: Message): Promise<Message> {
+  async update(entity: Message): Promise<Message> {
     const data = entity.toPersistence();
 
     const raw = await this.db.message.update({

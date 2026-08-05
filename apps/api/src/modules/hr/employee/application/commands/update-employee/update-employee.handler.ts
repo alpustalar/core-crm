@@ -14,9 +14,10 @@ import {
 import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
 
 @CommandHandler(UpdateEmployeeCommand)
-export class UpdateEmployeeHandler
-  implements ICommandHandler<UpdateEmployeeCommand, void>
-{
+export class UpdateEmployeeHandler implements ICommandHandler<
+  UpdateEmployeeCommand,
+  void
+> {
   constructor(
     @Inject(EMPLOYEE_COMMAND_REPOSITORY)
     private readonly employeeCommandRepo: IEmployeeCommandRepository,
@@ -49,7 +50,7 @@ export class UpdateEmployeeHandler
         annualLeaveEntitlement: data.annualLeaveEntitlement,
       });
 
-      await this.employeeCommandRepo.save(employee);
+      await this.employeeCommandRepo.update(employee);
     });
   }
 }

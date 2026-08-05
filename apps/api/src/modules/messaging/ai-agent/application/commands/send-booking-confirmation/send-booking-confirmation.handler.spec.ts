@@ -1,9 +1,7 @@
 import { SendBookingConfirmationHandler } from './send-booking-confirmation.handler';
 import { SendBookingConfirmationCommand } from './send-booking-confirmation.command';
 import { IAiChatPort } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
-import {
-  IConversationQueryRepository,
-} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IConversationQueryRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -97,7 +95,10 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
 
   it('WhatsApp + pencere içi → AI metni TEXT olarak gönderilir', async () => {
     const { handler, chatPort, commandBus } = build({
-      conversation: makeConversation({ channel: 'WHATSAPP', withinWindow: true }),
+      conversation: makeConversation({
+        channel: 'WHATSAPP',
+        withinWindow: true,
+      }),
     });
 
     await handler.execute(cmd);
@@ -106,7 +107,9 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
     const sent = (commandBus.execute as jest.Mock).mock
       .calls[0][0] as SendMessageCommand;
     expect(sent).toBeInstanceOf(SendMessageCommand);
-    expect(sent.input.body).toBe('Harika haber! Rezervasyonunuz onaylandı 🎉');
+    expect(sent.payload.input.body).toBe(
+      'Harika haber! Rezervasyonunuz onaylandı 🎉'
+    );
   });
 
   it('WhatsApp + pencere dışı → onaylı şablon (HSM) gönderilir, AI çağrılmaz', async () => {
@@ -123,8 +126,10 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
     const sent = (commandBus.execute as jest.Mock).mock
       .calls[0][0] as SendTemplateMessageCommand;
     expect(sent).toBeInstanceOf(SendTemplateMessageCommand);
-    expect(sent.input.templateName).toBe(BOOKING_CONFIRMATION_TEMPLATE_NAME);
-    expect(sent.input.variables).toEqual([
+    expect(sent.payload.input.templateName).toBe(
+      BOOKING_CONFIRMATION_TEMPLATE_NAME
+    );
+    expect(sent.payload.input.variables).toEqual([
       'Otel Bir (2026-07-01 → 2026-07-05)',
       'BK-REF-1',
     ]);
@@ -132,14 +137,17 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
 
   it('Telegram → pencere yok, AI metni gönderilir', async () => {
     const { handler, chatPort, commandBus } = build({
-      conversation: makeConversation({ channel: 'TELEGRAM', withinWindow: false }),
+      conversation: makeConversation({
+        channel: 'TELEGRAM',
+        withinWindow: false,
+      }),
     });
 
     await handler.execute(cmd);
     expect(chatPort.generateReply).toHaveBeenCalledTimes(1);
-    expect(
-      (commandBus.execute as jest.Mock).mock.calls[0][0]
-    ).toBeInstanceOf(SendMessageCommand);
+    expect((commandBus.execute as jest.Mock).mock.calls[0][0]).toBeInstanceOf(
+      SendMessageCommand
+    );
   });
 
   it('AI config yoksa fallback metin gönderilir (AI çağrılmaz)', async () => {
@@ -152,7 +160,7 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
     expect(chatPort.generateReply).not.toHaveBeenCalled();
     const sent = (commandBus.execute as jest.Mock).mock
       .calls[0][0] as SendMessageCommand;
-    expect(sent.input.body).toContain('BK-REF-1');
+    expect(sent.payload.input.body).toContain('BK-REF-1');
   });
 
   it('yazışma bulunamazsa hiçbir şey gönderilmez', async () => {

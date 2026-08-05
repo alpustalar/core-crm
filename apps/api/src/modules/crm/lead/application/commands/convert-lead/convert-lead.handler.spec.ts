@@ -14,7 +14,7 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
   const policyFactory = {
     clinic: () => ({
       evaluator: {
-        systemBypass: () => ({ check: () => ({ orThrow: () => undefined }) }),
+        check: () => ({ orThrow: () => undefined }),
       },
     }),
     entity: () => ({ policy: { getValidateOptions: () => ({}) } }),
@@ -33,7 +33,7 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
   function build(lead: Lead, createdPatientId = randomUUID()) {
     const leadCommandRepo = {
       findById: jest.fn(async () => lead),
-      save: jest.fn(async (l: Lead) => l),
+      update: jest.fn(async (l: Lead) => l),
       create: jest.fn(),
     };
     const commandBus = {
@@ -58,17 +58,17 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
     const existingPatientId = randomUUID();
 
     await handler.execute(
-      new ConvertLeadCommand(
-        lead.id.value,
-        { patientId: existingPatientId, clinicId },
-        ctx
-      )
+      new ConvertLeadCommand({
+        leadId: lead.id.value,
+        data: { patientId: existingPatientId, clinicId },
+        ctx,
+      })
     );
 
     expect(commandBus.execute).not.toHaveBeenCalled();
     expect(lead.status).toBe('CONVERTED');
     expect(lead.patientId?.value).toBe(existingPatientId);
-    expect(leadCommandRepo.save).toHaveBeenCalled();
+    expect(leadCommandRepo.update).toHaveBeenCalled();
   });
 
   it('patientId yok + lead telefon/isim taşıyor → CreatePatientCommand ile hasta oluşturulur ve bağlanır', async () => {
@@ -76,7 +76,7 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
     const { handler, commandBus, createdPatientId } = build(lead);
 
     await handler.execute(
-      new ConvertLeadCommand(lead.id.value, { clinicId }, ctx)
+      new ConvertLeadCommand({ leadId: lead.id.value, data: { clinicId }, ctx })
     );
 
     expect(commandBus.execute).toHaveBeenCalledTimes(1);
@@ -97,7 +97,9 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
     const { handler, commandBus } = build(lead);
 
     await expect(
-      handler.execute(new ConvertLeadCommand(lead.id.value, { clinicId }, ctx))
+      handler.execute(
+        new ConvertLeadCommand({ leadId: lead.id.value, data: { clinicId }, ctx })
+      )
     ).rejects.toBeInstanceOf(LeadConvertMissingTargetException);
 
     expect(commandBus.execute).not.toHaveBeenCalled();
@@ -109,7 +111,11 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
     const appointmentId = randomUUID();
 
     await handler.execute(
-      new ConvertLeadCommand(lead.id.value, { appointmentId, clinicId }, ctx)
+      new ConvertLeadCommand({
+        leadId: lead.id.value,
+        data: { appointmentId, clinicId },
+        ctx,
+      })
     );
 
     expect(commandBus.execute).not.toHaveBeenCalled();

@@ -26,7 +26,7 @@ export class ProductBatchCommandRepository
     return new ProductBatch(raw);
   }
 
-  async save(batch: ProductBatch): Promise<ProductBatch> {
+  async update(batch: ProductBatch): Promise<ProductBatch> {
     const create = batch.toPersistence();
     const { id, ...data } = create;
     const raw = await this.db.productBatch.update({
@@ -37,7 +37,7 @@ export class ProductBatchCommandRepository
     return new ProductBatch(raw);
   }
 
-  async saveMany(batches: ProductBatch[]): Promise<void> {
+  async updateMany(batches: ProductBatch[]): Promise<void> {
     const prismaQueries = batches.map((batch) => {
       const create = batch.toPersistence();
       const { id, ...data } = create;

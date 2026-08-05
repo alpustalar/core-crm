@@ -29,19 +29,19 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
 
 @QueryHandler(GetProviderScheduleQuery)
-export class GetProviderScheduleHandler
-  implements
-    IQueryHandler<GetProviderScheduleQuery, GetProviderScheduleQueryResponse>
-{
+export class GetProviderScheduleHandler implements IQueryHandler<
+  GetProviderScheduleQuery,
+  GetProviderScheduleQueryResponse
+> {
   constructor(
     @Inject(PROVIDER_EXCEPTION_QUERY_REPOSITORY)
-    private readonly providerExceptionQueryRepo: IProviderExceptionQueryRepository,
+    private readonly providerExceptionRepo: IProviderExceptionQueryRepository,
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    private readonly providerRepo: IProviderQueryRepository,
     @Inject(PROVIDER_AVAILABILITY_QUERY_REPOSITORY)
-    private readonly providerAvailabilityQueryRepo: IProviderAvailabilityQueryRepository,
+    private readonly providerAvailabilityRepo: IProviderAvailabilityQueryRepository,
     @Inject(PROVIDER_SHIFT_QUERY_REPOSITORY)
-    private readonly providerShiftQueryRepo: IProviderShiftQueryRepository,
+    private readonly providerShiftRepo: IProviderShiftQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus
@@ -60,7 +60,7 @@ export class GetProviderScheduleHandler
       .provider(ctx.actor, ctx.source)
       .policy.getSerializationOptions(clinicId, providerId);
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -70,14 +70,14 @@ export class GetProviderScheduleHandler
     ).orThrow();
 
     const exceptions =
-      await this.providerExceptionQueryRepo.findExceptionsByDateRange(
+      await this.providerExceptionRepo.findExceptionsByDateRange(
         providerId,
         exceptionQueryDateRange.startDate,
         exceptionQueryDateRange.endDate
       );
 
     if (provider.validate.operationMode.isShift.value) {
-      const shifts = await this.providerShiftQueryRepo.findShiftsByDateRange(
+      const shifts = await this.providerShiftRepo.findShiftsByDateRange(
         providerId,
         exceptionQueryDateRange.startDate,
         exceptionQueryDateRange.endDate
@@ -92,7 +92,7 @@ export class GetProviderScheduleHandler
     }
 
     const availabilities =
-      await this.providerAvailabilityQueryRepo.findManyByProviderId(providerId);
+      await this.providerAvailabilityRepo.findManyByProviderId(providerId);
     return {
       data: {
         operationMode: OperationModeSchema.enum.STATIC,

@@ -41,12 +41,12 @@ describe('GetVatDeclarationHandler (doc 06 §1)', () => {
 
   const run = (handler: GetVatDeclarationHandler) =>
     handler.execute(
-      new GetVatDeclarationQuery(
-        'clinic-1',
+      new GetVatDeclarationQuery({
+        clinicId: 'clinic-1',
         ctx,
-        new Date('2026-01-01'),
-        new Date('2026-02-28')
-      )
+        dateFrom: new Date('2026-01-01'),
+        dateTo: new Date('2026-02-28'),
+      })
     );
 
   it('391 > 191 → ödenecek KDV (devreden 0), aylık kırılım kronolojik', async () => {

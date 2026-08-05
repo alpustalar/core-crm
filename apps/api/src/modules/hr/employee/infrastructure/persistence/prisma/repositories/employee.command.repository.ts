@@ -24,7 +24,7 @@ export class EmployeeCommandRepository
     return raw ? new Employee(raw) : null;
   }
 
-  async save(entity: Employee): Promise<Employee> {
+  async update(entity: Employee): Promise<Employee> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.employee.update({ where: { id }, data: update });

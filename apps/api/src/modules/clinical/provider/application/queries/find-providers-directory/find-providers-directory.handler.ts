@@ -8,22 +8,19 @@ import { FindProvidersDirectoryQuery } from './find-providers-directory.query';
 import { FindProvidersDirectoryQueryResponse } from './find-providers-directory.response';
 
 @QueryHandler(FindProvidersDirectoryQuery)
-export class FindProvidersDirectoryHandler
-  implements
-    IQueryHandler<
-      FindProvidersDirectoryQuery,
-      FindProvidersDirectoryQueryResponse
-    >
-{
+export class FindProvidersDirectoryHandler implements IQueryHandler<
+  FindProvidersDirectoryQuery,
+  FindProvidersDirectoryQueryResponse
+> {
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository
+    private readonly providerRepo: IProviderQueryRepository
   ) {}
 
   async execute(
     query: FindProvidersDirectoryQuery
   ): Promise<FindProvidersDirectoryQueryResponse> {
-    const data = await this.providerQueryRepo.findDirectoryByClinicId(
+    const data = await this.providerRepo.findDirectoryByClinicId(
       query.clinicId
     );
     return { data };

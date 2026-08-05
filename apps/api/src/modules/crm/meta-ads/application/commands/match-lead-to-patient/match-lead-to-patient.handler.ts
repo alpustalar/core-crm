@@ -13,10 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MatchLeadToPatientCommand)
-export class MatchLeadToPatientHandler
-  implements
-    ICommandHandler<MatchLeadToPatientCommand, MatchLeadToPatientResponse>
-{
+export class MatchLeadToPatientHandler implements ICommandHandler<
+  MatchLeadToPatientCommand,
+  MatchLeadToPatientResponse
+> {
   constructor(
     @Inject(META_LEAD_COMMAND_REPOSITORY)
     private readonly metaLeadCommandRepository: IMetaLeadCommandRepository,
@@ -36,7 +36,7 @@ export class MatchLeadToPatientHandler
 
     lead.matchToPatient(patientId);
 
-    const saved = await this.metaLeadCommandRepository.save(lead);
+    const saved = await this.metaLeadCommandRepository.update(lead);
 
     return { leadId: saved.id.value, status: saved.status };
   }

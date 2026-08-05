@@ -10,9 +10,10 @@ import {
 import { MarkInvoiceEDocumentResultCommand } from './mark-invoice-edocument-result.command';
 
 @CommandHandler(MarkInvoiceEDocumentResultCommand)
-export class MarkInvoiceEDocumentResultHandler
-  implements ICommandHandler<MarkInvoiceEDocumentResultCommand, void>
-{
+export class MarkInvoiceEDocumentResultHandler implements ICommandHandler<
+  MarkInvoiceEDocumentResultCommand,
+  void
+> {
   constructor(
     @Inject(INVOICE_COMMAND_REPOSITORY)
     private readonly invoiceCommandRepo: IInvoiceCommandRepository,
@@ -35,7 +36,7 @@ export class MarkInvoiceEDocumentResultHandler
         status: input.status,
         invoiceNumber: input.invoiceNumber,
       });
-      await this.invoiceCommandRepo.save(invoice);
+      await this.invoiceCommandRepo.update(invoice);
     });
   }
 }

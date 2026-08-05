@@ -20,7 +20,7 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     } as unknown as IMessageQueryRepository;
 
     const messageCommandRepo = {
-      save: jest.fn(async (m: Message) => m),
+      update: jest.fn(async (m: Message) => m),
     } as unknown as IMessageCommandRepository;
 
     const conversationQueryRepo = {
@@ -28,7 +28,7 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     } as unknown as IConversationQueryRepository;
 
     const conversationCommandRepo = {
-      save: jest.fn(),
+      update: jest.fn(),
     } as unknown as IConversationCommandRepository;
 
     const txManager = {
@@ -52,19 +52,25 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     return m;
   };
 
-  it('bilinmeyen externalId → no-op (save çağrılmaz)', async () => {
+  it('bilinmeyen externalId → no-op (update çağrılmaz)', async () => {
     const { handler, messageCommandRepo } = build(null);
     await handler.execute(
-      new MarkMessageStatusCommand('wamid.unknown', MessageStatus.DELIVERED)
+      new MarkMessageStatusCommand({
+        externalId: 'wamid.unknown',
+        status: MessageStatus.DELIVERED,
+      })
     );
-    expect(messageCommandRepo.save).not.toHaveBeenCalled();
+    expect(messageCommandRepo.update).not.toHaveBeenCalled();
   });
 
   it('SENT mesaj DELIVERED olur', async () => {
     const msg = sentOutbound();
     const { handler } = build(msg);
     await handler.execute(
-      new MarkMessageStatusCommand('wamid.out.1', MessageStatus.DELIVERED)
+      new MarkMessageStatusCommand({
+        externalId: 'wamid.out.1',
+        status: MessageStatus.DELIVERED,
+      })
     );
     expect(msg.status).toBe(MessageStatus.DELIVERED);
   });
@@ -73,11 +79,11 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     const msg = sentOutbound();
     const { handler } = build(msg);
     await handler.execute(
-      new MarkMessageStatusCommand(
-        'wamid.out.1',
-        MessageStatus.FAILED,
-        'numara WhatsApp kullanmıyor'
-      )
+      new MarkMessageStatusCommand({
+        externalId: 'wamid.out.1',
+        status: MessageStatus.FAILED,
+        errorReason: 'numara WhatsApp kullanmıyor',
+      })
     );
     expect(msg.status).toBe(MessageStatus.FAILED);
     expect(msg.errorReason).toBe('numara WhatsApp kullanmıyor');
@@ -87,12 +93,12 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     const msg = sentOutbound();
     const { handler } = build(msg);
     await handler.execute(
-      new MarkMessageStatusCommand(
-        'wamid.out.1',
-        MessageStatus.FAILED,
-        '24s pencere kapalı',
-        '131047'
-      )
+      new MarkMessageStatusCommand({
+        externalId: 'wamid.out.1',
+        status: MessageStatus.FAILED,
+        errorReason: '24s pencere kapalı',
+        errorCode: '131047',
+      })
     );
     expect(msg.status).toBe(MessageStatus.FAILED);
     expect(msg.errorCode).toBe('131047');

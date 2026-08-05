@@ -15,7 +15,7 @@ export class MetaCampaignMetricCommandRepository
     super(prisma);
   }
 
-  async saveMany(data: UpsertCampaignMetricData[]): Promise<void> {
+  async updateMany(data: UpsertCampaignMetricData[]): Promise<void> {
     await Promise.all(
       data.map((p) =>
         this.db.metaCampaignMetric.upsert({

@@ -15,25 +15,25 @@ describe('StaffRescheduleHandler (staffAllowOverbooking)', () => {
       clinicId: { value: CLINIC },
       providerId: { value: PROVIDER },
       reschedule: jest.fn(),
+      rules: () => ({
+        reschedule: () => ({ orThrow: () => undefined }),
+      }),
     };
 
     const appointmentCommandRepo = {
       findById: jest.fn(() => Promise.resolve(appointment)),
-      save: jest.fn(() => Promise.resolve()),
+      update: jest.fn(() => Promise.resolve()),
     } as never;
 
     const policyFactory = {
       appointment: () => ({
         evaluator: {
-          systemBypass: () => ({
-            check: () => ({ orThrow: () => undefined }),
-          }),
+          check: () => ({ orThrow: () => undefined }),
         },
       }),
-    } as never;
-
-    const entityPolicy = {
-      getValidateOptions: () => ({}),
+      entity: () => ({
+        policy: { getValidateOptions: () => ({}) },
+      }),
     } as never;
 
     const assertNoConflict = jest.fn(() => Promise.resolve());
@@ -55,9 +55,9 @@ describe('StaffRescheduleHandler (staffAllowOverbooking)', () => {
       handler: new StaffRescheduleHandler(
         appointmentCommandRepo,
         policyFactory,
-        entityPolicy,
         appointmentCheckerService,
-        queryBus
+        queryBus,
+        txManager
       ),
       assertNoConflict,
       appointment,

@@ -112,7 +112,7 @@ export class Money {
       ? false
       : Money.validate.input(amount, currencyStr).isValid;
 
-    const normalizeAmount = amount ? new Decimal(amount) : null;
+    const normalizeAmount = isBlank ? null : new Decimal(amount!);
 
     const instance =
       validated && normalizeAmount

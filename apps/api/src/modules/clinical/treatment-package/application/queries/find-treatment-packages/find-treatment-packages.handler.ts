@@ -9,13 +9,13 @@ import {
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(FindTreatmentPackagesQuery)
-export class FindTreatmentPackagesHandler
-  implements
-    IQueryHandler<FindTreatmentPackagesQuery, FindTreatmentPackagesResponse>
-{
+export class FindTreatmentPackagesHandler implements IQueryHandler<
+  FindTreatmentPackagesQuery,
+  FindTreatmentPackagesResponse
+> {
   constructor(
     @Inject(TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository
+    private readonly treatmentPackageRepo: ITreatmentPackageQueryRepository
   ) {}
 
   async execute(
@@ -23,7 +23,7 @@ export class FindTreatmentPackagesHandler
   ): Promise<FindTreatmentPackagesResponse> {
     const { filter, ctx } = query;
 
-    const { items, total } = await this.treatmentPackageQueryRepo.findMany(
+    const { items, total } = await this.treatmentPackageRepo.findMany(
       filter.clinicId,
       filter.pagination,
       filter.isActive

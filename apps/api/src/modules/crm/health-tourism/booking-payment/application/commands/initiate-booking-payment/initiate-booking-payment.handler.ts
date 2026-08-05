@@ -30,15 +30,13 @@ import {
   BookingPaymentLinkOption,
   InitiateBookingPaymentResponse,
 } from './initiate-booking-payment.response';
+import { Currency } from '@src/domain/value-objects';
 
 @CommandHandler(InitiateBookingPaymentCommand)
-export class InitiateBookingPaymentHandler
-  implements
-    ICommandHandler<
-      InitiateBookingPaymentCommand,
-      InitiateBookingPaymentResponse
-    >
-{
+export class InitiateBookingPaymentHandler implements ICommandHandler<
+  InitiateBookingPaymentCommand,
+  InitiateBookingPaymentResponse
+> {
   private readonly logger = new Logger(InitiateBookingPaymentHandler.name);
 
   constructor(
@@ -51,7 +49,7 @@ export class InitiateBookingPaymentHandler
     @Inject(SERVICE_FEE_PROVIDER)
     private readonly serviceFee: IServiceFeeProvider,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository,
+    private readonly bookingPaymentRepo: IBookingPaymentCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -70,7 +68,7 @@ export class InitiateBookingPaymentHandler
     let fxRate: number | null = null;
     let tryAmount = saleAmount;
     try {
-      fxRate = await this.fx.getRate(saleCurrency, 'TRY');
+      fxRate = await this.fx.getRate(saleCurrency, Currency.enum.TRY);
       tryAmount = this.round2(saleAmount * fxRate);
     } catch (err) {
       this.logger.warn(
@@ -92,7 +90,7 @@ export class InitiateBookingPaymentHandler
         const r = await this.iyzicoLink.createLink({
           bookingPaymentId: id,
           amount: tryAmount,
-          currency: 'TRY',
+          currency: Currency.enum.TRY,
           description,
           buyer: input.buyer,
           ip: input.ip,
@@ -100,7 +98,11 @@ export class InitiateBookingPaymentHandler
         links.iyzicoConversationId = r.sessionId;
         links.iyzicoToken = r.token ?? null;
         links.iyzicoUrl = r.url;
-        iyzicoOption = { url: r.url, amount: tryAmount, currency: 'TRY' };
+        iyzicoOption = {
+          url: r.url,
+          amount: tryAmount,
+          currency: Currency.enum.TRY,
+        };
       } catch (err) {
         this.logger.warn(
           `iyzico linki üretilemedi: ${err instanceof Error ? err.message : err}`
@@ -109,7 +111,7 @@ export class InitiateBookingPaymentHandler
     }
 
     // Stripe — EUR/USD (yurt dışı). Satış TRY ise atlanır.
-    if (saleCurrency !== 'TRY') {
+    if (saleCurrency !== Currency.enum.TRY) {
       try {
         const r = await this.stripeLink.createLink({
           bookingPaymentId: id,
@@ -155,7 +157,7 @@ export class InitiateBookingPaymentHandler
     entity.attachLinks(links);
 
     await this.txManager.run(async () => {
-      await this.bookingPaymentCommandRepo.create(entity);
+      await this.bookingPaymentRepo.create(entity);
     });
 
     return {

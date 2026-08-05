@@ -26,13 +26,10 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(InitiatePosTransactionCommand)
-export class InitiatePosTransactionHandler
-  implements
-    ICommandHandler<
-      InitiatePosTransactionCommand,
-      InitiatePosTransactionResponse
-    >
-{
+export class InitiatePosTransactionHandler implements ICommandHandler<
+  InitiatePosTransactionCommand,
+  InitiatePosTransactionResponse
+> {
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
@@ -113,7 +110,7 @@ export class InitiatePosTransactionHandler
     // Faz 3 — externalRef kaydedilir
     await this.txManager.run(async () => {
       transaction.setExternalRef(result.externalRef, result.rawRequest);
-      await this.posTransactionCommandRepo.save(transaction);
+      await this.posTransactionCommandRepo.update(transaction);
     });
 
     return {

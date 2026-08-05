@@ -31,4 +31,5 @@ export type PatientActorContext = {
   clinicId?: string;
   email?: string;
   phone: string;
+  firstName: string;
 };

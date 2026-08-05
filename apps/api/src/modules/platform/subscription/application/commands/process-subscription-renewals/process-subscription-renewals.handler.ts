@@ -30,9 +30,10 @@ const RENEWAL_LABEL = 'Abonelik yenileme';
 const BILLING_PERIOD_MONTHS = 1;
 
 @CommandHandler(ProcessSubscriptionRenewalsCommand)
-export class ProcessSubscriptionRenewalsHandler
-  implements ICommandHandler<ProcessSubscriptionRenewalsCommand, void>
-{
+export class ProcessSubscriptionRenewalsHandler implements ICommandHandler<
+  ProcessSubscriptionRenewalsCommand,
+  void
+> {
   private readonly logger = new Logger(ProcessSubscriptionRenewalsHandler.name);
 
   constructor(
@@ -71,7 +72,7 @@ export class ProcessSubscriptionRenewalsHandler
   private async processOne(subscription: Subscription): Promise<void> {
     if (subscription.cancelAtPeriodEnd) {
       subscription.cancel();
-      await this.subscriptionCommandRepo.save(subscription);
+      await this.subscriptionCommandRepo.update(subscription);
       return;
     }
 
@@ -84,7 +85,7 @@ export class ProcessSubscriptionRenewalsHandler
     // Kayıtlı kart veya tahsil edilecek tutar yoksa otomatik çekim yapılamaz → PAST_DUE.
     if (!savedCard || !charge) {
       this.failRenewal(subscription);
-      await this.subscriptionCommandRepo.save(subscription);
+      await this.subscriptionCommandRepo.update(subscription);
       return;
     }
 
@@ -134,7 +135,7 @@ export class ProcessSubscriptionRenewalsHandler
       this.failRenewal(subscription, result.errorMessage);
     }
 
-    await this.subscriptionCommandRepo.save(subscription);
+    await this.subscriptionCommandRepo.update(subscription);
   }
 
   private failRenewal(subscription: Subscription, errorMessage?: string): void {

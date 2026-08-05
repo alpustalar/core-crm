@@ -10,9 +10,10 @@ import {
 import { AssignConversationCommand } from './assign-conversation.command';
 
 @CommandHandler(AssignConversationCommand)
-export class AssignConversationHandler
-  implements ICommandHandler<AssignConversationCommand, void>
-{
+export class AssignConversationHandler implements ICommandHandler<
+  AssignConversationCommand,
+  void
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationQueryRepo: IConversationQueryRepository,
@@ -32,7 +33,7 @@ export class AssignConversationHandler
 
     conversation.assign(command.payload.assigneeUserId);
     await this.txManager.run(() =>
-      this.conversationCommandRepo.save(conversation)
+      this.conversationCommandRepo.update(conversation)
     );
   }
 }

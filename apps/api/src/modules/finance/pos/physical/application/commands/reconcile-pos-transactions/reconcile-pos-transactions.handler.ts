@@ -20,9 +20,10 @@ const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
 
 @CommandHandler(ReconcilePosTransactionsCommand)
-export class ReconcilePosTransactionsHandler
-  implements ICommandHandler<ReconcilePosTransactionsCommand, void>
-{
+export class ReconcilePosTransactionsHandler implements ICommandHandler<
+  ReconcilePosTransactionsCommand,
+  void
+> {
   private readonly logger = new Logger(ReconcilePosTransactionsHandler.name);
 
   constructor(
@@ -60,7 +61,7 @@ export class ReconcilePosTransactionsHandler
           const entity = await this.posTransactionQueryRepo.findById(tx.id);
           if (entity) {
             entity.markTimeout();
-            await this.posTransactionCommandRepo.save(entity);
+            await this.posTransactionCommandRepo.update(entity);
           }
         });
         this.logger.warn(
@@ -83,7 +84,7 @@ export class ReconcilePosTransactionsHandler
 
             if (result.approved) {
               entity.markSuccess(result.externalRef, result.rawResponse);
-              await this.posTransactionCommandRepo.save(entity);
+              await this.posTransactionCommandRepo.update(entity);
               if (entity.paymentId) {
                 await this.posPaymentSync.markPaid({
                   paymentId: entity.paymentId,
@@ -103,7 +104,7 @@ export class ReconcilePosTransactionsHandler
               }
             } else {
               entity.markFailed(result.rawResponse);
-              await this.posTransactionCommandRepo.save(entity);
+              await this.posTransactionCommandRepo.update(entity);
               if (entity.paymentId) {
                 await this.posPaymentSync.markFailed({
                   paymentId: entity.paymentId,

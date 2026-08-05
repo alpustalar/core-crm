@@ -14,12 +14,13 @@ import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exc
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateProviderInfoCommand)
-export class UpdateProviderInfoHandler
-  implements ICommandHandler<UpdateProviderInfoCommand, void>
-{
+export class UpdateProviderInfoHandler implements ICommandHandler<
+  UpdateProviderInfoCommand,
+  void
+> {
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +30,7 @@ export class UpdateProviderInfoHandler
     const { payload } = command;
     const { providerId, data, ctx } = payload;
 
-    const provider = await this.providerCommandRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
@@ -41,6 +42,6 @@ export class UpdateProviderInfoHandler
 
     provider.updateInfo(data);
 
-    await this.txManager.run(() => this.providerCommandRepo.save(provider));
+    await this.txManager.run(() => this.providerRepo.update(provider));
   }
 }

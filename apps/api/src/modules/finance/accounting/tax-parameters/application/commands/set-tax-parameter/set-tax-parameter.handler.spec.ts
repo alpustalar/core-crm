@@ -15,7 +15,8 @@ describe('SetTaxParameterHandler', () => {
 
   const make = (open: { validFrom: Date; close: jest.Mock } | null) => {
     const commandRepo = {
-      save: jest.fn().mockImplementation((e: unknown) => Promise.resolve(e)),
+      create: jest.fn().mockImplementation((e: unknown) => Promise.resolve(e)),
+      update: jest.fn().mockImplementation((e: unknown) => Promise.resolve(e)),
     };
     const queryRepo = { findOpen: jest.fn().mockResolvedValue(open) };
     const txManager = {
@@ -36,7 +37,8 @@ describe('SetTaxParameterHandler', () => {
       new SetTaxParameterCommand(input(new Date('2026-06-01')), ctx)
     );
 
-    expect(commandRepo.save).toHaveBeenCalledTimes(1);
+    expect(commandRepo.create).toHaveBeenCalledTimes(1);
+    expect(commandRepo.update).not.toHaveBeenCalled();
     expect(typeof id).toBe('string');
   });
 
@@ -49,7 +51,8 @@ describe('SetTaxParameterHandler', () => {
     );
 
     expect(open.close).toHaveBeenCalledWith(new Date('2026-06-01'));
-    expect(commandRepo.save).toHaveBeenCalledTimes(2); // close + create
+    expect(commandRepo.update).toHaveBeenCalledTimes(1); // close
+    expect(commandRepo.create).toHaveBeenCalledTimes(1); // yeni sürüm
   });
 
   it('validFrom mevcut açık sürümden önce/eşitse reddeder', async () => {

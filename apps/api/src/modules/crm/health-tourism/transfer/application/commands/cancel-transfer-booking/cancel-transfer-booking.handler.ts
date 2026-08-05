@@ -15,9 +15,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { HotelbedsTransferNotFound } from '@modules/crm/health-tourism/transfer/domain/exceptions/hotelbeds-transfer.exceptions';
 
 @CommandHandler(CancelTransferBookingCommand)
-export class CancelTransferBookingHandler
-  implements ICommandHandler<CancelTransferBookingCommand, void>
-{
+export class CancelTransferBookingHandler implements ICommandHandler<
+  CancelTransferBookingCommand,
+  void
+> {
   constructor(
     @Inject(HOTELBEDS_TRANSFER_API_SERVICE)
     private readonly transferApi: IHotelbedsTransferApiService,
@@ -41,7 +42,7 @@ export class CancelTransferBookingHandler
 
     await this.txManager.run(async () => {
       booking.cancel();
-      await this.bookingCommandRepo.save(booking);
+      await this.bookingCommandRepo.update(booking);
     });
   }
 }

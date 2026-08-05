@@ -10,9 +10,10 @@ import {
 import { RequestConversationHandoffCommand } from './request-conversation-handoff.command';
 
 @CommandHandler(RequestConversationHandoffCommand)
-export class RequestConversationHandoffHandler
-  implements ICommandHandler<RequestConversationHandoffCommand, void>
-{
+export class RequestConversationHandoffHandler implements ICommandHandler<
+  RequestConversationHandoffCommand,
+  void
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationQueryRepo: IConversationQueryRepository,
@@ -32,7 +33,7 @@ export class RequestConversationHandoffHandler
 
     conversation.requestHumanHandoff();
     await this.txManager.run(() =>
-      this.conversationCommandRepo.save(conversation)
+      this.conversationCommandRepo.update(conversation)
     );
   }
 }

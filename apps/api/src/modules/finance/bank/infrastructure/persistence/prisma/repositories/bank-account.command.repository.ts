@@ -21,7 +21,7 @@ export class BankAccountCommandRepository
     return new BankAccount(raw);
   }
 
-  async save(entity: BankAccount): Promise<BankAccount> {
+  async update(entity: BankAccount): Promise<BankAccount> {
     const { id, ...update } = entity.toPersistence();
     const raw = await this.db.bankAccount.update({
       where: { id },

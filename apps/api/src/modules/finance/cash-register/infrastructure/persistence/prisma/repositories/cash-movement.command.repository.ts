@@ -21,7 +21,7 @@ export class CashMovementCommandRepository
     return new CashMovement(raw);
   }
 
-  async save(entity: CashMovement): Promise<CashMovement> {
+  async update(entity: CashMovement): Promise<CashMovement> {
     const { id, ...update } = entity.toPersistence();
     const raw = await this.db.cashMovement.update({
       where: { id },

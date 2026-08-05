@@ -14,13 +14,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { USER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(SoftDeleteUserByStaffCommand)
-export class SoftDeleteUserByStaffHandler
-  implements
-    ICommandHandler<
-      SoftDeleteUserByStaffCommand,
-      SoftDeleteUserByStaffResponse
-    >
-{
+export class SoftDeleteUserByStaffHandler implements ICommandHandler<
+  SoftDeleteUserByStaffCommand,
+  SoftDeleteUserByStaffResponse
+> {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userCommandRepo: IUserCommandRepository,
@@ -52,7 +49,7 @@ export class SoftDeleteUserByStaffHandler
     user.softDelete(actor.userId);
 
     await this.txManager.run(async () => {
-      await this.userCommandRepo.save(user);
+      await this.userCommandRepo.update(user);
     });
   }
 }

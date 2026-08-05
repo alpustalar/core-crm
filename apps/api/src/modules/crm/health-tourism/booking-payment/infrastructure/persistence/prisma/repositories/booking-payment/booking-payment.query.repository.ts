@@ -35,11 +35,4 @@ export class BookingPaymentQueryRepository
     });
     return raw ? new BookingPayment(raw) : null;
   }
-
-  async findByBookingId(bookingId: string): Promise<BookingPayment | null> {
-    const raw = await this.db.bookingPayment.findFirst({
-      where: { bookingId },
-    });
-    return raw ? new BookingPayment(raw) : null;
-  }
 }

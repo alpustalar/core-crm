@@ -13,4 +13,5 @@ export const SYSTEM_PATIENT_ACTOR: PatientActorContext = {
   patientId: 'SYSTEM_PATIENT',
   organizationId: 'SYSTEM_ORGANIZATION',
   phone: '05155555555',
+  firstName: 'SYSTEM_PATIENT',
 };

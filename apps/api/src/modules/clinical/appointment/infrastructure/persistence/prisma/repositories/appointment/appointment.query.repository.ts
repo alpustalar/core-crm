@@ -3,7 +3,7 @@ import { Appointment, AppointmentStatusSchema, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+
 import { DateTimeManager } from '@common/utils';
 import {
   AppointmentWithDetails,
@@ -25,6 +25,7 @@ import {
   WaitingRoomRow,
 } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
+import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query-repository.interface';
 
 @Injectable()
 export class AppointmentQueryRepository

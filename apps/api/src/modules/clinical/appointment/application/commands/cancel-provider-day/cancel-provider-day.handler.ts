@@ -3,10 +3,6 @@ import { Inject } from '@nestjs/common';
 import { CancelProviderDayCommand } from './cancel-provider-day.command';
 import { CancelProviderDayResponse } from './cancel-provider-day.response';
 import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
@@ -18,6 +14,10 @@ import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 /**
  * Doktor-günü toplu iptal. Bulk `updateMany` domain'i bypass eder (N+1 önlemek); bu
@@ -25,13 +25,13 @@ import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/appl
  * fırlatılır. Kritik veri değişimi olduğundan event outbox ile atomik mühürlenir.
  */
 @CommandHandler(CancelProviderDayCommand)
-export class CancelProviderDayHandler
-  implements
-    ICommandHandler<CancelProviderDayCommand, CancelProviderDayResponse>
-{
+export class CancelProviderDayHandler implements ICommandHandler<
+  CancelProviderDayCommand,
+  CancelProviderDayResponse
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(APPOINTMENT_EVENT_PUBLISHER)
@@ -59,15 +59,14 @@ export class CancelProviderDayHandler
       .orThrow(APPOINTMENT_EVENTS.CANCEL_PROVIDER_DAY);
 
     return this.txManager.outboxRun(async () => {
-      const { count } =
-        await this.appointmentCommandRepo.cancelAllByProviderInRange({
-          providerId,
-          clinicId,
-          startDate,
-          endDate,
-          canceledBy: actor.userId,
-          cancelReason,
-        });
+      const { count } = await this.appointmentRepo.cancelAllByProviderInRange({
+        providerId,
+        clinicId,
+        startDate,
+        endDate,
+        canceledBy: actor.userId,
+        cancelReason,
+      });
 
       this.eventPublisher.bulkCancelled({
         clinicId,

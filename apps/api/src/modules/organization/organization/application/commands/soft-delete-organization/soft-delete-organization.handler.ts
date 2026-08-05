@@ -17,13 +17,10 @@ import { SoftDeleteOrganizationCommandResponse } from './soft-delete-organizatio
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 @CommandHandler(SoftDeleteOrganizationCommand)
-export class SoftDeleteOrganizationHandler
-  implements
-    ICommandHandler<
-      SoftDeleteOrganizationCommand,
-      SoftDeleteOrganizationCommandResponse
-    >
-{
+export class SoftDeleteOrganizationHandler implements ICommandHandler<
+  SoftDeleteOrganizationCommand,
+  SoftDeleteOrganizationCommandResponse
+> {
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
     private readonly organizationCommandRepo: IOrganizationCommandRepository,
@@ -47,7 +44,7 @@ export class SoftDeleteOrganizationHandler
 
       if (ExecutionPolicy.isSystemInitiated(ctx.source)) {
         organization.softDelete(ctx.actor.userId);
-        await this.organizationCommandRepo.save(organization);
+        await this.organizationCommandRepo.update(organization);
         return organization.id.value;
       }
 

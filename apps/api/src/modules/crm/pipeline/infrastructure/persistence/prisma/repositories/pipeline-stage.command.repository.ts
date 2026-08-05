@@ -27,7 +27,7 @@ export class PipelineStageCommandRepository
     return raw ? new PipelineStage(raw) : null;
   }
 
-  async save(entity: PipelineStage): Promise<PipelineStage> {
+  async update(entity: PipelineStage): Promise<PipelineStage> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.pipelineStage.update({

@@ -25,7 +25,7 @@ export class StockMovementCommandRepository
     return new StockMovement(raw);
   }
 
-  async save(entity: StockMovement): Promise<StockMovement> {
+  async update(entity: StockMovement): Promise<StockMovement> {
     const data = entity.toPersistence();
     const raw = await this.db.stockMovement.update({
       where: { id: data.id },

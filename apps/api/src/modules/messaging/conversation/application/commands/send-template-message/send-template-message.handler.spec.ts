@@ -20,7 +20,7 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
     } as unknown as IConversationQueryRepository;
 
     const messageCommandRepo = {
-      save: jest.fn(async (m: Message) => {
+      create: jest.fn(async (m: Message) => {
         savedMessage = m;
         return m;
       }),
@@ -35,7 +35,11 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
       messageCommandRepo,
       sendMessageProducer
     );
-    return { handler, sendMessageProducer, getSavedMessage: () => savedMessage };
+    return {
+      handler,
+      sendMessageProducer,
+      getSavedMessage: () => savedMessage,
+    };
   };
 
   it('pencere KAPALI olsa bile TEMPLATE mesaj QUEUED + kuyruğa al', async () => {
@@ -48,16 +52,16 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
     const { handler, sendMessageProducer, getSavedMessage } = build(conv);
 
     const id = await handler.execute(
-      new SendTemplateMessageCommand(
-        'clinic-1',
-        {
+      new SendTemplateMessageCommand({
+        clinicId: 'clinic-1',
+        input: {
           conversationId: conv.id,
           templateName: 'randevu_hatirlatma',
           languageCode: 'tr',
           variables: ['Ada', '14:00'],
         },
-        ctx
-      )
+        ctx,
+      })
     );
 
     const saved = getSavedMessage()!;
@@ -79,9 +83,9 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
     const { handler, getSavedMessage } = build(conv);
 
     await handler.execute(
-      new SendTemplateMessageCommand(
-        'clinic-1',
-        {
+      new SendTemplateMessageCommand({
+        clinicId: 'clinic-1',
+        input: {
           conversationId: conv.id,
           templateName: 'kampanya',
           languageCode: 'tr',
@@ -90,8 +94,8 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
           headerMediaType: 'image',
           buttonParams: ['promo123'],
         },
-        ctx
-      )
+        ctx,
+      })
     );
 
     const components = getSavedMessage()!.templateComponents;

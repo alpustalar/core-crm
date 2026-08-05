@@ -35,7 +35,7 @@ export class HotelbedsTransferBookingCommandRepository
     return new HotelbedsTransferBooking(raw);
   }
 
-  async save(
+  async update(
     booking: HotelbedsTransferBooking
   ): Promise<HotelbedsTransferBooking> {
     const data = booking.toPersistence();

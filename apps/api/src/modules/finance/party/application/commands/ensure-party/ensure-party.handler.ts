@@ -13,9 +13,10 @@ import { normalizeArray } from '@common/utils/normalize-array';
 import { PartyAlreadyExistsError } from '@modules/finance/party/domain/exceptions/party.exceptions';
 
 @CommandHandler(EnsurePartyCommand)
-export class EnsurePartyHandler
-  implements ICommandHandler<EnsurePartyCommand, string>
-{
+export class EnsurePartyHandler implements ICommandHandler<
+  EnsurePartyCommand,
+  string
+> {
   constructor(
     @Inject(PARTY_COMMAND_REPOSITORY)
     private readonly partyCommandRepo: IPartyCommandRepository,
@@ -35,7 +36,9 @@ export class EnsurePartyHandler
 
     if (ExistingParty) {
       ExistingParty.ensure(input);
-      await this.txManager.run(() => this.partyCommandRepo.save(ExistingParty));
+      await this.txManager.run(() =>
+        this.partyCommandRepo.update(ExistingParty)
+      );
       return ExistingParty.id.value;
     }
 

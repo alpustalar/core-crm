@@ -26,7 +26,7 @@ export class ProviderCommandRepository
     return new Provider(raw);
   }
 
-  async save(entity: Provider) {
+  async update(entity: Provider) {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.provider.update({
@@ -49,7 +49,7 @@ export class ProviderCommandRepository
     return new Provider(raw);
   }
 
-  async saveMany(providers: Provider[]): Promise<void> {
+  async updateMany(providers: Provider[]): Promise<void> {
     const prismaQueries = providers.map((provider) => {
       const data = provider.toPersistence();
       return this.db.provider.upsert({

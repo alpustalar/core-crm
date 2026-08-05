@@ -26,18 +26,19 @@ import { DateRange } from '@src/domain/value-objects/date-range.vo';
 import { DayMinute } from '@src/domain/value-objects/day-minute.vo';
 
 @QueryHandler(AssertProviderCanBookQuery)
-export class AssertProviderCanBookHandler
-  implements IQueryHandler<AssertProviderCanBookQuery, void>
-{
+export class AssertProviderCanBookHandler implements IQueryHandler<
+  AssertProviderCanBookQuery,
+  void
+> {
   constructor(
     @Inject(PROVIDER_EXCEPTION_QUERY_REPOSITORY)
     private readonly providerExceptionRepo: IProviderExceptionQueryRepository,
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    private readonly providerRepo: IProviderQueryRepository,
     @Inject(PROVIDER_AVAILABILITY_QUERY_REPOSITORY)
-    private readonly providerAvailabilityQueryRepo: IProviderAvailabilityQueryRepository,
+    private readonly providerAvailabilityRepo: IProviderAvailabilityQueryRepository,
     @Inject(PROVIDER_SHIFT_QUERY_REPOSITORY)
-    private readonly providerShiftQueryRepo: IProviderShiftQueryRepository
+    private readonly providerShiftRepo: IProviderShiftQueryRepository
   ) {}
 
   async execute(query: AssertProviderCanBookQuery): Promise<void> {
@@ -46,7 +47,7 @@ export class AssertProviderCanBookHandler
 
     const bookingTimeRange = DateRange.create(startTime, endTime).orThrow();
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -60,12 +61,11 @@ export class AssertProviderCanBookHandler
       );
 
     if (provider.validate.operationMode.isShift.value) {
-      const providerShifts =
-        await this.providerShiftQueryRepo.findShiftsByDateRange(
-          providerId,
-          bookingTimeRange.startDate,
-          bookingTimeRange.endDate
-        );
+      const providerShifts = await this.providerShiftRepo.findShiftsByDateRange(
+        providerId,
+        bookingTimeRange.startDate,
+        bookingTimeRange.endDate
+      );
 
       const dateKey = DateTimeManager.toDateKey(startTime);
 
@@ -98,7 +98,7 @@ export class AssertProviderCanBookHandler
     }
 
     const availabilities =
-      await this.providerAvailabilityQueryRepo.findManyByProviderId(providerId);
+      await this.providerAvailabilityRepo.findManyByProviderId(providerId);
 
     const providerSchedule = ProviderSchedule.create(
       availabilities,

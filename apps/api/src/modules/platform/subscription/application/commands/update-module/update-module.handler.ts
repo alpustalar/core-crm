@@ -10,9 +10,10 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { isDefined } from '@common/utils';
 
 @CommandHandler(UpdateModuleCommand)
-export class UpdateModuleHandler
-  implements ICommandHandler<UpdateModuleCommand, void>
-{
+export class UpdateModuleHandler implements ICommandHandler<
+  UpdateModuleCommand,
+  void
+> {
   constructor(
     @Inject(MODULE_COMMAND_REPOSITORY)
     private readonly moduleCommandRepo: IModuleCommandRepository
@@ -36,6 +37,6 @@ export class UpdateModuleHandler
       }
     }
 
-    await this.moduleCommandRepo.save(module);
+    await this.moduleCommandRepo.update(module);
   }
 }

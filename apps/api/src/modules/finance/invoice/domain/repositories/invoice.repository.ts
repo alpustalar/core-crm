@@ -10,7 +10,7 @@ export const INVOICE_QUERY_REPOSITORY = Symbol('IInvoiceQueryRepository');
 
 export interface IInvoiceCommandRepository {
   create(props: CreateInvoiceProps): Promise<Invoice>;
-  save(entity: Invoice): Promise<Invoice>;
+  update(entity: Invoice): Promise<Invoice>;
 }
 
 export interface IInvoiceQueryRepository {

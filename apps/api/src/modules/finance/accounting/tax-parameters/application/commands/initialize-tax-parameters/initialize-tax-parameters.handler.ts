@@ -17,9 +17,10 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
  * zaten varsa hiçbir şey yapmaz (register-clinic saga'sından çağrılır).
  */
 @CommandHandler(InitializeTaxParametersCommand)
-export class InitializeTaxParametersHandler
-  implements ICommandHandler<InitializeTaxParametersCommand, void>
-{
+export class InitializeTaxParametersHandler implements ICommandHandler<
+  InitializeTaxParametersCommand,
+  void
+> {
   constructor(
     @Inject(TAX_PARAMETER_COMMAND_REPOSITORY)
     private readonly taxParameterCommandRepo: ITaxParameterCommandRepository,
@@ -47,7 +48,7 @@ export class InitializeTaxParametersHandler
     );
 
     await this.txManager.run(() =>
-      this.taxParameterCommandRepo.saveMany(parameters)
+      this.taxParameterCommandRepo.updateMany(parameters)
     );
   }
 }

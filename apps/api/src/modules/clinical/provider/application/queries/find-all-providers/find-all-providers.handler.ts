@@ -10,13 +10,13 @@ import { FindAllProvidersQueryResponse } from '@modules/clinical/provider/applic
 import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 @QueryHandler(FindAllProvidersQuery)
-export class FindAllProvidersHandler
-  implements
-    IQueryHandler<FindAllProvidersQuery, FindAllProvidersQueryResponse>
-{
+export class FindAllProvidersHandler implements IQueryHandler<
+  FindAllProvidersQuery,
+  FindAllProvidersQueryResponse
+> {
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository
+    private readonly providerRepo: IProviderQueryRepository
   ) {}
 
   async execute(
@@ -29,11 +29,10 @@ export class FindAllProvidersHandler
 
     if (actor.ownedOrganizations?.length) {
       const organizationIds = actor.ownedOrganizations.map((org) => org.id);
-      const { items, total } =
-        await this.providerQueryRepo.findManyByOrganizationId(
-          pagination,
-          organizationIds
-        );
+      const { items, total } = await this.providerRepo.findManyByOrganizationId(
+        pagination,
+        organizationIds
+      );
       return {
         data: items.map((item) => item.toPersistence()),
         meta: { pagination: buildPaginationMeta(pagination, total) },
@@ -44,7 +43,7 @@ export class FindAllProvidersHandler
       const clinicIds = actor.managedClinics.map((clinic) => clinic.id);
       const results = await Promise.all(
         clinicIds.map((id) =>
-          this.providerQueryRepo.findManyByClinicIds(
+          this.providerRepo.findManyByClinicIds(
             { ...pagination, page: 1, limit: 999999 },
             id
           )
@@ -66,7 +65,7 @@ export class FindAllProvidersHandler
       throw new ClinicNotAssignedException();
     }
 
-    const { items, total } = await this.providerQueryRepo.findManyByClinicIds(
+    const { items, total } = await this.providerRepo.findManyByClinicIds(
       pagination,
       actor.clinicId
     );

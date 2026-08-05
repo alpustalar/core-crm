@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IConsentTemplateCommandRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form.repository';
 import { ConsentFormTemplate } from '@modules/clinical/consent-form/domain/entities/consent-form-template.entity';
+import { IConsentTemplateCommandRepository } from '@modules/clinical/consent-form/domain/repositories/consent-template/consent-template.command.repository';
 
 @Injectable()
 export class ConsentFormTemplateCommandRepository
@@ -28,7 +28,7 @@ export class ConsentFormTemplateCommandRepository
     return raw ? new ConsentFormTemplate(raw) : null;
   }
 
-  async save(entity: ConsentFormTemplate): Promise<ConsentFormTemplate> {
+  async update(entity: ConsentFormTemplate): Promise<ConsentFormTemplate> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.consentFormTemplate.update({

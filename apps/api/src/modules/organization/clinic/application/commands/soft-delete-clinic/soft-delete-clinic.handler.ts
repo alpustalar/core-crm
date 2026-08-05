@@ -20,9 +20,7 @@ import {
 } from '@modules/organization/clinic/domain/interfaces/clinic.event-publisher.interface';
 
 @CommandHandler(SoftDeleteClinicCommand)
-export class SoftDeleteClinicHandler
-  implements ICommandHandler<SoftDeleteClinicCommand>
-{
+export class SoftDeleteClinicHandler implements ICommandHandler<SoftDeleteClinicCommand> {
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
@@ -45,7 +43,7 @@ export class SoftDeleteClinicHandler
         if (!clinic) return;
 
         clinic.softDelete(actor?.userId);
-        await this.clinicCommandRepo.save(clinic);
+        await this.clinicCommandRepo.update(clinic);
       });
       return;
     }

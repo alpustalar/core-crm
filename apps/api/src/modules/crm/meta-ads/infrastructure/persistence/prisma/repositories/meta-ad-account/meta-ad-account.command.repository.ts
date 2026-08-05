@@ -27,7 +27,7 @@ export class MetaAdAccountCommandRepository
     return raw ? new MetaAdAccount(raw) : null;
   }
 
-  async save(entity: MetaAdAccount) {
+  async update(entity: MetaAdAccount) {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.metaAdAccount.update({
@@ -38,7 +38,7 @@ export class MetaAdAccountCommandRepository
     return new MetaAdAccount(raw);
   }
 
-  async saveMany(entities: MetaAdAccount[]): Promise<void> {
+  async updateMany(entities: MetaAdAccount[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const create = entity.toPersistence();
       const { id, ...update } = create;

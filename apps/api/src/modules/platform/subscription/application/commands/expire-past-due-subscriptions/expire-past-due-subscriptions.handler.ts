@@ -12,9 +12,10 @@ import { DateTimeManager } from '@common/utils';
 import { SUBSCRIPTION_GRACE_DAYS } from '@common/constants';
 
 @CommandHandler(ExpirePastDueSubscriptionsCommand)
-export class ExpirePastDueSubscriptionsHandler
-  implements ICommandHandler<ExpirePastDueSubscriptionsCommand, void>
-{
+export class ExpirePastDueSubscriptionsHandler implements ICommandHandler<
+  ExpirePastDueSubscriptionsCommand,
+  void
+> {
   private readonly logger = new Logger(ExpirePastDueSubscriptionsHandler.name);
 
   constructor(
@@ -43,7 +44,7 @@ export class ExpirePastDueSubscriptionsHandler
       await this.txManager
         .run(async () => {
           subscription.expire();
-          await this.subscriptionCommandRepo.save(subscription);
+          await this.subscriptionCommandRepo.update(subscription);
         })
         .catch((err) =>
           this.logger.error(

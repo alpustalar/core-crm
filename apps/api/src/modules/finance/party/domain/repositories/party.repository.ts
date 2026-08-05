@@ -8,7 +8,7 @@ export const PARTY_QUERY_REPOSITORY = Symbol('IPartyQueryRepository');
 
 export interface IPartyCommandRepository {
   create(party: Party): Promise<Party>;
-  save(party: Party): Promise<Party>;
+  update(party: Party): Promise<Party>;
 }
 
 export interface IPartyQueryRepository {

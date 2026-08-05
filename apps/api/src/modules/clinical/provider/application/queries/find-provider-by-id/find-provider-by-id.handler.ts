@@ -10,13 +10,13 @@ import { FindProviderByIdQueryResponse } from '@modules/clinical/provider/applic
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 
 @QueryHandler(FindProviderByIdQuery)
-export class FindProviderByIdHandler
-  implements
-    IQueryHandler<FindProviderByIdQuery, FindProviderByIdQueryResponse>
-{
+export class FindProviderByIdHandler implements IQueryHandler<
+  FindProviderByIdQuery,
+  FindProviderByIdQueryResponse
+> {
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    private readonly providerRepo: IProviderQueryRepository,
     private readonly policyFactory: PolicyFactory
   ) {}
 
@@ -25,7 +25,7 @@ export class FindProviderByIdHandler
   ): Promise<FindProviderByIdQueryResponse> {
     const { providerId, ctx } = query;
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 

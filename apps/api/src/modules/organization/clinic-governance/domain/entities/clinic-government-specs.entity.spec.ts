@@ -1,7 +1,7 @@
 import {
   InvalidVknChecksumException,
   InvalidVknFormatException,
-} from '@src/domain/value-objects/vo/vkn.exceptions';
+} from '@src/domain/exceptions';
 import { Vkn } from '@src/domain/value-objects/vkn.vo';
 import { ClinicGovernmentSpecs } from './clinic-government-specs.entity';
 

@@ -21,10 +21,10 @@ import { ENV } from '@common/constants/env.constant';
 const REFRESH_WITHIN_DAYS = 7;
 
 @CommandHandler(RefreshMetaTokensCommand)
-export class RefreshMetaTokensHandler
-  implements
-    ICommandHandler<RefreshMetaTokensCommand, RefreshMetaTokensResponse>
-{
+export class RefreshMetaTokensHandler implements ICommandHandler<
+  RefreshMetaTokensCommand,
+  RefreshMetaTokensResponse
+> {
   private readonly logger = new Logger(RefreshMetaTokensHandler.name);
 
   constructor(
@@ -59,7 +59,7 @@ export class RefreshMetaTokensHandler
 
         const encryptedToken = this.tokenCipher.encrypt(result.accessToken);
         account.refreshToken(encryptedToken, result.expiresAt);
-        await this.accountCommandRepo.save(account);
+        await this.accountCommandRepo.update(account);
 
         this.logger.log(
           `Token yenilendi: ${account.adAccountId} (expires: ${result.expiresAt?.toISOString() ?? 'unknown'})`

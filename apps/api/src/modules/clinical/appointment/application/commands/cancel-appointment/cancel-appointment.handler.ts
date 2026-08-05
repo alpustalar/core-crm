@@ -3,25 +3,25 @@ import { CancelAppointmentCommand } from './cancel-appointment.command';
 import { CancelAppointmentCommandResponse } from './cancel-appointment.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(CancelAppointmentCommand)
-export class CancelAppointmentHandler
-  implements
-    ICommandHandler<CancelAppointmentCommand, CancelAppointmentCommandResponse>
-{
+export class CancelAppointmentHandler implements ICommandHandler<
+  CancelAppointmentCommand,
+  CancelAppointmentCommandResponse
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -33,8 +33,7 @@ export class CancelAppointmentHandler
     const { appointmentId, cancelReason } = command.data;
     const { actor, source } = command.ctx;
 
-    const appointment =
-      await this.appointmentCommandRepo.findById(appointmentId);
+    const appointment = await this.appointmentRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
@@ -59,7 +58,7 @@ export class CancelAppointmentHandler
     // sağlık turizmi iadesi gibi kritik yan etkileri tetikleyebildiği için
     // eventler outbox
     await this.txManager.outboxRun(async () => {
-      await this.appointmentCommandRepo.save(appointment);
+      await this.appointmentRepo.update(appointment);
     });
   }
 }

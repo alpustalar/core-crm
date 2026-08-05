@@ -29,7 +29,7 @@ export class SubscriptionPaymentMethodCommandRepository
     return new SubscriptionPaymentMethod(raw);
   }
 
-  async save(
+  async update(
     entity: SubscriptionPaymentMethod
   ): Promise<SubscriptionPaymentMethod> {
     const { id, ...data } = entity.toPersistence();

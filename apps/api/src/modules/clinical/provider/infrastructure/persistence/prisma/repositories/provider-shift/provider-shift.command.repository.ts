@@ -27,7 +27,7 @@ export class ProviderShiftCommandRepository
     return raw ? new ProviderShift(raw) : null;
   }
 
-  async save(entity: ProviderShift) {
+  async update(entity: ProviderShift) {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.providerShift.update({

@@ -1,9 +1,6 @@
-import { Appointment as IAppointment, Pagination } from '@shared';
-
-import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
+import { Appointment, Pagination } from '@shared';
 import {
   AppointmentWithDetails,
-  CancelProviderAppointmentsData,
   ClinicCalendarEventRow,
   ClinicStatusCount,
   ConflictingAppointment,
@@ -13,7 +10,6 @@ import {
   FindClinicCalendarEventsData,
   FindClinicDailyCountsData,
   FindConflictingAppointmentData,
-  FindDueForReminderData,
   FindProviderCalendarData,
   FindUpcomingRemindersData,
   FindWaitingRoomData,
@@ -22,34 +18,14 @@ import {
   SearchClinicAppointmentsData,
   WaitingRoomRow,
 } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { BatchPayload } from '@common/interfaces/batcy-payload.type';
 import { Paginated } from '@common/interfaces/paginated.type';
-import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 
-export const APPOINTMENT_COMMAND_REPOSITORY = Symbol(
-  'IAppointmentCommandRepository'
-);
 export const APPOINTMENT_QUERY_REPOSITORY = Symbol(
   'IAppointmentQueryRepository'
 );
 
-export interface IAppointmentCommandRepository
-  extends IBaseCommandRepository<Appointment> {
-  softDeleteAllAppointmentsByClinicId(clinicId: string): Promise<BatchPayload>;
-  softDeleteAllByOrganizationId(organizationId: string): Promise<BatchPayload>;
-  /** Doktor-günü toplu iptal: yalnız iptal edilebilir statüler (PENDING/CONFIRMED) güncellenir. */
-  cancelAllByProviderInRange(
-    data: CancelProviderAppointmentsData
-  ): Promise<BatchPayload>;
-  /**
-   * Hatırlatma penceresindeki randevuları döner. Sonuç bir mutasyona (markReminderSent
-   * + save) beslendiği için command repo'dadır (CQRS write-side) ve entity döner.
-   */
-  findDueForReminder(data: FindDueForReminderData): Promise<Appointment[]>;
-}
-
 export interface IAppointmentQueryRepository {
-  findById(appointmentId: string): Promise<IAppointment | null>;
+  findById(appointmentId: string): Promise<Appointment | null>;
   findByIdWithDetails(
     appointmentId: string
   ): Promise<AppointmentWithDetails | null>;
@@ -62,33 +38,33 @@ export interface IAppointmentQueryRepository {
   ): Promise<ConflictingAppointmentView[]>;
   findProviderCalendar(
     data: FindProviderCalendarData
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   findClinicCalendar(
     data: FindClinicCalendarData
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   /** Tam takvim (sayfasız) — aralıktaki tüm randevular, hafif projeksiyon. */
   findClinicCalendarEvents(
     data: FindClinicCalendarEventsData
   ): Promise<ClinicCalendarEventRow[]>;
   findByOrganizationId(
     data: FindByOrganizationIdData
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   findByPatientId(
     pagination: Pagination,
     patientId: string
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   findActionRequired(
     clinicId: string,
     pagination: Pagination
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   /** Resepsiyon: ad/telefon + opsiyonel status/doktor/tarih ile klinik randevu araması. */
   searchClinicAppointments(
     data: SearchClinicAppointmentsData
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   /** Resepsiyon: klinik-kapsamlı, hoursAhead içindeki onaylı yaklaşan randevular. */
   findUpcomingReminders(
     data: FindUpcomingRemindersData
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
   /** Resepsiyon: bir gün için status bazlı randevu sayımları (groupBy). */
   countClinicAppointmentsByStatus(
     data: FindClinicDailyCountsData
@@ -109,5 +85,5 @@ export interface IAppointmentQueryRepository {
   findUpcomingPendingApproval(
     clinicId: string,
     pagination: Pagination
-  ): Promise<Paginated<IAppointment>>;
+  ): Promise<Paginated<Appointment>>;
 }

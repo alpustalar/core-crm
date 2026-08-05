@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import {
-  ITreatmentPackageCommandRepository
-} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
+import { ITreatmentPackageCommandRepository } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { randomUUID } from 'crypto';
@@ -29,7 +27,7 @@ export class TreatmentPackageCommandRepository
     return raw ? new TreatmentPackage(raw) : null;
   }
 
-  async save(treatmentPackage: TreatmentPackage): Promise<TreatmentPackage> {
+  async update(treatmentPackage: TreatmentPackage): Promise<TreatmentPackage> {
     const data = treatmentPackage.toPersistence();
     const providerIds = treatmentPackage.providerIdsToSync;
     const items = treatmentPackage.itemsToSync;
@@ -94,7 +92,7 @@ export class TreatmentPackageCommandRepository
     return new TreatmentPackage(rawResult);
   }
 
-  async saveMany(treatmentPackages: TreatmentPackage[]): Promise<void> {
+  async updateMany(treatmentPackages: TreatmentPackage[]): Promise<void> {
     const executeAll = async (dbInstance: any) => {
       for (const pkg of treatmentPackages) {
         const data = pkg.toPersistence();

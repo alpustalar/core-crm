@@ -9,7 +9,7 @@ export const META_CAMPAIGN_METRIC_QUERY_REPOSITORY = Symbol(
 );
 
 export interface IMetaCampaignMetricCommandRepository {
-  saveMany(data: UpsertCampaignMetricData[]): Promise<void>;
+  updateMany(data: UpsertCampaignMetricData[]): Promise<void>;
 }
 
 export interface IMetaCampaignMetricQueryRepository {

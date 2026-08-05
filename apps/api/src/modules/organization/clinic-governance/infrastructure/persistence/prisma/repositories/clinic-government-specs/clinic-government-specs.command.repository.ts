@@ -27,7 +27,7 @@ export class ClinicGovernmentSpecsCommandRepository
     return new ClinicGovernmentSpecs(raw);
   }
 
-  async save(entity: ClinicGovernmentSpecs): Promise<ClinicGovernmentSpecs> {
+  async update(entity: ClinicGovernmentSpecs): Promise<ClinicGovernmentSpecs> {
     const persistenceData = entity.toPersistence();
     const { clinicId, ...data } = persistenceData;
     const raw = await this.db.clinicGovernmentSpecs.update({

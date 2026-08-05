@@ -26,7 +26,7 @@ export class LeaveRequestCommandRepository
     return raw ? new LeaveRequest(raw) : null;
   }
 
-  async save(entity: LeaveRequest): Promise<LeaveRequest> {
+  async update(entity: LeaveRequest): Promise<LeaveRequest> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.leaveRequest.update({

@@ -1,12 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { PatientBookAppointmentCommand } from './patient-book-appointment.command';
-import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentCommandRepository,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
@@ -25,23 +19,29 @@ import {
   PatientBookingDisabledException,
 } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(PatientBookAppointmentCommand)
-export class PatientBookAppointmentHandler
-  implements ICommandHandler<PatientBookAppointmentCommand, string>
-{
+export class PatientBookAppointmentHandler implements ICommandHandler<
+  PatientBookAppointmentCommand,
+  string
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
-    @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     private readonly appointmentCheckerService: AppointmentCheckerService,
     private readonly queryBus: TSQueryBus,
     private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(command: PatientBookAppointmentCommand): Promise<string> {
-    const { data, patient } = command.payload;
+    const { data, ctx, aiConversationPatient } = command.payload;
+
+    const patient = aiConversationPatient ?? command.payload.ctx.actor;
+
     const {
       clinicId,
       providerId,
@@ -77,7 +77,7 @@ export class PatientBookAppointmentHandler
     }
 
     // Hasta aynı anda en fazla kaç aktif randevu tutabilir (klinik ayarı) — aşımda reddet.
-    const activeCount = await this.appointmentQueryRepo.countActiveByPatient(
+    const activeCount = await this.appointmentRepo.countActiveByPatient(
       patient.patientId
     );
 
@@ -115,9 +115,9 @@ export class PatientBookAppointmentHandler
 
     const appointment = Appointment.book({
       patientId: patient.patientId,
-      patientName: patient.patientName,
-      patientPhone: patient.patientPhone,
-      patientEmail: patient.patientEmail,
+      patientName: patient.firstName,
+      patientPhone: patient.phone,
+      patientEmail: patient.email,
       providerId,
       clinicId,
       treatmentId,
@@ -131,11 +131,11 @@ export class PatientBookAppointmentHandler
       source: AppointmentSourceSchema.enum.PATIENT_PORTAL,
       creatorType: AppointmentCreatorTypeSchema.enum.PATIENT,
       createdById: patient.patientId,
-      createdByRealName: patient.patientName,
+      createdByRealName: patient.firstName,
     });
 
     return this.transactionManager.run(async () => {
-      const saved = await this.appointmentCommandRepo.create(appointment);
+      const saved = await this.appointmentRepo.create(appointment);
       return saved.id.value;
     });
   }

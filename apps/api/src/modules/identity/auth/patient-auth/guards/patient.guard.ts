@@ -16,9 +16,8 @@ export class PatientGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<IRequestWithPatient>();
 
     const idToken = getBearerToken(request.headers.authorization);
-    if (!idToken) {
-      throw new UnauthorizedException('Token bulunamadı.');
-    }
+
+    if (!idToken) throw new UnauthorizedException('Token bulunamadı.');
 
     const patient = await this.patientAuthService.findPatientByToken(idToken);
 
@@ -28,6 +27,7 @@ export class PatientGuard implements CanActivate {
       phone: patient.phone,
       email: patient.email ?? undefined,
       clinicId: patient.clinicId ?? undefined,
+      firstName: patient.firstName,
     };
 
     return true;

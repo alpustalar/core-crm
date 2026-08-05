@@ -9,9 +9,8 @@ export const TAX_PARAMETER_QUERY_REPOSITORY = Symbol(
   'ITaxParameterQueryRepository'
 );
 
-export interface ITaxParameterCommandRepository
-  extends IBaseCommandRepository<TaxParameter> {
-  saveMany(taxParameters: TaxParameter[]): Promise<void>;
+export interface ITaxParameterCommandRepository extends IBaseCommandRepository<TaxParameter> {
+  updateMany(taxParameters: TaxParameter[]): Promise<void>;
 }
 
 export interface ITaxParameterQueryRepository {

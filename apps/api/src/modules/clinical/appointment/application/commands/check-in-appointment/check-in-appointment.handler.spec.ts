@@ -4,7 +4,7 @@ import { AppointmentNotFoundException } from '@modules/clinical/appointment/doma
 
 /**
  * Check-in handler'ı. Kaydın yüklendiği, yetkinin denetlendiği, domain metodunun
- * (checkIn) çağrılıp save edildiği, kayıt yoksa NotFound fırlatıldığı doğrulanır.
+ * (checkIn) çağrılıp update edildiği, kayıt yoksa NotFound fırlatıldığı doğrulanır.
  */
 describe('CheckInAppointmentHandler (hasta girişi / ARRIVED)', () => {
   const ctx = { actor: { clinicId: 'clinic-1' } } as never;
@@ -19,11 +19,15 @@ describe('CheckInAppointmentHandler (hasta girişi / ARRIVED)', () => {
     const checkInSpy = options.checkInSpy ?? jest.fn();
     const saveSpy = jest.fn(() => Promise.resolve());
 
-    const appointment = { clinicId: { value: 'clinic-1' }, checkIn: checkInSpy };
+    const appointment = {
+      clinicId: { value: 'clinic-1' },
+      checkIn: checkInSpy,
+      rules: () => ({ checkIn: { orThrow: () => undefined } }),
+    };
 
     const appointmentCommandRepo = {
       findById: jest.fn(() => Promise.resolve(found ? appointment : null)),
-      save: saveSpy,
+      update: saveSpy,
     } as never;
 
     const policyFactory = {
@@ -34,6 +38,11 @@ describe('CheckInAppointmentHandler (hasta girişi / ARRIVED)', () => {
               if (!canAccess) throw new Error('yetki yok');
             },
           }),
+        },
+      }),
+      entity: () => ({
+        policy: {
+          getValidateOptions: () => ({}),
         },
       }),
     } as never;
@@ -51,7 +60,7 @@ describe('CheckInAppointmentHandler (hasta girişi / ARRIVED)', () => {
     };
   };
 
-  it('kaydı yükler, checkIn çağırır ve save eder', async () => {
+  it('kaydı yükler, checkIn çağırır ve update eder', async () => {
     const { handler, checkInSpy, saveSpy } = build({});
     await handler.execute(new CheckInAppointmentCommand('apt-1', ctx));
     expect(checkInSpy).toHaveBeenCalledTimes(1);
@@ -66,7 +75,7 @@ describe('CheckInAppointmentHandler (hasta girişi / ARRIVED)', () => {
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
-  it('yetki yoksa hata fırlatır (save yok)', async () => {
+  it('yetki yoksa hata fırlatır (update yok)', async () => {
     const { handler, saveSpy } = build({ canAccess: false });
     await expect(
       handler.execute(new CheckInAppointmentCommand('apt-1', ctx))

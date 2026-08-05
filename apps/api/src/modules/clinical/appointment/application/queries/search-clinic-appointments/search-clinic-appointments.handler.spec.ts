@@ -1,11 +1,11 @@
 import { SearchClinicAppointmentsHandler } from './search-clinic-appointments.handler';
 import { SearchClinicAppointmentsQuery } from './search-clinic-appointments.query';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
 /**
- * Resepsiyon araması. Aramanın aktörün kliniğine sabitlendiği (dto'da clinicId yok),
- * filtrelerin repo'ya iletildiği, entity → toPersistence dönüşümü, klinik atanmama ve
- * yetki reddi doğrulanır.
+ * Resepsiyon araması. filter.clinicId'nin (query-param, zorunlu z.uuid()) repo'ya
+ * iletildiği, diğer filtrelerin repo'ya geçtiği, sonucun (repo zaten plain read-model
+ * döndüğü için toPersistence() gerekmeden) düz döndüğü ve serializationOptions'ın
+ * policy'den alınıp meta'ya konduğu doğrulanır.
  */
 describe('SearchClinicAppointmentsHandler (resepsiyon randevu arama)', () => {
   const pagination = {
@@ -18,27 +18,22 @@ describe('SearchClinicAppointmentsHandler (resepsiyon randevu arama)', () => {
     searchOperator: 'AND' as const,
   };
 
-  const entity = (id: string) => ({
-    toPersistence: () => ({ id }),
-  });
-
   const build = (options: {
     total?: number;
-    items?: { toPersistence: () => { id: string } }[];
+    items?: { id: string }[];
     canAccess?: boolean;
     capture?: (data: unknown) => void;
-    clinicId?: string | null;
   }) => {
     const canAccess = options.canAccess ?? true;
 
     const policyFactory = {
       appointment: () => ({
-        evaluator: {
-          check: () => ({
-            orThrow: () => {
-              if (!canAccess) throw new Error('yetki yok');
-            },
-          }),
+        policy: {
+          getSerializationOptions: jest.fn(() =>
+            canAccess
+              ? { isGroupActive: true, groups: ['INTERNAL'] }
+              : { isGroupActive: false, groups: [] }
+          ),
         },
       }),
     } as never;
@@ -58,20 +53,15 @@ describe('SearchClinicAppointmentsHandler (resepsiyon randevu arama)', () => {
       policyFactory
     );
 
-    const ctx = {
-      actor: {
-        clinicId:
-          options.clinicId === undefined ? 'clinic-1' : options.clinicId,
-      },
-    } as never;
+    const ctx = { actor: { clinicId: 'clinic-1' } } as never;
 
     return { handler, ctx, appointmentRepo };
   };
 
-  it('aramayı aktörün kliniğine sabitler ve filtreleri repo’ya geçirir', async () => {
+  it('filter.clinicId’i ve diğer filtreleri repo’ya geçirir', async () => {
     let captured: Record<string, unknown> = {};
     const { handler, ctx } = build({
-      items: [entity('a1'), entity('a2')],
+      items: [{ id: 'a1' }, { id: 'a2' }],
       total: 2,
       capture: (data) => (captured = data as Record<string, unknown>),
     });
@@ -80,6 +70,7 @@ describe('SearchClinicAppointmentsHandler (resepsiyon randevu arama)', () => {
       new SearchClinicAppointmentsQuery(
         {
           pagination,
+          clinicId: 'clinic-1',
           search: 'Ayşe',
           status: 'NOSHOW',
           providerId: 'prov-9',
@@ -100,21 +91,35 @@ describe('SearchClinicAppointmentsHandler (resepsiyon randevu arama)', () => {
     expect(meta?.pagination).toMatchObject({ total: 2, page: 1, limit: 20 });
   });
 
-  it('klinik atanmamışsa ClinicNotAssignedException fırlatır', async () => {
-    const { handler, ctx } = build({ clinicId: null });
-    await expect(
-      handler.execute(
-        new SearchClinicAppointmentsQuery({ pagination } as never, ctx)
+  it('serializationOptions’ı policy’den alıp meta’ya koyar', async () => {
+    const { handler, ctx } = build({ items: [], total: 0 });
+
+    const { meta } = await handler.execute(
+      new SearchClinicAppointmentsQuery(
+        { pagination, clinicId: 'clinic-1' } as never,
+        ctx
       )
-    ).rejects.toBeInstanceOf(ClinicNotAssignedException);
+    );
+
+    expect(meta?.serializationOptions).toEqual({
+      isGroupActive: true,
+      groups: ['INTERNAL'],
+    });
   });
 
-  it('yetki yoksa hata fırlatır', async () => {
-    const { handler, ctx } = build({ canAccess: false });
-    await expect(
-      handler.execute(
-        new SearchClinicAppointmentsQuery({ pagination } as never, ctx)
+  it('yetki yoksa serializationOptions pasif döner (alan filtreleme transform interceptor katmanında yapılır)', async () => {
+    const { handler, ctx } = build({ items: [], total: 0, canAccess: false });
+
+    const { meta } = await handler.execute(
+      new SearchClinicAppointmentsQuery(
+        { pagination, clinicId: 'clinic-1' } as never,
+        ctx
       )
-    ).rejects.toThrow('yetki yok');
+    );
+
+    expect(meta?.serializationOptions).toEqual({
+      isGroupActive: false,
+      groups: [],
+    });
   });
 });

@@ -30,7 +30,7 @@ export class SupplierCommandRepository
     return raw ? new Supplier(raw) : null;
   }
 
-  async save(supplier: Supplier): Promise<Supplier> {
+  async update(supplier: Supplier): Promise<Supplier> {
     const data = supplier.toPersistence();
 
     const raw = await this.db.supplier.update({

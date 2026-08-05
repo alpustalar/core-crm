@@ -24,7 +24,7 @@ export class SubscriptionItemCommandRepository
     return new SubscriptionItem(raw);
   }
 
-  async save(entity: SubscriptionItem): Promise<SubscriptionItem> {
+  async update(entity: SubscriptionItem): Promise<SubscriptionItem> {
     const toPersistence = entity.toPersistence();
 
     const { id, ...data } = toPersistence;

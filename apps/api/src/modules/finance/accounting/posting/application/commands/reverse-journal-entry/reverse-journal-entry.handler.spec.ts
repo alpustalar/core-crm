@@ -57,7 +57,8 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
 
     const journalCommandRepo = {
       nextEntryNo: jest.fn().mockResolvedValue(107n),
-      save: jest.fn(async (entry: JournalEntry) => entry),
+      create: jest.fn(async (entry: JournalEntry) => entry),
+      update: jest.fn(async (entry: JournalEntry) => entry),
       applyReversal: jest.fn().mockResolvedValue(undefined),
     } as unknown as IJournalCommandRepository;
 
@@ -95,7 +96,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
 
     const reversalId = await run(handler);
 
-    // save'e geçen storno fişi: satırlar ters (acc-100 alacak, acc-600 borç).
+    // update'e geçen storno fişi: satırlar ters (acc-100 alacak, acc-600 borç).
     const saved = (journalCommandRepo.create as jest.Mock).mock
       .calls[0][0] as JournalEntry;
     const lines = saved.lines.items;
@@ -113,7 +114,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     expect(journalCommandRepo.applyReversal).toHaveBeenCalledWith(original);
   });
 
-  it('dönem kilitliyse storno atılamaz (save çağrılmaz)', async () => {
+  it('dönem kilitliyse storno atılamaz (update çağrılmaz)', async () => {
     const original = buildPostedOriginal();
     const { handler, journalCommandRepo } = build({ original, canPost: false });
 

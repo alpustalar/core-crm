@@ -9,9 +9,10 @@ import { LockPeriodCommand } from './lock-period.command';
 import { PeriodNotFoundException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 
 @CommandHandler(LockPeriodCommand)
-export class LockPeriodHandler
-  implements ICommandHandler<LockPeriodCommand, void>
-{
+export class LockPeriodHandler implements ICommandHandler<
+  LockPeriodCommand,
+  void
+> {
   constructor(
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
     private readonly periodCommandRepo: IAccountingPeriodCommandRepository,
@@ -24,7 +25,7 @@ export class LockPeriodHandler
 
     period.lock();
     await this.txManager.run(async () => {
-      await this.periodCommandRepo.save(period);
+      await this.periodCommandRepo.update(period);
     });
   }
 }

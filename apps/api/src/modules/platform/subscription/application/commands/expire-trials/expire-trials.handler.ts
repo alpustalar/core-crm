@@ -11,9 +11,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(ExpireTrialsCommand)
-export class ExpireTrialsHandler
-  implements ICommandHandler<ExpireTrialsCommand, void>
-{
+export class ExpireTrialsHandler implements ICommandHandler<
+  ExpireTrialsCommand,
+  void
+> {
   private readonly logger = new Logger(ExpireTrialsHandler.name);
 
   constructor(
@@ -36,7 +37,7 @@ export class ExpireTrialsHandler
       await this.txManager
         .run(async () => {
           subscription.expire();
-          await this.subscriptionCommandRepo.save(subscription);
+          await this.subscriptionCommandRepo.update(subscription);
         })
         .catch((err) =>
           this.logger.error(

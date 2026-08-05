@@ -14,12 +14,13 @@ import {
 import { ACTIVITY_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateActivityCommand)
-export class UpdateActivityHandler
-  implements ICommandHandler<UpdateActivityCommand, void>
-{
+export class UpdateActivityHandler implements ICommandHandler<
+  UpdateActivityCommand,
+  void
+> {
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
-    private readonly activityCommandRepo: IActivityCommandRepository,
+    private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +30,7 @@ export class UpdateActivityHandler
     const { activityId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const activity = await this.activityCommandRepo.findById(activityId);
+      const activity = await this.activityRepo.findById(activityId);
       if (!activity) throw new ActivityNotFoundException(activityId);
 
       this.policyFactory
@@ -46,7 +47,7 @@ export class UpdateActivityHandler
         dueAt: data.dueAt,
       });
 
-      await this.activityCommandRepo.save(activity);
+      await this.activityRepo.update(activity);
     });
   }
 }

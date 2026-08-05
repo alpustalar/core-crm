@@ -59,7 +59,7 @@ export class AddEmployeeContractHandler implements ICommandHandler<
         await this.contractCommandRepo.findActiveByEmployeeId(employeeId);
       if (active) {
         active.end(data.startDate);
-        await this.contractCommandRepo.save(active);
+        await this.contractCommandRepo.update(active);
       }
 
       const contract = EmployeeContract.create({

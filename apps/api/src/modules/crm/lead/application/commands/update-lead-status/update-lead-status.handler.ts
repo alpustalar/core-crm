@@ -23,9 +23,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(UpdateLeadStatusCommand)
-export class UpdateLeadStatusHandler
-  implements ICommandHandler<UpdateLeadStatusCommand, void>
-{
+export class UpdateLeadStatusHandler implements ICommandHandler<
+  UpdateLeadStatusCommand,
+  void
+> {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadCommandRepo: ILeadCommandRepository,
@@ -66,7 +67,7 @@ export class UpdateLeadStatusHandler
 
       if (data.notes) lead.updateNotes(data.notes);
 
-      const saved = await this.leadCommandRepo.save(lead);
+      const saved = await this.leadCommandRepo.update(lead);
 
       // TODO: event entity içinde raise edilecek
 

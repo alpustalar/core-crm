@@ -20,7 +20,7 @@ describe('DisconnectClinicWhatsappChannelHandler', () => {
     } as unknown as IClinicWhatsappChannelQueryRepository;
 
     const channelCommandRepo = {
-      save: jest.fn(async (c: ClinicWhatsappChannel) => {
+      upsertByClinicId: jest.fn(async (c: ClinicWhatsappChannel) => {
         saved = c;
         return c;
       }),
@@ -41,7 +41,9 @@ describe('DisconnectClinicWhatsappChannelHandler', () => {
   it('kanal yoksa NotFoundException', async () => {
     const { handler } = build(null);
     await expect(
-      handler.execute(new DisconnectClinicWhatsappChannelCommand('clinic-1', ctx))
+      handler.execute(
+        new DisconnectClinicWhatsappChannelCommand('clinic-1', ctx)
+      )
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 

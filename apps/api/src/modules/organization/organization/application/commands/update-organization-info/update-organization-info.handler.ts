@@ -14,13 +14,10 @@ import {
 import { ORGANIZATION_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateOrganizationInfoCommand)
-export class UpdateOrganizationInfoHandler
-  implements
-    ICommandHandler<
-      UpdateOrganizationInfoCommand,
-      UpdateOrganizationInfoCommandResponse
-    >
-{
+export class UpdateOrganizationInfoHandler implements ICommandHandler<
+  UpdateOrganizationInfoCommand,
+  UpdateOrganizationInfoCommandResponse
+> {
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
     private readonly orgCommandRepo: IOrganizationCommandRepository,
@@ -46,7 +43,7 @@ export class UpdateOrganizationInfoHandler
 
     organization.updateInfo(data);
 
-    const saved = await this.orgCommandRepo.save(organization);
+    const saved = await this.orgCommandRepo.update(organization);
 
     return saved.id.value;
   }

@@ -12,9 +12,10 @@ import { SetTaxParameterCommand } from './set-tax-parameter.command';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(SetTaxParameterCommand)
-export class SetTaxParameterHandler
-  implements ICommandHandler<SetTaxParameterCommand, string>
-{
+export class SetTaxParameterHandler implements ICommandHandler<
+  SetTaxParameterCommand,
+  string
+> {
   constructor(
     @Inject(TAX_PARAMETER_COMMAND_REPOSITORY)
     private readonly taxParameterCommandRepo: ITaxParameterCommandRepository,
@@ -40,7 +41,7 @@ export class SetTaxParameterHandler
           );
         }
         open.close(validFrom);
-        await this.taxParameterCommandRepo.save(open);
+        await this.taxParameterCommandRepo.update(open);
       }
 
       const parameter = TaxParameter.create({

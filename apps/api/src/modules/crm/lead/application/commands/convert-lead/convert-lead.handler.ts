@@ -23,9 +23,10 @@ import { PipelineStageTypeSchema } from '@shared/modules/pipeline';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(ConvertLeadCommand)
-export class ConvertLeadHandler
-  implements ICommandHandler<ConvertLeadCommand, void>
-{
+export class ConvertLeadHandler implements ICommandHandler<
+  ConvertLeadCommand,
+  void
+> {
   private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
@@ -72,7 +73,7 @@ export class ConvertLeadHandler
       // Kanban tutarlılığı: lead bir huniye bağlıysa WON aşamasına taşı.
       await this.syncWonStage(lead);
 
-      await this.leadCommandRepo.save(lead);
+      await this.leadCommandRepo.update(lead);
     });
   }
 

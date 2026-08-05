@@ -29,7 +29,7 @@ export class ClinicHealthTourismConfigCommandRepository
     return new ClinicHealthTourismConfig(raw);
   }
 
-  async save(
+  async update(
     entity: ClinicHealthTourismConfig
   ): Promise<ClinicHealthTourismConfig> {
     const data = entity.toPersistence();

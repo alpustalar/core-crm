@@ -93,7 +93,7 @@ describe('HandlePaymentCallbackHandler', () => {
     const mockIyzicoCommandRepo: jest.Mocked<IIyzicoTransactionCommandRepository> =
       {
         create: jest.fn(async (e: IyzicoTransaction) => e),
-        save: jest.fn(async (e: IyzicoTransaction) => e),
+        update: jest.fn(async (e: IyzicoTransaction) => e),
       };
 
     // Muhasebe köprüsü EnsurePartyForPatientCommand'dan { partyId, organizationId } bekler.
@@ -168,7 +168,7 @@ describe('HandlePaymentCallbackHandler', () => {
 
       await handler.execute(makeCommand());
 
-      expect(iyzicoCommandRepo.save).not.toHaveBeenCalled();
+      expect(iyzicoCommandRepo.update).not.toHaveBeenCalled();
       expect(commandBus.execute).not.toHaveBeenCalled();
     });
   });
@@ -193,8 +193,8 @@ describe('HandlePaymentCallbackHandler', () => {
     it('saves iyzico transaction entity in SUCCESS state with SDK data', async () => {
       await handler.execute(makeCommand());
 
-      expect(iyzicoCommandRepo.save).toHaveBeenCalledTimes(1);
-      const saved = iyzicoCommandRepo.save.mock.calls[0][0];
+      expect(iyzicoCommandRepo.update).toHaveBeenCalledTimes(1);
+      const saved = iyzicoCommandRepo.update.mock.calls[0][0];
       expect(saved.status).toBe(IyzicoTransactionStatusSchema.enum.SUCCESS);
       expect(saved.iyzicoPaymentId).toBe('iyzico-pay-1');
       expect(saved.iyzicoPaymentTransactionId).toBe('iyzico-tx-item-1');
@@ -236,8 +236,8 @@ describe('HandlePaymentCallbackHandler', () => {
     it('saves iyzico transaction entity in FAILURE state with error details', async () => {
       await handler.execute(makeCommand());
 
-      expect(iyzicoCommandRepo.save).toHaveBeenCalledTimes(1);
-      const saved = iyzicoCommandRepo.save.mock.calls[0][0];
+      expect(iyzicoCommandRepo.update).toHaveBeenCalledTimes(1);
+      const saved = iyzicoCommandRepo.update.mock.calls[0][0];
       expect(saved.status).toBe(IyzicoTransactionStatusSchema.enum.FAILURE);
       expect(saved.errorCode).toBe('5007');
       expect(saved.errorMessage).toBe('Yetersiz bakiye');

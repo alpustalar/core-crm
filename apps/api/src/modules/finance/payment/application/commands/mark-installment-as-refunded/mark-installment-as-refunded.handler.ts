@@ -20,9 +20,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MarkInstallmentAsRefundedCommand)
-export class MarkInstallmentAsRefundedHandler
-  implements ICommandHandler<MarkInstallmentAsRefundedCommand, void>
-{
+export class MarkInstallmentAsRefundedHandler implements ICommandHandler<
+  MarkInstallmentAsRefundedCommand,
+  void
+> {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
     private readonly paymentQueryRepo: IPaymentQueryRepository,
@@ -50,7 +51,7 @@ export class MarkInstallmentAsRefundedHandler
       payment.rules(validateOptions).canRefund().orThrow();
 
       payment.refundInstallment(installmentId);
-      await this.paymentCommandRepo.save(payment);
+      await this.paymentCommandRepo.update(payment);
 
       // TODO: entity içinde refundInstallment içinde domain event olarak raise et
       this.paymentEventPublisher.paymentRefund({

@@ -17,9 +17,10 @@ import { PipelineStageNotFoundException } from '@modules/crm/pipeline/domain/exc
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(MoveLeadToStageCommand)
-export class MoveLeadToStageHandler
-  implements ICommandHandler<MoveLeadToStageCommand, void>
-{
+export class MoveLeadToStageHandler implements ICommandHandler<
+  MoveLeadToStageCommand,
+  void
+> {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadCommandRepo: ILeadCommandRepository,
@@ -52,7 +53,7 @@ export class MoveLeadToStageHandler
         reason: data.reason,
       });
 
-      const saved = await this.leadCommandRepo.save(lead);
+      const saved = await this.leadCommandRepo.update(lead);
 
       if (saved.status !== previousStatus) {
         this.eventPublisher.leadStatusChanged({

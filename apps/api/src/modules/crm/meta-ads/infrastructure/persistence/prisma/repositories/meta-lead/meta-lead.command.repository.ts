@@ -48,7 +48,7 @@ export class MetaLeadCommandRepository
     metaLeads.forEach((metaLead) => metaLead.flushEvents());
   }
 
-  async save(metaLead: MetaLead) {
+  async update(metaLead: MetaLead) {
     const persistenceData = metaLead.toPersistence();
 
     const create = {
@@ -85,7 +85,7 @@ export class MetaLeadCommandRepository
     return new MetaLead(raw);
   }
 
-  async saveMany(metaLeads: MetaLead[]): Promise<void> {
+  async updateMany(metaLeads: MetaLead[]): Promise<void> {
     const queries = metaLeads.map((metaLead) => {
       const persistenceData = metaLead.toPersistence();
 

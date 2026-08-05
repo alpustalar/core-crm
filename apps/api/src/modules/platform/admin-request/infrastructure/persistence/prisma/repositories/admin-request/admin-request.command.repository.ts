@@ -34,7 +34,7 @@ export class AdminRequestCommandRepository
     return new AdminRequest(raw);
   }
 
-  async save(entity: AdminRequest): Promise<AdminRequest> {
+  async update(entity: AdminRequest): Promise<AdminRequest> {
     const data = entity.toPersistence();
 
     const raw = await this.db.adminRequest.update({
@@ -49,7 +49,7 @@ export class AdminRequestCommandRepository
     return new AdminRequest(raw);
   }
 
-  async saveMany(entities: AdminRequest[]): Promise<void> {
+  async updateMany(entities: AdminRequest[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const data = entity.toPersistence();
       return this.db.adminRequest.upsert({

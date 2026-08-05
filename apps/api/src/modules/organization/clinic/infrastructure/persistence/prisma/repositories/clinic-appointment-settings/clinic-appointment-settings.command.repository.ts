@@ -28,7 +28,7 @@ export class ClinicAppointmentSettingsCommandRepository
     return new ClinicAppointmentSettings(raw);
   }
 
-  async save(
+  async update(
     entity: ClinicAppointmentSettings
   ): Promise<ClinicAppointmentSettings> {
     const data = entity.toPersistence();

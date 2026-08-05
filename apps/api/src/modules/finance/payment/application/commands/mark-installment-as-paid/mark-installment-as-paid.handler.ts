@@ -16,9 +16,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(MarkInstallmentAsPaidCommand)
-export class MarkInstallmentAsPaidHandler
-  implements ICommandHandler<MarkInstallmentAsPaidCommand, void>
-{
+export class MarkInstallmentAsPaidHandler implements ICommandHandler<
+  MarkInstallmentAsPaidCommand,
+  void
+> {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
     private readonly paymentQueryRepo: IPaymentQueryRepository,
@@ -38,7 +39,7 @@ export class MarkInstallmentAsPaidHandler
       if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       payment.completeInstallment(installmentId);
-      await this.paymentCommandRepo.save(payment);
+      await this.paymentCommandRepo.update(payment);
 
       // Event sahipliği payment modülünde: tahsilat olayı burada fırlatılır.
       // TODO: event domain event olarak completeInstallment içinde fırlatılacak

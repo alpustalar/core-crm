@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IConsentTemplateQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form.repository';
-import { ConsentFormTemplate } from '@modules/clinical/consent-form/domain/entities/consent-form-template.entity';
+
 import { FindConsentTemplatesFilter } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
+import { IConsentTemplateQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-template/consent-template.query.repository';
+import { ConsentFormTemplate } from '@shared';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
 
 @Injectable()
 export class ConsentFormTemplateQueryRepository
@@ -16,25 +18,23 @@ export class ConsentFormTemplateQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<ConsentFormTemplate | null> {
-    const raw = await this.db.consentFormTemplate.findUnique({
+  findById(id: string): Promise<ConsentFormTemplate | null> {
+    return this.db.consentFormTemplate.findUnique({
       where: { id },
     });
-    return raw ? new ConsentFormTemplate(raw) : null;
   }
 
   async findMany(
     filter: FindConsentTemplatesFilter
   ): Promise<Paginated<ConsentFormTemplate>> {
     const where: Record<string, unknown> = { clinicId: filter.clinicId };
-    if (filter.isActive !== undefined) where.isActive = filter.isActive;
+    if (isNotUndefined(filter.isActive)) where.isActive = filter.isActive;
     if (filter.sectorId) where.sectorId = filter.sectorId;
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.consentFormTemplate,
       pagination: filter.pagination,
       where,
     });
-    return this.mapPagination(result, (r) => new ConsentFormTemplate(r));
   }
 }

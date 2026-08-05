@@ -13,9 +13,10 @@ import { SoftDeleteProductCommand } from './soft-delete-product.command';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(SoftDeleteProductCommand)
-export class SoftDeleteProductHandler
-  implements ICommandHandler<SoftDeleteProductCommand, void>
-{
+export class SoftDeleteProductHandler implements ICommandHandler<
+  SoftDeleteProductCommand,
+  void
+> {
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productCommandRepo: IProductCommandRepository,
@@ -40,7 +41,7 @@ export class SoftDeleteProductHandler
 
     product.softDelete();
     await this.txManager.run(async () => {
-      await this.productCommandRepo.save(product);
+      await this.productCommandRepo.update(product);
     });
   }
 }

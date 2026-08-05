@@ -26,7 +26,7 @@ export class AttendanceRecordCommandRepository
     return raw ? new AttendanceRecord(raw) : null;
   }
 
-  async save(entity: AttendanceRecord): Promise<AttendanceRecord> {
+  async update(entity: AttendanceRecord): Promise<AttendanceRecord> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.attendanceRecord.update({

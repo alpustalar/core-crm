@@ -69,7 +69,7 @@ export class CloseCashSessionHandler implements ICommandHandler<
       });
 
       await this.postClosingToAccounting(session, ctx);
-      await this.sessionCommandRepo.save(session);
+      await this.sessionCommandRepo.update(session);
 
       return {
         sessionId: session.id.value,

@@ -5,7 +5,7 @@ import { AppointmentNotFoundException } from '@modules/clinical/appointment/doma
 /**
  * Detay düzenleme handler'ı. Kaydın yüklendiği, yetkinin kaydın kliniğine göre
  * denetlendiği, domain metodunun (updateDetails) verilen alanlarla çağrıldığı,
- * save edildiği ve kayıt yoksa NotFound fırlatıldığı doğrulanır.
+ * update edildiği ve kayıt yoksa NotFound fırlatıldığı doğrulanır.
  */
 describe('UpdateAppointmentDetailsHandler (randevu detay düzenleme)', () => {
   const ctx = { actor: { clinicId: 'clinic-1' }, source: 'STAFF' } as never;
@@ -28,7 +28,7 @@ describe('UpdateAppointmentDetailsHandler (randevu detay düzenleme)', () => {
 
     const appointmentCommandRepo = {
       findById: jest.fn(() => Promise.resolve(found ? appointment : null)),
-      save: saveSpy,
+      update: saveSpy,
     } as never;
 
     const policyFactory = {
@@ -58,12 +58,16 @@ describe('UpdateAppointmentDetailsHandler (randevu detay düzenleme)', () => {
     };
   };
 
-  it('kaydı yükler, updateDetails’i dto ile çağırır ve save eder', async () => {
+  it('kaydı yükler, updateDetails’i dto ile çağırır ve update eder', async () => {
     const { handler, updateSpy, saveSpy } = build({});
     const dto = { notes: 'Tekerlekli sandalye', patientPhone: '+905551112233' };
 
     await handler.execute(
-      new UpdateAppointmentDetailsCommand('apt-1', dto as never, ctx)
+      new UpdateAppointmentDetailsCommand({
+        appointmentId: 'apt-1',
+        data: dto as never,
+        ctx,
+      })
     );
 
     expect(updateSpy).toHaveBeenCalledWith(dto);
@@ -74,17 +78,25 @@ describe('UpdateAppointmentDetailsHandler (randevu detay düzenleme)', () => {
     const { handler, saveSpy } = build({ found: false });
     await expect(
       handler.execute(
-        new UpdateAppointmentDetailsCommand('yok', {} as never, ctx)
+        new UpdateAppointmentDetailsCommand({
+          appointmentId: 'yok',
+          data: {} as never,
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(AppointmentNotFoundException);
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
-  it('yetki yoksa hata fırlatır (save edilmez)', async () => {
+  it('yetki yoksa hata fırlatır (update edilmez)', async () => {
     const { handler, saveSpy } = build({ canAccess: false });
     await expect(
       handler.execute(
-        new UpdateAppointmentDetailsCommand('apt-1', {} as never, ctx)
+        new UpdateAppointmentDetailsCommand({
+          appointmentId: 'apt-1',
+          data: {} as never,
+          ctx,
+        })
       )
     ).rejects.toThrow('yetki yok');
     expect(saveSpy).not.toHaveBeenCalled();

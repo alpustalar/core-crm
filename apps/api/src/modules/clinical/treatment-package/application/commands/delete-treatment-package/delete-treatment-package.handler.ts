@@ -14,16 +14,13 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(DeleteTreatmentPackageCommand)
-export class DeleteTreatmentPackageHandler
-  implements
-    ICommandHandler<
-      DeleteTreatmentPackageCommand,
-      DeleteTreatmentPackageResponse
-    >
-{
+export class DeleteTreatmentPackageHandler implements ICommandHandler<
+  DeleteTreatmentPackageCommand,
+  DeleteTreatmentPackageResponse
+> {
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
+    private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -35,7 +32,7 @@ export class DeleteTreatmentPackageHandler
     const { packageId, ctx } = command;
 
     const treatmentPackage =
-      await this.treatmentPackageCommandRepo.findById(packageId);
+      await this.treatmentPackageRepo.findById(packageId);
 
     if (!treatmentPackage)
       throw new TreatmentPackageNotFoundException(packageId);
@@ -49,7 +46,7 @@ export class DeleteTreatmentPackageHandler
 
     await this.txManager.run(async () => {
       treatmentPackage.softDelete();
-      await this.treatmentPackageCommandRepo.save(treatmentPackage);
+      await this.treatmentPackageRepo.update(treatmentPackage);
     });
   }
 }

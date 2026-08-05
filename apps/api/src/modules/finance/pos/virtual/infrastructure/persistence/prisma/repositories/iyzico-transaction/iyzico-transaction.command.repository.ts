@@ -28,7 +28,7 @@ export class IyzicoTransactionCommandRepository
     return new IyzicoTransaction(raw);
   }
 
-  async save(entity: IyzicoTransaction): Promise<IyzicoTransaction> {
+  async update(entity: IyzicoTransaction): Promise<IyzicoTransaction> {
     const data = entity.toPersistence();
     const { id, ...rest } = data;
     const rawResponse =

@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IConsentFormSubmissionQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form.repository';
-import { ConsentFormSubmission } from '@modules/clinical/consent-form/domain/entities/consent-form-submission.entity';
+
 import {
   ConsentFormSubmissionListItem,
   FindConsentSubmissionsByPatientFilter,
 } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
+import { IConsentFormSubmissionQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository';
+import { ConsentFormSubmission } from '@shared';
 
 const LIST_ITEM_SELECT = {
   id: true,
@@ -30,11 +31,10 @@ export class ConsentFormSubmissionQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<ConsentFormSubmission | null> {
-    const raw = await this.db.consentFormSubmission.findUnique({
+  findById(id: string): Promise<ConsentFormSubmission | null> {
+    return this.db.consentFormSubmission.findUnique({
       where: { id },
     });
-    return raw ? new ConsentFormSubmission(raw) : null;
   }
 
   async findByPatient(

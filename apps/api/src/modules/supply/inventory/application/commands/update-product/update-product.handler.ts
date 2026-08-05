@@ -15,9 +15,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(UpdateProductCommand)
-export class UpdateProductHandler
-  implements ICommandHandler<UpdateProductCommand, void>
-{
+export class UpdateProductHandler implements ICommandHandler<
+  UpdateProductCommand,
+  void
+> {
   constructor(
     @Inject(PRODUCT_QUERY_REPOSITORY)
     private readonly productQueryRepo: IProductQueryRepository,
@@ -56,7 +57,7 @@ export class UpdateProductHandler
     });
 
     await this.txManager.run(async () => {
-      await this.productCommandRepo.save(product);
+      await this.productCommandRepo.update(product);
     });
   }
 }

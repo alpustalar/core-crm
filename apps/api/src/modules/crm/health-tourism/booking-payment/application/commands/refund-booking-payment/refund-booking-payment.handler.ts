@@ -7,18 +7,17 @@ import {
 } from '@src/infrastructure/payment/links/payment-link.port';
 import {
   BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  BOOKING_PAYMENT_QUERY_REPOSITORY,
   IBookingPaymentCommandRepository,
-  IBookingPaymentQueryRepository,
 } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
 import { PaymentProviders } from '@common/constants';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(RefundBookingPaymentCommand)
-export class RefundBookingPaymentHandler
-  implements ICommandHandler<RefundBookingPaymentCommand, void>
-{
+export class RefundBookingPaymentHandler implements ICommandHandler<
+  RefundBookingPaymentCommand,
+  void
+> {
   private readonly logger = new Logger(RefundBookingPaymentHandler.name);
 
   constructor(
@@ -26,16 +25,14 @@ export class RefundBookingPaymentHandler
     private readonly iyzicoLink: IPaymentLinkProvider,
     @Inject(STRIPE_PAYMENT_LINK)
     private readonly stripeLink: IPaymentLinkProvider,
-    @Inject(BOOKING_PAYMENT_QUERY_REPOSITORY)
-    private readonly bookingPaymentQueryRepo: IBookingPaymentQueryRepository,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository
+    private readonly bookingPaymentRepo: IBookingPaymentCommandRepository
   ) {}
 
   async execute(command: RefundBookingPaymentCommand): Promise<void> {
     const { bookingId, reason } = command;
 
-    const bp = await this.bookingPaymentQueryRepo.findByBookingId(bookingId);
+    const bp = await this.bookingPaymentRepo.findByBookingId(bookingId);
     // B7 öncesi/ödemesiz rezervasyonda kayıt olmayabilir → iptal akışını bozmadan geç.
     if (!bp) {
       this.logger.warn(
@@ -79,7 +76,7 @@ export class RefundBookingPaymentHandler
     });
 
     bp.markRefunded(reason ?? 'Rezervasyon iptal edildi.');
-    await this.bookingPaymentCommandRepo.save(bp);
+    await this.bookingPaymentRepo.update(bp);
     this.logger.log(
       `İade tamamlandı (bp=${bp.id.value}, provider=${bp.paidProvider}, amount=${amount} ${currency}).`
     );

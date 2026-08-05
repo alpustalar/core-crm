@@ -16,13 +16,13 @@ import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/appl
 import { PATIENT_TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdatePatientPackageCommand)
-export class UpdatePatientPackageHandler
-  implements
-    ICommandHandler<UpdatePatientPackageCommand, UpdatePatientPackageResponse>
-{
+export class UpdatePatientPackageHandler implements ICommandHandler<
+  UpdatePatientPackageCommand,
+  UpdatePatientPackageResponse
+> {
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    private readonly patientTreatmentPackageRepo: IPatientTreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus
@@ -35,7 +35,7 @@ export class UpdatePatientPackageHandler
     const { patientPackageId, data } = payload;
 
     const patientTreatmentPackage =
-      await this.patientTreatmentPackageCommandRepo.findById(patientPackageId);
+      await this.patientTreatmentPackageRepo.findById(patientPackageId);
 
     if (!patientTreatmentPackage)
       throw new PatientTreatmentPackageNotFoundException();
@@ -53,7 +53,7 @@ export class UpdatePatientPackageHandler
 
     patientTreatmentPackage.update(data);
 
-    await this.patientTreatmentPackageCommandRepo.save(patientTreatmentPackage);
+    await this.patientTreatmentPackageRepo.update(patientTreatmentPackage);
 
     return patientTreatmentPackage.id.value;
   }

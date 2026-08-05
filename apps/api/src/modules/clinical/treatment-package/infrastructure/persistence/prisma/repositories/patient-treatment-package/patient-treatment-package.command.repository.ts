@@ -13,7 +13,7 @@ export class PatientTreatmentPackageCommandRepository
     super(prisma);
   }
 
-  async save(
+  async update(
     patientTreatmentPackage: PatientTreatmentPackage
   ): Promise<PatientTreatmentPackage> {
     const persistenceData = patientTreatmentPackage.toPersistence();

@@ -26,7 +26,7 @@ export class AccountingPeriodCommandRepository
     return new AccountingPeriod(raw);
   }
 
-  async save(period: AccountingPeriod): Promise<AccountingPeriod> {
+  async update(period: AccountingPeriod): Promise<AccountingPeriod> {
     const data = period.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.accountingPeriod.update({

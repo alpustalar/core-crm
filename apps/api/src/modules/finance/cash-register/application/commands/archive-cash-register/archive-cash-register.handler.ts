@@ -42,7 +42,7 @@ export class ArchiveCashRegisterHandler implements ICommandHandler<
     register.archive();
 
     await this.txManager.run(async () => {
-      await this.registerCommandRepo.save(register);
+      await this.registerCommandRepo.update(register);
     });
   }
 }

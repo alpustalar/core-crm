@@ -12,9 +12,10 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 @CommandHandler(CancelHotelBookingCommand)
-export class CancelHotelBookingHandler
-  implements ICommandHandler<CancelHotelBookingCommand, void>
-{
+export class CancelHotelBookingHandler implements ICommandHandler<
+  CancelHotelBookingCommand,
+  void
+> {
   constructor(
     @Inject(HOTELBEDS_API_SERVICE)
     private readonly hotelbedsApi: IHotelbedsApiService,
@@ -38,7 +39,7 @@ export class CancelHotelBookingHandler
     booking.cancel();
 
     await this.txManager.run(async () => {
-      await this.bookingCommandRepo.save(booking);
+      await this.bookingCommandRepo.update(booking);
     });
   }
 }

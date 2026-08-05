@@ -13,8 +13,8 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { CreateProviderAvailabilityCommand } from './create-provider-availability.command';
 import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
@@ -23,14 +23,15 @@ import { AssertTimeWithinClinicHoursQuery } from '@modules/organization/clinic/a
 import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
 
 @CommandHandler(CreateProviderAvailabilityCommand)
-export class CreateProviderAvailabilityHandler
-  implements ICommandHandler<CreateProviderAvailabilityCommand, void>
-{
+export class CreateProviderAvailabilityHandler implements ICommandHandler<
+  CreateProviderAvailabilityCommand,
+  void
+> {
   constructor(
-    @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    @Inject(PROVIDER_COMMAND_REPOSITORY)
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(PROVIDER_AVAILABILITY_COMMAND_REPOSITORY)
-    private readonly providerAvailabilityCommandRepo: IProviderAvailabilityCommandRepository,
+    private readonly providerAvailabilityRepo: IProviderAvailabilityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager,
@@ -40,7 +41,7 @@ export class CreateProviderAvailabilityHandler
   async execute(command: CreateProviderAvailabilityCommand): Promise<void> {
     const { ctx, data } = command;
 
-    const provider = await this.providerQueryRepo.findById(data.providerId);
+    const provider = await this.providerRepo.findById(data.providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -72,9 +73,7 @@ export class CreateProviderAvailabilityHandler
     );
 
     await this.transactionManager.run(async () => {
-      await this.providerAvailabilityCommandRepo.createMany(
-        providerAvailabilities
-      );
+      await this.providerAvailabilityRepo.createMany(providerAvailabilities);
     });
   }
 }

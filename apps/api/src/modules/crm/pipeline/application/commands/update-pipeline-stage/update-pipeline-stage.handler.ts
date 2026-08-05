@@ -9,9 +9,10 @@ import { PipelineStageNotFoundException } from '@modules/crm/pipeline/domain/exc
 import { UpdatePipelineStageCommand } from './update-pipeline-stage.command';
 
 @CommandHandler(UpdatePipelineStageCommand)
-export class UpdatePipelineStageHandler
-  implements ICommandHandler<UpdatePipelineStageCommand, void>
-{
+export class UpdatePipelineStageHandler implements ICommandHandler<
+  UpdatePipelineStageCommand,
+  void
+> {
   constructor(
     @Inject(PIPELINE_STAGE_COMMAND_REPOSITORY)
     private readonly stageCommandRepo: IPipelineStageCommandRepository,
@@ -31,6 +32,6 @@ export class UpdatePipelineStageHandler
       color: data.color,
     });
 
-    await this.txManager.run(() => this.stageCommandRepo.save(stage));
+    await this.txManager.run(() => this.stageCommandRepo.update(stage));
   }
 }

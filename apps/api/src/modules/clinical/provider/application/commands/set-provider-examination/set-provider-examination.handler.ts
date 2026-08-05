@@ -13,12 +13,13 @@ import { SetProviderExaminationCommand } from './set-provider-examination.comman
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 
 @CommandHandler(SetProviderExaminationCommand)
-export class SetProviderExaminationHandler
-  implements ICommandHandler<SetProviderExaminationCommand, void>
-{
+export class SetProviderExaminationHandler implements ICommandHandler<
+  SetProviderExaminationCommand,
+  void
+> {
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -26,7 +27,7 @@ export class SetProviderExaminationHandler
   async execute(command: SetProviderExaminationCommand): Promise<void> {
     const { providerId, data, ctx } = command.payload;
 
-    const provider = await this.providerCommandRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
@@ -37,6 +38,6 @@ export class SetProviderExaminationHandler
       .orThrow(PROVIDER_EVENTS.EXAMINATION_SET);
 
     provider.setConsultationAcceptance(data.acceptsConsultation);
-    await this.providerCommandRepo.save(provider);
+    await this.providerRepo.update(provider);
   }
 }

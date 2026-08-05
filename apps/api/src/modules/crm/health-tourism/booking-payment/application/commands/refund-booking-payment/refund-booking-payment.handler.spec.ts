@@ -1,10 +1,7 @@
 import { RefundBookingPaymentHandler } from './refund-booking-payment.handler';
 import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
 import { IPaymentLinkProvider } from '@src/infrastructure/payment/links/payment-link.port';
-import {
-  IBookingPaymentCommandRepository,
-  IBookingPaymentQueryRepository,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
+import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import {
   CreateBookingPaymentProps,
@@ -58,12 +55,11 @@ describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
       expireLink: jest.fn(),
       refund: jest.fn(),
     } as unknown as IPaymentLinkProvider;
-    const queryRepo = {
-      findByBookingId: jest.fn(async () => bp),
-    } as unknown as IBookingPaymentQueryRepository;
     const saved: BookingPayment[] = [];
+    // Okuma da (findByBookingId) command repo'da — query repo command handler'dan kaldırıldı.
     const commandRepo = {
-      save: jest.fn(async (e: BookingPayment) => {
+      findByBookingId: jest.fn(async () => bp),
+      update: jest.fn(async (e: BookingPayment) => {
         saved.push(e);
         return e;
       }),
@@ -73,7 +69,6 @@ describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
       handler: new RefundBookingPaymentHandler(
         iyzicoLink,
         stripeLink,
-        queryRepo,
         commandRepo
       ),
       iyzicoLink,

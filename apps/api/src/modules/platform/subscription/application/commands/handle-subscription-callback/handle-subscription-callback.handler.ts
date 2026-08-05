@@ -28,9 +28,10 @@ import { HandleSubscriptionCallbackCommand } from './handle-subscription-callbac
 const BILLING_PERIOD_MONTHS = 1;
 
 @CommandHandler(HandleSubscriptionCallbackCommand)
-export class HandleSubscriptionCallbackHandler
-  implements ICommandHandler<HandleSubscriptionCallbackCommand, void>
-{
+export class HandleSubscriptionCallbackHandler implements ICommandHandler<
+  HandleSubscriptionCallbackCommand,
+  void
+> {
   private readonly logger = new Logger(HandleSubscriptionCallbackHandler.name);
 
   constructor(
@@ -71,7 +72,7 @@ export class HandleSubscriptionCallbackHandler
         });
         // İlk başarılı ödeme fatura dönemini başlatır → yenileme günü bu tarihten hesaplanır.
         this.startInitialPeriod(subscription);
-        await this.subscriptionCommandRepo.save(subscription);
+        await this.subscriptionCommandRepo.update(subscription);
 
         // Müşteri kartını sakladıysa sonraki dönemler için otomatik tahsilat yöntemini kaydet.
         if (result.savedCard) {
@@ -84,7 +85,7 @@ export class HandleSubscriptionCallbackHandler
           source: LogSource.SYSTEM,
           errorMessage: result.errorMessage,
         });
-        await this.subscriptionCommandRepo.save(subscription);
+        await this.subscriptionCommandRepo.update(subscription);
       }
     });
   }

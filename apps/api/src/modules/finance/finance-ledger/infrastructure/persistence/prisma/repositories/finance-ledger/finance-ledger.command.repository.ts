@@ -22,7 +22,7 @@ export class FinanceLedgerCommandRepository
     return new FinanceLedgerEntity(raw);
   }
 
-  async saveMany(entries: FinanceLedgerEntity[]): Promise<void> {
+  async updateMany(entries: FinanceLedgerEntity[]): Promise<void> {
     const ops = entries.map((entry) => {
       const data = entry.toPersistence();
       return this.db.financeLedger.upsert({

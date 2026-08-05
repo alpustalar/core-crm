@@ -26,7 +26,7 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async save(entity: Organization): Promise<Organization> {
+  async update(entity: Organization): Promise<Organization> {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
 
@@ -39,7 +39,7 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async saveMany(entities: Organization[]): Promise<void> {
+  async updateMany(entities: Organization[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const persistenceData = entity.toPersistence();
       const { id, ...data } = persistenceData;

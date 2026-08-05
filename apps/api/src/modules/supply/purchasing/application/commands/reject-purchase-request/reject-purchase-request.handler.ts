@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(RejectPurchaseRequestCommand)
-export class RejectPurchaseRequestHandler
-  implements ICommandHandler<RejectPurchaseRequestCommand, void>
-{
+export class RejectPurchaseRequestHandler implements ICommandHandler<
+  RejectPurchaseRequestCommand,
+  void
+> {
   constructor(
     @Inject(PURCHASE_REQUEST_COMMAND_REPOSITORY)
     private readonly prCommandRepo: IPurchaseRequestCommandRepository,
@@ -39,7 +40,7 @@ export class RejectPurchaseRequestHandler
         .orThrow('purchase-request.reject');
 
       request.reject(ctx.actor.userId, data.note);
-      await this.prCommandRepo.save(request);
+      await this.prCommandRepo.update(request);
     });
   }
 }

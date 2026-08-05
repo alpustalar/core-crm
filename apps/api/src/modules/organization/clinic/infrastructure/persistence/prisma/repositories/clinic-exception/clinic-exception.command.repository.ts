@@ -18,7 +18,7 @@ export class ClinicExceptionCommandRepository
     return raw ? new ClinicException(raw) : null;
   }
 
-  async save(entity: ClinicException) {
+  async update(entity: ClinicException) {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
     const raw = await this.db.clinicException.update({

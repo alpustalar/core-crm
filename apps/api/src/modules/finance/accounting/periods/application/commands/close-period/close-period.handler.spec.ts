@@ -18,7 +18,8 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
     validate: {
       isOpenOrLocked: {
         orThrow: jest.fn(() => {
-          if (isClosed) throw new PeriodAlreadyClosedException('period-1', 2026);
+          if (isClosed)
+            throw new PeriodAlreadyClosedException('period-1', 2026);
         }),
       },
     },
@@ -31,7 +32,7 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
     const periodCommandRepo = {
       findById: jest.fn().mockResolvedValue(period),
       claimForClosing: jest.fn().mockResolvedValue(claimed),
-      save: jest.fn().mockResolvedValue(period),
+      update: jest.fn().mockResolvedValue(period),
     } as unknown as IAccountingPeriodCommandRepository;
     const commandBus = {
       execute: jest.fn().mockResolvedValue(undefined),

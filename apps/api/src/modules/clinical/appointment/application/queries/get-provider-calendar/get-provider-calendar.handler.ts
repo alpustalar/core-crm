@@ -4,14 +4,14 @@ import { GetProviderCalendarQuery } from './get-provider-calendar.query';
 import { GetProviderCalendarQueryResponse } from './get-provider-calendar.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetProviderCalendarQuery)
 export class GetProviderCalendarHandler

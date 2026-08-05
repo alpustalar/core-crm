@@ -4,10 +4,6 @@ import { ScheduleAppointmentCommand } from './schedule-appointment.command';
 import { ScheduleAppointmentCommandResponse } from './schedule-appointment.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
@@ -21,17 +17,18 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TimeZoneSchema } from '@shared';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
 @CommandHandler(ScheduleAppointmentCommand)
-export class ScheduleAppointmentHandler
-  implements
-    ICommandHandler<
-      ScheduleAppointmentCommand,
-      ScheduleAppointmentCommandResponse
-    >
-{
+export class ScheduleAppointmentHandler implements ICommandHandler<
+  ScheduleAppointmentCommand,
+  ScheduleAppointmentCommandResponse
+> {
   private readonly internalCtx = ExecutionContextFactory.createInternal();
 
   constructor(

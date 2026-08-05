@@ -47,7 +47,7 @@ describe('HandleSubscriptionCallbackHandler', () => {
     } as unknown as ISubscriptionQueryRepository;
 
     const subscriptionCommandRepo = {
-      save: jest.fn(async (s: Subscription) => s),
+      update: jest.fn(async (s: Subscription) => s),
     } as unknown as ISubscriptionCommandRepository;
 
     const upsertBySubscriptionId = jest.fn();
@@ -70,7 +70,12 @@ describe('HandleSubscriptionCallbackHandler', () => {
       billingAdapter,
       txManager
     );
-    return { handler, subscription, subscriptionCommandRepo, upsertBySubscriptionId };
+    return {
+      handler,
+      subscription,
+      subscriptionCommandRepo,
+      upsertBySubscriptionId,
+    };
   };
 
   const command = new HandleSubscriptionCallbackCommand('token-1', 'conv-1');

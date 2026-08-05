@@ -34,7 +34,7 @@ export class PosTransactionCommandRepository
     return new PosTransaction(raw);
   }
 
-  async save(entity: PosTransaction): Promise<PosTransaction> {
+  async update(entity: PosTransaction): Promise<PosTransaction> {
     const { id, ...data } = entity.toPersistence();
     const raw = await this.db.posTransaction.update({
       where: { id },

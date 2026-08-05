@@ -43,7 +43,7 @@ export class CheckOutHandler implements ICommandHandler<CheckOutCommand, void> {
       }
 
       existing.checkOut();
-      await this.attendanceCommandRepo.save(existing);
+      await this.attendanceCommandRepo.update(existing);
     });
   }
 }

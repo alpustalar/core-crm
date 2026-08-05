@@ -28,10 +28,10 @@ describe('ModuleEntitlementGuard', () => {
 
     const setTenantEntitlements = jest.fn();
     const cacheService = {
-      getTenantEntitlements: jest
-        .fn()
-        .mockResolvedValue(opts.cached ?? null),
-      setTenantEntitlements,
+      tenantEntitlements: {
+        get: jest.fn().mockResolvedValue(opts.cached ?? null),
+        set: setTenantEntitlements,
+      },
     } as unknown as SubscriptionCacheService;
 
     const queryBus = {
@@ -71,7 +71,7 @@ describe('ModuleEntitlementGuard', () => {
       cached: active(['e_invoice']),
     });
     await expect(
-      t.guard.canActivate(ctxFor({ organizationId }))
+      t.guard.canActivate(ctxFor({ organizationId, rolePriority: 1 }))
     ).resolves.toBe(true);
     expect(t.queryBus.execute).not.toHaveBeenCalled();
   });
@@ -83,7 +83,7 @@ describe('ModuleEntitlementGuard', () => {
       queried: active(['crm']),
     });
     await expect(
-      t.guard.canActivate(ctxFor({ organizationId }))
+      t.guard.canActivate(ctxFor({ organizationId, rolePriority: 1 }))
     ).rejects.toBeInstanceOf(SubscriptionModuleRequiredException);
     expect(t.setTenantEntitlements).toHaveBeenCalled();
   });
@@ -94,14 +94,14 @@ describe('ModuleEntitlementGuard', () => {
       cached: { ...active(['e_invoice']), active: false },
     });
     await expect(
-      t.guard.canActivate(ctxFor({ organizationId }))
+      t.guard.canActivate(ctxFor({ organizationId, rolePriority: 1 }))
     ).rejects.toBeInstanceOf(SubscriptionModuleRequiredException);
   });
 
   it('organizationId yoksa → 402', async () => {
     const t = build({ requiredModule: 'e_invoice' });
-    await expect(t.guard.canActivate(ctxFor({}))).rejects.toBeInstanceOf(
-      SubscriptionModuleRequiredException
-    );
+    await expect(
+      t.guard.canActivate(ctxFor({ rolePriority: 1 }))
+    ).rejects.toBeInstanceOf(SubscriptionModuleRequiredException);
   });
 });

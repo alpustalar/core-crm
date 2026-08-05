@@ -24,7 +24,7 @@ describe('ConnectClinicInstagramChannelHandler (self-service)', () => {
     } as unknown as IInstagramGraphApi;
 
     const channelCommandRepo = {
-      save: jest.fn(async (c: ClinicInstagramChannel) => {
+      upsertByClinicId: jest.fn(async (c: ClinicInstagramChannel) => {
         saved = c;
         return c;
       }),
@@ -51,11 +51,11 @@ describe('ConnectClinicInstagramChannelHandler (self-service)', () => {
     const { handler, graphApi, cipher, getSaved } = build();
 
     const id = await handler.execute(
-      new ConnectClinicInstagramChannelCommand(
-        'clinic-1',
-        { code: 'auth', igUserId: 'ig-123', username: 'klinik' },
-        ctx
-      )
+      new ConnectClinicInstagramChannelCommand({
+        clinicId: 'clinic-1',
+        input: { code: 'auth', igUserId: 'ig-123', username: 'klinik' },
+        ctx,
+      })
     );
 
     expect(graphApi.exchangeCodeForToken).toHaveBeenCalledWith('auth');
@@ -78,14 +78,17 @@ describe('ConnectClinicInstagramChannelHandler (self-service)', () => {
     );
 
     await handler.execute(
-      new ConnectClinicInstagramChannelCommand(
-        'clinic-1',
-        { code: 'auth', igUserId: 'ig-123' },
-        ctx
-      )
+      new ConnectClinicInstagramChannelCommand({
+        clinicId: 'clinic-1',
+        input: { code: 'auth', igUserId: 'ig-123' },
+        ctx,
+      })
     );
 
-    expect(graphApi.subscribeToWebhooks).toHaveBeenCalledWith('ig-123', 'short');
+    expect(graphApi.subscribeToWebhooks).toHaveBeenCalledWith(
+      'ig-123',
+      'short'
+    );
     expect(cipher.encrypt).toHaveBeenCalledWith('short');
     expect(getSaved()!.accessToken).toBe('enc(short)');
   });
@@ -98,11 +101,11 @@ describe('ConnectClinicInstagramChannelHandler (self-service)', () => {
 
     await expect(
       handler.execute(
-        new ConnectClinicInstagramChannelCommand(
-          'clinic-1',
-          { code: 'auth', igUserId: 'ig-123' },
-          ctx
-        )
+        new ConnectClinicInstagramChannelCommand({
+          clinicId: 'clinic-1',
+          input: { code: 'auth', igUserId: 'ig-123' },
+          ctx,
+        })
       )
     ).rejects.toThrow('subscribe failed');
     expect(getSaved()).toBeUndefined();

@@ -3,10 +3,6 @@ import { Inject } from '@nestjs/common';
 import { GetClinicCalendarQuery } from './get-clinic-calendar.query';
 import { GetClinicCalendarResponse } from './get-clinic-calendar.response';
 import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
@@ -18,6 +14,10 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { FindProvidersDirectoryQuery } from '@modules/clinical/provider/application/queries/find-providers-directory/find-providers-directory.query';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 /**
  * Klinik tam takvimi: verilen tarih aralığındaki tüm randevuları (dolu-boş fark
@@ -27,9 +27,10 @@ import { FindProvidersDirectoryQuery } from '@modules/clinical/provider/applicat
  * (bounded-context: Prisma join YOK). Yetki, klinik-seviye policy ile korunur.
  */
 @QueryHandler(GetClinicCalendarQuery)
-export class GetClinicCalendarHandler
-  implements IQueryHandler<GetClinicCalendarQuery, GetClinicCalendarResponse>
-{
+export class GetClinicCalendarHandler implements IQueryHandler<
+  GetClinicCalendarQuery,
+  GetClinicCalendarResponse
+> {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,

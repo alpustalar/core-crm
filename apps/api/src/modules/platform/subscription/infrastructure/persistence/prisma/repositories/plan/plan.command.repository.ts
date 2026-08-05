@@ -24,7 +24,7 @@ export class PlanCommandRepository
     return new Plan(raw);
   }
 
-  async save(entity: Plan): Promise<Plan> {
+  async update(entity: Plan): Promise<Plan> {
     const data = entity.toPersistence();
     const { id: _id, ...update } = data;
     const raw = await this.db.plan.update({

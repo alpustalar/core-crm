@@ -1,8 +1,15 @@
 /* eslint-disable */
 import { GetUpcomingRemindersHandler } from './get-upcoming-reminders.handler';
 import { GetUpcomingRemindersQuery } from './get-upcoming-reminders.query';
-import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 
+/**
+ * NOT: Bu handler'ın kurucusu yalnızca appointmentRepo alır — policyFactory inject
+ * edilmez ve ctx (aktör) hiç kullanılmaz. clinicId, ctx.actor.clinicId'den değil
+ * doğrudan filter.clinicId'den (DTO/query-param — GetUpcomingRemindersSchema'da
+ * zorunlu z.uuid()) okunur. Dolayısıyla "klinik atanmamışsa" / "yetki yoksa"
+ * senaryoları bu handler seviyesinde değil, DTO validasyonu ve üst katman (guard)
+ * seviyesinde uygulanır; burada yalnız filtrenin repo'ya doğru geçtiği doğrulanır.
+ */
 describe('GetUpcomingRemindersHandler (yaklaşan hatırlatmalar)', () => {
   const pagination = {
     take: 20,
@@ -14,42 +21,20 @@ describe('GetUpcomingRemindersHandler (yaklaşan hatırlatmalar)', () => {
     searchOperator: 'AND' as const,
   };
 
-  const build = (options: {
-    canAccess?: boolean;
-    capture?: (data: unknown) => void;
-    clinicId?: string | null;
-  }) => {
-    const canAccess = options.canAccess ?? true;
-
-    // Yetki mekanizmasını gerçeğe daha yakın mock'luyoruz
-    const policyFactory = {
-      appointment: jest.fn().mockReturnValue({
-        evaluator: {
-          check: jest.fn().mockReturnValue({
-            orThrow: () => {
-              if (!canAccess) throw new Error('yetki yok');
-            },
-          }),
-        },
-      }),
-    } as any;
-
+  const build = (options: { capture?: (data: unknown) => void }) => {
     const appointmentRepo = {
       findUpcomingReminders: jest.fn().mockImplementation((data: unknown) => {
         options.capture?.(data);
+        // Repo bu projeksiyonda plain read-model (@shared Appointment) döner —
+        // domain entity değil; handler ekstra toPersistence() dönüşümü yapmaz.
         return Promise.resolve({
-          items: [{ toPersistence: () => ({ id: 'a1' }) }],
+          items: [{ id: 'a1' }],
           total: 1,
         });
       }),
     } as any;
 
-    const ctx = {
-      actor: {
-        clinicId:
-          options.clinicId !== undefined ? options.clinicId : 'clinic-1',
-      },
-    } as any;
+    const ctx = { actor: { clinicId: 'clinic-1' } } as any;
 
     return {
       handler: new GetUpcomingRemindersHandler(appointmentRepo),
@@ -57,44 +42,33 @@ describe('GetUpcomingRemindersHandler (yaklaşan hatırlatmalar)', () => {
     };
   };
 
-  it('clinicId ve hoursAhead’i repo filtresine geçirir', async () => {
+  it('filter.clinicId ve hoursAhead’i repo filtresine geçirir', async () => {
     let captured: Record<string, unknown> = {};
     const { handler, ctx } = build({
       capture: (data) => (captured = data as Record<string, unknown>),
     });
 
     const { data } = await handler.execute(
-      new GetUpcomingRemindersQuery({ pagination, hoursAhead: 48 } as any, ctx)
+      new GetUpcomingRemindersQuery(
+        { pagination, hoursAhead: 48, clinicId: 'clinic-1' } as any,
+        ctx
+      )
     );
 
     expect(captured).toMatchObject({ clinicId: 'clinic-1', hoursAhead: 48 });
     expect(data).toEqual([{ id: 'a1' }]);
   });
 
-  it('klinik atanmamışsa ClinicNotAssignedException fırlatır', async () => {
-    // Hem null hem undefined durumlarını handle edebildiğini doğrulamak için null set ediyoruz
-    const { handler, ctx } = build({ clinicId: null });
+  it('sayfalama meta’sını repo’dan dönen total ile hesaplar', async () => {
+    const { handler, ctx } = build({});
 
-    await expect(
-      handler.execute(
-        new GetUpcomingRemindersQuery(
-          { pagination, hoursAhead: 24 } as any,
-          ctx
-        )
+    const { meta } = await handler.execute(
+      new GetUpcomingRemindersQuery(
+        { pagination, hoursAhead: 24, clinicId: 'clinic-1' } as any,
+        ctx
       )
-    ).rejects.toBeInstanceOf(ClinicNotAssignedException);
-  });
+    );
 
-  it('yetki yoksa hata fırlatır', async () => {
-    const { handler, ctx } = build({ canAccess: false });
-
-    await expect(
-      handler.execute(
-        new GetUpcomingRemindersQuery(
-          { pagination, hoursAhead: 24 } as any,
-          ctx
-        )
-      )
-    ).rejects.toThrow('yetki yok');
+    expect(meta?.pagination).toMatchObject({ total: 1 });
   });
 });

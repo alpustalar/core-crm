@@ -30,7 +30,7 @@ export class MetaLeadConversionListener {
       if (!lead) return;
 
       lead.markConverted(event.appointmentId);
-      await this.leadCommandRepo.save(lead);
+      await this.leadCommandRepo.update(lead);
     } catch (err) {
       this.logger.error(
         `Meta lead dönüşüm hatası — patientId: ${event.patientId}`,

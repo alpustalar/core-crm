@@ -11,19 +11,17 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @QueryHandler(FindPatientPackagesQuery)
-export class FindPatientPackagesHandler
-  implements
-    IQueryHandler<FindPatientPackagesQuery, FindPatientPackagesResponse>
-{
+export class FindPatientPackagesHandler implements IQueryHandler<
+  FindPatientPackagesQuery,
+  FindPatientPackagesResponse
+> {
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly patientPackageQueryRepo: IPatientTreatmentPackageQueryRepository,
+    private readonly patientTreatmentPackageRepo: IPatientTreatmentPackageQueryRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
-    private readonly queryBus: TSQueryBus
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -32,7 +30,7 @@ export class FindPatientPackagesHandler
     const { filter, ctx } = query;
 
     const { items: patientTreatmentPackages, total } =
-      await this.patientPackageQueryRepo.findManyByPatient(
+      await this.patientTreatmentPackageRepo.findManyByPatient(
         filter.patientId ?? '',
         filter.pagination,
         filter.status

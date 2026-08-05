@@ -38,10 +38,10 @@ import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/c
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 @CommandHandler(IyzicoTerminalSaleCommand)
-export class IyzicoTerminalSaleHandler
-  implements
-    ICommandHandler<IyzicoTerminalSaleCommand, IyzicoTerminalSaleResponse>
-{
+export class IyzicoTerminalSaleHandler implements ICommandHandler<
+  IyzicoTerminalSaleCommand,
+  IyzicoTerminalSaleResponse
+> {
   private readonly logger = new Logger(IyzicoTerminalSaleHandler.name);
 
   constructor(
@@ -137,7 +137,7 @@ export class IyzicoTerminalSaleHandler
       await this.txManager.outboxRun(async () => {
         if (approved) {
           transaction.markSuccess(iyzicoPaymentId, result);
-          await this.posTransactionCommandRepo.save(transaction);
+          await this.posTransactionCommandRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markPaid({
               paymentId,
@@ -155,7 +155,7 @@ export class IyzicoTerminalSaleHandler
           }
         } else {
           transaction.markFailed(result);
-          await this.posTransactionCommandRepo.save(transaction);
+          await this.posTransactionCommandRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,
@@ -209,7 +209,7 @@ export class IyzicoTerminalSaleHandler
       ) {
         await this.txManager.outboxRun(async () => {
           transaction.markFailed();
-          await this.posTransactionCommandRepo.save(transaction);
+          await this.posTransactionCommandRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,

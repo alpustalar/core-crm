@@ -69,7 +69,12 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
     });
 
     const { data } = await handler.execute(
-      new GetInboundMediaQuery('clinic-1', conv.id, 'msg-1', ctx)
+      new GetInboundMediaQuery({
+        clinicId: 'clinic-1',
+        conversationId: conv.id,
+        messageId: 'msg-1',
+        ctx,
+      })
     );
 
     const dispatched = (queryBus.execute as jest.Mock).mock.calls[0][0];
@@ -82,7 +87,12 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
   it('mesaj bulunamazsa NotFoundException', async () => {
     const { handler } = build({ message: null });
     await expect(
-      handler.execute(new GetInboundMediaQuery('clinic-1', 'c-1', 'm-x', ctx))
+      handler.execute(new GetInboundMediaQuery({
+        clinicId: 'clinic-1',
+        conversationId: 'c-1',
+        messageId: 'm-x',
+        ctx,
+      }))
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -93,7 +103,12 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
       conversation: conv,
     });
     await expect(
-      handler.execute(new GetInboundMediaQuery('clinic-OTHER', conv.id, 'm-1', ctx))
+      handler.execute(new GetInboundMediaQuery({
+        clinicId: 'clinic-OTHER',
+        conversationId: conv.id,
+        messageId: 'm-1',
+        ctx,
+      }))
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -110,7 +125,12 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
     });
 
     const { data } = await handler.execute(
-      new GetInboundMediaQuery('clinic-1', conv.id, 'm-1', ctx)
+      new GetInboundMediaQuery({
+        clinicId: 'clinic-1',
+        conversationId: conv.id,
+        messageId: 'm-1',
+        ctx,
+      })
     );
     expect(data).toBeNull();
     expect(queryBus.execute).not.toHaveBeenCalled();

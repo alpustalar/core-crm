@@ -14,12 +14,13 @@ import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exc
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(SoftDeleteProviderByClinicIdCommand)
-export class SoftDeleteProviderByClinicIdHandler
-  implements ICommandHandler<SoftDeleteProviderByClinicIdCommand, void>
-{
+export class SoftDeleteProviderByClinicIdHandler implements ICommandHandler<
+  SoftDeleteProviderByClinicIdCommand,
+  void
+> {
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager
@@ -28,7 +29,7 @@ export class SoftDeleteProviderByClinicIdHandler
   async execute(command: SoftDeleteProviderByClinicIdCommand): Promise<void> {
     const { providerId, ctx } = command;
 
-    const provider = await this.providerCommandRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -41,8 +42,6 @@ export class SoftDeleteProviderByClinicIdHandler
 
     provider.softDelete();
 
-    await this.transactionManager.run(() =>
-      this.providerCommandRepo.save(provider)
-    );
+    await this.transactionManager.run(() => this.providerRepo.update(provider));
   }
 }

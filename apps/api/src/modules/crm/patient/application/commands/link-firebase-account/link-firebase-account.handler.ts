@@ -9,13 +9,10 @@ import { Inject } from '@nestjs/common';
 import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
 
 @CommandHandler(LinkFirebaseAccountCommand)
-export class LinkFirebaseAccountHandler
-  implements
-    ICommandHandler<
-      LinkFirebaseAccountCommand,
-      LinkFirebaseAccountCommandResponse
-    >
-{
+export class LinkFirebaseAccountHandler implements ICommandHandler<
+  LinkFirebaseAccountCommand,
+  LinkFirebaseAccountCommandResponse
+> {
   constructor(
     @Inject(PATIENT_COMMAND_REPOSITORY)
     private readonly patientCommandRepo: IPatientCommandRepository
@@ -32,7 +29,7 @@ export class LinkFirebaseAccountHandler
 
     patient.linkFirebaseAccount(firebaseUid);
 
-    await this.patientCommandRepo.save(patient);
+    await this.patientCommandRepo.update(patient);
     return patient.id.value;
   }
 }

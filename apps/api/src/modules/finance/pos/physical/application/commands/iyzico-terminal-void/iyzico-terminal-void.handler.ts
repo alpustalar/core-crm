@@ -34,10 +34,10 @@ import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/phys
 import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
 
 @CommandHandler(IyzicoTerminalVoidCommand)
-export class IyzicoTerminalVoidHandler
-  implements
-    ICommandHandler<IyzicoTerminalVoidCommand, IyzicoTerminalVoidResponse>
-{
+export class IyzicoTerminalVoidHandler implements ICommandHandler<
+  IyzicoTerminalVoidCommand,
+  IyzicoTerminalVoidResponse
+> {
   private readonly logger = new Logger(IyzicoTerminalVoidHandler.name);
 
   constructor(
@@ -121,7 +121,7 @@ export class IyzicoTerminalVoidHandler
       await this.txManager.outboxRun(async () => {
         if (approved) {
           voidTx.markSuccess(externalRef, result);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
           if (originalTx.paymentId) {
             await this.posPaymentSync.markRefunded({
               paymentId: originalTx.paymentId,
@@ -130,7 +130,7 @@ export class IyzicoTerminalVoidHandler
           }
         } else {
           voidTx.markFailed(result);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
         }
       });
 
@@ -172,7 +172,7 @@ export class IyzicoTerminalVoidHandler
       ) {
         await this.txManager.outboxRun(async () => {
           voidTx.markFailed();
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
         });
         this.logger.error(
           `iyzico terminal iptal hatası: id=${voidTransactionId} — ${err.message}`

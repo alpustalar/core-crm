@@ -1,4 +1,8 @@
-import { MessageChannel, MessageDirection, MessageStatus } from '@prisma/client';
+import {
+  MessageChannel,
+  MessageDirection,
+  MessageStatus,
+} from '@prisma/client';
 import { ReceiveInboundMessageHandler } from './receive-inbound-message.handler';
 import { ReceiveInboundMessageCommand } from './receive-inbound-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
@@ -43,19 +47,29 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     } as unknown as IConversationQueryRepository;
 
     const conversationCommandRepo = {
-      save: jest.fn(async (c: Conversation) => {
+      create: jest.fn(async (c: Conversation) => {
+        savedConversation = c;
+        return c;
+      }),
+      update: jest.fn(async (c: Conversation) => {
         savedConversation = c;
         return c;
       }),
     } as unknown as IConversationCommandRepository;
 
     const messageQueryRepo = {
-      findByExternalId: jest.fn().mockResolvedValue(params.existingMessage ?? null),
+      findByExternalId: jest
+        .fn()
+        .mockResolvedValue(params.existingMessage ?? null),
       findManyByConversation: jest.fn(),
     } as unknown as IMessageQueryRepository;
 
     const messageCommandRepo = {
-      save: jest.fn(async (m: Message) => {
+      create: jest.fn(async (m: Message) => {
+        savedMessage = m;
+        return m;
+      }),
+      update: jest.fn(async (m: Message) => {
         savedMessage = m;
         return m;
       }),
@@ -95,7 +109,10 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
   };
 
   it('yeni kontak: yeni Conversation + INBOUND mesaj + hasta eşleme + MessageReceivedEvent', async () => {
-    const t = build({ existingConversation: null, patient: { id: 'patient-9' } });
+    const t = build({
+      existingConversation: null,
+      patient: { id: 'patient-9' },
+    });
 
     const id = await t.handler.execute(
       new ReceiveInboundMessageCommand(baseInput)
@@ -179,7 +196,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     body: null,
   };
 
-  it('reklam referral (WhatsApp): yeni misafir yazışmada attribution\'lı Lead üretilir ve bağlanır', async () => {
+  it("reklam referral (WhatsApp): yeni misafir yazışmada attribution'lı Lead üretilir ve bağlanır", async () => {
     const t = build({ existingConversation: null, patient: null });
 
     await t.handler.execute(
@@ -191,19 +208,22 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     const cmd = (t.commandBus.execute as jest.Mock).mock
       .calls[0][0] as CreateLeadCommand;
     expect(cmd).toBeInstanceOf(CreateLeadCommand);
-    expect(cmd.clinicId).toBe(baseInput.clinicId);
-    expect(cmd.dto.source).toBe('WHATSAPP');
-    expect(cmd.dto.medium).toBe('AD');
-    expect(cmd.dto.adId).toBe('ad-123');
-    expect(cmd.dto.ctwaClid).toBe('ctwa-xyz');
-    expect(cmd.dto.phone).toBe(baseInput.contactPhone);
+    expect(cmd.payload.clinicId).toBe(baseInput.clinicId);
+    expect(cmd.payload.data.source).toBe('WHATSAPP');
+    expect(cmd.payload.data.medium).toBe('AD');
+    expect(cmd.payload.data.adId).toBe('ad-123');
+    expect(cmd.payload.data.ctwaClid).toBe('ctwa-xyz');
+    expect(cmd.payload.data.phone).toBe(baseInput.contactPhone);
 
     // Dönen leadId yazışmaya bağlandı.
     expect(t.getSavedConversation()!.leadId).toBe('lead-generated-1');
   });
 
   it('reklam referral ama hasta zaten kayıtlı: Lead üretilmez (misafir değil)', async () => {
-    const t = build({ existingConversation: null, patient: { id: 'patient-9' } });
+    const t = build({
+      existingConversation: null,
+      patient: { id: 'patient-9' },
+    });
 
     await t.handler.execute(
       new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
@@ -249,7 +269,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     );
 
     expect(id).toBe(already.id);
-    expect(t.messageCommandRepo.save).not.toHaveBeenCalled();
-    expect(t.conversationCommandRepo.save).not.toHaveBeenCalled();
+    expect(t.messageCommandRepo.update).not.toHaveBeenCalled();
+    expect(t.conversationCommandRepo.update).not.toHaveBeenCalled();
   });
 });

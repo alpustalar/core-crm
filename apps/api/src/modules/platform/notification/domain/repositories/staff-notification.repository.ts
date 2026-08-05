@@ -14,7 +14,7 @@ export interface IStaffNotificationCommandRepository {
   /** Toplu ekleme — bir event birden çok personele bildirim üretir. */
   createMany(notifications: StaffNotification[]): Promise<void>;
   findById(id: string): Promise<StaffNotification | null>;
-  save(notification: StaffNotification): Promise<StaffNotification>;
+  update(notification: StaffNotification): Promise<StaffNotification>;
   /** Alıcının tüm okunmamışlarını okundu işaretler; etkilenen satır sayısı döner. */
   markAllRead(staffId: string): Promise<number>;
   /** Real-time push sonucu teslimat durumunu toplu günceller (SENT/FAILED). */

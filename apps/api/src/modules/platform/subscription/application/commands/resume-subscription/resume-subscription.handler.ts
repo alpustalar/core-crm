@@ -9,9 +9,10 @@ import { SubscriptionNotFoundException } from '@modules/platform/subscription/do
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 @CommandHandler(ResumeSubscriptionCommand)
-export class ResumeSubscriptionHandler
-  implements ICommandHandler<ResumeSubscriptionCommand, void>
-{
+export class ResumeSubscriptionHandler implements ICommandHandler<
+  ResumeSubscriptionCommand,
+  void
+> {
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
@@ -26,7 +27,7 @@ export class ResumeSubscriptionHandler
 
     await this.txManager.run(async () => {
       subscription.undoCancellation();
-      await this.subscriptionCommandRepo.save(subscription);
+      await this.subscriptionCommandRepo.update(subscription);
     });
   }
 }

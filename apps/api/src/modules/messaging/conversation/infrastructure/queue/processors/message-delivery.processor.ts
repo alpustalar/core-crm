@@ -115,9 +115,9 @@ export class MessageDeliveryProcessor extends WorkerHost {
 
       await this.txManager.run(async () => {
         message.markSent(result.externalId);
-        await this.messageCommandRepo.save(message);
+        await this.messageCommandRepo.update(message);
         conversation.touch();
-        await this.conversationCommandRepo.save(conversation);
+        await this.conversationCommandRepo.update(conversation);
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'Gönderim hatası';
@@ -127,7 +127,7 @@ export class MessageDeliveryProcessor extends WorkerHost {
       if (isFinalAttempt) {
         await this.txManager.run(async () => {
           message.markFailed(reason);
-          await this.messageCommandRepo.save(message);
+          await this.messageCommandRepo.update(message);
         });
         this.logger.error(
           `Mesaj gönderimi kalıcı başarısız: ${message.id} — ${reason}`

@@ -18,7 +18,7 @@ export class ClinicAvailabilityCommandRepository
     return raw ? new ClinicAvailability(raw) : null;
   }
 
-  async save(entity: ClinicAvailability) {
+  async update(entity: ClinicAvailability) {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
     const raw = await this.db.clinicAvailability.update({

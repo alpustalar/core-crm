@@ -9,13 +9,13 @@ import {
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetActivitiesByLeadQuery)
-export class GetActivitiesByLeadHandler
-  implements
-    IQueryHandler<GetActivitiesByLeadQuery, GetActivitiesByLeadResponse>
-{
+export class GetActivitiesByLeadHandler implements IQueryHandler<
+  GetActivitiesByLeadQuery,
+  GetActivitiesByLeadResponse
+> {
   constructor(
     @Inject(ACTIVITY_QUERY_REPOSITORY)
-    private readonly activityQueryRepo: IActivityQueryRepository
+    private readonly activityRepo: IActivityQueryRepository
   ) {}
 
   async execute(
@@ -23,13 +23,13 @@ export class GetActivitiesByLeadHandler
   ): Promise<GetActivitiesByLeadResponse> {
     const { leadId, pagination } = query.payload;
 
-    const result = await this.activityQueryRepo.findByLead({
+    const result = await this.activityRepo.findByLead({
       leadId,
       pagination,
     });
 
     return {
-      data: result.items.map((item) => item.toPersistence()),
+      data: result.items,
       meta: { pagination: buildPaginationMeta(pagination, result.total) },
     };
   }

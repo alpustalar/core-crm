@@ -36,7 +36,7 @@ describe('GetAgencyRoiReportHandler', () => {
     const queryBus = {
       execute: jest.fn(async (q: unknown) => {
         if (q instanceof GetAdAttributedLeadsQuery) {
-          const isCurrent = q.from.getTime() === from.getTime();
+          const isCurrent = q.payload.from.getTime() === from.getTime();
           return { data: isCurrent ? opts.currentLeads : [] };
         }
         if (q instanceof GetRevenueByPatientsQuery) {
@@ -75,7 +75,7 @@ describe('GetAgencyRoiReportHandler', () => {
     });
 
     const { data } = await handler.execute(
-      new GetAgencyRoiReportQuery(clinicId, from, to, ctx)
+      new GetAgencyRoiReportQuery({ clinicId, from, to, ctx })
     );
 
     expect(data.current.spend).toBe(1000);
@@ -109,7 +109,7 @@ describe('GetAgencyRoiReportHandler', () => {
     });
 
     const { data } = await handler.execute(
-      new GetAgencyRoiReportQuery(clinicId, from, to, ctx)
+      new GetAgencyRoiReportQuery({ clinicId, from, to, ctx })
     );
 
     expect(data.previous.spend).toBe(500);
@@ -131,7 +131,7 @@ describe('GetAgencyRoiReportHandler', () => {
     });
 
     const { data } = await handler.execute(
-      new GetAgencyRoiReportQuery(clinicId, from, to, ctx)
+      new GetAgencyRoiReportQuery({ clinicId, from, to, ctx })
     );
 
     expect(data.current.attributedLeads).toBe(2); // lead sayısı 2

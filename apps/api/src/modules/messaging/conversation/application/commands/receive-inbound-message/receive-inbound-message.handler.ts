@@ -30,9 +30,10 @@ import { SYSTEM_ACTOR } from '@common/constants/system-actor.constant';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 
 @CommandHandler(ReceiveInboundMessageCommand)
-export class ReceiveInboundMessageHandler
-  implements ICommandHandler<ReceiveInboundMessageCommand, string>
-{
+export class ReceiveInboundMessageHandler implements ICommandHandler<
+  ReceiveInboundMessageCommand,
+  string
+> {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
@@ -104,7 +105,7 @@ export class ReceiveInboundMessageHandler
       if (isNew) {
         await this.conversationCommandRepo.create(conversation);
       } else {
-        await this.conversationCommandRepo.save(conversation);
+        await this.conversationCommandRepo.update(conversation);
       }
 
       return savedMessage.id;

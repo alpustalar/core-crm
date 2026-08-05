@@ -14,9 +14,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MarkInstallmentAsCancelledCommand)
-export class MarkInstallmentAsCancelledHandler
-  implements ICommandHandler<MarkInstallmentAsCancelledCommand, void>
-{
+export class MarkInstallmentAsCancelledHandler implements ICommandHandler<
+  MarkInstallmentAsCancelledCommand,
+  void
+> {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
     private readonly paymentQueryRepo: IPaymentQueryRepository,
@@ -40,6 +41,6 @@ export class MarkInstallmentAsCancelledHandler
     payment.rules(validateOptions).canCancel().orThrow();
 
     payment.cancelInstallment(installmentId);
-    await this.paymentCommandRepo.save(payment);
+    await this.paymentCommandRepo.update(payment);
   }
 }

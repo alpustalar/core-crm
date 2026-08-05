@@ -323,9 +323,9 @@ describe('WhatsappWebhookController (public webhook)', () => {
 
       const cmd = (commandBus.execute as jest.Mock).mock.calls[0][0];
       expect(cmd).toBeInstanceOf(MarkMessageStatusCommand);
-      expect(cmd.status).toBe('FAILED');
-      expect(cmd.errorReason).toMatch(/24 saatlik/);
-      expect(cmd.errorCode).toBe('131047');
+      expect(cmd.payload.status).toBe('FAILED');
+      expect(cmd.payload.errorReason).toMatch(/24 saatlik/);
+      expect(cmd.payload.errorCode).toBe('131047');
     });
 
     it('delivered status → reason/kod taşınmaz', async () => {
@@ -342,9 +342,9 @@ describe('WhatsappWebhookController (public webhook)', () => {
       await controller.receive(req, sign(req.rawBody!));
 
       const cmd = (commandBus.execute as jest.Mock).mock.calls[0][0];
-      expect(cmd.status).toBe('DELIVERED');
-      expect(cmd.errorReason).toBeNull();
-      expect(cmd.errorCode).toBeNull();
+      expect(cmd.payload.status).toBe('DELIVERED');
+      expect(cmd.payload.errorReason).toBeNull();
+      expect(cmd.payload.errorCode).toBeNull();
     });
   });
 });

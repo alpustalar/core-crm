@@ -535,7 +535,7 @@ await this.sessionCommandRepo.create(session);
 
 **Pessimistic kilit (`findByIdForUpdate`) — KURAL**: Eşzamanlı yazma çekişmesi olan sıcak satırlarda (kasa oturumu aç/kapa, stok düşümü, bakiye/sayaç) Command Repo `findByIdForUpdate(id)` metodu `BaseRepository.lockRowForUpdate(table, id)` ile satırı `FOR UPDATE` kilitler. **Yalnız aktif transaction içinde** çağrılır (`lockRowForUpdate` tx yoksa patlar — kilit tx dışında sessizce etkisizdir). Genel `findById`'a blanket `lock` bayrağı **eklenmez**; kilit ihtiyacı olan repo'ya ayrı, adını söyleyen `findByIdForUpdate` metodu eklenir.
 
-**Optimistic kilit (`version` kolonu) — KURAL**: Çekişmenin nadir ama lost-update'in kabul edilemez olduğu aggregate'lerde (randevu, abonelik) entity bir `version: number` taşır; `save()` `updateMany({ where: { id, version }, data: { …, version: version + 1 } })` ile günceller ve etkilenen satır 0 ise `ConcurrencyConflictException` (`@common/domain/exceptions`, 409) fırlatır. `create()` literal'i `version: 0` ile başlatır; `toPersistence()` `version`'ı taşır. `sync`/`upsert` (dış-senkron) yolları optimistic guard'a tabi değildir.
+**Optimistic kilit (`version` kolonu) — KURAL**: Çekişmenin nadir ama lost-update'in kabul edilemez olduğu aggregate'lerde (randevu, abonelik) entity bir `version: number` taşır; `update()` `updateMany({ where: { id, version }, data: { …, version: version + 1 } })` ile günceller ve etkilenen satır 0 ise `ConcurrencyConflictException` (`@common/domain/exceptions`, 409) fırlatır. `create()` literal'i `version: 0` ile başlatır; `toPersistence()` `version`'ı taşır. `sync`/`upsert` (dış-senkron) yolları optimistic guard'a tabi değildir.
 
 **7. Domain Types & Kontratlar (`*.contracts.ts`) — KURAL**:
 
@@ -627,7 +627,7 @@ Domain entity'ler `domain/entities/` klasöründe bulunur. Her entity şu yapıy
 - Value objectler oluşturulabilir. Mevcut vo'lar kullanılır. bunlar "<name>.vo.ts" şeklinde
 - Tüm field'lar `private _field` olarak tanımlanır; dışarıya yalnızca getter açılır
 - Domain iş metodları (durum geçişleri, validasyon) entity içinde yaşar
-- `toPersistence()` metodu entity'yi ham Prisma kaydına dönüştürür; repository'nin `save()` metodunu besler
+- `toPersistence()` metodu entity'yi ham Prisma kaydına dönüştürür; repository'nin `update()` metodunu besler
 - Static factory metodlar (ör. `calculateEndTime`) hesaplamaları entity'ye katar
 
 **Örnek: `appointment.entity.ts`**
@@ -1466,10 +1466,10 @@ export class Appointment extends AggregateRoot {
 
 | Senaryo                 | Yaklaşım                                                 |
 | ----------------------- | -------------------------------------------------------- |
-| Tekli state değişikliği | `entity.domainMethod()` → `repo.save(entity)`            |
+| Tekli state değişikliği | `entity.domainMethod()` → `repo.update(entity)`            |
 | Toplu işlem (bulk)      | `repo.updateMany(...)` veya `repo.softDeleteAllByX(...)` |
 
-**Tekli işlemler** her zaman entity üzerinden yapılır. Domain metodu hem invariant'ı korur hem ilgili event'i raise eder. `save()` entity'nin o anki tüm halini yazar — hangi alan değiştiğinden bağımsız tek bir metod yeterlidir.
+**Tekli işlemler** her zaman entity üzerinden yapılır. Domain metodu hem invariant'ı korur hem ilgili event'i raise eder. `update()` entity'nin o anki tüm halini yazar — hangi alan değiştiğinden bağımsız tek bir metod yeterlidir.
 
 **Toplu işlemlerde** entity pattern N+1 soruna yol açar. "Her entity için ayrı domain event/validation gerekiyor mu?" sorusu sorulur; genellikle cevap hayırdır — bu durumda doğrudan `updateMany` / `deleteMany` kullanılır ve domain bypass açıkça kabul edilir.
 
@@ -1482,7 +1482,7 @@ export class Appointment extends AggregateRoot {
 // ✓ Tekli — entity pattern
 const provider = await this.providerQueryRepo.findById(id);
 provider.activate();
-await this.providerCommandRepo.save(provider);
+await this.providerCommandRepo.update(provider);
 
 // ✓ Toplu — doğrudan DB (N+1 önlenir, domain bypass kabul edilir)
 await this.providerCommandRepo.softDeleteAllByClinicId(clinicId);
@@ -1490,20 +1490,20 @@ await this.providerCommandRepo.softDeleteAllByClinicId(clinicId);
 
 ---
 
-**Command Repository API — KURAL: `create` (insert) vs `save` (update) ayrımı**:
+**Command Repository API — KURAL: `create` (insert) vs `update` (güncelleme) ayrımı**:
 
 `*CommandRepository` interface'i iki tip işlemi netleştirir:
 
 - **`create(props)`**: Yeni kayıt **ekler** (INSERT). İlişkiler kurması gerekiyorsa (M2M, nested create), bu metod uzlaşabilir.
-- **`save(entity)`**: Mevcut entity'yi **günceller** (UPDATE — `upsert` bile değil, doğrudan `update`). Veri zaten `id` taşıyor; entity domain metodları sonrası çağrılır.
+- **`update(entity)`**: Mevcut entity'yi **günceller** (UPDATE — `upsert` bile değil, doğrudan `update`). Veri zaten `id` taşıyor; entity domain metodları sonrası çağrılır.
 
 Upsert yapması gereken işlemler (`findOrCreate`, auth bulun-veya-oluştur, broker login) **istisna** olarak ayrı metod (`upsertByEmail`, `findOrCreateByOAuth`) alabilir.
 
-> **⛔ `save` ASLA `upsert` yapmaz — KESİN KURAL**
+> **⛔ `update` ASLA `upsert` yapmaz — KESİN KURAL**
 >
-> `save(entity)` gövdesi **her zaman** `this.db.<model>.update({ where: { id }, data: update })` çağırır (`id` destructure edilip PK payload'dan çıkarılır). `save` içinde `upsert` **yasaktır**. Yeni kayıt her zaman `create` ile açılır.
+> `update(entity)` gövdesi **her zaman** `this.db.<model>.update({ where: { id }, data: update })` çağırır (`id` destructure edilip PK payload'dan çıkarılır). `update` içinde `upsert` **yasaktır**. Yeni kayıt her zaman `create` ile açılır.
 >
-> **Get-or-create / natural-key upsert gerekiyorsa ayrı, amacını söyleyen bir metod adı kullanılır** — `save` DEĞİL:
+> **Get-or-create / natural-key upsert gerekiyorsa ayrı, amacını söyleyen bir metod adı kullanılır** — `update` DEĞİL:
 >
 > | Senaryo | Metod adı |
 > | --- | --- |
@@ -1512,16 +1512,16 @@ Upsert yapması gereken işlemler (`findOrCreate`, auth bulun-veya-oluştur, bro
 > | Bileşik doğal anahtar (clinicId + provider) | `upsertByClinicAndProvider(entity)` |
 > | E-posta/OAuth bulun-veya-oluştur | `upsertByEmail(...)`, `findOrCreateByOAuth(...)` |
 >
-> Handler tarafında: yeni kayıt kesinse `create`; mevcut kaydın state değişimiyse `save`; "varsa güncelle yoksa oluştur" (config satellite gibi) ise `upsertBy...`.
+> Handler tarafında: yeni kayıt kesinse `create`; mevcut kaydın state değişimiyse `update`; "varsa güncelle yoksa oluştur" (config satellite gibi) ise `upsertBy...`.
 >
 > ```typescript
-> // ❌ Yanlış — save upsert yapıyor
-> async save(e: Foo) {
+> // ❌ Yanlış — update upsert yapıyor
+> async update(e: Foo) {
 >   return this.db.foo.upsert({ where: { id: e.id }, create: data, update: data });
 > }
 >
-> // ✓ Doğru — save yalnız update; ayrı upsert metodu doğal anahtarla
-> async save(e: Foo): Promise<Foo> {
+> // ✓ Doğru — update yalnız günceller (upsert değil); ayrı upsert metodu doğal anahtarla
+> async update(e: Foo): Promise<Foo> {
 >   const data = e.toPersistence();
 >   const { id, ...update } = data;
 >   const raw = await this.db.foo.update({ where: { id }, data: update });
@@ -1539,18 +1539,18 @@ Upsert yapması gereken işlemler (`findOrCreate`, auth bulun-veya-oluştur, bro
 
 **ID GENERATION KURALI: Prisma modellerinde hiçbir zaman otomatik ID üretilmez.** Her kayıt oluşturulurken `create(props)` çağrısında `props.id` gönderilir — handler/command'de UUID.generate() ile üretilir, repository'ye geçilir.
 
-**Her command repo `BaseCommandRepository` ile kurulur; `create`, `save`, `findById` taşır — KURAL**:
+**Her command repo `BaseCommandRepository` ile kurulur; `create`, `update`, `findById` taşır — KURAL**:
 
-Tüm `*CommandRepository` sınıfları **`BaseCommandRepository<TEntity>`** taban sınıfını extend eder; interface'leri **`IBaseCommandRepository<TEntity>`**'den türer. `IBaseCommandRepository` **`create(props)` + `save(entity)` + `findById(id)`**'yi zorunlu kılar:
+Tüm `*CommandRepository` sınıfları **`BaseCommandRepository<TEntity>`** taban sınıfını extend eder; interface'leri **`IBaseCommandRepository<TEntity>`**'den türer. `IBaseCommandRepository` **`create(props)` + `update(entity)` + `findById(id)`**'yi zorunlu kılar:
 
 - **`create(props)`**: Yeni kayıt INSERT eder (handler UUID.generate() ile id gönderir)
-- **`save(entity)`**: Mevcut entity'yi UPDATE eder (domain metodları sonrası çağrılır, `flushEvents` çağrılır)
+- **`update(entity)`**: Mevcut entity'yi UPDATE eder (domain metodları sonrası çağrılır, `flushEvents` çağrılır)
 - **`findById(id)`**: Entity yükler (state değişikliği akışında kullanılır)
 
-Böylece "yükle → domain metodu → kaydet" akışı **tek repository** ile yürür: `const entity = await repo.findById(id); entity.activate(); await repo.save(entity);`
+Böylece "yükle → domain metodu → kaydet" akışı **tek repository** ile yürür: `const entity = await repo.findById(id); entity.activate(); await repo.update(entity);`
 
 ```typescript
-// ✓ İdeal command repository interface — create/save/findById IBaseCommandRepository'den
+// ✓ İdeal command repository interface — create/update/findById IBaseCommandRepository'den
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { Foo } from '@modules/foo/domain/entities/foo.entity';
 import { CreateFooProps } from '@modules/foo/domain/foo.contracts';
@@ -1558,16 +1558,16 @@ import { CreateFooProps } from '@modules/foo/domain/foo.contracts';
 export type IFooCommandRepository = IBaseCommandRepository<Foo> & {
   create(props: CreateFooProps): Promise<Foo>;
 };
-// ekstra metod (saveMany, bulk, upsert vb.) gerekiyorsa:
+// ekstra metod (updateMany, bulk, upsert vb.) gerekiyorsa:
 // export interface IFooCommandRepository extends IBaseCommandRepository<Foo> {
 //   create(props: CreateFooProps): Promise<Foo>;
-//   saveMany(entities: Foo[]): Promise<void>;
+//   updateMany(entities: Foo[]): Promise<void>;
 //   upsertByEmail(email: string, props: CreateFooProps): Promise<Foo>;
 // }
 ```
 
 ```typescript
-// command repo — BaseCommandRepository extend eder; create/findById/save implement
+// command repo — BaseCommandRepository extend eder; create/findById/update implement
 @Injectable()
 export class FooCommandRepository
   extends BaseCommandRepository<Foo>
@@ -1587,7 +1587,7 @@ export class FooCommandRepository
     return raw ? new Foo(raw) : null;
   }
 
-  async save(entity: Foo): Promise<Foo> {
+  async update(entity: Foo): Promise<Foo> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.foo.update({ where: { id }, data: update });
@@ -1598,7 +1598,7 @@ export class FooCommandRepository
 ```
 
 ```typescript
-// handler — yeni kayıt: create; state değişikliği: load-modify-save
+// handler — yeni kayıt: create; state değişikliği: load-modify-update
 // Yeni kayıt
 const newFoo = await this.fooCommandRepo.create({
   id: UUID.generate().value,
@@ -1608,7 +1608,7 @@ const newFoo = await this.fooCommandRepo.create({
 // State değişikliği: "yükle → metodu çağır → kaydet"
 const existing = await this.fooCommandRepo.findById(fooId);
 existing.activate(); // domain metodu
-await this.fooCommandRepo.save(existing); // UPDATE + flushEvents otomatik
+await this.fooCommandRepo.update(existing); // UPDATE + flushEvents otomatik
 ```
 
 **`create(props)` implementasyonu** — INSERT, ilişkiler kurabilir:
@@ -1624,10 +1624,10 @@ async create(props: CreateFooProps): Promise<FooEntity> {
 }
 ```
 
-**`save(entity)` implementasyonu** — UPDATE + flushEvents (upsert değil):
+**`update(entity)` implementasyonu** — UPDATE + flushEvents (upsert değil):
 
 ```typescript
-async save(entity: FooEntity): Promise<FooEntity> {
+async update(entity: FooEntity): Promise<FooEntity> {
   const persistenceData = entity.toPersistence();
   const {id, ...data} = persistenceData;
   const raw = await this.db.foo.update({
@@ -1639,10 +1639,10 @@ async save(entity: FooEntity): Promise<FooEntity> {
 }
 ```
 
-**`saveMany(entities)` implementasyonu** — Batch UPDATE:
+**`updateMany(entities)` implementasyonu** — Batch UPDATE:
 
 ```typescript
-async saveMany(entities: FooEntity[]): Promise<void> {
+async updateMany(entities: FooEntity[]): Promise<void> {
   const queries = entities.map((e) => {
     const data = e.toPersistence();
     const { id, ...update } = data;
@@ -1671,7 +1671,7 @@ async upsertByEmail(email: string, data: CreateFoo): Promise<FooEntity> {
 }
 ```
 
-**İzin verilen istisnalar** — `create`/`save` dışı ekstra metod:
+**İzin verilen istisnalar** — `create`/`update` dışı ekstra metod:
 
 | İstisna                                | Örnek                                                                                | Neden                                                                               |
 | -------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
@@ -1681,13 +1681,13 @@ async upsertByEmail(email: string, data: CreateFoo): Promise<FooEntity> {
 | Hot-path scalar güncelleme             | `updateLastLogin(userId)`                                                            | Entity yükleme overhead'i kabul edilemez                                            |
 
 ```typescript
-// ❌ Yanlış — save varken ayrı update metodu
+// ❌ Yanlış — entity `update(entity)` varken ayrı alan-bazlı update(id, data) metodu
 update(id: string, data: Partial<Foo>): Promise<Foo>; // state değişikliği için fazlalık
 
 // ✓ Doğru — state değişikliği entity üzerinden
 const foo = await this.fooCommandRepo.findById(id);
 foo.activate(); // domain method
-await this.fooCommandRepo.save(foo); // UPDATE
+await this.fooCommandRepo.update(foo); // UPDATE
 
 // ✓ İstisna — findOrCreate
 const user = await this.userCommandRepo.upsertByEmail(email, { id: UUID.generate().value, ...props });
@@ -1698,7 +1698,7 @@ const user = await this.userCommandRepo.upsertByEmail(email, { id: UUID.generate
 Tüm domain entity'ler `src/common/domain/aggregate-root.ts` içindeki `AggregateRoot` abstract class'ını extend eder. Bu class şu API'yi sağlar:
 
 - `protected addDomainEvent(event: BaseEvent)` — entity domain metodundan çağrılır
-- `flushEvents()` — repository `save()` sonrası çağrılır; birikmiş event'leri ALS store'a push eder ve temizler
+- `flushEvents()` — repository `update()` sonrası çağrılır; birikmiş event'leri ALS store'a push eder ve temizler
 
 ```typescript
 // Entity domain metodu — event raise eder
@@ -1707,8 +1707,8 @@ public activate(): void {
   this.addDomainEvent(new ProviderActivatedEvent({ providerId: this.id, ... }));
 }
 
-// Command repository save() — persist + flush
-async save(entity: Provider): Promise<Provider> {
+// Command repository update() — persist + flush
+async update(entity: Provider): Promise<Provider> {
   const persistenceData = entity.toPersistence();
   const {id, ...data} = persistenceData;
   const raw = await this.db.provider.update({ where: { id }, data });
@@ -1719,7 +1719,7 @@ async save(entity: Provider): Promise<Provider> {
 // Handler — sadece orchestrate eder, event bilmez
 const provider = await this.providerQueryRepo.findById(id);
 provider.activate();
-await this.providerCommandRepo.save(provider); // flush otomatik
+await this.providerCommandRepo.update(provider); // flush otomatik
 ```
 
 Handler asla `addDomainEvent()` veya `contextService.addEvent()` çağırmaz. Event raise etme sorumluluğu entity domain metoduna aittir.

@@ -31,9 +31,10 @@ import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/c
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 @CommandHandler(PaxSaleCommand)
-export class PaxSaleHandler
-  implements ICommandHandler<PaxSaleCommand, PaxSaleResponse>
-{
+export class PaxSaleHandler implements ICommandHandler<
+  PaxSaleCommand,
+  PaxSaleResponse
+> {
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
@@ -110,7 +111,7 @@ export class PaxSaleHandler
       await this.txManager.outboxRun(async () => {
         if (result.approved) {
           transaction.markSuccess(result.externalRef, result.rawResponse);
-          await this.posTransactionCommandRepo.save(transaction);
+          await this.posTransactionCommandRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markPaid({
               paymentId,
@@ -128,7 +129,7 @@ export class PaxSaleHandler
           }
         } else {
           transaction.markFailed(result.rawResponse);
-          await this.posTransactionCommandRepo.save(transaction);
+          await this.posTransactionCommandRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,
@@ -171,7 +172,7 @@ export class PaxSaleHandler
       if (err instanceof PaxConnectionError) {
         await this.txManager.outboxRun(async () => {
           transaction.markFailed();
-          await this.posTransactionCommandRepo.save(transaction);
+          await this.posTransactionCommandRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,

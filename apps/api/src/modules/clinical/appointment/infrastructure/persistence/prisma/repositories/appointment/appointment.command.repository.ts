@@ -3,7 +3,7 @@ import { AppointmentStatusSchema } from '@shared';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import { IAppointmentCommandRepository } from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+import { IAppointmentCommandRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command-repository.interface';
 import {
   CancelProviderAppointmentsData,
   FindDueForReminderData,
@@ -108,7 +108,7 @@ export class AppointmentCommandRepository
     });
   }
 
-  async saveMany(appointments: Appointment[]): Promise<void> {
+  async updateMany(appointments: Appointment[]): Promise<void> {
     const queries = appointments.map((appointment) => {
       const create = appointment.toPersistence();
       const { id, ...data } = create;
@@ -127,7 +127,7 @@ export class AppointmentCommandRepository
     appointments.forEach((appointment) => appointment.flushEvents());
   }
 
-  async save(appointment: Appointment): Promise<Appointment> {
+  async update(appointment: Appointment): Promise<Appointment> {
     const persistenceData = appointment.toPersistence();
     const { id, version, ...data } = persistenceData;
 
@@ -146,5 +146,21 @@ export class AppointmentCommandRepository
     appointment.flushEvents();
 
     return new Appointment({ ...persistenceData, version: version + 1 });
+  }
+
+  countActiveByPatient(patientId: string): Promise<number> {
+    return this.db.appointment.count({
+      where: {
+        patientId,
+        isDeleted: false,
+        status: {
+          in: [
+            AppointmentStatusSchema.enum.PENDING,
+            AppointmentStatusSchema.enum.CONFIRMED,
+          ],
+        },
+        startTime: { gte: DateTimeManager.create() },
+      },
+    });
   }
 }

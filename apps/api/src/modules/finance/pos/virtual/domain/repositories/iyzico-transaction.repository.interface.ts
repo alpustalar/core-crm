@@ -31,5 +31,5 @@ export interface IIyzicoTransactionCommandRepository {
   /** Yeni işlem kaydı (INSERT). */
   create(entity: IyzicoTransaction): Promise<IyzicoTransaction>;
   /** Mevcut işlemi günceller (UPDATE). Durum geçişleri entity metodlarında yapılır. */
-  save(entity: IyzicoTransaction): Promise<IyzicoTransaction>;
+  update(entity: IyzicoTransaction): Promise<IyzicoTransaction>;
 }

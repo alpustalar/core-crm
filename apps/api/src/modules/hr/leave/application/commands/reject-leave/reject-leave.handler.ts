@@ -14,9 +14,10 @@ import {
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(RejectLeaveCommand)
-export class RejectLeaveHandler
-  implements ICommandHandler<RejectLeaveCommand, void>
-{
+export class RejectLeaveHandler implements ICommandHandler<
+  RejectLeaveCommand,
+  void
+> {
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
     private readonly leaveCommandRepo: ILeaveCommandRepository,
@@ -38,7 +39,7 @@ export class RejectLeaveHandler
         .orThrow(LEAVE_EVENTS.REJECTED);
 
       leave.reject(ctx.actor.userId, data.note);
-      await this.leaveCommandRepo.save(leave);
+      await this.leaveCommandRepo.update(leave);
     });
   }
 }

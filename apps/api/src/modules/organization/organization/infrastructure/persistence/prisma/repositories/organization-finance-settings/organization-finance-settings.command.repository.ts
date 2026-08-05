@@ -28,7 +28,7 @@ export class OrganizationFinanceSettingsCommandRepository
     return new OrganizationFinanceSettings(raw);
   }
 
-  async save(
+  async update(
     entity: OrganizationFinanceSettings
   ): Promise<OrganizationFinanceSettings> {
     const data = entity.toPersistence();

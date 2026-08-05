@@ -16,16 +16,13 @@ import {
 import { TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(UpdateTreatmentPackageCommand)
-export class UpdateTreatmentPackageHandler
-  implements
-    ICommandHandler<
-      UpdateTreatmentPackageCommand,
-      UpdateTreatmentPackageResponse
-    >
-{
+export class UpdateTreatmentPackageHandler implements ICommandHandler<
+  UpdateTreatmentPackageCommand,
+  UpdateTreatmentPackageResponse
+> {
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
+    private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -38,7 +35,7 @@ export class UpdateTreatmentPackageHandler
 
     await this.txManager.run(async () => {
       const treatmentPackage =
-        await this.treatmentPackageCommandRepo.findById(packageId);
+        await this.treatmentPackageRepo.findById(packageId);
       if (!treatmentPackage)
         throw new NotFoundException('Tedavi paketi bulunamadı');
 
@@ -57,7 +54,7 @@ export class UpdateTreatmentPackageHandler
             price: Money.create(new Decimal(price), currency).orThrow(),
           }),
       });
-      await this.treatmentPackageCommandRepo.save(treatmentPackage);
+      await this.treatmentPackageRepo.update(treatmentPackage);
     });
   }
 }

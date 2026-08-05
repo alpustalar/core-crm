@@ -9,9 +9,10 @@ import { SubscriptionNotFoundException } from '@modules/platform/subscription/do
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 @CommandHandler(CancelSubscriptionCommand)
-export class CancelSubscriptionHandler
-  implements ICommandHandler<CancelSubscriptionCommand, void>
-{
+export class CancelSubscriptionHandler implements ICommandHandler<
+  CancelSubscriptionCommand,
+  void
+> {
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
@@ -30,7 +31,7 @@ export class CancelSubscriptionHandler
       } else {
         subscription.scheduleCancellation(); // dönem sonunda iptal
       }
-      await this.subscriptionCommandRepo.save(subscription);
+      await this.subscriptionCommandRepo.update(subscription);
     });
   }
 }

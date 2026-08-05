@@ -13,7 +13,7 @@ export const CONVERSATION_QUERY_REPOSITORY = Symbol(
 
 export interface IConversationCommandRepository {
   create(entity: Conversation): Promise<Conversation>;
-  save(entity: Conversation): Promise<Conversation>;
+  update(entity: Conversation): Promise<Conversation>;
 }
 
 export interface IConversationQueryRepository {

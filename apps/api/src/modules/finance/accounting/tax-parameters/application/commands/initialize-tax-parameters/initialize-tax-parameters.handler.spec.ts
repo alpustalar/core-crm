@@ -6,7 +6,7 @@ describe('InitializeTaxParametersHandler', () => {
   const ctx = {} as never;
 
   const make = (exists: boolean) => {
-    const commandRepo = { saveMany: jest.fn().mockResolvedValue(undefined) };
+    const commandRepo = { updateMany: jest.fn().mockResolvedValue(undefined) };
     const queryRepo = {
       existsForClinic: jest.fn().mockResolvedValue(exists),
     };
@@ -28,8 +28,8 @@ describe('InitializeTaxParametersHandler', () => {
       new InitializeTaxParametersCommand('clinic-1', 'org-1', ctx)
     );
 
-    expect(commandRepo.saveMany).toHaveBeenCalledTimes(1);
-    const seeded = commandRepo.saveMany.mock.calls[0][0];
+    expect(commandRepo.updateMany).toHaveBeenCalledTimes(1);
+    const seeded = commandRepo.updateMany.mock.calls[0][0];
     expect(seeded).toHaveLength(TAX_PARAMETER_DEFAULTS.length);
     expect(seeded.every((p: { validTo: Date | null }) => p.validTo === null)).toBe(
       true
@@ -43,6 +43,6 @@ describe('InitializeTaxParametersHandler', () => {
       new InitializeTaxParametersCommand('clinic-1', 'org-1', ctx)
     );
 
-    expect(commandRepo.saveMany).not.toHaveBeenCalled();
+    expect(commandRepo.updateMany).not.toHaveBeenCalled();
   });
 });

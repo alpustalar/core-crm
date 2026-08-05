@@ -49,7 +49,7 @@ export class PurchaseRequestCommandRepository
     return this.toEntity(raw);
   }
 
-  async save(entity: PurchaseRequest): Promise<PurchaseRequest> {
+  async update(entity: PurchaseRequest): Promise<PurchaseRequest> {
     const { id, ...update } = entity.toPersistence();
     const raw = await this.db.purchaseRequest.update({
       where: { id },
@@ -68,7 +68,9 @@ export class PurchaseRequestCommandRepository
     return raw ? this.toEntity(raw) : null;
   }
 
-  private toEntity(raw: IPurchaseRequest & { items: RawItem[] }): PurchaseRequest {
+  private toEntity(
+    raw: IPurchaseRequest & { items: RawItem[] }
+  ): PurchaseRequest {
     const { items, ...header } = raw;
     const lines: PurchaseRequestLine[] = items.map((item) => ({
       id: item.id,

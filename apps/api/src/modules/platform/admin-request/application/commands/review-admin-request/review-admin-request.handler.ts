@@ -11,9 +11,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { AdminRequestStatusSchema } from '@shared';
 
 @CommandHandler(ReviewAdminRequestCommand)
-export class ReviewAdminRequestHandler
-  implements ICommandHandler<ReviewAdminRequestCommand, void>
-{
+export class ReviewAdminRequestHandler implements ICommandHandler<
+  ReviewAdminRequestCommand,
+  void
+> {
   constructor(
     @Inject(ADMIN_REQUEST_COMMAND_REPOSITORY)
     private readonly adminRequestCommandRepo: IAdminRequestCommandRepository,
@@ -36,7 +37,7 @@ export class ReviewAdminRequestHandler
         request.reject(actor.userId, data.reviewNote);
       }
 
-      await this.adminRequestCommandRepo.save(request);
+      await this.adminRequestCommandRepo.update(request);
     });
   }
 }

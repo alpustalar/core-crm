@@ -52,7 +52,7 @@ export class HotelbedsBookingCommandRepository
     return new HotelbedsBooking(raw);
   }
 
-  async save(booking: HotelbedsBooking): Promise<HotelbedsBooking> {
+  async update(booking: HotelbedsBooking): Promise<HotelbedsBooking> {
     const toPersistence = booking.toPersistence();
 
     const data = {

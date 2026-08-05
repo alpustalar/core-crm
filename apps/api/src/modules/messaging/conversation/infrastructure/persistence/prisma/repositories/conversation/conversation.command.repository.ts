@@ -20,7 +20,7 @@ export class ConversationCommandRepository
     return new Conversation(raw);
   }
 
-  async save(entity: Conversation): Promise<Conversation> {
+  async update(entity: Conversation): Promise<Conversation> {
     const data = entity.toPersistence();
     const raw = await this.db.conversation.update({
       where: { id: data.id },

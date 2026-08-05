@@ -34,7 +34,7 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
     } as unknown as IMessageQueryRepository;
 
     const messageCommandRepo = {
-      save: jest.fn(async (m: Message) => m),
+      update: jest.fn(async (m: Message) => m),
     } as unknown as IMessageCommandRepository;
 
     const conversationQueryRepo = {
@@ -44,7 +44,7 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
     } as unknown as IConversationQueryRepository;
 
     const conversationCommandRepo = {
-      save: jest.fn(async (c: Conversation) => c),
+      update: jest.fn(async (c: Conversation) => c),
     } as unknown as IConversationCommandRepository;
 
     const txManager = {
@@ -120,7 +120,7 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
 
     expect(message.status).toBe(MessageStatus.FAILED);
     expect(message.errorReason).toBe('Meta 500');
-    expect(messageCommandRepo.save).toHaveBeenCalled();
+    expect(messageCommandRepo.update).toHaveBeenCalled();
   });
 
   it('ara denemede hata → FAILED YOK, hata fırlatılır (retry için)', async () => {

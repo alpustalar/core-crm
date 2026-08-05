@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IActivityQueryRepository } from '@modules/crm/activity/domain/repositories/activity.repository';
-import { Activity } from '@modules/crm/activity/domain/entities/activity.entity';
+
 import {
   FindActivitiesByLeadFilter,
   FindMyTasksFilter,
@@ -11,6 +11,7 @@ import {
 import { Paginated } from '@common/interfaces/paginated.type';
 import { ActivityTypeSchema } from '@input-type-schemas/ActivityTypeSchema';
 import { ActivityStatusSchema } from '@input-type-schemas/ActivityStatusSchema';
+import { Activity } from '@shared';
 
 @Injectable()
 export class ActivityQueryRepository
@@ -21,20 +22,16 @@ export class ActivityQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<Activity | null> {
-    const raw = await this.db.activity.findUnique({ where: { id } });
-    return raw ? new Activity(raw) : null;
+  findById(id: string): Promise<Activity | null> {
+    return this.db.activity.findUnique({ where: { id } });
   }
 
-  async findByLead(
-    filter: FindActivitiesByLeadFilter
-  ): Promise<Paginated<Activity>> {
-    const result = await paginate({
+  findByLead(filter: FindActivitiesByLeadFilter): Promise<Paginated<Activity>> {
+    return paginate({
       delegate: this.db.activity,
       pagination: filter.pagination,
       where: { leadId: filter.leadId },
     });
-    return this.mapPagination(result, (r) => new Activity(r));
   }
 
   async findMyTasks(filter: FindMyTasksFilter): Promise<Paginated<Activity>> {
@@ -52,11 +49,10 @@ export class ActivityQueryRepository
     };
     if (filter.clinicId) where.clinicId = filter.clinicId;
 
-    const result = await paginate({
+    return await paginate({
       delegate: this.db.activity,
       pagination: filter.pagination,
       where,
     });
-    return this.mapPagination(result, (r) => new Activity(r));
   }
 }

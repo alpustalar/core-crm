@@ -28,7 +28,7 @@ export class ProviderAvailabilityCommandRepository
     return raw ? new ProviderAvailability(raw) : null;
   }
 
-  async save(entity: ProviderAvailability) {
+  async update(entity: ProviderAvailability) {
     const toPersistence = entity.toPersistence();
     const { id, ...data } = toPersistence;
     const raw = await this.db.providerAvailability.update({
@@ -39,7 +39,7 @@ export class ProviderAvailabilityCommandRepository
     return new ProviderAvailability(raw);
   }
 
-  async saveMany(availabilities: ProviderAvailability[]): Promise<void> {
+  async updateMany(availabilities: ProviderAvailability[]): Promise<void> {
     const queries = availabilities.map((availability) => {
       const data = availability.toPersistence();
       const { id, ...updateData } = data;

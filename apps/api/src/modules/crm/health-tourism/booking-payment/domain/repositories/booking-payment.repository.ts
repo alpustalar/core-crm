@@ -8,8 +8,10 @@ export const BOOKING_PAYMENT_QUERY_REPOSITORY = Symbol(
   'IBookingPaymentQueryRepository'
 );
 
-export type IBookingPaymentCommandRepository =
-  IBaseCommandRepository<BookingPayment>;
+export interface IBookingPaymentCommandRepository extends IBaseCommandRepository<BookingPayment> {
+  /** Rezervasyon sonucu (dahili booking id) ile bulur — iptal/iade akışı için. */
+  findByBookingId(bookingId: string): Promise<BookingPayment | null>;
+}
 
 export interface IBookingPaymentQueryRepository {
   findById(id: string): Promise<BookingPayment | null>;
@@ -17,6 +19,4 @@ export interface IBookingPaymentQueryRepository {
   findByIyzicoConversationId(
     conversationId: string
   ): Promise<BookingPayment | null>;
-  /** Rezervasyon sonucu (dahili booking id) ile bulur — iptal/iade akışı için. */
-  findByBookingId(bookingId: string): Promise<BookingPayment | null>;
 }

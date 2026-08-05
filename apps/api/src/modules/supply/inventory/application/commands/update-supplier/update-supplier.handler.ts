@@ -9,9 +9,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { SupplierNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 
 @CommandHandler(UpdateSupplierCommand)
-export class UpdateSupplierHandler
-  implements ICommandHandler<UpdateSupplierCommand, void>
-{
+export class UpdateSupplierHandler implements ICommandHandler<
+  UpdateSupplierCommand,
+  void
+> {
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
     private readonly supplierCommandRepo: ISupplierCommandRepository,
@@ -33,7 +34,7 @@ export class UpdateSupplierHandler
     supplier.update(dto);
 
     await this.txManager.run(async () => {
-      await this.supplierCommandRepo.save(supplier);
+      await this.supplierCommandRepo.update(supplier);
     });
   }
 }

@@ -22,7 +22,7 @@ describe('CreateModuleHandler', () => {
       name: 'E-Fatura',
       monthlyPrice: 50,
       currency: 'TRY',
-      actor: { userId: 'admin' } as never,
+      ctx: { actor: { userId: 'admin' } } as never,
     });
 
   it('yeni modül: key UPPER normalize edilir, oluşturulur, id döner', async () => {

@@ -26,13 +26,10 @@ import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constan
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 
 @CommandHandler(HandlePaymentCallbackCommand)
-export class HandlePaymentCallbackHandler
-  implements
-    ICommandHandler<
-      HandlePaymentCallbackCommand,
-      HandlePaymentCallbackCommandResponse
-    >
-{
+export class HandlePaymentCallbackHandler implements ICommandHandler<
+  HandlePaymentCallbackCommand,
+  HandlePaymentCallbackCommandResponse
+> {
   private readonly logger = new Logger(HandlePaymentCallbackHandler.name);
 
   constructor(
@@ -81,7 +78,7 @@ export class HandlePaymentCallbackHandler
           iyzicoPaymentTransactionId: sdkResult.paymentTransactionId,
           rawResponse: sdkResult.rawResponse,
         });
-        await this.iyzicoCommandRepo.save(transaction);
+        await this.iyzicoCommandRepo.update(transaction);
 
         // Taksit COMPLETED + PaymentPaidEvent payment command handler'ında fırlatılır.
         await this.commandBus.execute(
@@ -102,7 +99,7 @@ export class HandlePaymentCallbackHandler
           errorMessage: sdkResult.errorMessage,
           rawResponse: sdkResult.rawResponse,
         });
-        await this.iyzicoCommandRepo.save(transaction);
+        await this.iyzicoCommandRepo.update(transaction);
 
         // Taksit PENDING'e döner + PaymentFailedEvent payment command handler'ında fırlatılır.
         await this.commandBus.execute(

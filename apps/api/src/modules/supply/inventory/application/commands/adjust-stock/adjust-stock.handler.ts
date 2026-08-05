@@ -89,7 +89,7 @@ export class AdjustStockHandler implements ICommandHandler<
 
       const stockMovement = StockMovement.create(stockMovementProps);
       if (updatedBatch) {
-        await this.productBatchCommandRepo.save(updatedBatch);
+        await this.productBatchCommandRepo.update(updatedBatch);
       }
       await this.stockMovementCommandRepo.create(stockMovement);
     });

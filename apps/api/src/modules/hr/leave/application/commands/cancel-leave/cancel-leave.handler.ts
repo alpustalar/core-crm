@@ -14,9 +14,10 @@ import {
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(CancelLeaveCommand)
-export class CancelLeaveHandler
-  implements ICommandHandler<CancelLeaveCommand, void>
-{
+export class CancelLeaveHandler implements ICommandHandler<
+  CancelLeaveCommand,
+  void
+> {
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
     private readonly leaveCommandRepo: ILeaveCommandRepository,
@@ -44,7 +45,7 @@ export class CancelLeaveHandler
       leave.rules(validateOptions).cancel().orThrow();
       leave.cancel();
 
-      await this.leaveCommandRepo.save(leave);
+      await this.leaveCommandRepo.update(leave);
     });
   }
 }

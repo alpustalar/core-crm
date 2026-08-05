@@ -13,12 +13,13 @@ import { SetProviderActiveCommand } from './set-provider-active.command';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 
 @CommandHandler(SetProviderActiveCommand)
-export class SetProviderActiveHandler
-  implements ICommandHandler<SetProviderActiveCommand, void>
-{
+export class SetProviderActiveHandler implements ICommandHandler<
+  SetProviderActiveCommand,
+  void
+> {
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -26,7 +27,7 @@ export class SetProviderActiveHandler
   async execute(command: SetProviderActiveCommand): Promise<void> {
     const { providerId, data, ctx } = command.payload;
 
-    const provider = await this.providerCommandRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
@@ -42,6 +43,6 @@ export class SetProviderActiveHandler
       provider.deactivate();
     }
 
-    await this.providerCommandRepo.save(provider);
+    await this.providerRepo.update(provider);
   }
 }

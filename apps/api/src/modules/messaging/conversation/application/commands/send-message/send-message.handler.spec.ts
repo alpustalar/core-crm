@@ -25,7 +25,7 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
     } as unknown as IConversationQueryRepository;
 
     const messageCommandRepo = {
-      save: jest.fn(async (m: Message) => {
+      create: jest.fn(async (m: Message) => {
         savedMessage = m;
         return m;
       }),
@@ -41,7 +41,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
       sendMessageProducer
     );
 
-    return { handler, sendMessageProducer, getSavedMessage: () => savedMessage };
+    return {
+      handler,
+      sendMessageProducer,
+      getSavedMessage: () => savedMessage,
+    };
   };
 
   /** Servis penceresi açık (yeni gelen mesaj) yazışma. */
@@ -60,7 +64,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
     const { handler } = build(null);
     await expect(
       handler.execute(
-        new SendMessageCommand('clinic-1', { conversationId: 'c-x' }, ctx)
+        new SendMessageCommand({
+          clinicId: 'clinic-1',
+          input: { conversationId: 'c-x' },
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(NotFoundException);
   });
@@ -69,7 +77,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
     const { handler } = build(conversation());
     await expect(
       handler.execute(
-        new SendMessageCommand('clinic-OTHER', { conversationId: 'c-1' }, ctx)
+        new SendMessageCommand({
+          clinicId: 'clinic-OTHER',
+          input: { conversationId: 'c-1' },
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -79,11 +91,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
     const { handler, sendMessageProducer, getSavedMessage } = build(conv);
 
     const id = await handler.execute(
-      new SendMessageCommand(
-        'clinic-1',
-        { conversationId: conv.id, type: MessageType.TEXT, body: 'yanıt' },
-        ctx
-      )
+      new SendMessageCommand({
+        clinicId: 'clinic-1',
+        input: { conversationId: conv.id, type: MessageType.TEXT, body: 'yanıt' },
+        ctx,
+      })
     );
 
     const saved = getSavedMessage()!;
@@ -105,11 +117,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
 
     await expect(
       handler.execute(
-        new SendMessageCommand(
-          'clinic-1',
-          { conversationId: closed.id, type: MessageType.TEXT, body: 'selam' },
-          ctx
-        )
+        new SendMessageCommand({
+          clinicId: 'clinic-1',
+          input: { conversationId: closed.id, type: MessageType.TEXT, body: 'selam' },
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(sendMessageProducer.enqueueSend).not.toHaveBeenCalled();

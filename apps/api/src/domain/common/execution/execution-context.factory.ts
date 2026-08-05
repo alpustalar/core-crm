@@ -1,7 +1,4 @@
-import {
-  IGetContext,
-  IGetPatientContext,
-} from '@common/decorators/get-context.decorator';
+import { IGetContext } from '@common/decorators/get-context.decorator';
 import {
   ExecutionSource,
   ExecutionSources,
@@ -10,6 +7,7 @@ import {
   SYSTEM_ACTOR,
   SYSTEM_PATIENT_ACTOR,
 } from '@common/constants/system-actor.constant';
+import { IGetPatientContext } from '@common/decorators/get-patient-context.decorator';
 
 export class ExecutionContextFactory {
   static createInternal(

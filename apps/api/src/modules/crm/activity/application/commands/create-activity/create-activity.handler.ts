@@ -16,12 +16,13 @@ import {
 import { ACTIVITY_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(CreateActivityCommand)
-export class CreateActivityHandler
-  implements ICommandHandler<CreateActivityCommand, string>
-{
+export class CreateActivityHandler implements ICommandHandler<
+  CreateActivityCommand,
+  string
+> {
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
-    private readonly activityCommandRepo: IActivityCommandRepository,
+    private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -63,7 +64,7 @@ export class CreateActivityHandler
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.activityCommandRepo.create(activity);
+      const saved = await this.activityRepo.create(activity);
       return saved.id.value;
     });
   }

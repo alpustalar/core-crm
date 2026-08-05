@@ -33,9 +33,10 @@ import {
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 @CommandHandler(ProcessMetaLeadCommand)
-export class ProcessMetaLeadHandler
-  implements ICommandHandler<ProcessMetaLeadCommand, ProcessMetaLeadResponse>
-{
+export class ProcessMetaLeadHandler implements ICommandHandler<
+  ProcessMetaLeadCommand,
+  ProcessMetaLeadResponse
+> {
   private readonly logger = new Logger(ProcessMetaLeadHandler.name);
 
   constructor(
@@ -97,7 +98,7 @@ export class ProcessMetaLeadHandler
 
       if (patient) {
         saved.matchToPatient(patient.id);
-        saved = await this.metaLeadCommandRepo.save(saved);
+        saved = await this.metaLeadCommandRepo.update(saved);
       }
     }
 

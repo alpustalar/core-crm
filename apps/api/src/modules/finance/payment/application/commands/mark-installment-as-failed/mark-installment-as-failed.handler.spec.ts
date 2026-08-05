@@ -16,7 +16,7 @@ describe('MarkInstallmentAsFailedHandler', () => {
       findByInstallmentId: jest.fn().mockResolvedValue(payment),
     };
     const paymentCommandRepo = {
-      save: jest.fn().mockResolvedValue(payment),
+      update: jest.fn().mockResolvedValue(payment),
     };
     const publisher = { paymentFailed: jest.fn() };
     const txManager = {
@@ -42,7 +42,7 @@ describe('MarkInstallmentAsFailedHandler', () => {
     );
 
     expect(payment.failInstallment).toHaveBeenCalledWith('inst-1');
-    expect(paymentCommandRepo.save).toHaveBeenCalledWith(payment);
+    expect(paymentCommandRepo.update).toHaveBeenCalledWith(payment);
     expect(publisher.paymentFailed).toHaveBeenCalledWith({
       paymentId: 'pay-1',
       appointmentId: 'appt-1',

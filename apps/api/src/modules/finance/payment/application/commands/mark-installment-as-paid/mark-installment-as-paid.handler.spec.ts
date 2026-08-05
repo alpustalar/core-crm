@@ -16,7 +16,7 @@ describe('MarkInstallmentAsPaidHandler', () => {
       findByInstallmentId: jest.fn().mockResolvedValue(payment),
     };
     const paymentCommandRepo = {
-      save: jest.fn().mockResolvedValue(payment),
+      update: jest.fn().mockResolvedValue(payment),
     };
     const publisher = { paymentPaid: jest.fn() };
     const txManager = {
@@ -42,7 +42,7 @@ describe('MarkInstallmentAsPaidHandler', () => {
     );
 
     expect(payment.completeInstallment).toHaveBeenCalledWith('inst-1');
-    expect(paymentCommandRepo.save).toHaveBeenCalledWith(payment);
+    expect(paymentCommandRepo.update).toHaveBeenCalledWith(payment);
     expect(publisher.paymentPaid).toHaveBeenCalledWith({
       installmentId: 'inst-1',
       paymentId: 'pay-1',

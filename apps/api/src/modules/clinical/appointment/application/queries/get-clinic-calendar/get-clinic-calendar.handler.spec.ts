@@ -40,12 +40,12 @@ describe('GetClinicCalendarHandler (klinik tam takvim)', () => {
 
     const policyFactory = {
       appointment: () => ({
-        evaluator: {
-          check: () => ({
-            orThrow: () => {
-              if (!canAccess) throw new Error('yetki yok');
-            },
-          }),
+        policy: {
+          getSerializationOptions: jest.fn(() =>
+            canAccess
+              ? { isGroupActive: true, groups: ['INTERNAL'] }
+              : { isGroupActive: false, groups: [] }
+          ),
         },
       }),
     } as never;
@@ -143,9 +143,9 @@ describe('GetClinicCalendarHandler (klinik tam takvim)', () => {
     expect(captured).toMatchObject({ clinicId: 'clinic-1', providerId: 'prov-2' });
   });
 
-  it('yetki yoksa hata fırlatır (repo çağrılmaz)', async () => {
-    await expect(run(build({ rows: [], canAccess: false }))).rejects.toThrow(
-      'yetki yok'
-    );
+  it('yetki yoksa serializationOptions pasif döner (alan filtreleme transform interceptor katmanında yapılır)', async () => {
+    const { meta } = await run(build({ rows: [], canAccess: false }));
+    expect(meta?.serializationOptions?.isGroupActive).toBe(false);
+    expect(meta?.serializationOptions?.groups).toEqual([]);
   });
 });

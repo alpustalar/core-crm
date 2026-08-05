@@ -14,9 +14,11 @@ describe('ConnectClinicTelegramBotChannelHandler (self-service Bot API)', () => 
     let saved: ClinicTelegramChannel | undefined;
 
     const botApi = {
-      getMe: jest
-        .fn()
-        .mockResolvedValue({ id: 42, username: 'klinik_bot', firstName: 'Klinik' }),
+      getMe: jest.fn().mockResolvedValue({
+        id: 42,
+        username: 'klinik_bot',
+        firstName: 'Klinik',
+      }),
       setWebhook: jest.fn().mockResolvedValue(undefined),
       deleteWebhook: jest.fn().mockResolvedValue(undefined),
       sendMessage: jest.fn(),
@@ -24,7 +26,7 @@ describe('ConnectClinicTelegramBotChannelHandler (self-service Bot API)', () => 
     } as unknown as ITelegramBotApi;
 
     const channelCommandRepo = {
-      save: jest.fn(async (c: ClinicTelegramChannel) => {
+      upsertByClinicAndProvider: jest.fn(async (c: ClinicTelegramChannel) => {
         saved = c;
         return c;
       }),
