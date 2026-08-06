@@ -31,6 +31,7 @@ import {
   ConsentFormEvent,
   ConsentTemplateEvent,
 } from '@src/domain/constants/events/consent-form.constant';
+import { WorkOrderEvent } from '@src/domain/constants/events/work-order.constant';
 
 export type AppEventName =
   | AppointmentEvent
@@ -61,7 +62,8 @@ export type AppEventName =
   | EmployeeEvent
   | AttendanceEvent
   | ConsentTemplateEvent
-  | ConsentFormEvent;
+  | ConsentFormEvent
+  | WorkOrderEvent;
 
 export * from './appointment.constant';
 export * from './clinic.constant';
@@ -91,3 +93,4 @@ export * from './leave.constant';
 export * from './employee.constant';
 export * from './attendance.constant';
 export * from './consent-form.constant';
+export * from './work-order.constant';

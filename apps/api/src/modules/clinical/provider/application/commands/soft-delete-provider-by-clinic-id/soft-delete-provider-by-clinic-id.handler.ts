@@ -1,9 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  IProviderCommandRepository,
-  PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -12,12 +9,15 @@ import { SoftDeleteProviderByClinicIdCommand } from '@modules/clinical/provider/
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
 
 @CommandHandler(SoftDeleteProviderByClinicIdCommand)
-export class SoftDeleteProviderByClinicIdHandler implements ICommandHandler<
-  SoftDeleteProviderByClinicIdCommand,
-  void
-> {
+export class SoftDeleteProviderByClinicIdHandler
+  implements ICommandHandler<SoftDeleteProviderByClinicIdCommand, void>
+{
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
     private readonly providerRepo: IProviderCommandRepository,

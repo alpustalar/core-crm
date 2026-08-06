@@ -4,7 +4,6 @@ import { StaffRescheduleCommand } from './staff-reschedule.command';
 import { StaffRescheduleCommandResponse } from './staff-reschedule.response';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -17,18 +16,23 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment';
+import {
+  APPOINTMENT_CHECKER_SERVICE,
+  IAppointmentCheckerService,
+} from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service.interface';
 
 @CommandHandler(StaffRescheduleCommand)
-export class StaffRescheduleHandler implements ICommandHandler<
-  StaffRescheduleCommand,
-  StaffRescheduleCommandResponse
-> {
+export class StaffRescheduleHandler
+  implements
+    ICommandHandler<StaffRescheduleCommand, StaffRescheduleCommandResponse>
+{
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly appointmentCheckerService: AppointmentCheckerService,
+    @Inject(APPOINTMENT_CHECKER_SERVICE)
+    private readonly appointmentCheckerService: IAppointmentCheckerService,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}

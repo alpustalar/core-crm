@@ -108,6 +108,8 @@ export { TreatmentPackageItemScalarFieldEnumSchema } from './TreatmentPackageIte
 export { TreatmentPackageProviderScalarFieldEnumSchema } from './TreatmentPackageProviderScalarFieldEnumSchema';
 export { PatientTreatmentPackageScalarFieldEnumSchema } from './PatientTreatmentPackageScalarFieldEnumSchema';
 export { UserScalarFieldEnumSchema } from './UserScalarFieldEnumSchema';
+export { ExternalWorkOrderScalarFieldEnumSchema } from './ExternalWorkOrderScalarFieldEnumSchema';
+export { ExternalWorkOrderItemScalarFieldEnumSchema } from './ExternalWorkOrderItemScalarFieldEnumSchema';
 export { SortOrderSchema } from './SortOrderSchema';
 export { QueryModeSchema } from './QueryModeSchema';
 export { NullsOrderSchema } from './NullsOrderSchema';
@@ -204,6 +206,7 @@ export { SubStatusSchema } from './SubStatusSchema';
 export { BillingTargetSchema } from './BillingTargetSchema';
 export { TaxParameterKeySchema } from './TaxParameterKeySchema';
 export { PatientPackageStatusSchema } from './PatientPackageStatusSchema';
+export { ExternalWorkOrderStatusSchema } from './ExternalWorkOrderStatusSchema';
 export { InputJsonValueSchema } from './InputJsonValueSchema';
 export { JsonValueSchema } from './JsonValueSchema';
 export { DecimalJsLikeSchema } from './DecimalJsLikeSchema';

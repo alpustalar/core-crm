@@ -10,9 +10,7 @@ import {
 import { IyzicoResultGuard } from '@src/domain/value-objects/iyzico-result-guard.vo';
 import {
   IIyzicoTransactionCommandRepository,
-  IIyzicoTransactionQueryRepository,
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
-  IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
@@ -40,8 +38,6 @@ export class RefundPaymentHandler implements ICommandHandler<
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
-    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
     @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
@@ -70,7 +66,10 @@ export class RefundPaymentHandler implements ICommandHandler<
     if (!completedInstallment)
       throw new CompletedInstallmentNotFoundException();
 
-    const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
+    // İade çağrısı için dış referans (paymentTransactionId). Okuma command repo'dan:
+    // kayıt az önce yazılmış olabilir, replica gecikmesi iadeyi "kayıt yok" diye
+    // reddederdi. Kilit burada anlamsız — SDK çağrısı transaction dışında olmalı.
+    const iyzicoTx = await this.iyzicoCommandRepo.findByInstallmentId(
       completedInstallment.id
     );
 
@@ -99,8 +98,19 @@ export class RefundPaymentHandler implements ICommandHandler<
       .orThrow();
 
     await this.txManager.outboxRun(async () => {
-      iyzicoTx.markAsRefunded({ rawResponse: sdkResult });
-      await this.iyzicoCommandRepo.update(iyzicoTx);
+      // SDK çağrısı sürerken callback/webhook aynı kaydı güncellemiş olabilir;
+      // yukarıdaki kopyayı geri yazmak onu ezerdi. Kilitli ve taze okunur.
+      const lockedTx = await this.iyzicoCommandRepo.findByInstallmentIdForUpdate(
+        completedInstallment.id
+      );
+      if (!lockedTx) {
+        throw new IyzicoPaymentRecordNotFoundException(
+          'Bu ödeme için iyzico işlem transaction kaydı bulunamadı.'
+        );
+      }
+
+      lockedTx.markAsRefunded({ rawResponse: sdkResult });
+      await this.iyzicoCommandRepo.update(lockedTx);
 
       await this.commandBus.execute(
         new MarkInstallmentAsRefundedCommand({

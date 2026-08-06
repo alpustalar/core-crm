@@ -4,8 +4,8 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { InitiatePosTransactionCommand } from './initiate-pos-transaction.command';
 import { InitiatePosTransactionResponse } from './initiate-pos-transaction.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
@@ -31,8 +31,8 @@ export class InitiatePosTransactionHandler implements ICommandHandler<
   InitiatePosTransactionResponse
 > {
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
@@ -46,7 +46,7 @@ export class InitiatePosTransactionHandler implements ICommandHandler<
   ): Promise<InitiatePosTransactionResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceCommandRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }

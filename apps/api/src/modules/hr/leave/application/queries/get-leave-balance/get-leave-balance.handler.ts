@@ -8,6 +8,7 @@ import {
 } from '@modules/hr/leave/domain/repositories/leave.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetEmployeeByIdQuery } from '@modules/hr/employee/application/queries/get-employee-by-id/get-employee-by-id.query';
+import { LeaveBalance } from '@modules/hr/leave/domain/value-objects/leave-balance.vo';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -39,20 +40,21 @@ export class GetLeaveBalanceHandler
     const { data: employee } = await this.queryBus.execute(
       new GetEmployeeByIdQuery(employeeId, ctx)
     );
-    const entitlement = employee?.annualLeaveEntitlement ?? 0;
 
-    // İçinde bulunulan takvim yılının onaylı ANNUAL gün toplamı.
-    const year = new Date().getUTCFullYear();
-    const from = new Date(Date.UTC(year, 0, 1));
-    const to = new Date(Date.UTC(year, 11, 31, 23, 59, 59));
-    const used = await this.leaveQueryRepo.sumApprovedAnnualDays(
+    // İzin yılı tanımı ve bakiye aritmetiği domain'de (LeaveBalance) — handler
+    // yalnız veriyi toplayıp hesabı domain'e devreder.
+    const { from, to } = LeaveBalance.periodOf();
+    const usedDays = await this.leaveQueryRepo.sumApprovedAnnualDays(
       employeeId,
       from,
       to
     );
 
-    return {
-      data: { entitlement, used, remaining: entitlement - used },
-    };
+    const balance = LeaveBalance.calculate({
+      entitlement: employee?.annualLeaveEntitlement ?? 0,
+      usedDays,
+    });
+
+    return { data: balance.toView() };
   }
 }

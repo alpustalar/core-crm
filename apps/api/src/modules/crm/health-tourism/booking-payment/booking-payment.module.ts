@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
-import { BookingPaymentCommandModule } from './application/commands/command.module';
-import { BookingPaymentQueryModule } from './application/queries/query.module';
-import { BookingPaymentPresentationModule } from './presentation/booking-payment-presentation.module';
+import { BookingPaymentPresentationModule } from './presentation/presentation.module';
+import { BookingPaymentApplicationModule } from '@modules/crm/health-tourism/booking-payment/application/application.module';
+import { BookingPaymentInfrastructureModule } from '@modules/crm/health-tourism/booking-payment/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
-    BookingPaymentCommandModule,
-    BookingPaymentQueryModule,
+    BookingPaymentApplicationModule,
     BookingPaymentPresentationModule,
+    BookingPaymentInfrastructureModule,
   ],
-  exports: [BookingPaymentCommandModule, BookingPaymentQueryModule],
 })
 export class BookingPaymentModule {}

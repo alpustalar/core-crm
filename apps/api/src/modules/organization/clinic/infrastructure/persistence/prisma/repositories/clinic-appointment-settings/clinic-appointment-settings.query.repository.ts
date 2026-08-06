@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ClinicAppointmentSettings } from '@modules/organization/clinic/domain/entities/clinic-appointment-settings.entity';
-import { IClinicAppointmentSettingsQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings.repository.interface';
+import { IClinicAppointmentSettingsQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.query.repository.interface';
+import { ClinicAppointmentSettings } from '@shared';
 
 @Injectable()
 export class ClinicAppointmentSettingsQueryRepository
@@ -16,9 +16,8 @@ export class ClinicAppointmentSettingsQueryRepository
   async findByClinicId(
     clinicId: string
   ): Promise<ClinicAppointmentSettings | null> {
-    const raw = await this.db.clinicAppointmentSettings.findUnique({
+    return this.db.clinicAppointmentSettings.findUnique({
       where: { clinicId },
     });
-    return raw ? new ClinicAppointmentSettings(raw) : null;
   }
 }

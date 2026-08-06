@@ -9,6 +9,7 @@ import { IMetaAdAccountQueryRepository } from '@modules/crm/meta-ads/domain/repo
 import { IMetaAdsEventPublisher } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () => {
   const buildFakeMetaLead = () => ({
@@ -55,16 +56,22 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
       execute: jest.fn().mockResolvedValue('unified-lead-1'),
     } as unknown as TSCommandBus;
 
+    // Yazma + event yayını tek transaction'da; testte callback doğrudan çalıştırılır.
+    const txManager = {
+      run: jest.fn((cb: () => Promise<unknown>) => cb()),
+    } as unknown as TransactionManager;
+
     const handler = new ProcessMetaLeadHandler(
       leadCommandRepo,
       leadQueryRepo,
       accountQueryRepo,
       eventPublisher,
       queryBus,
-      commandBus
+      commandBus,
+      txManager
     );
 
-    return { handler, commandBus, leadCommandRepo };
+    return { handler, commandBus, leadCommandRepo, eventPublisher, txManager };
   };
 
   const command = new ProcessMetaLeadCommand({
@@ -96,6 +103,17 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
     expect(cmd.payload.data.campaignName).toBe('Yaz Kampanyası');
     expect(cmd.payload.data.adId).toBe('ad-1');
     expect(cmd.payload.data.phone).toBe('+905550001122');
+  });
+
+  it('yazma + event yayını transaction içinde yapılır (event ALS bağlamı bulmadan düşerdi)', async () => {
+    const t = build({});
+
+    await t.handler.execute(command);
+
+    expect(t.txManager.run).toHaveBeenCalledTimes(1);
+    expect(t.eventPublisher.leadReceived).toHaveBeenCalledWith(
+      expect.objectContaining({ clinicId: 'clinic-1' })
+    );
   });
 
   it('MetaLead zaten var (idempotency) → köprü çalışmaz, Lead üretilmez', async () => {

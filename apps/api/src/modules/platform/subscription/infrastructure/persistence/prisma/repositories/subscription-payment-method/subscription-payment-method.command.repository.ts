@@ -3,7 +3,10 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { SubscriptionPaymentMethod } from '@modules/platform/subscription/domain/entities/subscription-payment-method.entity';
 import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
-import { CreateSubscriptionPaymentMethodProps } from '@modules/platform/subscription/domain/subscription.contracts';
+import {
+  CreateSubscriptionPaymentMethodProps,
+  SavedCardChargeModel,
+} from '@modules/platform/subscription/domain/subscription.contracts';
 
 @Injectable()
 export class SubscriptionPaymentMethodCommandRepository
@@ -19,6 +22,29 @@ export class SubscriptionPaymentMethodCommandRepository
       where: { id },
     });
     return raw ? new SubscriptionPaymentMethod(raw) : null;
+  }
+
+  async findBySubscriptionId(
+    subscriptionId: string
+  ): Promise<SavedCardChargeModel | null> {
+    const raw = await this.db.subscriptionPaymentMethod.findUnique({
+      where: { subscriptionId },
+    });
+    if (!raw) return null;
+
+    return {
+      cardUserKey: raw.cardUserKey,
+      cardToken: raw.cardToken,
+      buyer: {
+        name: raw.buyerName,
+        surname: raw.buyerSurname,
+        email: raw.buyerEmail,
+        gsmNumber: raw.buyerGsmNumber,
+        ip: raw.buyerIp,
+        city: raw.buyerCity,
+        address: raw.buyerAddress,
+      },
+    };
   }
 
   async create(

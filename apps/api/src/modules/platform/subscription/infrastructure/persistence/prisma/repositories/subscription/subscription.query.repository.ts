@@ -44,13 +44,6 @@ export class SubscriptionQueryRepository
     return raw ? this.toReadModel(raw) : null;
   }
 
-  async findByExternalId(externalId: string): Promise<Subscription | null> {
-    const raw = await this.db.subscription.findUnique({
-      where: { externalId },
-    });
-    return raw ? new Subscription(raw) : null;
-  }
-
   findModuleByKey(key: string): Promise<IModule | null> {
     return this.db.module.findUnique({ where: { key } });
   }
@@ -61,29 +54,6 @@ export class SubscriptionQueryRepository
       where: { isActive: true },
       orderBy: { name: 'asc' },
     });
-  }
-
-  async existsByOwner(owner: SubscriptionOwnerRef): Promise<boolean> {
-    // Clinic-billed: klinik-başına tek. Org-billed: org-başına tek (clinicId null).
-    const where: Prisma.SubscriptionWhereInput = owner.clinicId
-      ? { clinicId: owner.clinicId }
-      : { organizationId: owner.organizationId, clinicId: null };
-    const row = await this.db.subscription.findFirst({
-      where,
-      select: { id: true },
-    });
-    return !!row;
-  }
-
-  async findDueForRenewal(now: Date): Promise<Subscription[]> {
-    const rows = await this.db.subscription.findMany({
-      where: {
-        status: SubStatusSchema.enum.ACTIVE,
-        currentPeriodEnd: { lt: now },
-      },
-      take: 500,
-    });
-    return rows.map((r) => new Subscription(r));
   }
 
   async findEntitlementSource(owner: {
@@ -120,43 +90,6 @@ export class SubscriptionQueryRepository
       planId: planItem?.planId ?? null,
       addOnModuleKeys,
     };
-  }
-
-  async findExpiredTrials(now: Date): Promise<Subscription[]> {
-    const rows = await this.db.subscription.findMany({
-      where: {
-        status: SubStatusSchema.enum.ACTIVE,
-        trialEndsAt: { not: null, lt: now },
-      },
-      take: 500,
-    });
-    return rows.map((r) => new Subscription(r));
-  }
-
-  async findRenewalCharge(
-    subscriptionId: string
-  ): Promise<RenewalChargeModel | null> {
-    // Aylık tutar = aboneliğin tüm kalemlerinin (plan + eklenti modüller) toplamı; tek para birimi.
-    const items = await this.db.subscriptionItem.findMany({
-      where: { subscriptionId },
-      select: { priceAtPurchase: true, currency: true },
-    });
-    if (items.length === 0) return null;
-
-    const amount = items.reduce(
-      (sum, item) => sum.add(new Decimal(item.priceAtPurchase.toString())),
-      new Decimal(0)
-    );
-
-    return { amount, currency: items[0].currency };
-  }
-
-  async findPastDue(): Promise<Subscription[]> {
-    const rows = await this.db.subscription.findMany({
-      where: { status: SubStatusSchema.enum.PAST_DUE },
-      take: 500,
-    });
-    return rows.map((r) => new Subscription(r));
   }
 
   private toReadModel(

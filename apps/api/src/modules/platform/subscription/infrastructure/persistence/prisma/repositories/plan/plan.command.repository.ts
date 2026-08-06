@@ -4,6 +4,7 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity';
 import { IPlanCommandRepository } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
+import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 
 @Injectable()
 export class PlanCommandRepository
@@ -16,6 +17,11 @@ export class PlanCommandRepository
 
   async findById(id: string): Promise<Plan | null> {
     const raw = await this.db.plan.findUnique({ where: { id } });
+    return raw ? new Plan(raw) : null;
+  }
+
+  async findByPlanId(planId: PlanId): Promise<Plan | null> {
+    const raw = await this.db.plan.findUnique({ where: { planId } });
     return raw ? new Plan(raw) : null;
   }
 

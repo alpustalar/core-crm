@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import {
-  CLINIC_COMMAND_REPOSITORY,
-  CLINIC_QUERY_REPOSITORY,
-} from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
+
 import { ClinicCommandRepository } from './clinic.command.repository';
 import { ClinicQueryRepository } from './clinic.query.repository';
+import { CLINIC_COMMAND_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
+import { CLINIC_QUERY_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
 
 @Module({
   providers: [

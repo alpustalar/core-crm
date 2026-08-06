@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ConsentFormPresentationModule } from './presentation/consent-form.presentation.module';
-import { ConsentFormCommandModule } from './application/commands/command.module';
-import { ConsentFormQueryModule } from './application/queries/query.module';
+import { ConsentFormPresentationModule } from './presentation/presentation.module';
+import { ConsentFormApplicationModule } from '@modules/clinical/consent-form/application/application.module';
+import { ConsentFormInfrastructureModule } from '@modules/clinical/consent-form/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
+    ConsentFormInfrastructureModule,
     ConsentFormPresentationModule,
-    ConsentFormCommandModule,
-    ConsentFormQueryModule,
+    ConsentFormApplicationModule,
   ],
-  exports: [ConsentFormCommandModule, ConsentFormQueryModule],
 })
 export class ConsentFormModule {}

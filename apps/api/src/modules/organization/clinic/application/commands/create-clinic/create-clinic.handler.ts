@@ -1,9 +1,6 @@
 import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
 import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
-import {
-  CLINIC_COMMAND_REPOSITORY,
-  IClinicCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -15,6 +12,10 @@ import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { CreateClinicCommand } from './create-clinic.command';
+import {
+  CLINIC_COMMAND_REPOSITORY,
+  IClinicCommandRepository,
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
 
 @CommandHandler(CreateClinicCommand)
 export class CreateClinicHandler

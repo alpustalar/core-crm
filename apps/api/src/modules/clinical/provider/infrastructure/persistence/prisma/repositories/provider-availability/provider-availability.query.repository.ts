@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
-import { IProviderAvailabilityQueryRepository } from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
+
+import { IProviderAvailabilityQueryRepository } from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository.interface';
+import { ProviderAvailability } from '@shared';
 
 @Injectable()
 export class ProviderAvailabilityQueryRepository
@@ -28,13 +29,12 @@ export class ProviderAvailabilityQueryRepository
     });
   }
 
-  async findByProviderAndDay(
+  findByProviderAndDay(
     providerId: string,
     dayOfWeek: number
   ): Promise<ProviderAvailability | null> {
-    const raw = await this.db.providerAvailability.findUnique({
+    return this.db.providerAvailability.findUnique({
       where: { providerId_dayOfWeek: { providerId, dayOfWeek } },
     });
-    return raw ? new ProviderAvailability(raw) : null;
   }
 }

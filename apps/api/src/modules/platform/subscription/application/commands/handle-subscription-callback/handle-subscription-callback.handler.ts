@@ -1,8 +1,6 @@
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import {
   ISubscriptionPaymentMethodCommandRepository,
@@ -37,8 +35,6 @@ export class HandleSubscriptionCallbackHandler implements ICommandHandler<
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
-    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
     @Inject(SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY)
     private readonly paymentMethodCommandRepo: ISubscriptionPaymentMethodCommandRepository,
     @Inject(BILLING_ADAPTER)
@@ -49,21 +45,29 @@ export class HandleSubscriptionCallbackHandler implements ICommandHandler<
   async execute(command: HandleSubscriptionCallbackCommand): Promise<void> {
     const { token, conversationId } = command;
 
-    const subscription =
-      await this.subscriptionQueryRepo.findByExternalId(conversationId);
-
-    if (!subscription) {
-      this.logger.warn(
-        `Subscription callback: no subscription found for conversationId=${conversationId}`
-      );
-      throw new NotFoundException(
-        `Subscription not found for conversationId=${conversationId}`
-      );
-    }
-
+    // Ödeme sonucu önce sorulur; aboneliğin okunması transaction'a ertelenir.
+    // Böylece hem kilit dış HTTP çağrısı boyunca tutulmaz, hem de yazılan kopya
+    // adaptör çağrısı öncesine ait bayat bir kopya olmaz (`update()` tüm alanları yazar).
     const result = await this.billingAdapter.handlePaymentResult(token);
 
     await this.txManager.outboxRun(async () => {
+      // Kilitli okuma: iyzico aynı ödeme için callback + webhook gönderiyor.
+      // Kilitsizken ikisi de aynı aboneliği okuyup dönemi iki kez başlatabilir,
+      // kartı iki kez saklayabilir ve iki aktivasyon event'i üretebilirdi.
+      const subscription =
+        await this.subscriptionCommandRepo.findByExternalIdForUpdate(
+          conversationId
+        );
+
+      if (!subscription) {
+        this.logger.warn(
+          `Subscription callback: no subscription found for conversationId=${conversationId}`
+        );
+        throw new NotFoundException(
+          `Subscription not found for conversationId=${conversationId}`
+        );
+      }
+
       if (result.success && result.iyzicoPaymentId) {
         subscription.confirmPayment(result.iyzicoPaymentId, {
           action: LogAction.SUBSCRIPTION_ACTIVATED,

@@ -4,8 +4,8 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { PaxBatchCloseCommand } from './pax-batch-close.command';
 import type { PaxBatchCloseResponse } from './pax-batch-close.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 
@@ -17,15 +17,15 @@ export class PaxBatchCloseHandler implements ICommandHandler<
   private readonly logger = new Logger(PaxBatchCloseHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     private readonly paxService: PaxService
   ) {}
 
   async execute(command: PaxBatchCloseCommand): Promise<PaxBatchCloseResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceCommandRepo.findById(input.posDeviceId);
     if (!device || !device.isActive) {
       throw new PosDeviceNotFoundException();
     }

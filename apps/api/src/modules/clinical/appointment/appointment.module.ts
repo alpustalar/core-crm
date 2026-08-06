@@ -1,17 +1,15 @@
-import { AppointmentQueryModule } from '@modules/clinical/appointment/application/queries/query.module';
-import { AppointmentCommandModule } from '@modules/clinical/appointment/application/commands/command.module';
 import { Module } from '@nestjs/common';
-import { AppointmentPresentationModule } from '@modules/clinical/appointment/presentation/appointment-presentation.module';
-import { AppointmentEventListenersModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event-listeners.module';
-import { AppointmentAiToolsModule } from '@modules/clinical/appointment/application/ai-tools/appointment-ai-tools.module';
+import { AppointmentApplicationModule } from '@modules/clinical/appointment/application/application.module';
+import { AppointmentDomainModule } from '@modules/clinical/appointment/domain/domain.module';
+import { AppointmentInfrastructureModule } from '@modules/clinical/appointment/infrastructure/infrastructure.module';
+import { AppointmentPresentationModule } from '@modules/clinical/appointment/presentation/presentation.module';
 
 @Module({
   imports: [
-    AppointmentQueryModule,
-    AppointmentCommandModule,
+    AppointmentApplicationModule,
+    AppointmentDomainModule,
+    AppointmentInfrastructureModule,
     AppointmentPresentationModule,
-    AppointmentEventListenersModule,
-    AppointmentAiToolsModule,
   ],
 })
 export class AppointmentModule {}

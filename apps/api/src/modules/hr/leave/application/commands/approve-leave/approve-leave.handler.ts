@@ -22,7 +22,7 @@ import {
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetEmployeeByIdQuery } from '@modules/hr/employee/application/queries/get-employee-by-id/get-employee-by-id.query';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { LeaveBalance } from '@modules/hr/leave/domain/value-objects/leave-balance.vo';
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
@@ -80,22 +80,26 @@ export class ApproveLeaveHandler implements ICommandHandler<
     const { data: employee } = await this.queryBus.execute(
       new GetEmployeeByIdQuery(employeeId, this.internalCtx)
     );
-    const entitlement = employee?.annualLeaveEntitlement ?? 0;
 
-    // İçinde bulunulan takvim yılının onaylı ANNUAL gün toplamı (bu talep henüz onaylı değil).
-    const currentYear = DateTimeManager.currentYear(); // 2026
-
-    const from = DateTimeManager.startOfYear(currentYear); // 2026-01-01 00:00:00.000 (Local/TZ)
-    const to = DateTimeManager.endOfYear(currentYear); // 2026-12-31 23:59:59.999 (Local/TZ)
-
-    const used = await this.leaveQueryRepo.sumApprovedAnnualDays(
+    // İzin yılı + bakiye aritmetiği domain'de (LeaveBalance) — bakiye sorgusuyla
+    // birebir aynı hesap; iki yerde ayrı ayrı yazılmaz.
+    const { from, to } = LeaveBalance.periodOf();
+    const usedDays = await this.leaveQueryRepo.sumApprovedAnnualDays(
       employeeId,
       from,
       to
     );
-    const remaining = entitlement - used;
-    if (requestedDays > remaining) {
-      throw new LeaveInsufficientBalanceException(requestedDays, remaining);
+
+    const balance = LeaveBalance.calculate({
+      entitlement: employee?.annualLeaveEntitlement ?? 0,
+      usedDays,
+    });
+
+    if (balance.exceeds(requestedDays)) {
+      throw new LeaveInsufficientBalanceException(
+        requestedDays,
+        balance.remaining
+      );
     }
   }
 }

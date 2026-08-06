@@ -9,14 +9,12 @@ import {
 import { PaxVoidCommand } from './pax-void.command';
 import type { PaxVoidResponse } from './pax-void.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
@@ -36,10 +34,8 @@ export class PaxVoidHandler implements ICommandHandler<
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
@@ -50,7 +46,9 @@ export class PaxVoidHandler implements ICommandHandler<
   async execute(command: PaxVoidCommand): Promise<PaxVoidResponse> {
     const { input } = command;
 
-    const originalTx = await this.posTransactionQueryRepo.findById(
+    // Orijinal işlem iptal kararını besliyor → okuma command repo'dan (ana bağlantı):
+    // satış az önce tamamlanmış olabilir, replica gecikmesi iptali reddederdi.
+    const originalTx = await this.posTransactionCommandRepo.findById(
       input.originalPosTransactionId
     );
     if (!originalTx) {
@@ -65,7 +63,7 @@ export class PaxVoidHandler implements ICommandHandler<
       .externalRef(new PosTransactionMissingExternalRefException())
       .orThrow();
 
-    const device = await this.posDeviceQueryRepo.findById(
+    const device = await this.posDeviceCommandRepo.findById(
       originalTx.posDeviceId
     );
     if (!device) {

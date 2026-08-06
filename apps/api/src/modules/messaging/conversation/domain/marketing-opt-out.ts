@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /**
  * Gelen mesaj gövdesinden pazarlama opt-out/opt-in niyetini sezer (TR + EN anahtar
  * kelimeler). WhatsApp pazarlama uyumu: kontak "DUR/STOP" yazınca pazarlama şablonları
@@ -36,9 +38,13 @@ function normalize(text: string): string {
     .replace(/Ö/g, 'O');
 }
 
-export type OptIntent = 'opt_out' | 'opt_in' | null;
+export const OptIntentSchema = z.enum(['opt_out', 'opt_in']);
 
-export function detectOptIntent(body: string | null | undefined): OptIntent {
+export type OptIntent = z.infer<typeof OptIntentSchema>;
+
+export function detectOptIntent(
+  body: string | null | undefined
+): OptIntent | null {
   if (!body) return null;
   const normalized = normalize(body);
   if (OPT_OUT_KEYWORDS.has(normalized)) return 'opt_out';

@@ -1,10 +1,4 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  CLINIC_COMMAND_REPOSITORY,
-  CLINIC_QUERY_REPOSITORY,
-  IClinicCommandRepository,
-  IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { SoftDeleteClinicCommand } from '@modules/organization/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.command';
 import { Inject } from '@nestjs/common';
@@ -18,14 +12,18 @@ import {
   CLINIC_EVENT_PUBLISHER,
   IClinicEventPublisher,
 } from '@modules/organization/clinic/domain/interfaces/clinic.event-publisher.interface';
+import {
+  CLINIC_COMMAND_REPOSITORY,
+  IClinicCommandRepository,
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
 
 @CommandHandler(SoftDeleteClinicCommand)
-export class SoftDeleteClinicHandler implements ICommandHandler<SoftDeleteClinicCommand> {
+export class SoftDeleteClinicHandler
+  implements ICommandHandler<SoftDeleteClinicCommand>
+{
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
-    private readonly clinicCommandRepo: IClinicCommandRepository,
-    @Inject(CLINIC_QUERY_REPOSITORY)
-    private readonly clinicQueryRepo: IClinicQueryRepository,
+    private readonly clinicRepo: IClinicCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(CLINIC_EVENT_PUBLISHER)
@@ -39,11 +37,11 @@ export class SoftDeleteClinicHandler implements ICommandHandler<SoftDeleteClinic
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
       await this.transactionManager.run(async () => {
-        const clinic = await this.clinicQueryRepo.findById(clinicId);
+        const clinic = await this.clinicRepo.findById(clinicId);
         if (!clinic) return;
 
         clinic.softDelete(actor?.userId);
-        await this.clinicCommandRepo.update(clinic);
+        await this.clinicRepo.update(clinic);
       });
       return;
     }

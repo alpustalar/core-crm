@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { ProviderException } from '@modules/clinical/provider/domain/entities/provider-exception.entity';
-import { IProviderExceptionCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-exception.repository.interface';
+import { IProviderExceptionCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.command.repository.interface';
 
 @Injectable()
 export class ProviderExceptionCommandRepository
@@ -45,5 +45,21 @@ export class ProviderExceptionCommandRepository
     });
     entity.flushEvents();
     return new ProviderException(raw);
+  }
+
+  async findExceptionsByDateRange(
+    providerId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<ProviderException[]> {
+    const raws = await this.db.providerException.findMany({
+      where: {
+        providerId,
+        startTime: { lt: endDate },
+        endTime: { gt: startDate },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+    return raws.map((raw) => new ProviderException(raw));
   }
 }

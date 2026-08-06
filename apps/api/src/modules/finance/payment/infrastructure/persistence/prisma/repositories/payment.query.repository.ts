@@ -44,14 +44,6 @@ export class PaymentQueryRepository
     return raw ? new Payment(raw) : null;
   }
 
-  async findByInstallmentId(installmentId: string): Promise<Payment | null> {
-    const raw = await this.db.payment.findFirst({
-      where: { installments: { some: { id: installmentId } } },
-      include: { installments: { orderBy: { installmentNo: 'asc' } } },
-    });
-    return raw ? new Payment(raw) : null;
-  }
-
   async arAging(filter: ArAgingFilter): Promise<ArAgingData> {
     const [openRows, collected] = await Promise.all([
       this.db.paymentInstallment.findMany({

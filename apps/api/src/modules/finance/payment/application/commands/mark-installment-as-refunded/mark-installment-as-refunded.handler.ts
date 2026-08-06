@@ -4,9 +4,7 @@ import { InstallmentNotFoundException } from '@modules/finance/payment/domain/ex
 import { MarkInstallmentAsRefundedCommand } from './mark-installment-as-refunded.command';
 import {
   IPaymentCommandRepository,
-  IPaymentQueryRepository,
   PAYMENT_COMMAND_REPOSITORY,
-  PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import {
   IPaymentEventPublisher,
@@ -25,8 +23,6 @@ export class MarkInstallmentAsRefundedHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(PAYMENT_QUERY_REPOSITORY)
-    private readonly paymentQueryRepo: IPaymentQueryRepository,
     @Inject(PAYMENT_COMMAND_REPOSITORY)
     private readonly paymentCommandRepo: IPaymentCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
@@ -41,7 +37,9 @@ export class MarkInstallmentAsRefundedHandler implements ICommandHandler<
 
     await this.txManager.outboxRun(async () => {
       const payment =
-        await this.paymentQueryRepo.findByInstallmentId(installmentId);
+        await this.paymentCommandRepo.findByInstallmentIdForUpdate(
+          installmentId
+        );
       if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       const validateOptions = this.policyFactory

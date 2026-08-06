@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
-import { TreatmentPackageCommandModule } from './application/commands/command.module';
-import { TreatmentPackageQueryModule } from './application/queries/query.module';
-import { TreatmentPackageAiToolsModule } from './application/ai-tools/treatment-package-ai-tools.module';
+import { TreatmentPackageApplicationModule } from '@modules/clinical/treatment-package/application/application.module';
+import { TreatmentPackageInfrastructureModule } from '@modules/clinical/treatment-package/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
-    TreatmentPackageCommandModule,
-    TreatmentPackageQueryModule,
-    TreatmentPackageAiToolsModule,
+    TreatmentPackageApplicationModule,
+    TreatmentPackageInfrastructureModule,
   ],
 })
 export class TreatmentPackageModule {}

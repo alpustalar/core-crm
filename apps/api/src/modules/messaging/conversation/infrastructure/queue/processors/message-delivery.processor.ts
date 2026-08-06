@@ -16,9 +16,7 @@ import {
 } from '@modules/messaging/conversation/domain/ports/message-channel.port';
 import {
   MESSAGE_COMMAND_REPOSITORY,
-  MESSAGE_QUERY_REPOSITORY,
   IMessageCommandRepository,
-  IMessageQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
@@ -48,8 +46,6 @@ export class MessageDeliveryProcessor extends WorkerHost {
   constructor(
     @Inject(MESSAGE_CHANNEL_PORT)
     private readonly channel: MessageChannelPort,
-    @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
     @Inject(CONVERSATION_QUERY_REPOSITORY)
@@ -72,7 +68,9 @@ export class MessageDeliveryProcessor extends WorkerHost {
   }
 
   private async handleSend(job: Job<SendJobData>): Promise<void> {
-    const message = await this.messageQueryRepo.findById(job.data.messageId);
+    // Gönderim kararını besleyen okuma command repo'dan (ana bağlantı): replica
+    // gecikmesi, webhook'un çoktan SENT işaretlediği mesajı tekrar göndertebilirdi.
+    const message = await this.messageCommandRepo.findById(job.data.messageId);
     if (!message) {
       this.logger.warn(`Mesaj bulunamadı, atlanıyor: ${job.data.messageId}`);
       return;
@@ -113,11 +111,27 @@ export class MessageDeliveryProcessor extends WorkerHost {
             : undefined,
       });
 
+      // Kanal çağrısı sürerken aynı yazışmaya gelen mesaj düşmüş olabilir. Yukarıdaki
+      // (gönderim öncesi) kopyayı geri yazmak o mesajın unreadCount artışını ezerdi —
+      // `update()` entity'nin tüm alanlarını yazdığı için. Bu yüzden yazma öncesi
+      // ikisi de transaction içinde, kilitli ve taze okunur.
       await this.txManager.run(async () => {
-        message.markSent(result.externalId);
-        await this.messageCommandRepo.update(message);
-        conversation.touch();
-        await this.conversationCommandRepo.update(conversation);
+        const fresh = await this.messageCommandRepo.findByIdForUpdate(
+          message.id
+        );
+        if (!fresh) return;
+
+        fresh.markSent(result.externalId);
+        await this.messageCommandRepo.update(fresh);
+
+        const freshConversation =
+          await this.conversationCommandRepo.findByIdForUpdate(
+            message.conversationId
+          );
+        if (freshConversation) {
+          freshConversation.touch();
+          await this.conversationCommandRepo.update(freshConversation);
+        }
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'Gönderim hatası';
@@ -126,8 +140,13 @@ export class MessageDeliveryProcessor extends WorkerHost {
 
       if (isFinalAttempt) {
         await this.txManager.run(async () => {
-          message.markFailed(reason);
-          await this.messageCommandRepo.update(message);
+          const fresh = await this.messageCommandRepo.findByIdForUpdate(
+            message.id
+          );
+          if (!fresh) return;
+
+          fresh.markFailed(reason);
+          await this.messageCommandRepo.update(fresh);
         });
         this.logger.error(
           `Mesaj gönderimi kalıcı başarısız: ${message.id} — ${reason}`

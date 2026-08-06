@@ -3,9 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { ExpireTrialsCommand } from './expire-trials.command';
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
@@ -18,33 +16,52 @@ export class ExpireTrialsHandler implements ICommandHandler<
   private readonly logger = new Logger(ExpireTrialsHandler.name);
 
   constructor(
-    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<void> {
-    const trials = await this.subscriptionQueryRepo.findExpiredTrials(
+    const trials = await this.subscriptionCommandRepo.findExpiredTrials(
       DateTimeManager.create()
     );
     if (trials.length === 0) return;
 
     this.logger.log(`Deneme bitişi: ${trials.length} abonelik kilitleniyor`);
 
-    for (const subscription of trials) {
+    for (const candidate of trials) {
       await this.txManager
-        .run(async () => {
-          subscription.expire();
-          await this.subscriptionCommandRepo.update(subscription);
-        })
+        .run(() => this.expireOne(candidate.id.value))
         .catch((err) =>
           this.logger.error(
-            `Deneme bitirme hatası (subscriptionId: ${subscription.id.value})`,
+            `Deneme bitirme hatası (subscriptionId: ${candidate.id.value})`,
             err
           )
         );
     }
+  }
+
+  /**
+   * Aboneliği kilitli ve taze okuyup deneme bitişini YENİDEN doğrular.
+   *
+   * Neden: tarama ile yazma arasında müşteri ödemeyi tamamlamış olabilir. Taramadan
+   * gelen bayat kopyayı geri yazmak — `update()` tüm alanları yazdığı için — yeni
+   * başlamış aboneliği EXPIRED'a çevirip ödeme yapmış müşteriyi sistem dışında
+   * bırakırdı.
+   */
+  private async expireOne(subscriptionId: string): Promise<void> {
+    const subscription =
+      await this.subscriptionCommandRepo.findByIdForUpdate(subscriptionId);
+    if (!subscription) return;
+
+    if (!subscription.isTrialOver(DateTimeManager.create())) {
+      this.logger.verbose(
+        `Deneme bitişi atlandı, abonelik artık deneme durumunda değil: ${subscriptionId}`
+      );
+      return;
+    }
+
+    subscription.expire();
+    await this.subscriptionCommandRepo.update(subscription);
   }
 }

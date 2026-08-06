@@ -1982,9 +1982,44 @@ contextService.addEvent(new XEvent(payload));
 **6. Cross-Module Communication (Modüller Arası İletişim) — KURAL**:
 
 - **Hiçbir modül diğer modülün repository'sine veya handler'ına direkt erişemez.**
-- Modüller yalnızca `CommandBus` ve `QueryBus` üzerinden haberleşir.
+- Modüller `CommandBus` / `QueryBus` üzerinden **veya** hedef modülün açtığı **domain servisi** üzerinden haberleşir (aşağıdaki tabloya bak).
 - Hedef modülün query/command sınıfı import edilir; handler veya repo inject edilmez.
 - `module.api.ts` / `module.api.interface.ts` pattern'i **kullanılmaz**. Modüller kendi query/command sınıflarını dışarıya açar.
+
+**Hangi yol — KURAL**:
+
+| İhtiyaç | Yol |
+| --- | --- |
+| Veri getirme (isim, telefon, liste, read-model) | **QueryBus** |
+| Diğer modülün state'ini değiştirme | **CommandBus** |
+| Senkron invariant kontrolü — veri dönmez, çağıranın yazmasını kapıda durdurur | **Domain servisi** (token ile inject) |
+
+**Domain servisi istisnası — dar sözleşme**:
+
+Bir modül, başka modüllerin yazma işlemini doğrulaması için `domain/services/` altında bir servis açabilir
+(ör. `CLINIC_BOOKING_SERVICE` → `assertCanBook`). Kabul koşulları:
+
+1. **Interface + Symbol token sahibi modülün `domain/` katmanında** tanımlanır; tüketen taraf soyutlamaya bağımlıdır
+   (repository token deseninin aynısı — Dependency Inversion).
+2. Metotlar **yalnız `assert*`**: `void` döner ya da `DomainException` fırlatır. **Veri döndürmez, yazma yapmaz.**
+   Veri lazımsa QueryBus, yazma lazımsa CommandBus kullanılır.
+3. Okuma **Command Repository**'den yapılır — bu servis bir yazmayı kapıda durdurduğu için Command Context'e aittir
+   (bkz. "Command Handler'da Command Repo vs Query Repo").
+4. Servis **yaprak bir modülde** (`domain/services/services.module.ts`) sağlanır ve tüketici **yalnız o modülü**
+   import eder. Sahibin ana modülünü (`ClinicModule` gibi) import etmek yasaktır: controller'ları ve tüm
+   handler'ları da beraberinde çeker, modül grafiğini şişirir ve döngü riski üretir.
+
+**Gerekçe**: Bir invariant kontrolü kavramsal olarak "sorgu" değildir; `void` dönen `Assert*Query` bus'ı zorlamaktır.
+Ayrıca bus üzerinden gidildiğinde okuma karşı modülün *query* handler'ına düşer ve yazma kararını besleyen okumanın
+kilitsiz/replica'dan yapılması riski doğar.
+
+```typescript
+// ✓ Doğru — yaprak domain-servis modülü import edilir
+imports: [ProviderDomainServicesModule, ClinicDomainServicesModule]
+
+// ❌ Yanlış — tek servis için sahibin tüm modülü
+imports: [ProviderModule, ClinicModule]
+```
 
 **Akış**:
 

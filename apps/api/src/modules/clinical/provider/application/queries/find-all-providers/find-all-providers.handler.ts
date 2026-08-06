@@ -1,19 +1,20 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import { FindAllProvidersQuery } from './find-all-providers.query';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import { FindAllProvidersQueryResponse } from '@modules/clinical/provider/application/queries/find-all-providers/find-all-providers.response';
 import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import {
+  IProviderQueryRepository,
+  PROVIDER_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
 
 @QueryHandler(FindAllProvidersQuery)
-export class FindAllProvidersHandler implements IQueryHandler<
-  FindAllProvidersQuery,
-  FindAllProvidersQueryResponse
-> {
+export class FindAllProvidersHandler
+  implements
+    IQueryHandler<FindAllProvidersQuery, FindAllProvidersQueryResponse>
+{
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
     private readonly providerRepo: IProviderQueryRepository
@@ -34,7 +35,7 @@ export class FindAllProvidersHandler implements IQueryHandler<
         organizationIds
       );
       return {
-        data: items.map((item) => item.toPersistence()),
+        data: items,
         meta: { pagination: buildPaginationMeta(pagination, total) },
       };
     }
@@ -56,7 +57,7 @@ export class FindAllProvidersHandler implements IQueryHandler<
       const paginatedItems = allItems.slice(start, start + pagination.limit);
 
       return {
-        data: paginatedItems.map((item) => item.toPersistence()),
+        data: paginatedItems,
         meta: { pagination: buildPaginationMeta(pagination, total) },
       };
     }
@@ -70,7 +71,7 @@ export class FindAllProvidersHandler implements IQueryHandler<
       actor.clinicId
     );
     return {
-      data: items.map((item) => item.toPersistence()),
+      data: items,
       meta: { pagination: buildPaginationMeta(pagination, total) },
     };
   }

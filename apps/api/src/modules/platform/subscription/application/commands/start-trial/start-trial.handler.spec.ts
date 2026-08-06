@@ -1,7 +1,6 @@
 import { StartTrialHandler } from './start-trial.handler';
 import { StartTrialCommand } from './start-trial.command';
 import { ISubscriptionCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { ISubscriptionQueryRepository } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { ISubscriptionItemCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-item.repository.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
@@ -21,11 +20,9 @@ describe('StartTrialHandler', () => {
         createdSubs.push(s);
         return s;
       }),
-    } as unknown as ISubscriptionCommandRepository;
-
-    const subscriptionQueryRepo = {
+      // Mükerrer abonelik guard'ı artık yazmayla aynı transaction içinde.
       existsByOwner: jest.fn().mockResolvedValue(opts.exists ?? false),
-    } as unknown as ISubscriptionQueryRepository;
+    } as unknown as ISubscriptionCommandRepository;
 
     const subscriptionItemCommandRepo = {
       create: jest.fn(async (i: SubscriptionItem) => {
@@ -46,7 +43,6 @@ describe('StartTrialHandler', () => {
 
     const handler = new StartTrialHandler(
       subscriptionCommandRepo,
-      subscriptionQueryRepo,
       subscriptionItemCommandRepo,
       queryBus,
       txManager

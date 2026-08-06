@@ -10,8 +10,8 @@ import {
 import { PaxRefundCommand } from './pax-refund.command';
 import type { PaxRefundResponse } from './pax-refund.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
@@ -35,8 +35,8 @@ export class PaxRefundHandler implements ICommandHandler<
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
@@ -66,7 +66,7 @@ export class PaxRefundHandler implements ICommandHandler<
       throw new RefundAmountExceedsOriginalException();
     }
 
-    const device = await this.posDeviceQueryRepo.findById(
+    const device = await this.posDeviceCommandRepo.findById(
       originalTx.posDeviceId
     );
     if (!device) {

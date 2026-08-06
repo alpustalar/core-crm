@@ -21,11 +21,6 @@ export class MessageQueryRepository
     return raw ? new Message(raw) : null;
   }
 
-  async findByExternalId(externalId: string): Promise<Message | null> {
-    const raw = await this.db.message.findFirst({ where: { externalId } });
-    return raw ? new Message(raw) : null;
-  }
-
   async findManyByConversation(
     conversationId: string,
     pagination: Pagination

@@ -12,4 +12,5 @@ export const QUEUES = {
   MESSAGING_AI: 'messaging-ai-queue',
   APPOINTMENT: 'appointment-queue',
   SUBSCRIPTION: 'subscription-queue',
+  WORK_ORDER: 'work-order-queue',
 } as const;

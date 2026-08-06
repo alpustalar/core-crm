@@ -3,22 +3,21 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
-  CONVERSATION_QUERY_REPOSITORY,
   IConversationCommandRepository,
-  IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
   IMessageCommandRepository,
-  IMessageQueryRepository,
   MESSAGE_COMMAND_REPOSITORY,
-  MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { FindPatientByContactQuery } from '@modules/crm/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
-import { detectOptIntent } from '@modules/messaging/conversation/domain/marketing-opt-out';
+import {
+  detectOptIntent,
+  OptIntentSchema,
+} from '@modules/messaging/conversation/domain/marketing-opt-out';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { MessageChannelSchema } from '@shared';
 import { MessageChannel } from '@prisma/client';
@@ -30,19 +29,14 @@ import { SYSTEM_ACTOR } from '@common/constants/system-actor.constant';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 
 @CommandHandler(ReceiveInboundMessageCommand)
-export class ReceiveInboundMessageHandler implements ICommandHandler<
-  ReceiveInboundMessageCommand,
-  string
-> {
+export class ReceiveInboundMessageHandler
+  implements ICommandHandler<ReceiveInboundMessageCommand, string>
+{
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
-    @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository,
     private readonly queryBus: TSQueryBus,
     private readonly commandBus: TSCommandBus,
     private readonly txManager: TransactionManager
@@ -51,8 +45,11 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
   async execute(command: ReceiveInboundMessageCommand): Promise<string> {
     const { input } = command;
 
-    // idempotemcy check meta aynı mesajı tekrar iletebiliyor
-    const existingMessage = await this.messageQueryRepo.findByExternalId(
+    // idempotemcy check meta aynı mesajı tekrar iletebiliyor. Bu okuma yazıp
+    // yazmayacağımıza karar verdiği için command repo'dan (ana bağlantı) yapılır —
+    // replica gecikmesi mükerrer kayıt üretirdi. Yarışın son güvencesi yine de
+    // `@@unique(externalId)` kısıtıdır.
+    const existingMessage = await this.messageCommandRepo.findByExternalId(
       input.externalId
     );
     if (existingMessage) return existingMessage.id;
@@ -98,8 +95,10 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
 
       // Pazarlama yönelimi kontrolü
       const intent = detectOptIntent(input.body);
-      if (intent === 'opt_out') conversation.optOutMarketing();
-      else if (intent === 'opt_in') conversation.resumeMarketing();
+      if (intent === OptIntentSchema.enum.opt_out)
+        conversation.optOutMarketing();
+      else if (intent === OptIntentSchema.enum.opt_in)
+        conversation.resumeMarketing();
 
       // Yeni yazışma INSERT, mevcut olan UPDATE.
       if (isNew) {
@@ -149,7 +148,10 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
 
     const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
 
-    const existing = await this.conversationQueryRepo.findByContact({
+    // Kilitli okuma: `recordInboundMessage` unreadCount'u okuyup artırdığı için, aynı
+    // kontaktan arka arkaya gelen iki mesaj kilitsizken aynı sayıyı okuyup birbirini
+    // ezerdi. Yazışma yoksa kilitlenecek satır yok; mükerrerliği @@unique engeller.
+    const existing = await this.conversationCommandRepo.findByContactForUpdate({
       clinicId: input.clinicId,
       channel,
       contactPhone: input.contactPhone,

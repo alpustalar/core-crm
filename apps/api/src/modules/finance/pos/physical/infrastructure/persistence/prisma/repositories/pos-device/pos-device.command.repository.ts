@@ -13,6 +13,11 @@ export class PosDeviceCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<PosDevice | null> {
+    const raw = await this.db.posDevice.findUnique({ where: { id } });
+    return raw ? new PosDevice(raw) : null;
+  }
+
   async create(entity: PosDevice): Promise<PosDevice> {
     const data = entity.toPersistence();
     const raw = await this.db.posDevice.create({ data });

@@ -1,14 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { PatientBookAppointmentCommand } from './patient-book-appointment.command';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TimeZoneSchema } from '@shared';
-import { AssertClinicCanBookQuery } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
-import { AssertProviderCanBookQuery } from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
+
 import { AppointmentSourceSchema } from '@input-type-schemas/AppointmentSourceSchema';
 import { AppointmentCreatorTypeSchema } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
@@ -23,16 +21,32 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment';
+import {
+  IProviderBookingService,
+  PROVIDER_BOOKING_SERVICE,
+} from '@modules/clinical/provider/domain/services/provider-booking/provider-booking.service.interface';
+import {
+  CLINIC_BOOKING_SERVICE,
+  IClinicBookingService,
+} from '@modules/organization/clinic/domain/services/clinic-booking/clinic-booking.service.interface';
+import {
+  APPOINTMENT_CHECKER_SERVICE,
+  IAppointmentCheckerService,
+} from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service.interface';
 
 @CommandHandler(PatientBookAppointmentCommand)
-export class PatientBookAppointmentHandler implements ICommandHandler<
-  PatientBookAppointmentCommand,
-  string
-> {
+export class PatientBookAppointmentHandler
+  implements ICommandHandler<PatientBookAppointmentCommand, string>
+{
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
-    private readonly appointmentCheckerService: AppointmentCheckerService,
+    @Inject(APPOINTMENT_CHECKER_SERVICE)
+    private readonly appointmentCheckerService: IAppointmentCheckerService,
+    @Inject(PROVIDER_BOOKING_SERVICE)
+    private readonly providerBookingService: IProviderBookingService,
+    @Inject(CLINIC_BOOKING_SERVICE)
+    private readonly clinicBookingService: IClinicBookingService,
     private readonly queryBus: TSQueryBus,
     private readonly transactionManager: TransactionManager
   ) {}
@@ -88,17 +102,13 @@ export class PatientBookAppointmentHandler implements ICommandHandler<
     }
 
     await Promise.all([
-      this.queryBus.execute(
-        new AssertClinicCanBookQuery({ clinicId, startTime, endTime })
-      ),
-      this.queryBus.execute(
-        new AssertProviderCanBookQuery({
-          providerId,
-          startTime,
-          endTime,
-          isConsultation,
-        })
-      ),
+      this.clinicBookingService.assertCanBook({ clinicId, startTime, endTime }),
+      this.providerBookingService.assertCanBook({
+        providerId,
+        startTime,
+        endTime,
+        isConsultation,
+      }),
     ]);
 
     await this.appointmentCheckerService.assertNoConflict({

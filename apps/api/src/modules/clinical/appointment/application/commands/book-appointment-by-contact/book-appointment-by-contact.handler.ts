@@ -1,14 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { BookAppointmentByContactCommand } from './book-appointment-by-contact.command';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TimeZoneSchema } from '@shared';
-import { AssertClinicCanBookQuery } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
-import { AssertProviderCanBookQuery } from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
+
 import { AppointmentSourceSchema } from '@input-type-schemas/AppointmentSourceSchema';
 import { AppointmentCreatorTypeSchema } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
@@ -24,6 +22,18 @@ import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command-repository.interface';
+import {
+  IProviderBookingService,
+  PROVIDER_BOOKING_SERVICE,
+} from '@modules/clinical/provider/domain/services/provider-booking/provider-booking.service.interface';
+import {
+  CLINIC_BOOKING_SERVICE,
+  IClinicBookingService,
+} from '@modules/organization/clinic/domain/services/clinic-booking/clinic-booking.service.interface';
+import {
+  APPOINTMENT_CHECKER_SERVICE,
+  IAppointmentCheckerService,
+} from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service.interface';
 
 /**
  * AI asistanı üzerinden randevu açar. Portal handler'ı ile aynı iş kurallarını uygular
@@ -33,14 +43,18 @@ import {
  * CommandBus üzerinden yapılır.
  */
 @CommandHandler(BookAppointmentByContactCommand)
-export class BookAppointmentByContactHandler implements ICommandHandler<
-  BookAppointmentByContactCommand,
-  string
-> {
+export class BookAppointmentByContactHandler
+  implements ICommandHandler<BookAppointmentByContactCommand, string>
+{
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
-    private readonly appointmentCheckerService: AppointmentCheckerService,
+    @Inject(APPOINTMENT_CHECKER_SERVICE)
+    private readonly appointmentCheckerService: IAppointmentCheckerService,
+    @Inject(PROVIDER_BOOKING_SERVICE)
+    private readonly providerBookingService: IProviderBookingService,
+    @Inject(CLINIC_BOOKING_SERVICE)
+    private readonly clinicBookingService: IClinicBookingService,
     private readonly queryBus: TSQueryBus,
     private readonly commandBus: TSCommandBus,
     private readonly transactionManager: TransactionManager
@@ -72,21 +86,18 @@ export class BookAppointmentByContactHandler implements ICommandHandler<
       throw new BookingWindowExceededException(settings.maxFutureBookingDays);
 
     await Promise.all([
-      this.queryBus.execute(
-        new AssertClinicCanBookQuery({
-          clinicId: data.clinicId,
-          startTime: data.startTime,
-          endTime,
-        })
-      ),
-      this.queryBus.execute(
-        new AssertProviderCanBookQuery({
-          providerId: data.providerId,
-          startTime: data.startTime,
-          endTime,
-          isConsultation,
-        })
-      ),
+      this.clinicBookingService.assertCanBook({
+        clinicId: data.clinicId,
+        startTime: data.startTime,
+        endTime,
+      }),
+
+      this.providerBookingService.assertCanBook({
+        providerId: data.providerId,
+        startTime: data.startTime,
+        endTime,
+        isConsultation,
+      }),
     ]);
 
     await this.appointmentCheckerService.assertNoConflict({

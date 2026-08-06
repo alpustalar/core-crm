@@ -3,13 +3,11 @@ import { Inject, Logger } from '@nestjs/common';
 import { ProcessSubscriptionRenewalsCommand } from './process-subscription-renewals.command';
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import {
-  ISubscriptionPaymentMethodQueryRepository,
-  SUBSCRIPTION_PAYMENT_METHOD_QUERY_REPOSITORY,
+  ISubscriptionPaymentMethodCommandRepository,
+  SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
 import {
   BILLING_ADAPTER,
@@ -37,49 +35,69 @@ export class ProcessSubscriptionRenewalsHandler implements ICommandHandler<
   private readonly logger = new Logger(ProcessSubscriptionRenewalsHandler.name);
 
   constructor(
-    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
-    @Inject(SUBSCRIPTION_PAYMENT_METHOD_QUERY_REPOSITORY)
-    private readonly paymentMethodQueryRepo: ISubscriptionPaymentMethodQueryRepository,
+    @Inject(SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY)
+    private readonly paymentMethodCommandRepo: ISubscriptionPaymentMethodCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<void> {
-    const due = await this.subscriptionQueryRepo.findDueForRenewal(
+    const due = await this.subscriptionCommandRepo.findDueForRenewal(
       DateTimeManager.create()
     );
     if (due.length === 0) return;
 
     this.logger.log(`Yenileme: ${due.length} dönem-sonu abonelik işleniyor`);
 
-    for (const subscription of due) {
+    for (const candidate of due) {
       // Her abonelik ayrı transaction — biri hata verirse diğerleri etkilenmez.
       await this.txManager
-        .outboxRun(() => this.processOne(subscription))
+        .outboxRun(() => this.processOne(candidate.id.value))
         .catch((err) =>
           this.logger.error(
-            `Yenileme hatası (subscriptionId: ${subscription.id.value})`,
+            `Yenileme hatası (subscriptionId: ${candidate.id.value})`,
             err
           )
         );
     }
   }
 
-  private async processOne(subscription: Subscription): Promise<void> {
+  /**
+   * Tek aboneliği yeniler. Aday listesi taramadan geliyor; burada abonelik kilitli
+   * ve taze okunup yenileme koşulu YENİDEN doğrulanır.
+   *
+   * Neden: bu iş zamanlanmış ve birden çok API örneğinde/üst üste çalışabiliyor.
+   * Kilitsizken iki çalıştırma aynı aboneliği "dönemi bitmiş" görüp kayıtlı karttan
+   * iki kez çekim yapardı. Kilit tahsilat çağrısı boyunca tutulur — bağlantı havuzu
+   * açısından maliyetli ama mükerrer çekimin alternatifi değil. (Kalıcı çözüm: satırda
+   * bir "yenileme sahiplenildi" damgası; o zaman kilit HTTP öncesi bırakılabilir.)
+   */
+  private async processOne(subscriptionId: string): Promise<void> {
+    const subscription =
+      await this.subscriptionCommandRepo.findByIdForUpdate(subscriptionId);
+    if (!subscription) return;
+
+    if (!subscription.isDueForRenewal(DateTimeManager.create())) {
+      this.logger.verbose(
+        `Yenileme atlandı, abonelik artık dönem-sonu değil: ${subscriptionId}`
+      );
+      return;
+    }
+
     if (subscription.cancelAtPeriodEnd) {
       subscription.cancel();
       await this.subscriptionCommandRepo.update(subscription);
       return;
     }
 
-    const subscriptionId = subscription.id.value;
+    // Çekilecek tutar ve kullanılacak kart doğrudan para hareketini belirliyor →
+    // ikisi de command repo'dan (ana bağlantı, aynı transaction).
     const [savedCard, charge] = await Promise.all([
-      this.paymentMethodQueryRepo.findBySubscriptionId(subscriptionId),
-      this.subscriptionQueryRepo.findRenewalCharge(subscriptionId),
+      this.paymentMethodCommandRepo.findBySubscriptionId(subscriptionId),
+      this.subscriptionCommandRepo.findRenewalCharge(subscriptionId),
     ]);
 
     // Kayıtlı kart veya tahsil edilecek tutar yoksa otomatik çekim yapılamaz → PAST_DUE.

@@ -3,9 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { ExpirePastDueSubscriptionsCommand } from './expire-past-due-subscriptions.command';
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { DateTimeManager } from '@common/utils';
@@ -19,39 +17,53 @@ export class ExpirePastDueSubscriptionsHandler implements ICommandHandler<
   private readonly logger = new Logger(ExpirePastDueSubscriptionsHandler.name);
 
   constructor(
-    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<void> {
-    const pastDue = await this.subscriptionQueryRepo.findPastDue();
+    const pastDue = await this.subscriptionCommandRepo.findPastDue();
     const now = DateTimeManager.create();
 
-    for (const subscription of pastDue) {
-      const periodEnd = subscription.currentPeriodEnd;
-      // Grace: dönem bitişi + SUBSCRIPTION_GRACE_DAYS gün geçtiyse süresi biter.
-      const graceOver = periodEnd
-        ? DateTimeManager.isBefore(
-            DateTimeManager.addDays(periodEnd, SUBSCRIPTION_GRACE_DAYS),
-            now
-          )
-        : true; // dönem bilgisi yoksa güvenli tarafta süreyi bitir
-      if (!graceOver) continue;
+    for (const candidate of pastDue) {
+      // Ucuz ön-eleme; bağlayıcı karar aşağıda kilit altında yeniden verilir.
+      if (!candidate.isGracePeriodOver(now, SUBSCRIPTION_GRACE_DAYS)) continue;
 
       await this.txManager
-        .run(async () => {
-          subscription.expire();
-          await this.subscriptionCommandRepo.update(subscription);
-        })
+        .run(() => this.expireOne(candidate.id.value))
         .catch((err) =>
           this.logger.error(
-            `Süre bitirme hatası (subscriptionId: ${subscription.id.value})`,
+            `Süre bitirme hatası (subscriptionId: ${candidate.id.value})`,
             err
           )
         );
     }
+  }
+
+  /**
+   * Aboneliği kilitli ve taze okuyup grace süresinin dolduğunu YENİDEN doğrular.
+   * Tarama ile yazma arasında ödeme gelip abonelik ACTIVE'e dönmüş olabilir; bayat
+   * kopyayı geri yazmak ödemesi alınmış müşteriyi EXPIRED yapardı.
+   */
+  private async expireOne(subscriptionId: string): Promise<void> {
+    const subscription =
+      await this.subscriptionCommandRepo.findByIdForUpdate(subscriptionId);
+    if (!subscription) return;
+
+    if (
+      !subscription.isGracePeriodOver(
+        DateTimeManager.create(),
+        SUBSCRIPTION_GRACE_DAYS
+      )
+    ) {
+      this.logger.verbose(
+        `Süre bitirme atlandı, abonelik artık gecikmiş değil: ${subscriptionId}`
+      );
+      return;
+    }
+
+    subscription.expire();
+    await this.subscriptionCommandRepo.update(subscription);
   }
 }

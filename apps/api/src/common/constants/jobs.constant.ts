@@ -89,3 +89,8 @@ export const SUBSCRIPTION_GRACE_DAYS = 7;
 
 /** Yeni kiracının otomatik ücretsiz deneme süresi (gün). */
 export const SUBSCRIPTION_TRIAL_DAYS = 10;
+
+export const WORK_ORDER_JOBS = {
+  /** Termini geçmiş dış iş emirlerini tarar, personele gecikme bildirimi ürettirir. */
+  SCAN_OVERDUE: 'work-order-scan-overdue',
+} as const;

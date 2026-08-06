@@ -5,14 +5,15 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ConvertUserToProviderCommand } from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.command';
 import { ConvertUserToProviderResponse } from '@modules/clinical/provider/application/commands/convert-user-to-provider/convert-user-to-provider.response';
-import {
-  IProviderCommandRepository,
-  PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
 
 @CommandHandler(ConvertUserToProviderCommand)
 export class ConvertUserToProviderHandler
@@ -26,7 +27,7 @@ export class ConvertUserToProviderHandler
     @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     private readonly transactionManager: TransactionManager
   ) {}
 
@@ -42,8 +43,6 @@ export class ConvertUserToProviderHandler
 
     const provider = Provider.create(command.data);
 
-    await this.transactionManager.run(() =>
-      this.providerCommandRepo.create(provider)
-    );
+    await this.transactionManager.run(() => this.providerRepo.create(provider));
   }
 }

@@ -19,8 +19,11 @@ import { ProcessAppointmentRemindersHandler } from './process-appointment-remind
 import { AppointmentEventModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event.module';
 import { PatientModule } from '@modules/crm/patient/patient.module';
 import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service';
 import { AppointmentCacheService } from '@modules/clinical/appointment/infrastructure/cache/appointment-cache.service';
+import { ProviderDomainServicesModule } from '@modules/clinical/provider/domain/services/services.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
+import { AppointmentDomainModule } from '@modules/clinical/appointment/domain/domain.module';
 
 const CommandHandlers = [
   StaffRescheduleHandler,
@@ -43,7 +46,14 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
+  imports: [
+    AppointmentEventModule,
+    PatientModule,
+    AppointmentRepositoryModule,
+    ProviderDomainServicesModule,
+    ClinicDomainServicesModule,
+    AppointmentDomainModule,
+  ],
   providers: [
     ...CommandHandlers,
     AppointmentCheckerService,

@@ -1,17 +1,42 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
+import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 
 @Injectable()
 export class MessageCommandRepository
-  extends BaseRepository
+  extends BaseCommandRepository<Message>
   implements IMessageCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findById(id: string): Promise<Message | null> {
+    const raw = await this.db.message.findUnique({ where: { id } });
+    return raw ? new Message(raw) : null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<Message | null> {
+    await this.lockRowForUpdate('messages', id);
+    return this.findById(id);
+  }
+
+  async findByExternalId(externalId: string): Promise<Message | null> {
+    const raw = await this.db.message.findUnique({ where: { externalId } });
+    return raw ? new Message(raw) : null;
+  }
+
+  async findByExternalIdForUpdate(externalId: string): Promise<Message | null> {
+    const existing = await this.db.message.findUnique({
+      where: { externalId },
+      select: { id: true },
+    });
+    if (!existing) return null;
+
+    return this.findByIdForUpdate(existing.id);
   }
 
   async create(entity: Message): Promise<Message> {

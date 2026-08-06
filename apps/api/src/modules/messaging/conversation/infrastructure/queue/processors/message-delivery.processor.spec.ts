@@ -5,10 +5,7 @@ import { MessageDeliveryProcessor } from './message-delivery.processor';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports/message-channel.port';
-import {
-  IMessageCommandRepository,
-  IMessageQueryRepository,
-} from '@modules/messaging/conversation/domain/repositories/message.repository';
+import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import {
   IConversationCommandRepository,
   IConversationQueryRepository,
@@ -19,21 +16,21 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
   const build = (params: {
     message: Message | null;
     conversation?: Conversation | null;
+    /** Kanal çağrısı sonrası kilitli okumada dönen taze yazışma (yarış senaryosu). */
+    freshConversation?: Conversation | null;
     sendImpl?: jest.Mock;
   }) => {
+    let savedConversation: Conversation | undefined;
+
     const channel = {
       send:
         params.sendImpl ??
         jest.fn().mockResolvedValue({ externalId: 'wamid.sent.1' }),
     } as unknown as MessageChannelPort;
 
-    const messageQueryRepo = {
-      findById: jest.fn().mockResolvedValue(params.message),
-      findByExternalId: jest.fn(),
-      findManyByConversation: jest.fn(),
-    } as unknown as IMessageQueryRepository;
-
     const messageCommandRepo = {
+      findById: jest.fn().mockResolvedValue(params.message),
+      findByIdForUpdate: jest.fn().mockResolvedValue(params.message),
       update: jest.fn(async (m: Message) => m),
     } as unknown as IMessageCommandRepository;
 
@@ -44,7 +41,15 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
     } as unknown as IConversationQueryRepository;
 
     const conversationCommandRepo = {
-      update: jest.fn(async (c: Conversation) => c),
+      findByIdForUpdate: jest
+        .fn()
+        .mockResolvedValue(
+          params.freshConversation ?? params.conversation ?? null
+        ),
+      update: jest.fn(async (c: Conversation) => {
+        savedConversation = c;
+        return c;
+      }),
     } as unknown as IConversationCommandRepository;
 
     const txManager = {
@@ -53,13 +58,17 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
 
     const processor = new MessageDeliveryProcessor(
       channel,
-      messageQueryRepo,
       messageCommandRepo,
       conversationQueryRepo,
       conversationCommandRepo,
       txManager
     );
-    return { processor, channel, messageCommandRepo };
+    return {
+      processor,
+      channel,
+      messageCommandRepo,
+      getSavedConversation: () => savedConversation,
+    };
   };
 
   const job = (messageId: string, attemptsMade = 0): Job =>
@@ -91,6 +100,27 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
     expect(channel.send).toHaveBeenCalledTimes(1);
     expect(message.status).toBe(MessageStatus.SENT);
     expect(message.externalId).toBe('wamid.sent.1');
+  });
+
+  it('gönderim sırasında gelen mesaj ezilmez: yazışma kilitli ve taze okunup yazılır', async () => {
+    const message = queuedOutbound();
+    const preSend = conversation();
+
+    // Kanal çağrısı sürerken gelen mesaj düşmüş gibi: unreadCount artmış taze kopya.
+    const fresh = conversation();
+    fresh.recordInboundMessage({ messageId: 'in-99', body: 'bir de bu' });
+
+    const { processor, getSavedConversation } = build({
+      message,
+      conversation: preSend,
+      freshConversation: fresh,
+    });
+
+    await processor.process(job(message.id));
+
+    // Gönderim öncesi kopya (unreadCount=0) geri yazılsaydı gelen mesaj kaybolurdu.
+    expect(getSavedConversation()).toBe(fresh);
+    expect(getSavedConversation()!.unreadCount).toBe(1);
   });
 
   it('idempotency: QUEUED olmayan mesaj tekrar gönderilmez', async () => {

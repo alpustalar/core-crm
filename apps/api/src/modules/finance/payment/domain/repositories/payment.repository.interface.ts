@@ -18,12 +18,20 @@ export interface InstallmentPlanItem {
 export const PAYMENT_QUERY_REPOSITORY = Symbol('IPaymentQueryRepository');
 export const PAYMENT_COMMAND_REPOSITORY = Symbol('IPaymentCommandRepository');
 
-export type IPaymentCommandRepository = IBaseCommandRepository<Payment> & {};
+export interface IPaymentCommandRepository
+  extends IBaseCommandRepository<Payment> {
+  /**
+   * Taksitin ait olduğu ödemeyi, satırı `FOR UPDATE` kilitleyerek yükler. Taksit
+   * durum geçişleri (tahsil/iade/iptal/başarısız) para hareketidir ve POS callback'i
+   * ile manuel işlem yarışabilir; kilit olmadan iki eşzamanlı geçiş birbirinin
+   * üzerine yazar. Yalnız aktif transaction içinde çağrılır.
+   */
+  findByInstallmentIdForUpdate(installmentId: string): Promise<Payment | null>;
+}
 
 export interface IPaymentQueryRepository {
   findByAppointmentId(appointmentId: string): Promise<Payment | null>;
   findPaymentWithInstallments(paymentId: string): Promise<Payment | null>;
-  findByInstallmentId(installmentId: string): Promise<Payment | null>;
 
   /** AR aging: şubenin açık taksitleri + tahsil edilmiş toplamı (yönetim raporu). */
   arAging(filter: ArAgingFilter): Promise<ArAgingData>;

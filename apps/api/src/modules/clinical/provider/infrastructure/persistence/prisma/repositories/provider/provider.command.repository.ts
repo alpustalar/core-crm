@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IProviderCommandRepository } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { IProviderCommandRepository } from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
 
 @Injectable()
 export class ProviderCommandRepository

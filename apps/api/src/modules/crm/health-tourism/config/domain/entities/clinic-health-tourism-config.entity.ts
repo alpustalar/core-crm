@@ -3,7 +3,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   CreateClinicHealthTourismConfigProps,
   UpdateClinicHealthTourismConfigProps,
-} from '../config.contracts';
+} from '../contracts/config.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Currency } from '@src/domain/value-objects/currency.vo';

@@ -4,9 +4,7 @@ import { InstallmentNotFoundException } from '@modules/finance/payment/domain/ex
 import { MarkInstallmentAsPaidCommand } from './mark-installment-as-paid.command';
 import {
   IPaymentCommandRepository,
-  IPaymentQueryRepository,
   PAYMENT_COMMAND_REPOSITORY,
-  PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import {
   IPaymentEventPublisher,
@@ -21,8 +19,6 @@ export class MarkInstallmentAsPaidHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(PAYMENT_QUERY_REPOSITORY)
-    private readonly paymentQueryRepo: IPaymentQueryRepository,
     @Inject(PAYMENT_COMMAND_REPOSITORY)
     private readonly paymentCommandRepo: IPaymentCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
@@ -35,14 +31,16 @@ export class MarkInstallmentAsPaidHandler implements ICommandHandler<
 
     await this.txManager.outboxRun(async () => {
       const payment =
-        await this.paymentQueryRepo.findByInstallmentId(installmentId);
+        await this.paymentCommandRepo.findByInstallmentIdForUpdate(
+          installmentId
+        );
       if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       payment.completeInstallment(installmentId);
       await this.paymentCommandRepo.update(payment);
 
       // Event sahipliği payment modülünde: tahsilat olayı burada fırlatılır.
-      // TODO: event domain event olarak completeInstallment içinde fırlatılacak
+    
       this.paymentEventPublisher.paymentPaid({
         installmentId,
         paymentId: payment.id.value,

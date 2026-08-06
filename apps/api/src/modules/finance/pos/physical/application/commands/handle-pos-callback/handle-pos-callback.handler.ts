@@ -5,9 +5,7 @@ import { HandlePosCallbackCommand } from './handle-pos-callback.command';
 import { HandlePosCallbackResponse } from './handle-pos-callback.response';
 import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import {
   IPhysicalPosProvider,
@@ -25,8 +23,6 @@ export class HandlePosCallbackHandler implements ICommandHandler<
   private readonly logger = new Logger(HandlePosCallbackHandler.name);
 
   constructor(
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
@@ -47,8 +43,11 @@ export class HandlePosCallbackHandler implements ICommandHandler<
 
     const { posTransactionId, status } = await this.txManager.outboxRun(
       async () => {
+        // Kilitli okuma: POS callback'i tekrar gönderilebilir ve mutabakat taraması
+        // aynı işlemi eşzamanlı sonuçlandırabilir. Kilitsizken ikisi de aynı PENDING
+        // kaydı okuyup ödemeyi iki kez "ödendi" işaretleyebilirdi.
         const transaction =
-          await this.posTransactionQueryRepo.findByExternalRef(
+          await this.posTransactionCommandRepo.findByExternalRefForUpdate(
             input.externalRef
           );
 

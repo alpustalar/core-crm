@@ -1,9 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  IProviderCommandRepository,
-  PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -12,12 +9,15 @@ import { UpdateProviderInfoCommand } from './update-provider-info.command';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
 
 @CommandHandler(UpdateProviderInfoCommand)
-export class UpdateProviderInfoHandler implements ICommandHandler<
-  UpdateProviderInfoCommand,
-  void
-> {
+export class UpdateProviderInfoHandler
+  implements ICommandHandler<UpdateProviderInfoCommand, void>
+{
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
     private readonly providerRepo: IProviderCommandRepository,

@@ -16,6 +16,7 @@ import {
 } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
+  AppointmentRuleSnapshot,
   CalculateEndTimeProps,
   CancelScheduleProps,
   CreateAppointmentProps,
@@ -706,7 +707,15 @@ export class Appointment extends AggregateRoot {
   }
 
   public rules(validateOptions: ValidateOptionsType = DefaultValidateOptions) {
-    return new AppointmentRules(this, validateOptions);
+    return new AppointmentRules(this.toRuleSnapshot(), validateOptions);
+  }
+
+  /**
+   * Kuralların ihtiyaç duyduğu asgari veri. Kural sınıfı entity'ye bağlı olmadığı
+   * için okuma tarafı da (read-model'den snapshot kurup) aynı kuralı çalıştırabilir.
+   */
+  public toRuleSnapshot(): AppointmentRuleSnapshot {
+    return { id: this.id.value, status: this.status };
   }
 
   public toPersistence(): IAppointment {

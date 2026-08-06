@@ -15,10 +15,9 @@ describe('MarkInstallmentAsRefundedHandler', () => {
   });
 
   const make = (payment: ReturnType<typeof makePayment> | null) => {
-    const paymentQueryRepo = {
-      findByInstallmentId: jest.fn().mockResolvedValue(payment),
-    };
+    // Okuma da yazma da command repo'dan: kilitli okuma + güncelleme aynı tx'te.
     const paymentCommandRepo = {
+      findByInstallmentIdForUpdate: jest.fn().mockResolvedValue(payment),
       update: jest.fn().mockResolvedValue(payment),
     };
     const publisher = { paymentRefund: jest.fn() };
@@ -33,7 +32,6 @@ describe('MarkInstallmentAsRefundedHandler', () => {
         .mockImplementation((cb: () => Promise<unknown>) => cb()),
     };
     const handler = new MarkInstallmentAsRefundedHandler(
-      paymentQueryRepo as never,
       paymentCommandRepo as never,
       publisher as never,
       policyFactory as never,

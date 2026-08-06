@@ -4,8 +4,8 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { IyzicoTerminalSaleCommand } from './iyzico-terminal-sale.command';
 import type { IyzicoTerminalSaleResponse } from './iyzico-terminal-sale.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
@@ -45,8 +45,8 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
   private readonly logger = new Logger(IyzicoTerminalSaleHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
@@ -61,7 +61,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
   ): Promise<IyzicoTerminalSaleResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceCommandRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }

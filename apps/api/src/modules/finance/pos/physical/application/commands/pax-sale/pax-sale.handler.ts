@@ -4,8 +4,8 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { PaxSaleCommand } from './pax-sale.command';
 import type { PaxSaleResponse } from './pax-sale.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
@@ -38,8 +38,8 @@ export class PaxSaleHandler implements ICommandHandler<
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
@@ -51,7 +51,7 @@ export class PaxSaleHandler implements ICommandHandler<
   async execute(command: PaxSaleCommand): Promise<PaxSaleResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceCommandRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }

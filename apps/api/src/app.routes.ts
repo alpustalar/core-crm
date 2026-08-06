@@ -31,6 +31,7 @@ import { EmployeeModule } from '@modules/hr/employee/employee.module';
 import { PurchasingModule } from '@modules/supply/purchasing/purchasing.module';
 import { CashRegisterModule } from '@modules/finance/cash-register/cash-register.module';
 import { BankModule } from '@modules/finance/bank/bank.module';
+import { WorkOrderModule } from '@modules/supply/work-order/work-order.module';
 
 export const APP_ROUTES: Routes = [
   {
@@ -160,5 +161,9 @@ export const APP_ROUTES: Routes = [
   {
     path: 'bank',
     module: BankModule,
+  },
+  {
+    path: 'work-orders',
+    module: WorkOrderModule,
   },
 ];

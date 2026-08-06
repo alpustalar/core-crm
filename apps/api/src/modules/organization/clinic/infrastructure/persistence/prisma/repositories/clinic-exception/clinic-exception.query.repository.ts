@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IClinicExceptionQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception.repository.interface';
-import { ClinicException } from '@modules/organization/clinic/domain/entities/clinic-exception.entity';
+import { IClinicExceptionQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.query.repository.interface';
+import { ClinicException } from '@shared';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class ClinicExceptionQueryRepository
@@ -13,49 +14,29 @@ export class ClinicExceptionQueryRepository
     super(prisma);
   }
 
-  async findExceptionByClinicAndDate(
-    clinicId: string,
-    date: Date
-  ): Promise<ClinicException | null> {
-    const normalizedDate = new Date(date);
-    normalizedDate.setUTCHours(0, 0, 0, 0);
-
-    const raw = await this.db.clinicException.findUnique({
-      where: {
-        clinicId_date: {
-          clinicId,
-          date: normalizedDate,
-        },
-      },
-    });
-
-    return raw ? new ClinicException(raw) : null;
-  }
-
-  async findExceptionsByDateRange(
+  findExceptionsByDateRange(
     clinicId: string,
     startDate: Date,
     endDate: Date
   ): Promise<ClinicException[]> {
-    const normalizedStart = new Date(startDate);
+    const normalizedStart = DateTimeManager.create(startDate);
     normalizedStart.setUTCHours(0, 0, 0, 0);
-    const normalizedEnd = new Date(endDate);
+    const normalizedEnd = DateTimeManager.create(endDate);
     normalizedEnd.setUTCHours(0, 0, 0, 0);
 
-    const rawExceptions = await this.db.clinicException.findMany({
+    return this.db.clinicException.findMany({
       where: {
         clinicId,
         date: { gte: normalizedStart, lte: normalizedEnd },
       },
     });
-    return rawExceptions.map((exception) => new ClinicException(exception));
   }
 
   async findClosedExceptionByDate(
     clinicId: string,
     date: Date
   ): Promise<Partial<ClinicException> | null> {
-    const startOfDay = new Date(date);
+    const startOfDay = DateTimeManager.create(date);
     startOfDay.setUTCHours(0, 0, 0, 0);
 
     return this.db.clinicException.findFirst({
@@ -68,6 +49,23 @@ export class ClinicExceptionQueryRepository
         isClosed: true,
         reason: true,
         date: true,
+      },
+    });
+  }
+
+  async findExceptionByClinicAndDate(
+    clinicId: string,
+    date: Date
+  ): Promise<ClinicException | null> {
+    const normalizedDate = DateTimeManager.create(date);
+    normalizedDate.setUTCHours(0, 0, 0, 0);
+
+    return this.db.clinicException.findUnique({
+      where: {
+        clinicId_date: {
+          clinicId,
+          date: normalizedDate,
+        },
       },
     });
   }

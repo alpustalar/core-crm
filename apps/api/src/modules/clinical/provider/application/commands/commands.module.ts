@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PolicyModule } from '@modules/platform/policy/policy.module';
-import { ClinicModule } from '@modules/organization/clinic/clinic.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 import { ConvertUserToProviderHandler } from './convert-user-to-provider/convert-user-to-provider.handler';
 import { CreateProviderAvailabilityHandler } from './create-provider-availability/create-provider-availability.handler';
@@ -24,7 +24,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [PolicyModule, ClinicModule, ProviderRepositoriesModule],
+  imports: [PolicyModule, ClinicDomainServicesModule, ProviderRepositoriesModule],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })

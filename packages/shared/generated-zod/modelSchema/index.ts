@@ -107,3 +107,5 @@ export * from './TreatmentPackageItemSchema';
 export * from './TreatmentPackageProviderSchema';
 export * from './PatientTreatmentPackageSchema';
 export * from './UserSchema';
+export * from './ExternalWorkOrderSchema';
+export * from './ExternalWorkOrderItemSchema';

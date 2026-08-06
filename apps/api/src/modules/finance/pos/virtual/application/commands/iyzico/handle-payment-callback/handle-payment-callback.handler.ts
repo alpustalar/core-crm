@@ -17,9 +17,7 @@ import { RecordFinancialEventCommand } from '@modules/finance/accounting/financi
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 import {
   IIyzicoTransactionCommandRepository,
-  IIyzicoTransactionQueryRepository,
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
-  IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
@@ -35,8 +33,6 @@ export class HandlePaymentCallbackHandler implements ICommandHandler<
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
-    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
     @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     private readonly txManager: TransactionManager,
@@ -50,8 +46,11 @@ export class HandlePaymentCallbackHandler implements ICommandHandler<
     const sdkResult = await this.iyzicoProvider.retrieveCheckoutForm(token);
 
     await this.txManager.outboxRun(async () => {
+      // Kilitli okuma: iyzico aynı ödeme için hem tarayıcı callback'ini hem webhook'u
+      // gönderir. Kilitsizken ikisi de PENDING görüp aşağıdaki idempotency kontrolünden
+      // geçer → taksit iki kez COMPLETED olur ve muhasebeye iki tahsilat düşerdi.
       const iyzicoTx =
-        await this.iyzicoQueryRepo.findTransactionByConversationId(
+        await this.iyzicoCommandRepo.findByConversationIdForUpdate(
           conversationId
         );
 

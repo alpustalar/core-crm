@@ -5,9 +5,7 @@ import { randomUUID } from 'crypto';
 import { StartTrialCommand } from './start-trial.command';
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-  SUBSCRIPTION_QUERY_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import {
   ISubscriptionItemCommandRepository,
@@ -32,8 +30,6 @@ export class StartTrialHandler
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
-    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
     @Inject(SUBSCRIPTION_ITEM_COMMAND_REPOSITORY)
     private readonly subscriptionItemCommandRepo: ISubscriptionItemCommandRepository,
     private readonly queryBus: TSQueryBus,
@@ -51,12 +47,6 @@ export class StartTrialHandler
 
     // Klinik-billed'de deneme belirli bir kliniğe bağlanır; klinik yoksa (org kaydı) atla.
     if (isClinicBilled && !ownerClinicId) return;
-
-    const exists = await this.subscriptionQueryRepo.existsByOwner({
-      organizationId,
-      clinicId: ownerClinicId,
-    });
-    if (exists) return; // idempotent
 
     const subscriptionId = randomUUID();
     const trialEndsAt = DateTimeManager.addDays(
@@ -79,6 +69,15 @@ export class StartTrialHandler
     });
 
     await this.txManager.run(async () => {
+      // Mükerrer abonelik guard'ı yazmayla aynı transaction içinde: kayıt akışı
+      // (org oluşturma) tekrar tetiklenirse aynı sahibe ikinci bir deneme aboneliği
+      // açılmamalı. Okuma command repo'dan — replica gecikmesi guard'ı boşa çıkarırdı.
+      const exists = await this.subscriptionCommandRepo.existsByOwner({
+        organizationId,
+        clinicId: ownerClinicId,
+      });
+      if (exists) return; // idempotent
+
       await this.subscriptionCommandRepo.create(subscription);
       await this.subscriptionItemCommandRepo.create(item);
     });

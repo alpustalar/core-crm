@@ -22,6 +22,29 @@ export class PaymentCommandRepository
     return raw ? new Payment(raw) : null;
   }
 
+  /**
+   * Taksitin ödemesini kilitleyerek yükler: önce taksitten `paymentId` çözülür,
+   * ödeme satırı `FOR UPDATE` ile kilitlenir, sonra taze hâli okunur. Sıra önemli —
+   * kilitten önce okunan veri bayat olabilir.
+   */
+  async findByInstallmentIdForUpdate(
+    installmentId: string
+  ): Promise<Payment | null> {
+    const installment = await this.db.paymentInstallment.findUnique({
+      where: { id: installmentId },
+      select: { paymentId: true },
+    });
+    if (!installment) return null;
+
+    await this.lockRowForUpdate('payments', installment.paymentId);
+
+    const raw = await this.db.payment.findUnique({
+      where: { id: installment.paymentId },
+      include: { installments: { orderBy: { installmentNo: 'asc' } } },
+    });
+    return raw ? new Payment(raw) : null;
+  }
+
   async create(entity: Payment): Promise<Payment> {
     const data = entity.toPersistence();
 

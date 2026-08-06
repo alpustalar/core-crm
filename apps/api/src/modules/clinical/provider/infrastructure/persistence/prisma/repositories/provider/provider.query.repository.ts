@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { Pagination } from '@shared';
+import { Pagination, Provider } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IProviderQueryRepository } from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
+
 import { Paginated } from '@common/interfaces/paginated.type';
 import { normalizeArray } from '@common/utils/normalize-array';
 import { ProviderDirectoryEntry } from '@modules/clinical/provider/domain/contracts/provider.contracts';
+import { IProviderQueryRepository } from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
 
 /** Uzmanlık/unvan adı çözümünde tercih edilen dil; yoksa ilk çeviriye düşülür. */
 const PREFERRED_LANG_CODE = 'TR';
@@ -24,17 +24,16 @@ export class ProviderQueryRepository
   }
 
   async findById(providerId: string): Promise<Provider | null> {
-    const raw = await this.db.provider.findUnique({
+    return this.db.provider.findUnique({
       where: { id: providerId },
     });
-    return raw ? new Provider(raw) : null;
   }
 
-  async findManyByClinicIds(
+  findManyByClinicIds(
     pagination: Pagination,
     clinicIds: string[] | string
   ): Promise<Paginated<Provider>> {
-    const result = await paginate({
+    return paginate({
       delegate: this.db.provider,
       pagination,
       where: {
@@ -43,28 +42,19 @@ export class ProviderQueryRepository
         },
       },
     });
-
-    return {
-      items: result.items.map((r) => new Provider(r)),
-      total: result.total,
-    };
   }
 
-  async findManyByOrganizationId(
+  findManyByOrganizationId(
     pagination: Pagination,
     organizationIds: string[] | string
   ): Promise<Paginated<Provider>> {
-    const result = await paginate({
+    return paginate({
       delegate: this.db.provider,
       pagination,
       where: {
         clinic: { organizationId: { in: normalizeArray(organizationIds) } },
       },
     });
-    return {
-      items: result.items.map((r) => new Provider(r)),
-      total: result.total,
-    };
   }
 
   /**

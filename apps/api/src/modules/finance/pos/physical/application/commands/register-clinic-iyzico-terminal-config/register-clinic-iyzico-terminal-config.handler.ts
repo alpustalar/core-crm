@@ -3,9 +3,7 @@ import { Inject } from '@nestjs/common';
 import { RegisterClinicIyzicoTerminalConfigCommand } from './register-clinic-iyzico-terminal-config.command';
 import {
   CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY,
-  CLINIC_IYZICO_TERMINAL_CONFIG_QUERY_REPOSITORY,
   IClinicIyzicoTerminalConfigCommandRepository,
-  IClinicIyzicoTerminalConfigQueryRepository,
 } from '@modules/finance/pos/physical/domain/repositories/clinic-iyzico-terminal-config.repository';
 import { ClinicIyzicoTerminalConfig } from '@modules/finance/pos/physical/domain/entities/clinic-iyzico-terminal-config.entity';
 import {
@@ -20,8 +18,6 @@ export class RegisterClinicIyzicoTerminalConfigHandler
   implements ICommandHandler<RegisterClinicIyzicoTerminalConfigCommand, string>
 {
   constructor(
-    @Inject(CLINIC_IYZICO_TERMINAL_CONFIG_QUERY_REPOSITORY)
-    private readonly configQueryRepo: IClinicIyzicoTerminalConfigQueryRepository,
     @Inject(CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY)
     private readonly configCommandRepo: IClinicIyzicoTerminalConfigCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -42,9 +38,14 @@ export class RegisterClinicIyzicoTerminalConfigHandler
       )
       .orThrow(CLINIC_EVENTS.REGISTER_SUBMERCHANT);
 
-    const existing = await this.configQueryRepo.findByClinicId(input.clinicId);
-
     return this.txManager.run(async () => {
+      // "Var mı → güncelle, yok mu → oluştur" kararı; okuma command repo'dan ve
+      // yazmayla aynı transaction içinde. (Yarışın nihai güvencesi upsert'in
+      // dayandığı clinicId unique kısıtı.)
+      const existing = await this.configCommandRepo.findByClinicId(
+        input.clinicId
+      );
+
       if (existing) {
         existing.updateCredentials({
           clientId: input.clientId,

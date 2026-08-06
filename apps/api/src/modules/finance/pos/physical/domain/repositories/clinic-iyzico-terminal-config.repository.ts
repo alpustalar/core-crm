@@ -12,6 +12,8 @@ export interface IClinicIyzicoTerminalConfigCommandRepository {
   upsertByClinicId(
     entity: ClinicIyzicoTerminalConfig
   ): Promise<ClinicIyzicoTerminalConfig>;
+  /** Kayıt akışında "var mı, güncelle mi" kararını besleyen okuma. */
+  findByClinicId(clinicId: string): Promise<ClinicIyzicoTerminalConfig | null>;
 }
 
 export interface IClinicIyzicoTerminalConfigQueryRepository {

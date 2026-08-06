@@ -304,6 +304,42 @@ export class Subscription extends AggregateRoot {
   }
 
   /**
+   * Yenileme günü geldi mi — ACTIVE ve fatura dönemi bitmiş.
+   *
+   * Zamanlanmış işler önce aday listesini tarar, sonra her aboneliği kilitleyip
+   * bu kuralla YENİDEN doğrular: tarama ile tahsilat arasında geçen sürede başka
+   * bir çalıştırma (veya callback) dönemi ilerletmiş olabilir. Doğrulama olmadan
+   * kayıtlı karttan ikinci kez çekim yapılır.
+   */
+  public isDueForRenewal(now: Date): boolean {
+    if (!this.isActive.value) return false;
+    const periodEnd = this.currentPeriodEnd;
+    return !!periodEnd && DateTimeManager.isBefore(periodEnd, now);
+  }
+
+  /** Deneme süresi doldu mu — hâlâ ACTIVE ve trialEndsAt geçmiş. */
+  public isTrialOver(now: Date): boolean {
+    if (!this.isActive.value) return false;
+    return (
+      !!this._trialEndsAt && DateTimeManager.isBefore(this._trialEndsAt, now)
+    );
+  }
+
+  /**
+   * PAST_DUE ödemesiz geçen grace süresi doldu mu — erişimin kesilebileceği an.
+   * Dönem bilgisi yoksa güvenli tarafta kalınır (süre dolmuş sayılır).
+   */
+  public isGracePeriodOver(now: Date, graceDays: number): boolean {
+    if (!this.isPastDue.value) return false;
+    const periodEnd = this.currentPeriodEnd;
+    if (!periodEnd) return true;
+    return DateTimeManager.isBefore(
+      DateTimeManager.addDays(periodEnd, graceDays),
+      now
+    );
+  }
+
+  /**
    * Kayıtlı kartla başarılı otomatik tahsilat sonrası yeni fatura dönemi açılır (renewal processor).
    * Durum ACTIVE'e çekilir, externalId son ödeme referansına güncellenir ve yenileme event'i raise edilir.
    */

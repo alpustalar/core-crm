@@ -8,14 +8,8 @@ import { ReceiveInboundMessageCommand } from './receive-inbound-message.command'
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { MessageReceivedEvent } from '@modules/messaging/conversation/domain/events/message-received.event';
-import {
-  IConversationCommandRepository,
-  IConversationQueryRepository,
-} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
-import {
-  IMessageCommandRepository,
-  IMessageQueryRepository,
-} from '@modules/messaging/conversation/domain/repositories/message.repository';
+import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
@@ -39,14 +33,14 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     let savedConversation: Conversation | undefined;
     let savedMessage: Message | undefined;
 
-    const conversationQueryRepo = {
-      findByContact: jest
+    // Yazışma okuması kilitli ve command repo'dan: `recordInboundMessage`
+    // unreadCount'u okuyup artırıyor, eşzamanlı iki mesaj birbirini ezmemeli.
+    const conversationCommandRepo = {
+      findByContactForUpdate: jest
         .fn()
         .mockResolvedValue(params.existingConversation ?? null),
       findById: jest.fn(),
-    } as unknown as IConversationQueryRepository;
-
-    const conversationCommandRepo = {
+      findByIdForUpdate: jest.fn(),
       create: jest.fn(async (c: Conversation) => {
         savedConversation = c;
         return c;
@@ -57,14 +51,10 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       }),
     } as unknown as IConversationCommandRepository;
 
-    const messageQueryRepo = {
+    const messageCommandRepo = {
       findByExternalId: jest
         .fn()
         .mockResolvedValue(params.existingMessage ?? null),
-      findManyByConversation: jest.fn(),
-    } as unknown as IMessageQueryRepository;
-
-    const messageCommandRepo = {
       create: jest.fn(async (m: Message) => {
         savedMessage = m;
         return m;
@@ -89,9 +79,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
 
     const handler = new ReceiveInboundMessageHandler(
       conversationCommandRepo,
-      conversationQueryRepo,
       messageCommandRepo,
-      messageQueryRepo,
       queryBus,
       commandBus,
       txManager

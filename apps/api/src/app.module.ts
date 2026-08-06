@@ -62,6 +62,7 @@ import { PurchasingModule } from '@modules/supply/purchasing/purchasing.module';
 import { CashRegisterModule } from '@modules/finance/cash-register/cash-register.module';
 import { BankModule } from '@modules/finance/bank/bank.module';
 import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.module';
+import { WorkOrderModule } from '@modules/supply/work-order/work-order.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.m
     CashRegisterModule,
     BankModule,
     ConsentFormModule,
+    WorkOrderModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ExecutionSourceInterceptor },

@@ -6,6 +6,7 @@ import { PATIENT_NOTIFICATION_PORT } from '@modules/platform/notification/domain
 import { AppointmentBookedNotificationListener } from '@modules/platform/notification/infrastructure/events/listeners/appointment-booked-notification.listener';
 import { AppointmentLifecycleNotificationListener } from '@modules/platform/notification/infrastructure/events/listeners/appointment-lifecycle-notification.listener';
 import { AppointmentReminderNotificationListener } from '@modules/platform/notification/infrastructure/events/listeners/appointment-reminder-notification.listener';
+import { WorkOrderOverdueNotificationListener } from '@modules/platform/notification/infrastructure/events/listeners/work-order-overdue-notification.listener';
 import { NotificationRealtimeModule } from '@modules/platform/notification/infrastructure/realtime/notification-realtime.module';
 import { MailModule } from '@src/infrastructure/mail/mail.module';
 
@@ -23,6 +24,7 @@ import { MailModule } from '@src/infrastructure/mail/mail.module';
     AppointmentBookedNotificationListener,
     AppointmentLifecycleNotificationListener,
     AppointmentReminderNotificationListener,
+    WorkOrderOverdueNotificationListener,
     NotificationDispatcherService,
     {
       provide: PATIENT_NOTIFICATION_PORT,

@@ -330,6 +330,14 @@ export class DateTimeManager {
   }
 
   /**
+   * Verilen tarihin ait olduğu yılı döner (ör. 2026). `currentYear`'dan farkı:
+   * "şimdi" değil, verilen anın yılı.
+   */
+  static getYear(date: Date, tz: TimeZoneType = DEFAULT_TZ): number {
+    return this.tz(date, tz).year();
+  }
+
+  /**
    * DD.MM.YYYY formatı döner
    */
   static toDateKey(date: Date, tz: TimeZoneType = DEFAULT_TZ): string {

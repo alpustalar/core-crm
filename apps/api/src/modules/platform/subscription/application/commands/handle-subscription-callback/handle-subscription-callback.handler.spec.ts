@@ -3,7 +3,6 @@ import { HandleSubscriptionCallbackCommand } from './handle-subscription-callbac
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
 import {
@@ -42,11 +41,10 @@ describe('HandleSubscriptionCallbackHandler', () => {
       externalId: 'conv-1',
     });
 
-    const subscriptionQueryRepo = {
-      findByExternalId: jest.fn().mockResolvedValue(subscription),
-    } as unknown as ISubscriptionQueryRepository;
-
+    // Okuma kilitli ve transaction içinde: iyzico callback + webhook aynı anda gelirse
+    // dönem iki kez başlatılmamalı.
     const subscriptionCommandRepo = {
+      findByExternalIdForUpdate: jest.fn().mockResolvedValue(subscription),
       update: jest.fn(async (s: Subscription) => s),
     } as unknown as ISubscriptionCommandRepository;
 
@@ -65,7 +63,6 @@ describe('HandleSubscriptionCallbackHandler', () => {
 
     const handler = new HandleSubscriptionCallbackHandler(
       subscriptionCommandRepo,
-      subscriptionQueryRepo,
       paymentMethodCommandRepo,
       billingAdapter,
       txManager

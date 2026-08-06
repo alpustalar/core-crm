@@ -6,7 +6,7 @@ import { GetClinicCurrencyResponse } from './get-clinic-currency.response';
 import {
   CLINIC_FINANCE_SETTINGS_QUERY_REPOSITORY,
   IClinicFinanceSettingsQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-finance-settings.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.query.repository.interface';
 
 @QueryHandler(GetClinicCurrencyQuery)
 export class GetClinicCurrencyHandler
@@ -14,18 +14,18 @@ export class GetClinicCurrencyHandler
 {
   constructor(
     @Inject(CLINIC_FINANCE_SETTINGS_QUERY_REPOSITORY)
-    private readonly financeSettingsQueryRepo: IClinicFinanceSettingsQueryRepository
+    private readonly clinicFinanceSettingsRepo: IClinicFinanceSettingsQueryRepository
   ) {}
 
   async execute(
     query: GetClinicCurrencyQuery
   ): Promise<GetClinicCurrencyResponse> {
-    const settings = await this.financeSettingsQueryRepo.findByClinicId(
+    const settings = await this.clinicFinanceSettingsRepo.findByClinicId(
       query.clinicId
     );
     // Satır henüz yoksa DB default'u geçerli: TRY.
     return {
-      data: settings?.defaultCurrency.value ?? CurrencySchema.enum.TRY,
+      data: settings?.defaultCurrency ?? CurrencySchema.enum.TRY,
     };
   }
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { ClinicAvailability } from '@modules/organization/clinic/domain/entities/clinic-availability.entity';
-import { IClinicAvailabilityCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
+import { IClinicAvailabilityCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.command.repository.interface';
 
 @Injectable()
 export class ClinicAvailabilityCommandRepository
@@ -44,5 +44,24 @@ export class ClinicAvailabilityCommandRepository
       update,
     });
     return new ClinicAvailability(raw);
+  }
+  async findByClinicAndDay(
+    clinicId: string,
+    dayOfWeek: number
+  ): Promise<ClinicAvailability | null> {
+    const raw = await this.db.clinicAvailability.findUnique({
+      where: { clinicId_dayOfWeek: { clinicId, dayOfWeek } },
+    });
+
+    return raw ? new ClinicAvailability(raw) : null;
+  }
+
+  async findAllByClinicId(clinicId: string): Promise<ClinicAvailability[]> {
+    const raw = await this.db.clinicAvailability.findMany({
+      where: { clinicId },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+
+    return raw ? raw.map((item) => new ClinicAvailability(item)) : [];
   }
 }

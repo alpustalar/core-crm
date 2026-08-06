@@ -8,9 +8,12 @@ import {
 export const SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY = Symbol(
   'ISubscriptionPaymentMethodCommandRepository'
 );
-export const SUBSCRIPTION_PAYMENT_METHOD_QUERY_REPOSITORY = Symbol(
-  'ISubscriptionPaymentMethodQueryRepository'
-);
+
+/**
+ * NOT: Bu aggregate'in Query repository'si YOK — kayıtlı kart yalnız yenileme
+ * tahsilatının içinden okunuyor; maskeli kart bilgisini UI'a göstermek gerekirse
+ * ayrı bir read-model query'si açılır, bu repo yazma tarafında kalır.
+ */
 
 export interface ISubscriptionPaymentMethodCommandRepository
   extends IBaseCommandRepository<SubscriptionPaymentMethod> {
@@ -22,10 +25,12 @@ export interface ISubscriptionPaymentMethodCommandRepository
   upsertBySubscriptionId(
     props: CreateSubscriptionPaymentMethodProps
   ): Promise<SubscriptionPaymentMethod>;
-}
-
-export interface ISubscriptionPaymentMethodQueryRepository {
-  /** Yenileme günü tahsilat için kayıtlı kart + alıcı snapshot'ı — yoksa null (kart saklanmamış). */
+  /**
+   * Yenileme günü tahsilat için kayıtlı kart + alıcı snapshot'ı — yoksa null.
+   *
+   * Command repo'da: hangi kartın çekileceğini belirliyor. Müşteri kartını az önce
+   * değiştirdiyse replica'dan okumak eski token'la çekim denemesine yol açardı.
+   */
   findBySubscriptionId(
     subscriptionId: string
   ): Promise<SavedCardChargeModel | null>;

@@ -23,7 +23,7 @@
 | 6.1 | Personel (Employee/Contract) | ✅ (EmployeePolicy authz + alan serileştirme + hire/terminate/salary audit event) |
 | 6.2 | İzin (request/approve/balance) + Devam/mesai | ✅ (authz + bakiye guard; attendance check-in/out + fazla mesai) |
 | 6.3 | Bordro (payroll) | ✅ |
-| 7 | Üretim (iş emri/lab) | 🔴 |
+| 7 | Üretim (dış iş emri / lab) | 🟡 (dış iş emri ✅; klinik içi üretim + BOM/MRP 🔴 — kapsam dışı bırakıldı) |
 | 8 | Proje yönetimi | 🔴 |
 | 9.1 | E-nabız | 🟡 (yalnız schema `enabiz.prisma`) |
 | 9.2 | E-reçete | 🔴 |
@@ -58,7 +58,10 @@
 - **6.2 İzin** ✅ — `hr/leave` modülü: request/approve/reject/cancel + `get-leave-balance` (entitlement sabit, kullanılan onaylı ANNUAL günden hesaplanır). Authz EmployeePolicy ile (onay/ret = manage, request/cancel = access). **ANNUAL approve'da kalan bakiye guard'ı eklendi** (`LeaveInsufficientBalanceException`). **Devam/mesai (attendance) ✅** — yeni `hr/attendance` modülü: çalışan kendi check-in/check-out'u yapar (`AttendanceRecord`, çalışan+gün başına tek kayıt), HR `RecordAttendanceCommand` ile geçmişe dönük manuel düzeltme/backfill yapabilir (doğal anahtar upsert: employeeId+workDate). Giriş/çıkıştan `workedMinutes` + 8 saat (480 dk) üzeri `overtimeMinutes` otomatik hesaplanır. `get-attendance-by-employee` (liste) + `get-attendance-summary` (dönem toplamı — payroll girdisi) query'leri. Authz EmployeePolicy (check-in/out + liste = access, manuel düzeltme + özet = manage). Kart okuyucu/PDKS entegrasyonu **kasıtlı olarak eklenmedi** — ileride aynı check-in/check-out komutları farklı bir aktörden (webhook) tetiklenerek bağlanabilir; ayrı bir port/adapter olmadan. Şema `hr.prisma`. Migration uygulandı (2026-07-21, `20260721195008_vh`).
 - **6.3 Bordro** ✅ — `finance/payroll` (SGK matrahı, brüt→net).
 
-### GRUP 7 — Üretim 🔴 (iş emri / dental lab / MRP)
+### GRUP 7 — Üretim 🟡 (dış iş emri ✅ / klinik içi üretim + MRP 🔴)
+
+- **7.1 Dış İş Emri (External Work Order)** ✅ — yeni `supply/work-order` modülü (2026-08-05): platform çok-dikeyli olduğu için modül **dental lab'e özel değil**, klinik dışındaki üçüncü parti tedarikçilere (diş laboratuvarı, saç protezi üreticisi, medikal protez tedarikçisi) verilen iş emirlerini takip eder. **`ExternalWorkOrder`** (durum akışı `DRAFT → SENT → IN_PROGRESS ⇄ TRY_IN → READY → DELIVERED → FITTED`, + terminal olmayan her durumdan `CANCELLED`) + **`ExternalWorkOrderItem`**. Tedarikçi **mevcut `supply/inventory` Supplier**'dır (yeni satıcı tablosu yok, bounded-context: scalar `supplierId`); hasta/tedavi/hekim de scalar id. **Sektöre özgü teknik detay satır bazında `specs Json`** + `@shared/modules/work-order`'da `kind` ile ayrışan zod discriminated union (`DENTAL` diş no/renk/materyal, `HAIR` taban/yoğunluk/kalıp, `AESTHETIC`, `GENERIC` anahtar-değer) — yeni dikey eklemek migration değil şema işi. **Yeniden yapım (remake)** kaynağı değiştirmez: satırları kopyalanmış yeni DRAFT açılır, `remakeOfId` ile bağlanır (remake oranı bu bağdan hesaplanır). **Termin takibi**: BullMQ repeatable job (`*/30 * * * *`) → `ScanOverdueWorkOrdersCommand` → `markOverdueNotified()` (entity `overdueNotifiedAt` damgası = idempotency) → `WorkOrderOverdueEvent` → `platform/notification` listener'ı in-app personel bildirimi üretir (`WORK_ORDER_OVERDUE`, deepLink `work-orders`). **Maliyet v1'de yalnız alan** (`agreedCost`/`actualCost` + para birimi) — **muhasebe fişi üretilmez**, lab faturası zaten `finance/purchase-invoice` üzerinden 320'ye işleniyor (mükerrer kayıt önlenir). Authz yeni `WorkOrderPolicy` (`PolicyFactory.workOrder()`): açma/görüntüleme/ara ilerleme = aynı klinik personeli, teslim alma + iptal + remake = klinik yöneticisi. Endpoint kökü `work-orders/orders/*` (command/query controller ayrımıyla). Şema `work-order.prisma`. Testler: entity durum makinesi + specs union + tarama idempotency (27 test). **⚠️ Migration uygulanmadı** (`pnpm migrate:dev` — external_work_orders + items + `WORK_ORDER_OVERDUE`/`WORK_ORDER_DUE_SOON` notification enum).
+- **7.2 Klinik içi üretim / BOM / MRP** 🔴 — bilinçli kapsam dışı: iş emri türü başına reçete (BOM), stok tüketimi, kapasite/iş merkezi planlaması. v1 şeması engellemiyor.
 ### GRUP 8 — Proje Yönetimi 🔴
 
 ### GRUP 9 — Sağlık Entegrasyonları 🟡
@@ -72,5 +75,5 @@
 
 1. Opsiyonel: **Banka oto-eşleştirme** (4.1) — ekstre satırı ↔ 102 defteri amount+tarih otomatik eşleştirme (manuel taban hazır). **← sıradaki**
 2. Opsiyonel: **P&L dönem karşılaştırması** (4.3) — mevcut `income-statement`'a önceki-dönem kıyas + delta (Ajans ROI deseni).
-3. **Üretim** (Grup 7) / **Proje yönetimi** (Grup 8) — yeni büyük modüller.
+3. ~~**Üretim** (Grup 7)~~ → dış iş emri ✅ (2026-08-05); **Proje yönetimi** (Grup 8) — kalan büyük modül.
 4. Dış-kimlik gerektirenler (E-Fatura gerçek adapter, E-nabız/E-reçete, Messenger, **Onam formu nitelikli e-imza**) — kimlik/erişim geldiğinde.

@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { SubStatusSchema } from '@shared';
+import { Decimal } from 'decimal.js';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import type { ISubscriptionCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
+import type {
+  ISubscriptionCommandRepository,
+  SubscriptionOwnerRef,
+} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
+import { RenewalChargeModel } from '@modules/platform/subscription/domain/subscription.contracts';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
+
+/** Zamanlanmış tarama başına üst sınır — bir turda işlenecek aday sayısı. */
+const SCAN_BATCH_SIZE = 500;
 
 @Injectable()
 export class SubscriptionCommandRepository
@@ -18,6 +28,83 @@ export class SubscriptionCommandRepository
   async findById(id: string): Promise<Subscription | null> {
     const raw = await this.db.subscription.findUnique({ where: { id } });
     return raw ? new Subscription(raw) : null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<Subscription | null> {
+    await this.lockRowForUpdate('subscriptions', id);
+    return this.findById(id);
+  }
+
+  async findByExternalIdForUpdate(
+    externalId: string
+  ): Promise<Subscription | null> {
+    const existing = await this.db.subscription.findUnique({
+      where: { externalId },
+      select: { id: true },
+    });
+    if (!existing) return null;
+
+    return this.findByIdForUpdate(existing.id);
+  }
+
+  async existsByOwner(owner: SubscriptionOwnerRef): Promise<boolean> {
+    // Clinic-billed: klinik-başına tek. Org-billed: org-başına tek (clinicId null).
+    const where: Prisma.SubscriptionWhereInput = owner.clinicId
+      ? { clinicId: owner.clinicId }
+      : { organizationId: owner.organizationId, clinicId: null };
+    const row = await this.db.subscription.findFirst({
+      where,
+      select: { id: true },
+    });
+    return !!row;
+  }
+
+  async findDueForRenewal(now: Date): Promise<Subscription[]> {
+    const rows = await this.db.subscription.findMany({
+      where: {
+        status: SubStatusSchema.enum.ACTIVE,
+        currentPeriodEnd: { lt: now },
+      },
+      take: SCAN_BATCH_SIZE,
+    });
+    return rows.map((r) => new Subscription(r));
+  }
+
+  async findExpiredTrials(now: Date): Promise<Subscription[]> {
+    const rows = await this.db.subscription.findMany({
+      where: {
+        status: SubStatusSchema.enum.ACTIVE,
+        trialEndsAt: { not: null, lt: now },
+      },
+      take: SCAN_BATCH_SIZE,
+    });
+    return rows.map((r) => new Subscription(r));
+  }
+
+  async findPastDue(): Promise<Subscription[]> {
+    const rows = await this.db.subscription.findMany({
+      where: { status: SubStatusSchema.enum.PAST_DUE },
+      take: SCAN_BATCH_SIZE,
+    });
+    return rows.map((r) => new Subscription(r));
+  }
+
+  async findRenewalCharge(
+    subscriptionId: string
+  ): Promise<RenewalChargeModel | null> {
+    // Aylık tutar = aboneliğin tüm kalemlerinin (plan + eklenti modüller) toplamı; tek para birimi.
+    const items = await this.db.subscriptionItem.findMany({
+      where: { subscriptionId },
+      select: { priceAtPurchase: true, currency: true },
+    });
+    if (items.length === 0) return null;
+
+    const amount = items.reduce(
+      (sum, item) => sum.add(new Decimal(item.priceAtPurchase.toString())),
+      new Decimal(0)
+    );
+
+    return { amount, currency: items[0].currency };
   }
   async create(entity: Subscription): Promise<Subscription> {
     const data = entity.toPersistence();

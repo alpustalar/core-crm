@@ -13,6 +13,15 @@ export class ClinicIyzicoTerminalConfigCommandRepository
     super(prisma);
   }
 
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicIyzicoTerminalConfig | null> {
+    const raw = await this.db.clinicIyzicoTerminalConfig.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicIyzicoTerminalConfig(raw) : null;
+  }
+
   // 1:1 satellite (clinicId unique) → get-or-create (upsert).
   async upsertByClinicId(
     entity: ClinicIyzicoTerminalConfig

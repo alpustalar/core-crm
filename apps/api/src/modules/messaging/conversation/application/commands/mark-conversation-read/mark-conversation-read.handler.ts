@@ -8,9 +8,7 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
-  CONVERSATION_QUERY_REPOSITORY,
   IConversationCommandRepository,
-  IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
   IMessageQueryRepository,
@@ -30,8 +28,6 @@ export class MarkConversationReadHandler implements ICommandHandler<
   private readonly logger = new Logger(MarkConversationReadHandler.name);
 
   constructor(
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
@@ -44,19 +40,32 @@ export class MarkConversationReadHandler implements ICommandHandler<
   async execute(command: MarkConversationReadCommand): Promise<void> {
     const { clinicId, conversationId } = command.payload;
 
-    const conversation =
-      await this.conversationQueryRepo.findById(conversationId);
-    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== clinicId) {
-      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
-    }
-
-    // En güncel gelen mesajı kanalda okundu işaretle (best-effort — bloklamaz).
+    // Kanaldaki okundu işareti için gereken dış id — salt okuma, bir mutasyona
+    // karar vermiyor, kilit gerekmez.
     const externalId =
       await this.messageQueryRepo.findLatestInboundExternalId(conversationId);
+
+    // `unreadCount` sıfırlaması, eşzamanlı gelen mesajın artırımıyla yarışır:
+    // okuma da kilit altında ve aynı transaction'da yapılır.
+    const channel = await this.txManager.run(async () => {
+      const conversation =
+        await this.conversationCommandRepo.findByIdForUpdate(conversationId);
+      if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
+      if (conversation.clinicId !== clinicId) {
+        throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+      }
+
+      conversation.markAgentRead();
+      await this.conversationCommandRepo.update(conversation);
+
+      return conversation.channel;
+    });
+
+    // Kanal çağrısı (dış HTTP) transaction'ın DIŞINDA ve commit'ten sonra: uzak
+    // servisin gecikmesi DB kilidini tutmaz, hatası yerel okundu kaydını düşürmez.
     if (externalId) {
       await this.channel
-        .markRead(conversation.channel, clinicId, externalId)
+        .markRead(channel, clinicId, externalId)
         .catch((err) =>
           this.logger.warn(
             `Okundu işareti gönderilemedi: ${
@@ -65,10 +74,5 @@ export class MarkConversationReadHandler implements ICommandHandler<
           )
         );
     }
-
-    conversation.markAgentRead();
-    await this.txManager.run(() =>
-      this.conversationCommandRepo.update(conversation)
-    );
   }
 }

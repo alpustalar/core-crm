@@ -2,10 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MarkConversationReadHandler } from './mark-conversation-read.handler';
 import { MarkConversationReadCommand } from './mark-conversation-read.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
-import {
-  IConversationCommandRepository,
-  IConversationQueryRepository,
-} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports/message-channel.port';
 import { MessageChannel } from '@prisma/client';
@@ -28,16 +25,13 @@ describe('MarkConversationReadHandler', () => {
     conversation: Conversation | null;
     latestExternalId?: string | null;
     markReadImpl?: jest.Mock;
+    onTxEnd?: () => void;
   }) => {
     let saved: Conversation | undefined;
 
-    const conversationQueryRepo = {
-      findById: jest.fn().mockResolvedValue(params.conversation),
-      findByContact: jest.fn(),
-      findMany: jest.fn(),
-    } as unknown as IConversationQueryRepository;
-
+    // Okuma kilitli ve command repo'dan: sayaç sıfırlaması gelen mesajın artırımıyla yarışır.
     const conversationCommandRepo = {
+      findByIdForUpdate: jest.fn().mockResolvedValue(params.conversation),
       update: jest.fn(async (c: Conversation) => {
         saved = c;
         return c;
@@ -56,17 +50,20 @@ describe('MarkConversationReadHandler', () => {
     } as unknown as MessageChannelPort;
 
     const txManager = {
-      run: jest.fn((cb: () => Promise<unknown>) => cb()),
+      run: jest.fn(async (cb: () => Promise<unknown>) => {
+        const result = await cb();
+        params.onTxEnd?.();
+        return result;
+      }),
     } as unknown as TransactionManager;
 
     const handler = new MarkConversationReadHandler(
-      conversationQueryRepo,
       conversationCommandRepo,
       messageQueryRepo,
       channel,
       txManager
     );
-    return { handler, channel, getSaved: () => saved };
+    return { handler, channel, txManager, getSaved: () => saved };
   };
 
   it('okundu işareti gönderir + unreadCount sıfırlanır', async () => {
@@ -114,6 +111,28 @@ describe('MarkConversationReadHandler', () => {
     );
 
     expect(getSaved()!.unreadCount).toBe(0);
+  });
+
+  it('kanal çağrısı transaction DIŞINDA yapılır (uzak servis DB kilidini tutmaz)', async () => {
+    const order: string[] = [];
+    const { handler } = build({
+      conversation: conversation(),
+      latestExternalId: 'wamid.in.1',
+      markReadImpl: jest.fn(async () => {
+        order.push('markRead');
+      }),
+      onTxEnd: () => order.push('tx-bitti'),
+    });
+
+    await handler.execute(
+      new MarkConversationReadCommand({
+        clinicId: 'clinic-1',
+        conversationId: 'conv-1',
+        ctx,
+      })
+    );
+
+    expect(order).toEqual(['tx-bitti', 'markRead']);
   });
 
   it('yazışma yoksa NotFoundException', async () => {

@@ -3,9 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { ReconcilePosTransactionsCommand } from './reconcile-pos-transactions.command';
 import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -15,21 +13,19 @@ import { ExecutionContextFactory } from '@src/domain/common/execution/execution-
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
 
 @CommandHandler(ReconcilePosTransactionsCommand)
-export class ReconcilePosTransactionsHandler implements ICommandHandler<
-  ReconcilePosTransactionsCommand,
-  void
-> {
+export class ReconcilePosTransactionsHandler
+  implements ICommandHandler<ReconcilePosTransactionsCommand, void>
+{
   private readonly logger = new Logger(ReconcilePosTransactionsHandler.name);
 
   constructor(
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
-
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
 
@@ -41,7 +37,7 @@ export class ReconcilePosTransactionsHandler implements ICommandHandler<
 
   async execute(): Promise<void> {
     const pending =
-      await this.posTransactionQueryRepo.findPendingForReconcile(
+      await this.posTransactionCommandRepo.findPendingForReconcile(
         GRACE_PERIOD_MS
       );
 
@@ -58,7 +54,9 @@ export class ReconcilePosTransactionsHandler implements ICommandHandler<
 
       if (ageMs > STALE_THRESHOLD_MS) {
         await this.txManager.outboxRun(async () => {
-          const entity = await this.posTransactionQueryRepo.findById(tx.id);
+          const entity = await this.posTransactionCommandRepo.findByIdForUpdate(
+            tx.id
+          );
           if (entity) {
             entity.markTimeout();
             await this.posTransactionCommandRepo.update(entity);
@@ -79,7 +77,12 @@ export class ReconcilePosTransactionsHandler implements ICommandHandler<
 
         if (result) {
           await this.txManager.outboxRun(async () => {
-            const entity = await this.posTransactionQueryRepo.findById(tx.id);
+            // Kilitli ve taze okuma: PAX sorgusu sürerken cihaz callback'i aynı
+            // işlemi sonuçlandırmış olabilir. Kilit sayesinde entity'nin "yalnız
+            // PENDING'den geçiş" invariant'ı gerçekten devreye girer — kilitsizken
+            // iki akış da PENDING görüp ödemeyi iki kez işaretleyebilirdi.
+            const entity =
+              await this.posTransactionCommandRepo.findByIdForUpdate(tx.id);
             if (!entity) return;
 
             if (result.approved) {
@@ -156,9 +159,11 @@ export class ReconcilePosTransactionsHandler implements ICommandHandler<
             clinicId: input.clinicId,
             type: FinancialEventTypeSchema.enum.PAYMENT_RECEIVED,
             payload: { method: 'POS_CARD', amount: input.amount, partyId },
-            sourceModule: 'pos',
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.POS,
             sourceRefId: input.posTransactionId,
-            dedupeKey: `payment-received:pos:${input.posTransactionId}`,
+            dedupeKey: FinancialEventDedupeKeys.payment_received_pos(
+              input.posTransactionId
+            ),
           },
           ctx
         )

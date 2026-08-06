@@ -15,6 +15,7 @@ import { PatientPolicy } from '@modules/crm/patient/application/policies';
 import { EmployeePolicy } from '@modules/hr/employee/application/policies';
 import { PurchasingPolicy } from '@modules/supply/purchasing/application/policies';
 import { ConsentFormPolicy } from '@modules/clinical/consent-form/application/policies';
+import { WorkOrderPolicy } from '@modules/supply/work-order/application/policies';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
 
 @Injectable()
@@ -63,6 +64,10 @@ export class PolicyFactory implements IPolicyFactory {
 
   consentForm(actor: ActorContext, source: ExecutionSource) {
     return this.build(ConsentFormPolicy, actor, source);
+  }
+
+  workOrder(actor: ActorContext, source: ExecutionSource) {
+    return this.build(WorkOrderPolicy, actor, source);
   }
 
   private build<T extends BasePolicy>(

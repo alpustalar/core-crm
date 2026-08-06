@@ -11,7 +11,7 @@ import { ConsentFormSubmissionNotFoundException } from '@modules/clinical/consen
 import {
   CONSENT_FORM_SUBMISSION_QUERY_REPOSITORY,
   IConsentFormSubmissionQueryRepository,
-} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository';
+} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository.interface';
 
 @QueryHandler(GetConsentSubmissionByIdQuery)
 export class GetConsentSubmissionByIdHandler

@@ -3,9 +3,7 @@ import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
-  CONVERSATION_QUERY_REPOSITORY,
   IConversationCommandRepository,
-  IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { RequestConversationHandoffCommand } from './request-conversation-handoff.command';
 
@@ -15,25 +13,25 @@ export class RequestConversationHandoffHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: RequestConversationHandoffCommand): Promise<void> {
-    const conversation = await this.conversationQueryRepo.findById(
-      command.payload.conversationId
-    );
-    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== command.payload.clinicId) {
-      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
-    }
+    // Devir talebi AI akışıyla yarışır (aynı yazışmaya eşzamanlı yazım) — okuma
+    // kilit altında ve transaction içinde yapılır.
+    await this.txManager.run(async () => {
+      const conversation = await this.conversationCommandRepo.findByIdForUpdate(
+        command.payload.conversationId
+      );
+      if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
+      if (conversation.clinicId !== command.payload.clinicId) {
+        throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+      }
 
-    conversation.requestHumanHandoff();
-    await this.txManager.run(() =>
-      this.conversationCommandRepo.update(conversation)
-    );
+      conversation.requestHumanHandoff();
+      await this.conversationCommandRepo.update(conversation);
+    });
   }
 }

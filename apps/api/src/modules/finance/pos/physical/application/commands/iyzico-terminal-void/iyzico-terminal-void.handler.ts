@@ -10,14 +10,12 @@ import {
 import { IyzicoTerminalVoidCommand } from './iyzico-terminal-void.command';
 import type { IyzicoTerminalVoidResponse } from './iyzico-terminal-void.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
@@ -41,10 +39,8 @@ export class IyzicoTerminalVoidHandler implements ICommandHandler<
   private readonly logger = new Logger(IyzicoTerminalVoidHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
@@ -58,7 +54,9 @@ export class IyzicoTerminalVoidHandler implements ICommandHandler<
   ): Promise<IyzicoTerminalVoidResponse> {
     const { input } = command;
 
-    const originalTx = await this.posTransactionQueryRepo.findById(
+    // Orijinal işlem iptal kararını besliyor → okuma command repo'dan (ana bağlantı):
+    // satış az önce tamamlanmış olabilir, replica gecikmesi iptali reddederdi.
+    const originalTx = await this.posTransactionCommandRepo.findById(
       input.originalPosTransactionId
     );
     if (!originalTx) {
@@ -76,7 +74,7 @@ export class IyzicoTerminalVoidHandler implements ICommandHandler<
       throw new PosTransactionMissingPaymentDateException();
     }
 
-    const device = await this.posDeviceQueryRepo.findById(
+    const device = await this.posDeviceCommandRepo.findById(
       originalTx.posDeviceId
     );
     if (!device || !device.isActive) {

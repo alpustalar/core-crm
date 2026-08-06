@@ -12,10 +12,9 @@ describe('MarkInstallmentAsFailedHandler', () => {
   });
 
   const make = (payment: ReturnType<typeof makePayment> | null) => {
-    const paymentQueryRepo = {
-      findByInstallmentId: jest.fn().mockResolvedValue(payment),
-    };
+    // Okuma da yazma da command repo'dan: kilitli okuma + güncelleme aynı tx'te.
     const paymentCommandRepo = {
+      findByInstallmentIdForUpdate: jest.fn().mockResolvedValue(payment),
       update: jest.fn().mockResolvedValue(payment),
     };
     const publisher = { paymentFailed: jest.fn() };
@@ -25,7 +24,6 @@ describe('MarkInstallmentAsFailedHandler', () => {
         .mockImplementation((cb: () => Promise<unknown>) => cb()),
     };
     const handler = new MarkInstallmentAsFailedHandler(
-      paymentQueryRepo as never,
       paymentCommandRepo as never,
       publisher as never,
       txManager as never

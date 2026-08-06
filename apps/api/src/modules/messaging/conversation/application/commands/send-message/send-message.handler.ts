@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 
 import {
-  CONVERSATION_QUERY_REPOSITORY,
-  IConversationQueryRepository,
+  CONVERSATION_COMMAND_REPOSITORY,
+  IConversationCommandRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
   IMessageCommandRepository,
@@ -25,8 +25,8 @@ export class SendMessageHandler
   implements ICommandHandler<SendMessageCommand, string>
 {
   constructor(
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
+    @Inject(CONVERSATION_COMMAND_REPOSITORY)
+    private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
     private readonly sendMessageProducer: SendMessageProducer
@@ -35,7 +35,11 @@ export class SendMessageHandler
   async execute(command: SendMessageCommand): Promise<string> {
     const { clinicId, input, ctx } = command.payload;
 
-    const conversation = await this.conversationQueryRepo.findById(
+    // Servis penceresi kontrolü mesajın yazılıp yazılmayacağına karar veriyor →
+    // okuma command repo'dan (ana bağlantı). Pencere bitişini başka bir akış
+    // (teslim webhook'u) yazdığı için replica'dan okumak kapalı pencereyi açık
+    // gösterebilirdi. Yazışma mutasyona uğramadığından kilit gerekmez.
+    const conversation = await this.conversationCommandRepo.findById(
       input.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');

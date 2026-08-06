@@ -1,12 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UpdateClinicAppointmentSettingsCommand } from './update-clinic-appointment-settings.command';
-import {
-  CLINIC_APPOINTMENT_SETTINGS_COMMAND_REPOSITORY,
-  CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY,
-  IClinicAppointmentSettingsCommandRepository,
-  IClinicAppointmentSettingsQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -15,6 +10,10 @@ import { ClinicAppointmentSettings } from '@modules/organization/clinic/domain/e
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { ClinicCacheService } from '@modules/organization/clinic/infrastructure/cache/clinic-cache.service';
+import {
+  CLINIC_APPOINTMENT_SETTINGS_COMMAND_REPOSITORY,
+  IClinicAppointmentSettingsCommandRepository,
+} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.command.repository.interface';
 
 /**
  * Randevu ayarlarını günceller. Yükle (yoksa default'tan üret) → domain metodu
@@ -26,10 +25,8 @@ export class UpdateClinicAppointmentSettingsHandler
   implements ICommandHandler<UpdateClinicAppointmentSettingsCommand, void>
 {
   constructor(
-    @Inject(CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY)
-    private readonly settingsQueryRepo: IClinicAppointmentSettingsQueryRepository,
     @Inject(CLINIC_APPOINTMENT_SETTINGS_COMMAND_REPOSITORY)
-    private readonly settingsCommandRepo: IClinicAppointmentSettingsCommandRepository,
+    private readonly clinicAppointmentSettingsRepo: IClinicAppointmentSettingsCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly cacheService: ClinicCacheService,
@@ -50,13 +47,13 @@ export class UpdateClinicAppointmentSettingsHandler
       .orThrow(CLINIC_EVENTS.APPOINTMENT_SETTINGS_UPDATED);
 
     const settings =
-      (await this.settingsQueryRepo.findByClinicId(clinicId)) ??
+      (await this.clinicAppointmentSettingsRepo.findByClinicId(clinicId)) ??
       ClinicAppointmentSettings.createDefault(clinicId);
 
     settings.update(data);
 
     await this.txManager.run(async () => {
-      await this.settingsCommandRepo.upsertByClinicId(settings);
+      await this.clinicAppointmentSettingsRepo.upsertByClinicId(settings);
     });
 
     // DB commit sonrası cache'i temizle → bir sonraki randevu oluşturma taze ayarı okur.

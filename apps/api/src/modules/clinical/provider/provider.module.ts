@@ -1,17 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ProviderController } from '@modules/clinical/provider/presentation/controllers';
 import { ProviderPresentationModule } from '@modules/clinical/provider/presentation/provider-presentation.module';
-import { ProviderCommandsModule } from '@modules/clinical/provider/application/commands/commands.module';
-import { ProviderQueriesModule } from '@modules/clinical/provider/application/queries/queries.module';
-import { ProviderAiToolsModule } from '@modules/clinical/provider/application/ai-tools/provider-ai-tools.module';
+import { ProviderDomainServicesModule } from '@modules/clinical/provider/domain/services/services.module';
+import { ProviderApplicationModule } from '@modules/clinical/provider/application/application.module';
 
 @Module({
   imports: [
     ProviderPresentationModule,
-    ProviderCommandsModule,
-    ProviderQueriesModule,
-    ProviderAiToolsModule,
+    ProviderApplicationModule,
+    ProviderDomainServicesModule,
   ],
-  controllers: [ProviderController],
 })
 export class ProviderModule {}

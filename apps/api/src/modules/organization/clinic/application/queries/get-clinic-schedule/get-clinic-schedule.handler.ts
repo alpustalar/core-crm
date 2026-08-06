@@ -4,12 +4,12 @@ import { Inject } from '@nestjs/common';
 import {
   CLINIC_AVAILABILITY_QUERY_REPOSITORY,
   IClinicAvailabilityQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-availability.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.query.repository.interface';
 import { GetClinicScheduleQueryResponse } from '@modules/organization/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.response';
 import {
   CLINIC_EXCEPTION_QUERY_REPOSITORY,
   IClinicExceptionQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-exception.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.query.repository.interface';
 
 @QueryHandler(GetClinicScheduleQuery)
 export class GetClinicScheduleHandler
@@ -39,8 +39,8 @@ export class GetClinicScheduleHandler
 
     return {
       data: {
-        availabilities: availabilities.map((a) => a.toPersistence()),
-        exceptions: exceptions.map((e) => e.toPersistence()),
+        availabilities,
+        exceptions,
       },
     };
   }

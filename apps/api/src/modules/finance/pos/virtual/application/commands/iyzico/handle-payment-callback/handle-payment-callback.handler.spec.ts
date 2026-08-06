@@ -13,9 +13,7 @@ import {
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
 import {
   IIyzicoTransactionCommandRepository,
-  IIyzicoTransactionQueryRepository,
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
-  IYZICO_TRANSACTION_QUERY_REPOSITORY,
   IyzicoTransactionWithInstallment,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
@@ -67,7 +65,6 @@ const makeCommand = () =>
 describe('HandlePaymentCallbackHandler', () => {
   let handler: HandlePaymentCallbackHandler;
   let iyzicoProvider: jest.Mocked<IIyzicoProvider>;
-  let iyzicoQueryRepo: jest.Mocked<IIyzicoTransactionQueryRepository>;
   let iyzicoCommandRepo: jest.Mocked<IIyzicoTransactionCommandRepository>;
   let commandBus: { execute: jest.Mock };
 
@@ -84,16 +81,14 @@ describe('HandlePaymentCallbackHandler', () => {
       callbackUrl: 'http://localhost/callback',
     };
 
-    const mockIyzicoQueryRepo: jest.Mocked<IIyzicoTransactionQueryRepository> =
-      {
-        findTransactionByConversationId: jest.fn(),
-        findByInstallmentId: jest.fn(),
-      };
-
     const mockIyzicoCommandRepo: jest.Mocked<IIyzicoTransactionCommandRepository> =
       {
         create: jest.fn(async (e: IyzicoTransaction) => e),
         update: jest.fn(async (e: IyzicoTransaction) => e),
+        findByInstallmentId: jest.fn(),
+        findByInstallmentIdForUpdate: jest.fn(),
+        // Callback okuması kilitli: iyzico hem callback hem webhook gönderiyor.
+        findByConversationIdForUpdate: jest.fn(),
       };
 
     // Muhasebe köprüsü EnsurePartyForPatientCommand'dan { partyId, organizationId } bekler.
@@ -116,10 +111,6 @@ describe('HandlePaymentCallbackHandler', () => {
         HandlePaymentCallbackHandler,
         { provide: IYZICO_PROVIDER, useValue: mockIyzicoProvider },
         {
-          provide: IYZICO_TRANSACTION_QUERY_REPOSITORY,
-          useValue: mockIyzicoQueryRepo,
-        },
-        {
           provide: IYZICO_TRANSACTION_COMMAND_REPOSITORY,
           useValue: mockIyzicoCommandRepo,
         },
@@ -131,7 +122,6 @@ describe('HandlePaymentCallbackHandler', () => {
 
     handler = module.get(HandlePaymentCallbackHandler);
     iyzicoProvider = module.get(IYZICO_PROVIDER);
-    iyzicoQueryRepo = module.get(IYZICO_TRANSACTION_QUERY_REPOSITORY);
     iyzicoCommandRepo = module.get(IYZICO_TRANSACTION_COMMAND_REPOSITORY);
     commandBus = module.get(TSCommandBus);
   });
@@ -149,7 +139,7 @@ describe('HandlePaymentCallbackHandler', () => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue({
         isSuccess: true,
       } as any);
-      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(null);
+      iyzicoCommandRepo.findByConversationIdForUpdate.mockResolvedValue(null);
 
       await expect(handler.execute(makeCommand())).rejects.toThrow(
         IyzicoTransactionNotFoundException
@@ -162,7 +152,7 @@ describe('HandlePaymentCallbackHandler', () => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue({
         isSuccess: true,
       } as any);
-      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(
+      iyzicoCommandRepo.findByConversationIdForUpdate.mockResolvedValue(
         makeTransaction(IyzicoTransactionStatusSchema.enum.SUCCESS)
       );
 
@@ -185,7 +175,7 @@ describe('HandlePaymentCallbackHandler', () => {
 
     beforeEach(() => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue(sdkResult);
-      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(
+      iyzicoCommandRepo.findByConversationIdForUpdate.mockResolvedValue(
         makeTransaction()
       );
     });
@@ -228,7 +218,7 @@ describe('HandlePaymentCallbackHandler', () => {
 
     beforeEach(() => {
       iyzicoProvider.retrieveCheckoutForm.mockResolvedValue(sdkResult);
-      iyzicoQueryRepo.findTransactionByConversationId.mockResolvedValue(
+      iyzicoCommandRepo.findByConversationIdForUpdate.mockResolvedValue(
         makeTransaction()
       );
     });

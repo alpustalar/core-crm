@@ -57,6 +57,13 @@ export interface AppointmentReminderNotificationInput
   requireResponse: boolean;
 }
 
+export interface WorkOrderOverdueNotificationInput {
+  workOrderId: string;
+  clinicId: string;
+  dueDate: Date;
+  daysOverdue: number;
+}
+
 /**
  * Merkezi bildirim dağıtıcısı. Domain event'lerini alıcı + kanala çözer:
  * personel → panel-içi (in-app) kayıt, hasta → dış kanal (WhatsApp/e-posta) portu.
@@ -83,7 +90,8 @@ export class NotificationDispatcherService {
     await this.settle(input.appointmentId, [
       this.dispatchStaff({
         clinicId: input.clinicId,
-        appointmentId: input.appointmentId,
+        page: 'appointments',
+        entityId: input.appointmentId,
         type: NotificationTypeSchema.enum.APPOINTMENT_REQUESTED,
         priority: NotificationPrioritySchema.enum.MEDIUM,
         title: 'Yeni randevu talebi',
@@ -100,7 +108,8 @@ export class NotificationDispatcherService {
     await this.settle(input.appointmentId, [
       this.dispatchStaff({
         clinicId: input.clinicId,
-        appointmentId: input.appointmentId,
+        page: 'appointments',
+        entityId: input.appointmentId,
         type: NotificationTypeSchema.enum.APPOINTMENT_CONFIRMED,
         priority: NotificationPrioritySchema.enum.MEDIUM,
         title: 'Randevu onaylandı',
@@ -124,7 +133,8 @@ export class NotificationDispatcherService {
     await this.settle(input.appointmentId, [
       this.dispatchStaff({
         clinicId: input.clinicId,
-        appointmentId: input.appointmentId,
+        page: 'appointments',
+        entityId: input.appointmentId,
         type: NotificationTypeSchema.enum.APPOINTMENT_RESCHEDULED,
         priority: NotificationPrioritySchema.enum.HIGH,
         title: 'Randevu yeniden planlandı',
@@ -158,7 +168,8 @@ export class NotificationDispatcherService {
     const tasks: Promise<void>[] = [
       this.dispatchStaff({
         clinicId: input.clinicId,
-        appointmentId: input.appointmentId,
+        page: 'appointments',
+        entityId: input.appointmentId,
         type: isLate
           ? NotificationTypeSchema.enum.APPOINTMENT_CANCELLED_LATE
           : NotificationTypeSchema.enum.APPOINTMENT_CANCELLED,
@@ -207,10 +218,33 @@ export class NotificationDispatcherService {
     ]);
   }
 
+  /**
+   * Dış iş emri termini geçti — yalnız personel panel-içi bildirimi (hastaya
+   * tedarikçi gecikmesi bildirilmez). Tekrar bildirim üretilmemesini iş emri
+   * entity'si (`overdueNotifiedAt`) garanti eder.
+   */
+  async notifyWorkOrderOverdue(
+    input: WorkOrderOverdueNotificationInput
+  ): Promise<void> {
+    const due = DateTimeManager.formatDateTime(input.dueDate);
+    await this.dispatchStaff({
+      clinicId: input.clinicId,
+      page: 'work-orders',
+      entityId: input.workOrderId,
+      type: NotificationTypeSchema.enum.WORK_ORDER_OVERDUE,
+      priority: NotificationPrioritySchema.enum.HIGH,
+      title: 'İş emri gecikti',
+      body: `Termini ${due} olan dış iş emri ${input.daysOverdue} gündür teslim edilmedi.`,
+    });
+  }
+
   /** Bir klinikteki tüm bildirim-alıcı personele in-app kayıt üretir + push eder. */
   private async dispatchStaff(params: {
     clinicId: string;
-    appointmentId: string;
+    /** Frontend derin link sayfası (ör. 'appointments', 'work-orders'). */
+    page: string;
+    /** Derin linkin hedef kaydı. */
+    entityId: string;
     type: NotificationTypeType;
     priority: NotificationPriorityType;
     title: string;
@@ -230,10 +264,10 @@ export class NotificationDispatcherService {
         priority: params.priority,
         title: params.title,
         body: params.body,
-        // Frontend derin link: bildirime tıklayınca randevu modalını aç.
+        // Frontend derin link: bildirime tıklayınca ilgili kaydın modalını aç.
         deepLink: {
-          page: 'appointments',
-          id: params.appointmentId,
+          page: params.page,
+          id: params.entityId,
           action: 'open_modal',
         },
       })

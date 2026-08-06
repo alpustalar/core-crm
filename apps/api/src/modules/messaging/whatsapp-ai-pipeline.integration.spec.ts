@@ -142,7 +142,24 @@ const waitFor = async (
 };
 
 const buildApp = async (): Promise<INestApplication> => {
+  const findMessageByExternalId = async (externalId: string) =>
+    [...messageStore.values()].find((m) => m.externalId === externalId) ?? null;
+  const findConversationByContact = async (props: {
+    clinicId: string;
+    contactPhone: string;
+  }) =>
+    [...conversationStore.values()].find(
+      (c) =>
+        c.clinicId === props.clinicId && c.contactPhone === props.contactPhone
+    ) ?? null;
+
+  // Not: bellek içi taklitte kilit yok; *ForUpdate metodları kilitsiz karşılıklarına
+  // eşlenir — burada doğrulanan şey kilit değil, uçtan uca akış.
   const messageCommandRepo = {
+    findById: async (id: string) => messageStore.get(id) ?? null,
+    findByIdForUpdate: async (id: string) => messageStore.get(id) ?? null,
+    findByExternalId: findMessageByExternalId,
+    findByExternalIdForUpdate: findMessageByExternalId,
     create: async (m: Message) => {
       messageStore.set(m.id, m);
       m.flushEvents();
@@ -156,15 +173,15 @@ const buildApp = async (): Promise<INestApplication> => {
   };
   const messageQueryRepo = {
     findById: async (id: string) => messageStore.get(id) ?? null,
-    findByExternalId: async (externalId: string) =>
-      [...messageStore.values()].find((m) => m.externalId === externalId) ??
-      null,
     findManyByConversation: async (conversationId: string) => {
       const items = sortedDesc(conversationId);
       return { items, total: items.length };
     },
   };
   const conversationCommandRepo = {
+    findById: async (id: string) => conversationStore.get(id) ?? null,
+    findByIdForUpdate: async (id: string) => conversationStore.get(id) ?? null,
+    findByContactForUpdate: findConversationByContact,
     create: async (c: Conversation) => {
       conversationStore.set(c.id, c);
       c.flushEvents();
@@ -178,11 +195,7 @@ const buildApp = async (): Promise<INestApplication> => {
   };
   const conversationQueryRepo = {
     findById: async (id: string) => conversationStore.get(id) ?? null,
-    findByContact: async (props: { clinicId: string; contactPhone: string }) =>
-      [...conversationStore.values()].find(
-        (c) =>
-          c.clinicId === props.clinicId && c.contactPhone === props.contactPhone
-      ) ?? null,
+    findByContact: findConversationByContact,
   };
 
   const chatPort = { generateReply: aiGenerate };

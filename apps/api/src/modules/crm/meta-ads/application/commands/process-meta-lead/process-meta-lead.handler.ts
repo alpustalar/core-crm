@@ -31,6 +31,7 @@ import {
   LogType,
 } from '@src/domain/constants/log-action.constant';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 @CommandHandler(ProcessMetaLeadCommand)
 export class ProcessMetaLeadHandler implements ICommandHandler<
@@ -49,10 +50,20 @@ export class ProcessMetaLeadHandler implements ICommandHandler<
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
     private readonly queryBus: TSQueryBus,
-    private readonly commandBus: TSCommandBus
+    private readonly commandBus: TSCommandBus,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
+    command: ProcessMetaLeadCommand
+  ): Promise<ProcessMetaLeadResponse> {
+    // MetaLead yazması + Lead köprüsü + leadReceived event'i tek transaction'da.
+    // Öncesinde txManager yoktu: publisher çağrısı ALS bağlamı bulamadığı için
+    // event sessizce düşüyor, MetaLeadReceived listener'ı hiç çalışmıyordu.
+    return this.txManager.run(() => this.processLead(command));
+  }
+
+  private async processLead(
     command: ProcessMetaLeadCommand
   ): Promise<ProcessMetaLeadResponse> {
     const { payload } = command;

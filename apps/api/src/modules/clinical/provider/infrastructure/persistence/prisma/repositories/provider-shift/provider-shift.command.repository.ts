@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ProviderShift } from '@modules/clinical/provider/domain/entities/provider-shift.entity';
-import { IProviderShiftCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { Prisma } from '@prisma/client';
+import { IProviderShiftCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository.interface';
 
 @Injectable()
 export class ProviderShiftCommandRepository
@@ -73,5 +73,21 @@ export class ProviderShiftCommandRepository
     }
 
     shifts.forEach((s) => s.flushEvents());
+  }
+
+  async findShiftsByDateRange(
+    providerId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<ProviderShift[]> {
+    const raws = await this.db.providerShift.findMany({
+      where: {
+        providerId,
+        date: { gte: startDate, lte: endDate },
+      },
+      orderBy: { date: 'asc' },
+    });
+
+    return raws.map((shift) => new ProviderShift(shift));
   }
 }

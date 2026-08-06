@@ -1,38 +1,38 @@
-import { Inject } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import {
-  IProviderAvailabilityQueryRepository,
-  PROVIDER_AVAILABILITY_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
-import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-import { GetProviderScheduleQuery } from './get-provider-schedule.query';
-import { GetProviderScheduleQueryResponse } from './get-provider-schedule.response';
-import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
-import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import {
   IProviderExceptionQueryRepository,
   PROVIDER_EXCEPTION_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-exception.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.query.repository.interface';
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { GetProviderScheduleQuery } from '@modules/clinical/provider/application/queries';
+import { GetProviderScheduleQueryResponse } from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.response';
+import { Inject } from '@nestjs/common';
 import {
-  IProviderShiftQueryRepository,
-  PROVIDER_SHIFT_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
-import { DateRange } from '@src/domain/value-objects/date-range.vo';
+  IProviderAvailabilityQueryRepository,
+  PROVIDER_AVAILABILITY_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+import { DateRange } from '@src/domain/value-objects';
+import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
+import {
+  IProviderQueryRepository,
+  PROVIDER_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
+import {
+  IProviderShiftQueryRepository,
+  PROVIDER_SHIFT_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.query.repository.interface';
 
 @QueryHandler(GetProviderScheduleQuery)
-export class GetProviderScheduleHandler implements IQueryHandler<
-  GetProviderScheduleQuery,
-  GetProviderScheduleQueryResponse
-> {
+export class GetProviderScheduleHandler
+  implements
+    IQueryHandler<GetProviderScheduleQuery, GetProviderScheduleQueryResponse>
+{
   constructor(
     @Inject(PROVIDER_EXCEPTION_QUERY_REPOSITORY)
     private readonly providerExceptionRepo: IProviderExceptionQueryRepository,
@@ -76,7 +76,7 @@ export class GetProviderScheduleHandler implements IQueryHandler<
         exceptionQueryDateRange.endDate
       );
 
-    if (provider.validate.operationMode.isShift.value) {
+    if (provider.operationMode === OperationModeSchema.enum.SHIFT) {
       const shifts = await this.providerShiftRepo.findShiftsByDateRange(
         providerId,
         exceptionQueryDateRange.startDate,
@@ -85,8 +85,8 @@ export class GetProviderScheduleHandler implements IQueryHandler<
       return {
         data: {
           operationMode: OperationModeSchema.enum.SHIFT,
-          shifts: shifts.map((shift) => shift.toPersistence()),
-          exceptions: exceptions.map((exception) => exception.toPersistence()),
+          shifts,
+          exceptions,
         },
       };
     }
@@ -97,7 +97,7 @@ export class GetProviderScheduleHandler implements IQueryHandler<
       data: {
         operationMode: OperationModeSchema.enum.STATIC,
         availabilities,
-        exceptions: exceptions.map((exception) => exception.toPersistence()),
+        exceptions,
       },
       meta: { serializationOptions },
     };

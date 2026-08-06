@@ -2,21 +2,20 @@ import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
-  IProviderCommandRepository,
-  PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { SetProviderOperationModeCommand } from './set-provider-operation-mode.command';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
 
 @CommandHandler(SetProviderOperationModeCommand)
-export class SetProviderOperationModeHandler implements ICommandHandler<
-  SetProviderOperationModeCommand,
-  void
-> {
+export class SetProviderOperationModeHandler
+  implements ICommandHandler<SetProviderOperationModeCommand, void>
+{
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
     private readonly providerRepo: IProviderCommandRepository,

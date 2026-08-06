@@ -3,7 +3,7 @@ import { SendTemplateMessageHandler } from './send-template-message.handler';
 import { SendTemplateMessageCommand } from './send-template-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
-import { IConversationQueryRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
 
@@ -13,11 +13,10 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
   const build = (conversation: Conversation | null) => {
     let savedMessage: Message | undefined;
 
-    const conversationQueryRepo = {
+    // Pencere/opt-out kontrolü yazma kararını verdiği için okuma command repo'dan.
+    const conversationCommandRepo = {
       findById: jest.fn().mockResolvedValue(conversation),
-      findByContact: jest.fn(),
-      findMany: jest.fn(),
-    } as unknown as IConversationQueryRepository;
+    } as unknown as IConversationCommandRepository;
 
     const messageCommandRepo = {
       create: jest.fn(async (m: Message) => {
@@ -31,7 +30,7 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
     } as unknown as SendMessageProducer;
 
     const handler = new SendTemplateMessageHandler(
-      conversationQueryRepo,
+      conversationCommandRepo,
       messageCommandRepo,
       sendMessageProducer
     );
