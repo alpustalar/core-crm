@@ -3,9 +3,7 @@ import { Inject } from '@nestjs/common';
 import { UpdateProductCommand } from './update-product.command';
 import {
   IProductCommandRepository,
-  IProductQueryRepository,
   PRODUCT_COMMAND_REPOSITORY,
-  PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import {
   IPolicyFactory,
@@ -20,8 +18,6 @@ export class UpdateProductHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productCommandRepo: IProductCommandRepository,
     @Inject(POLICY_FACTORY)

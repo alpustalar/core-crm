@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  FINANCIAL_EVENT_COMMAND_REPOSITORY,
-  FINANCIAL_EVENT_QUERY_REPOSITORY,
-} from '@modules/finance/accounting/financial-events/domain/repositories/financial-event.repository';
 import { FinancialEventCommandRepository } from './financial-event.command.repository';
 import { FinancialEventQueryRepository } from './financial-event.query.repository';
+import { FINANCIAL_EVENT_COMMAND_REPOSITORY } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event/financial-event.command.repository';
+import { FINANCIAL_EVENT_QUERY_REPOSITORY } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event/financial-event.query.repository';
 
 @Module({
   providers: [

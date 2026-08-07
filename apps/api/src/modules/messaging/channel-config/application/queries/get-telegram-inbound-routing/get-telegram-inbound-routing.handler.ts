@@ -1,3 +1,4 @@
+import { isTelegramChannelActive } from '@modules/messaging/channel-config/domain/rules/telegram-channel.rules';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
@@ -30,7 +31,7 @@ export class GetTelegramInboundRoutingHandler
       data: {
         organizationId: channel.organizationId,
         webhookSecret: channel.webhookSecret,
-        isActive: channel.isActive,
+        isActive: isTelegramChannelActive(channel),
       },
     };
   }

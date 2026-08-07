@@ -4,11 +4,12 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { Pagination } from '@shared';
 import { IProductQueryRepository } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
-import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
+import { Product as IProduct } from '@shared';
 
 import { Decimal } from 'decimal.js';
 import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
 
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class ProductQueryRepository
   extends BaseRepository
@@ -18,36 +19,15 @@ export class ProductQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<Product | null> {
-    const raw = await this.db.product.findFirst({
-      where: { id, deletedAt: null },
-    });
-    return raw ? new Product(raw) : null;
-  }
-
-  async findByStockCode(
-    stockCode: string,
-    organizationId: string
-  ): Promise<Product | null> {
-    const raw = await this.db.product.findFirst({
-      where: { stockCode, organizationId, deletedAt: null },
-    });
-    return raw ? new Product(raw) : null;
-  }
-
-  async findMany(
+  findMany(
     organizationId: string,
     pagination: Pagination
-  ): Promise<{ items: Product[]; total: number }> {
-    const result = await paginate({
+  ): Promise<{ items: IProduct[]; total: number }> {
+    return paginate({
       delegate: this.db.product,
       pagination,
       where: { organizationId, deletedAt: null, isActive: true },
     });
-    return {
-      items: result.items.map((r) => new Product(r)),
-      total: result.total,
-    };
   }
 
   async getStockLevels(clinicId: string): Promise<StockLevel[]> {

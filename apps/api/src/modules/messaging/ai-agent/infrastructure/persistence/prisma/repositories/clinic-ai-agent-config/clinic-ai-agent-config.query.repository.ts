@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IClinicAiAgentConfigQueryRepository } from '@modules/messaging/ai-agent/domain/repositories/clinic-ai-agent-config.repository';
-import { ClinicAiAgentConfig } from '@modules/messaging/ai-agent/domain/entities/clinic-ai-agent-config.entity';
+import { ClinicAiAgentConfig as IClinicAiAgentConfig } from '@shared';
 
 @Injectable()
 export class ClinicAiAgentConfigQueryRepository
@@ -13,10 +13,9 @@ export class ClinicAiAgentConfigQueryRepository
     super(prisma);
   }
 
-  async findByClinicId(clinicId: string): Promise<ClinicAiAgentConfig | null> {
-    const raw = await this.db.clinicAiAgentConfig.findUnique({
+  findByClinicId(clinicId: string): Promise<IClinicAiAgentConfig | null> {
+    return this.db.clinicAiAgentConfig.findUnique({
       where: { clinicId },
     });
-    return raw ? new ClinicAiAgentConfig(raw) : null;
   }
 }

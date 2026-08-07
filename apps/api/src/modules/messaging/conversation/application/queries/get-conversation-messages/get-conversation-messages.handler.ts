@@ -10,7 +10,7 @@ import {
   IMessageQueryRepository,
   MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
+import { Message as IMessage } from '@shared';
 import { GetConversationMessagesQuery } from './get-conversation-messages.query';
 import { GetConversationMessagesResponse } from './get-conversation-messages.response';
 
@@ -53,7 +53,7 @@ export class GetConversationMessagesHandler
     };
   }
 
-  private toView(m: Message): MessageResponse {
+  private toView(m: IMessage): MessageResponse {
     return {
       id: m.id,
       conversationId: m.conversationId,

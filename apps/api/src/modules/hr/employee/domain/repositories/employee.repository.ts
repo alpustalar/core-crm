@@ -1,3 +1,4 @@
+import { Employee as IEmployee } from '@shared';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { Employee } from '@modules/hr/employee/domain/entities/employee.entity';
 import { EmployeeContract } from '@modules/hr/employee/domain/entities/employee-contract.entity';
@@ -25,5 +26,5 @@ export interface IEmployeeQueryRepository {
   /** Çalışan + (varsa) sözleşmeleri read-model olarak. */
   findById(id: string): Promise<EmployeeWithContracts | null>;
   /** Kliniğin (silinmemiş) çalışanları. */
-  findByClinic(filter: FindEmployeesFilter): Promise<Paginated<Employee>>;
+  findByClinic(filter: FindEmployeesFilter): Promise<Paginated<IEmployee>>;
 }

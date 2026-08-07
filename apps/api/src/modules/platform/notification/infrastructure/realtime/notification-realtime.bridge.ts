@@ -69,9 +69,7 @@ export class NotificationRealtimeBridge
    * Bu instance'ta bir kullanıcının canlı akışını döndürür. Aynı kullanıcının
    * birden çok sekmesi tek Subject'i paylaşır; son dinleyici ayrılınca temizlenir.
    */
-  streamFor(
-    userId: string
-  ): Observable<StaffNotificationRealtimePayload> {
+  streamFor(userId: string): Observable<StaffNotificationRealtimePayload> {
     let subject = this.streams.get(userId);
     if (!subject) {
       subject = new Subject<StaffNotificationRealtimePayload>();

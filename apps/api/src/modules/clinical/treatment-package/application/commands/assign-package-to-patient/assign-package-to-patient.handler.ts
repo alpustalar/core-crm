@@ -2,14 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { AssignPackageToPatientCommand } from './assign-package-to-patient.command';
 import type { AssignPackageToPatientResponse } from './assign-package-to-patient.response';
-import {
-  ITreatmentPackageCommandRepository,
-  TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
-import {
-  IPatientTreatmentPackageCommandRepository,
-  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -21,12 +13,23 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IPatientTreatmentPackageCommandRepository,
+  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.command.repository';
+import {
+  ITreatmentPackageCommandRepository,
+  TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.command.repository';
 
 @CommandHandler(AssignPackageToPatientCommand)
-export class AssignPackageToPatientHandler implements ICommandHandler<
-  AssignPackageToPatientCommand,
-  AssignPackageToPatientResponse
-> {
+export class AssignPackageToPatientHandler
+  implements
+    ICommandHandler<
+      AssignPackageToPatientCommand,
+      AssignPackageToPatientResponse
+    >
+{
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,

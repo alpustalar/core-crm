@@ -17,10 +17,10 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 // REGISTER İŞLEMLERİ BURADAN YAPILMAZ
 
 @CommandHandler(CreateOrganizationCommand)
-export class CreateOrganizationHandler
-  implements
-    ICommandHandler<CreateOrganizationCommand, CreateOrganizationResponse>
-{
+export class CreateOrganizationHandler implements ICommandHandler<
+  CreateOrganizationCommand,
+  CreateOrganizationResponse
+> {
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
     private orgRepository: IOrganizationCommandRepository,

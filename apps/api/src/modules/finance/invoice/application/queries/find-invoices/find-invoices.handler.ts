@@ -11,7 +11,8 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
-import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
+import { Invoice as IInvoice } from '@shared';
+import { taxSpecificationOf } from '@modules/finance/invoice/domain/rules/invoice-tax';
 import { InvoiceListItem } from '@modules/finance/invoice/domain/invoice.contracts';
 
 @QueryHandler(FindInvoicesQuery)
@@ -58,16 +59,16 @@ export class FindInvoicesHandler
     };
   }
 
-  private toListItem(invoice: Invoice): InvoiceListItem {
+  private toListItem(invoice: IInvoice): InvoiceListItem {
     return {
-      id: invoice.id.value,
-      organizationId: invoice.organizationId.value,
-      clinicId: invoice.clinicId.value,
-      patientId: invoice.patientId.value,
-      grandTotal: invoice.taxSpecification.grossAmount.value.toFixed(2),
-      currency: invoice.currency.value,
+      id: invoice.id,
+      organizationId: invoice.organizationId,
+      clinicId: invoice.clinicId,
+      patientId: invoice.patientId,
+      grandTotal: taxSpecificationOf(invoice).grossAmount.value.toFixed(2),
+      currency: invoice.currency,
       status: invoice.status,
-      invoiceNumber: invoice.invoiceNumber?.value ?? null,
+      invoiceNumber: invoice.invoiceNumber,
       issuedAt: invoice.issuedAt,
       createdAt: invoice.createdAt,
     };

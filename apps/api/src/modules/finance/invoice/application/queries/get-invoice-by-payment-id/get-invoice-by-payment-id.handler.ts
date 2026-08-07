@@ -1,3 +1,5 @@
+import { Decimal } from 'decimal.js';
+import { taxSpecificationOf } from '@modules/finance/invoice/domain/rules/invoice-tax';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
@@ -34,18 +36,18 @@ export class GetInvoiceByPaymentIdHandler
 
     // TODO: policy
 
-    const tax = invoice.taxSpecification;
+    const tax = taxSpecificationOf(invoice);
     return {
       data: {
-        id: invoice.id.value,
-        organizationId: invoice.organizationId.value,
-        clinicId: invoice.clinicId.value,
-        patientId: invoice.patientId.value,
+        id: invoice.id,
+        organizationId: invoice.organizationId,
+        clinicId: invoice.clinicId,
+        patientId: invoice.patientId,
         netTotal: tax.netAmount.value.toFixed(2),
         vatTotal: tax.taxAmount.value.toFixed(2),
         grandTotal: tax.grossAmount.value.toFixed(2),
-        vatRate: invoice.vatRate.value,
-        currency: invoice.currency.value,
+        vatRate: new Decimal(invoice.vatRate),
+        currency: invoice.currency,
         issuedAt: invoice.issuedAt,
         status: invoice.status,
       },

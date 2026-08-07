@@ -12,14 +12,12 @@ import { ExecutionSources } from '@src/domain/constants/execution-source.constan
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
 import {
   IMetaLeadCommandRepository,
-  IMetaLeadQueryRepository,
   META_LEAD_COMMAND_REPOSITORY,
-  META_LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
 import {
-  IMetaAdAccountQueryRepository,
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+  IMetaAdAccountCommandRepository,
+  META_AD_ACCOUNT_COMMAND_REPOSITORY,
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import {
   IMetaAdsEventPublisher,
   META_ADS_EVENT_PUBLISHER,
@@ -42,11 +40,9 @@ export class ProcessMetaLeadHandler implements ICommandHandler<
 
   constructor(
     @Inject(META_LEAD_COMMAND_REPOSITORY)
-    private readonly metaLeadCommandRepo: IMetaLeadCommandRepository,
-    @Inject(META_LEAD_QUERY_REPOSITORY)
-    private readonly metaLeadQueryRepo: IMetaLeadQueryRepository,
-    @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly metaAdAccountQueryRepo: IMetaAdAccountQueryRepository,
+    private readonly metaLeadRepo: IMetaLeadCommandRepository,
+    @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
+    private readonly metaAdAccountRepo: IMetaAdAccountCommandRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
     private readonly queryBus: TSQueryBus,
@@ -68,7 +64,7 @@ export class ProcessMetaLeadHandler implements ICommandHandler<
   ): Promise<ProcessMetaLeadResponse> {
     const { payload } = command;
 
-    const existing = await this.metaLeadQueryRepo.findByMetaLeadId(
+    const existing = await this.metaLeadRepo.findByMetaLeadId(
       payload.metaLeadId
     );
     if (existing) {
@@ -79,7 +75,7 @@ export class ProcessMetaLeadHandler implements ICommandHandler<
       };
     }
 
-    const account = await this.metaAdAccountQueryRepo.findById(
+    const account = await this.metaAdAccountRepo.findById(
       payload.metaAdAccountId
     );
 
@@ -96,7 +92,7 @@ export class ProcessMetaLeadHandler implements ICommandHandler<
       email: payload.email,
       rawData: payload.rawData as JsonValue,
     });
-    let saved = await this.metaLeadCommandRepo.create(metaLead);
+    let saved = await this.metaLeadRepo.create(metaLead);
 
     if (account && (payload.phone || payload.email)) {
       const { data: patient } = await this.queryBus.execute(
@@ -109,7 +105,7 @@ export class ProcessMetaLeadHandler implements ICommandHandler<
 
       if (patient) {
         saved.matchToPatient(patient.id);
-        saved = await this.metaLeadCommandRepo.update(saved);
+        saved = await this.metaLeadRepo.update(saved);
       }
     }
 

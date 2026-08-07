@@ -3,9 +3,7 @@ import { Inject } from '@nestjs/common';
 import { RegisterClinicPaymentGatewayCommand } from './register-clinic-payment-gateway.command';
 import {
   CLINIC_PAYMENT_GATEWAY_COMMAND_REPOSITORY,
-  CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY,
   IClinicPaymentGatewayCommandRepository,
-  IClinicPaymentGatewayQueryRepository,
 } from '@modules/finance/payment-gateway/domain/repositories/clinic-payment-gateway.repository';
 import { ClinicPaymentGateway } from '@modules/finance/payment-gateway/domain/entities/clinic-payment-gateway.entity';
 import {
@@ -20,12 +18,11 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(RegisterClinicPaymentGatewayCommand)
-export class RegisterClinicPaymentGatewayHandler
-  implements ICommandHandler<RegisterClinicPaymentGatewayCommand, void>
-{
+export class RegisterClinicPaymentGatewayHandler implements ICommandHandler<
+  RegisterClinicPaymentGatewayCommand,
+  void
+> {
   constructor(
-    @Inject(CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY)
-    private readonly gatewayQueryRepo: IClinicPaymentGatewayQueryRepository,
     @Inject(CLINIC_PAYMENT_GATEWAY_COMMAND_REPOSITORY)
     private readonly gatewayCommandRepo: IClinicPaymentGatewayCommandRepository,
     @Inject(IYZICO_PROVIDER)
@@ -46,7 +43,7 @@ export class RegisterClinicPaymentGatewayHandler
       )
       .orThrow(CLINIC_EVENTS.REGISTER_SUBMERCHANT);
 
-    const existing = await this.gatewayQueryRepo.findByClinicId(clinicId);
+    const existing = await this.gatewayCommandRepo.findByClinicId(clinicId);
     const conversationId = crypto.randomUUID();
 
     let subMerchantKey: string;

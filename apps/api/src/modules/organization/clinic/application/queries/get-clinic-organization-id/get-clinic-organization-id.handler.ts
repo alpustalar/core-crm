@@ -13,13 +13,10 @@ import {
 } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
 
 @QueryHandler(GetClinicOrganizationIdQuery)
-export class GetClinicOrganizationIdHandler
-  implements
-    IQueryHandler<
-      GetClinicOrganizationIdQuery,
-      GetClinicOrganizationIdResponse
-    >
-{
+export class GetClinicOrganizationIdHandler implements IQueryHandler<
+  GetClinicOrganizationIdQuery,
+  GetClinicOrganizationIdResponse
+> {
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
     private readonly clinicRepo: IClinicQueryRepository,

@@ -1,3 +1,4 @@
+import { PosDevice as IPosDevice } from '@shared';
 import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 
 export const POS_DEVICE_COMMAND_REPOSITORY = Symbol(
@@ -17,7 +18,11 @@ export interface IPosDeviceCommandRepository {
   findById(id: string): Promise<PosDevice | null>;
 }
 
+/**
+ * Okuma tarafı: entity değil, plain model döner (veri HTTP sınırını geçiyor).
+ * NOT: `findById` burada yok — tek okuyucusu satış/iade/void akışı olduğu için
+ * Command Repo'da yaşıyor (yukarıdaki not).
+ */
 export interface IPosDeviceQueryRepository {
-  findById(id: string): Promise<PosDevice | null>;
-  findByClinicId(clinicId: string): Promise<PosDevice[]>;
+  findByClinicId(clinicId: string): Promise<IPosDevice[]>;
 }

@@ -5,19 +5,19 @@ import {
   IYZICO_PAYMENT_LINK,
   STRIPE_PAYMENT_LINK,
 } from '@src/infrastructure/payment/links/payment-link.port';
-import {
-  BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  IBookingPaymentCommandRepository,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
 import { PaymentProviders } from '@common/constants';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import {
+  BOOKING_PAYMENT_COMMAND_REPOSITORY,
+  IBookingPaymentCommandRepository,
+} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
+import BookingPaymentStatusSchema from '@input-type-schemas/BookingPaymentStatusSchema';
 
 @CommandHandler(RefundBookingPaymentCommand)
-export class RefundBookingPaymentHandler implements ICommandHandler<
-  RefundBookingPaymentCommand,
-  void
-> {
+export class RefundBookingPaymentHandler
+  implements ICommandHandler<RefundBookingPaymentCommand, void>
+{
   private readonly logger = new Logger(RefundBookingPaymentHandler.name);
 
   constructor(
@@ -41,7 +41,7 @@ export class RefundBookingPaymentHandler implements ICommandHandler<
       return;
     }
 
-    if (bp.status !== 'BOOKED') {
+    if (bp.status !== BookingPaymentStatusSchema.enum.BOOKED) {
       this.logger.warn(
         `İade atlandı (bp=${bp.id.value}); durum BOOKED değil (mevcut: ${bp.status}).`
       );

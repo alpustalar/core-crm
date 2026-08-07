@@ -3,9 +3,7 @@ import { BadRequestException, Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   ITaxParameterCommandRepository,
-  ITaxParameterQueryRepository,
   TAX_PARAMETER_COMMAND_REPOSITORY,
-  TAX_PARAMETER_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
 import { SetTaxParameterCommand } from './set-tax-parameter.command';
@@ -19,8 +17,6 @@ export class SetTaxParameterHandler implements ICommandHandler<
   constructor(
     @Inject(TAX_PARAMETER_COMMAND_REPOSITORY)
     private readonly taxParameterCommandRepo: ITaxParameterCommandRepository,
-    @Inject(TAX_PARAMETER_QUERY_REPOSITORY)
-    private readonly taxParameterQueryRepo: ITaxParameterQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -30,7 +26,9 @@ export class SetTaxParameterHandler implements ICommandHandler<
 
     return this.txManager.run(async () => {
       // Mevcut açık sürümü yeni geçerlilik tarihinde kapat (ileriye dönük versiyonlama).
-      const open = await this.taxParameterQueryRepo.findOpen(
+      // Kilitli okunur: satır kapatılacağı ve yerine yenisi açılacağı için eşzamanlı
+      // ikinci istek bu tx commit olmadan aynı açık sürümü göremez.
+      const open = await this.taxParameterCommandRepo.findOpenForUpdate(
         input.clinicId,
         input.key
       );

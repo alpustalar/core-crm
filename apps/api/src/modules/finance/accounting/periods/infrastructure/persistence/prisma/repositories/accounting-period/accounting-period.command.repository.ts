@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { AccountingPeriodStatusSchema } from '@shared';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IAccountingPeriodCommandRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
 import { AccountingPeriod } from '@modules/finance/accounting/periods/domain/entities/accounting-period.entity';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { DateTimeManager } from '@common/utils';
+import { IAccountingPeriodCommandRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.command.repository';
 
 @Injectable()
 export class AccountingPeriodCommandRepository
@@ -16,6 +16,16 @@ export class AccountingPeriodCommandRepository
   }
   async findById(id: string): Promise<AccountingPeriod | null> {
     const raw = await this.db.accountingPeriod.findUnique({ where: { id } });
+    return raw ? new AccountingPeriod(raw) : null;
+  }
+
+  async findByYear(
+    clinicId: string,
+    year: number
+  ): Promise<AccountingPeriod | null> {
+    const raw = await this.db.accountingPeriod.findUnique({
+      where: { clinicId_year: { clinicId, year } },
+    });
     return raw ? new AccountingPeriod(raw) : null;
   }
 

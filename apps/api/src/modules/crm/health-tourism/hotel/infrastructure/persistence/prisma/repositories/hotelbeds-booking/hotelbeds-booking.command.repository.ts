@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IHotelbedsBookingCommandRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
+import { IHotelbedsBookingCommandRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.command.repository';
 
 @Injectable()
 export class HotelbedsBookingCommandRepository

@@ -28,7 +28,7 @@ export class GetPaymentByAppointmentIdHandler
     );
 
     return {
-      data: payment ? payment.toPersistence() : null,
+      data: payment,
     };
   }
 }

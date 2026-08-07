@@ -21,7 +21,7 @@ import { CreatePatientCommand } from '@modules/crm/patient/application/commands/
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command-repository.interface';
+} from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command.repository';
 import {
   IProviderBookingService,
   PROVIDER_BOOKING_SERVICE,

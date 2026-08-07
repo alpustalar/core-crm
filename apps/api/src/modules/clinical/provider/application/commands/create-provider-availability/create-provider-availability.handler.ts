@@ -15,11 +15,11 @@ import { ProviderAvailability } from '@modules/clinical/provider/domain/entities
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 import {
   IProviderAvailabilityCommandRepository,
   PROVIDER_AVAILABILITY_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.command.repository';
 import {
   CLINIC_BOOKING_SERVICE,
   IClinicBookingService,

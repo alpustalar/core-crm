@@ -18,9 +18,7 @@ import {
 } from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
 
 @CommandHandler(SoftDeleteClinicCommand)
-export class SoftDeleteClinicHandler
-  implements ICommandHandler<SoftDeleteClinicCommand>
-{
+export class SoftDeleteClinicHandler implements ICommandHandler<SoftDeleteClinicCommand> {
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicRepo: IClinicCommandRepository,

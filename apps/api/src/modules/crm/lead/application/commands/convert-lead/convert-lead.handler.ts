@@ -4,7 +4,7 @@ import { ConvertLeadCommand } from './convert-lead.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   LeadConvertMissingTargetException,
@@ -23,14 +23,13 @@ import { PipelineStageTypeSchema } from '@shared/modules/pipeline';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(ConvertLeadCommand)
-export class ConvertLeadHandler implements ICommandHandler<
-  ConvertLeadCommand,
-  void
-> {
+export class ConvertLeadHandler
+  implements ICommandHandler<ConvertLeadCommand, void>
+{
   private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: ILeadCommandRepository,
+    private readonly leadRepo: ILeadCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -47,7 +46,7 @@ export class ConvertLeadHandler implements ICommandHandler<
       .orThrow();
 
     await this.txManager.run(async () => {
-      const lead = await this.leadCommandRepo.findById(leadId);
+      const lead = await this.leadRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       // patientId verilmediyse lead'in telefon+isminden hastayı çöz-veya-oluştur
@@ -73,7 +72,7 @@ export class ConvertLeadHandler implements ICommandHandler<
       // Kanban tutarlılığı: lead bir huniye bağlıysa WON aşamasına taşı.
       await this.syncWonStage(lead);
 
-      await this.leadCommandRepo.update(lead);
+      await this.leadRepo.update(lead);
     });
   }
 

@@ -5,7 +5,7 @@ import { GetLeadByIdResponse } from './get-lead-by-id.response';
 import {
   ILeadQueryRepository,
   LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 
 @QueryHandler(GetLeadByIdQuery)
 export class GetLeadByIdHandler
@@ -13,12 +13,12 @@ export class GetLeadByIdHandler
 {
   constructor(
     @Inject(LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: ILeadQueryRepository
+    private readonly leadRepo: ILeadQueryRepository
   ) {}
 
   async execute(query: GetLeadByIdQuery): Promise<GetLeadByIdResponse> {
-    const lead = await this.leadQueryRepo.findById(query.leadId);
+    const lead = await this.leadRepo.findById(query.leadId);
     if (!lead) throw new NotFoundException('Lead bulunamadı.');
-    return { data: lead.toPersistence() };
+    return { data: lead };
   }
 }

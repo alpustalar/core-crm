@@ -15,6 +15,13 @@ export class ClinicPaymentGatewayCommandRepository
 
   // 1:1 satellite (clinicId unique) → get-or-create semantiği. save (pure update)
   // yerine ismiyle upsert.
+  async findByClinicId(clinicId: string): Promise<ClinicPaymentGateway | null> {
+    const raw = await this.db.clinicPaymentGateway.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicPaymentGateway(raw) : null;
+  }
+
   async upsertByClinicId(
     entity: ClinicPaymentGateway
   ): Promise<ClinicPaymentGateway> {

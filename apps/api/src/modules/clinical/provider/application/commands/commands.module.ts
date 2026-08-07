@@ -24,7 +24,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [PolicyModule, ClinicDomainServicesModule, ProviderRepositoriesModule],
+  imports: [ClinicDomainServicesModule, ProviderRepositoriesModule],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })

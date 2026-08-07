@@ -12,7 +12,7 @@ import { JournalEntryStatusType as JournalEntryStatus } from '@input-type-schema
 import {
   BuildReversalDraftProps,
   CreateJournalEntryProps,
-} from '@modules/finance/accounting/posting/domain/posting.contracts';
+} from '@modules/finance/accounting/posting/domain/contracts/posting.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
@@ -31,7 +31,7 @@ export class JournalEntry extends AggregateRoot {
     // Yevmiye sıra numarasını VO ile koruyoruz. VO en az 3 karakter ister; sıra no
     // DB'de bigint (1,2,3...) saklandığından 3 haneye sıfırla doldurulur ('001').
     this._entryNo = data.entryNo
-      ? JournalEntrySequence.create(JournalEntry.formatEntryNo(data.entryNo))
+      ? JournalEntrySequence.fromSequence(data.entryNo)
       : null;
     this._entryDate = data.entryDate;
 
@@ -155,11 +155,6 @@ export class JournalEntry extends AggregateRoot {
     return entry;
   }
 
-  /** bigint sıra no → en az 3 haneli string ('1' → '001'). VO min-3 kuralı için. */
-  private static formatEntryNo(entryNo: bigint): string {
-    return entryNo.toString().padStart(3, '0');
-  }
-
   /** Denge ve yapısal aggregate invariant'larını doğrular. */
   public validateStructure(): void {
     // Koleksiyon VO'nun sunduğu metodlar ile doğrulama
@@ -179,9 +174,7 @@ export class JournalEntry extends AggregateRoot {
     // Fişi POST etmeden önce son kez invariant kontrolü
     this.validateStructure();
 
-    this._entryNo = JournalEntrySequence.create(
-      JournalEntry.formatEntryNo(entryNo)
-    );
+    this._entryNo = JournalEntrySequence.fromSequence(entryNo);
     this._status = JournalEntryStatusSchema.enum.POSTED;
   }
 

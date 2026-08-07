@@ -3,8 +3,8 @@ import { Inject } from '@nestjs/common';
 import { ReceiveStockCommand } from './receive-stock.command';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
-  IProductQueryRepository,
-  PRODUCT_QUERY_REPOSITORY,
+  IProductCommandRepository,
+  PRODUCT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import {
   IProductBatchCommandRepository,
@@ -32,8 +32,8 @@ export class ReceiveStockHandler
   implements ICommandHandler<ReceiveStockCommand, string>
 {
   constructor(
-    @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
+    @Inject(PRODUCT_COMMAND_REPOSITORY)
+    private readonly productCommandRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
     private readonly productBatchCommandRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
@@ -45,7 +45,7 @@ export class ReceiveStockHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const product = await this.productQueryRepo.findById(dto.productId);
+    const product = await this.productCommandRepo.findById(dto.productId);
     if (!product) throw new ProductNotFoundException();
 
     const batch = ProductBatch.createFromPurchase({

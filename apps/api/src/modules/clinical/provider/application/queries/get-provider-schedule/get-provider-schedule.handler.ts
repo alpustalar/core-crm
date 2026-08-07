@@ -1,7 +1,7 @@
 import {
   IProviderExceptionQueryRepository,
   PROVIDER_EXCEPTION_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.query.repository';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetProviderScheduleQuery } from '@modules/clinical/provider/application/queries';
 import { GetProviderScheduleQueryResponse } from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.response';
@@ -9,7 +9,7 @@ import { Inject } from '@nestjs/common';
 import {
   IProviderAvailabilityQueryRepository,
   PROVIDER_AVAILABILITY_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -22,11 +22,11 @@ import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
 import {
   IProviderShiftQueryRepository,
   PROVIDER_SHIFT_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.query.repository';
 
 @QueryHandler(GetProviderScheduleQuery)
 export class GetProviderScheduleHandler

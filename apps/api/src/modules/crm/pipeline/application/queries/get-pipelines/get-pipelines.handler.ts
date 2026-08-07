@@ -1,11 +1,11 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { GetPipelinesQuery } from './get-pipelines.query';
+import { GetPipelinesResponse } from './get-pipelines.response';
 import {
   IPipelineQueryRepository,
   PIPELINE_QUERY_REPOSITORY,
-} from '@modules/crm/pipeline/domain/repositories/pipeline.repository';
-import { GetPipelinesQuery } from './get-pipelines.query';
-import { GetPipelinesResponse } from './get-pipelines.response';
+} from '@modules/crm/pipeline/domain/repositories/pipeline/pipeline.query.repository';
 
 @QueryHandler(GetPipelinesQuery)
 export class GetPipelinesHandler

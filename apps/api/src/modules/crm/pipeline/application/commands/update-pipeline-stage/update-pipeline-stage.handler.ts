@@ -1,28 +1,27 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { PipelineStageNotFoundException } from '@modules/crm/pipeline/domain/exceptions/pipeline.exceptions';
+import { UpdatePipelineStageCommand } from './update-pipeline-stage.command';
 import {
   IPipelineStageCommandRepository,
   PIPELINE_STAGE_COMMAND_REPOSITORY,
-} from '@modules/crm/pipeline/domain/repositories/pipeline.repository';
-import { PipelineStageNotFoundException } from '@modules/crm/pipeline/domain/exceptions/pipeline.exceptions';
-import { UpdatePipelineStageCommand } from './update-pipeline-stage.command';
+} from '@modules/crm/pipeline/domain/repositories/pipeline-stage/pipeline-stage.command.repository';
 
 @CommandHandler(UpdatePipelineStageCommand)
-export class UpdatePipelineStageHandler implements ICommandHandler<
-  UpdatePipelineStageCommand,
-  void
-> {
+export class UpdatePipelineStageHandler
+  implements ICommandHandler<UpdatePipelineStageCommand, void>
+{
   constructor(
     @Inject(PIPELINE_STAGE_COMMAND_REPOSITORY)
-    private readonly stageCommandRepo: IPipelineStageCommandRepository,
+    private readonly stageRepo: IPipelineStageCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: UpdatePipelineStageCommand): Promise<void> {
     const { stageId, data } = command.payload;
 
-    const stage = await this.stageCommandRepo.findById(stageId);
+    const stage = await this.stageRepo.findById(stageId);
     if (!stage) throw new PipelineStageNotFoundException(stageId);
 
     stage.update({
@@ -32,6 +31,6 @@ export class UpdatePipelineStageHandler implements ICommandHandler<
       color: data.color,
     });
 
-    await this.txManager.run(() => this.stageCommandRepo.update(stage));
+    await this.txManager.run(() => this.stageRepo.update(stage));
   }
 }

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { ActivityRepositoryModule } from '@modules/crm/activity/infrastructure/persistence/prisma/repositories/activity.repository.module';
+import { ActivityRepositoryModule } from '@modules/crm/activity/infrastructure/persistence/prisma/repositories/activity/activity.repository.module';
 import { CreateActivityHandler } from './create-activity/create-activity.handler';
 import { UpdateActivityHandler } from './update-activity/update-activity.handler';
 import { CompleteActivityHandler } from './complete-activity/complete-activity.handler';

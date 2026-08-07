@@ -8,7 +8,7 @@ export class MetaAdsSyncProducer implements OnModuleInit {
   private readonly logger = new Logger(MetaAdsSyncProducer.name);
 
   constructor(
-    @InjectQueue(QUEUES.META_ADS) private readonly metaAdsQueue: Queue,
+    @InjectQueue(QUEUES.META_ADS) private readonly metaAdsQueue: Queue
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -19,7 +19,7 @@ export class MetaAdsSyncProducer implements OnModuleInit {
         repeat: { pattern: '0 1 * * *' }, // her gece 01:00 — sync'ten önce
         removeOnComplete: true,
         removeOnFail: true,
-      },
+      }
     );
     await this.metaAdsQueue.add(
       META_ADS_JOBS.SYNC_CAMPAIGN_METRICS,
@@ -28,8 +28,10 @@ export class MetaAdsSyncProducer implements OnModuleInit {
         repeat: { pattern: '0 2 * * *' }, // her gece 02:00
         removeOnComplete: true,
         removeOnFail: true,
-      },
+      }
     );
-    this.logger.log('Meta Ads görevleri zamanlandı (token refresh: 01:00, sync: 02:00)');
+    this.logger.log(
+      'Meta Ads görevleri zamanlandı (token refresh: 01:00, sync: 02:00)'
+    );
   }
 }

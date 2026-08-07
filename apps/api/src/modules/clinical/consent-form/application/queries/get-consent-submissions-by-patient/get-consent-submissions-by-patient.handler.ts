@@ -11,7 +11,7 @@ import { CONSENT_FORM_EVENTS } from '@src/domain/constants/events/consent-form.c
 import {
   CONSENT_FORM_SUBMISSION_QUERY_REPOSITORY,
   IConsentFormSubmissionQueryRepository,
-} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository.interface';
+} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository';
 
 @QueryHandler(GetConsentSubmissionsByPatientQuery)
 export class GetConsentSubmissionsByPatientHandler

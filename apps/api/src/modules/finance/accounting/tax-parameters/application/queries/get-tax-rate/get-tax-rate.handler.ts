@@ -30,6 +30,7 @@ export class GetTaxRateHandler
       throw new TaxParameterNotConfiguredException(clinicId, key);
     }
 
-    return { data: { key, rate: effective.rateNumber } };
+    // Oran DB'de Decimal; dışarıya yüzde sayısı olarak verilir.
+    return { data: { key, rate: effective.rate.toNumber() } };
   }
 }

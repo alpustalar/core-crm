@@ -17,10 +17,10 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 
 @CommandHandler(IyzicoTerminalEodCommand)
-export class IyzicoTerminalEodHandler
-  implements
-    ICommandHandler<IyzicoTerminalEodCommand, IyzicoTerminalEodResponse>
-{
+export class IyzicoTerminalEodHandler implements ICommandHandler<
+  IyzicoTerminalEodCommand,
+  IyzicoTerminalEodResponse
+> {
   private readonly logger = new Logger(IyzicoTerminalEodHandler.name);
 
   constructor(

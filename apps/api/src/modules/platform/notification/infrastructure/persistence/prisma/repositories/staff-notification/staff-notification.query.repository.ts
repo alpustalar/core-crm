@@ -7,7 +7,6 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { Paginated } from '@common/interfaces/paginated.type';
-import { StaffNotification } from '@modules/platform/notification/domain/entities/staff-notification.entity';
 import { IStaffNotificationQueryRepository } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
 import { FindStaffNotificationsByRecipientProps } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
 
@@ -20,19 +19,19 @@ export class StaffNotificationQueryRepository
     super(prisma);
   }
 
-  async findByRecipient({
+  findByRecipient({
     staffId,
     pagination,
     onlyUnread,
   }: FindStaffNotificationsByRecipientProps): Promise<
-    Paginated<StaffNotification>
+    Paginated<PrismaStaffNotification>
   > {
     const where: Prisma.StaffNotificationWhereInput = {
       staffId,
       ...(onlyUnread ? { isRead: false } : {}),
     };
 
-    const { items, total } = await paginate<
+    return paginate<
       PrismaStaffNotification,
       Prisma.StaffNotificationWhereInput
     >({
@@ -40,8 +39,6 @@ export class StaffNotificationQueryRepository
       pagination,
       where,
     });
-
-    return { items: items.map((raw) => new StaffNotification(raw)), total };
   }
 
   countUnread(staffId: string): Promise<number> {

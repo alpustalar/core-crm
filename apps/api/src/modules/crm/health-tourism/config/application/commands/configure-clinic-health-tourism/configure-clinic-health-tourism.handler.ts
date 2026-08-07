@@ -1,12 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  CLINIC_HEALTH_TOURISM_CONFIG_COMMAND_REPOSITORY,
-  CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY,
-  IClinicHealthTourismConfigCommandRepository,
-  IClinicHealthTourismConfigQueryRepository,
-} from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config.repository';
 import { ClinicHealthTourismConfig } from '@modules/crm/health-tourism/config/domain/entities/clinic-health-tourism-config.entity';
 import { ConfigureClinicHealthTourismCommand } from './configure-clinic-health-tourism.command';
 import {
@@ -16,6 +10,10 @@ import {
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindOrganizationIdByClinicIdQuery } from '@modules/organization/organization/application/queries/find-organization-id-by-clinic-id/find-organization-id-by-clinic-id.query';
 import { HEALTH_TOURISM_CONFIG_EVENTS } from '@src/domain/constants/events';
+import {
+  CLINIC_HEALTH_TOURISM_CONFIG_COMMAND_REPOSITORY,
+  IClinicHealthTourismConfigCommandRepository,
+} from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config/clinic-health-tourism-config.command.repository';
 
 @CommandHandler(ConfigureClinicHealthTourismCommand)
 export class ConfigureClinicHealthTourismHandler
@@ -23,9 +21,7 @@ export class ConfigureClinicHealthTourismHandler
 {
   constructor(
     @Inject(CLINIC_HEALTH_TOURISM_CONFIG_COMMAND_REPOSITORY)
-    private readonly clinicHealthTourismConfigCommandRepo: IClinicHealthTourismConfigCommandRepository,
-    @Inject(CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY)
-    private readonly ClinicHealthTourismConfigQueryRepo: IClinicHealthTourismConfigQueryRepository,
+    private readonly clinicHealthTourismConfigRepo: IClinicHealthTourismConfigCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -36,7 +32,7 @@ export class ConfigureClinicHealthTourismHandler
     const { clinicId, data, ctx } = command.payload;
 
     let config =
-      await this.ClinicHealthTourismConfigQueryRepo.findByClinicId(clinicId);
+      await this.clinicHealthTourismConfigRepo.findByClinicId(clinicId);
 
     if (!config) {
       const { organizationId } = await this.queryBus.execute(
@@ -66,7 +62,7 @@ export class ConfigureClinicHealthTourismHandler
     });
 
     const sync = await this.txManager.run(() =>
-      this.clinicHealthTourismConfigCommandRepo.sync(config)
+      this.clinicHealthTourismConfigRepo.sync(config)
     );
     return sync.id.value;
   }

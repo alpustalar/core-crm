@@ -4,9 +4,7 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY,
-  CLINIC_AI_AGENT_CONFIG_QUERY_REPOSITORY,
   IClinicAiAgentConfigCommandRepository,
-  IClinicAiAgentConfigQueryRepository,
 } from '@modules/messaging/ai-agent/domain/repositories/clinic-ai-agent-config.repository';
 import { ClinicAiAgentConfig } from '@modules/messaging/ai-agent/domain/entities/clinic-ai-agent-config.entity';
 import { ConfigureClinicAiAgentCommand } from './configure-clinic-ai-agent.command';
@@ -18,8 +16,6 @@ export class ConfigureClinicAiAgentHandler
   constructor(
     @Inject(CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY)
     private readonly configCommandRepo: IClinicAiAgentConfigCommandRepository,
-    @Inject(CLINIC_AI_AGENT_CONFIG_QUERY_REPOSITORY)
-    private readonly configQueryRepo: IClinicAiAgentConfigQueryRepository,
     private readonly cipher: TokenCipherService,
     private readonly txManager: TransactionManager
   ) {}
@@ -32,7 +28,7 @@ export class ConfigureClinicAiAgentHandler
       ? this.cipher.encrypt(input.apiKey)
       : undefined;
 
-    const existing = await this.configQueryRepo.findByClinicId(clinicId);
+    const existing = await this.configCommandRepo.findByClinicId(clinicId);
 
     const config =
       existing ??

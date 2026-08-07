@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { ILeaveQueryRepository } from '@modules/hr/leave/domain/repositories/leave.repository';
-import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.entity';
+import { LeaveRequest as ILeaveRequest } from '@shared';
 import {
   FindLeavesByEmployeeFilter,
   FindPendingLeavesFilter,
@@ -12,6 +12,7 @@ import { Paginated } from '@common/interfaces/paginated.type';
 import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
 import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';
 
+/** Okuma tarafı: entity hidrate edilmez; bakiye okuması Command Repo'da. */
 @Injectable()
 export class LeaveRequestQueryRepository
   extends BaseRepository
@@ -21,29 +22,23 @@ export class LeaveRequestQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<LeaveRequest | null> {
-    const raw = await this.db.leaveRequest.findUnique({ where: { id } });
-    return raw ? new LeaveRequest(raw) : null;
-  }
-
-  async findByEmployee(
+  findByEmployee(
     filter: FindLeavesByEmployeeFilter
-  ): Promise<Paginated<LeaveRequest>> {
+  ): Promise<Paginated<ILeaveRequest>> {
     const where: Record<string, unknown> = { employeeId: filter.employeeId };
     if (filter.status) where.status = filter.status;
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.leaveRequest,
       pagination: filter.pagination,
       where,
     });
-    return this.mapPagination(result, (r) => new LeaveRequest(r));
   }
 
-  async findPendingByClinic(
+  findPendingByClinic(
     filter: FindPendingLeavesFilter
-  ): Promise<Paginated<LeaveRequest>> {
-    const result = await paginate({
+  ): Promise<Paginated<ILeaveRequest>> {
+    return paginate({
       delegate: this.db.leaveRequest,
       pagination: filter.pagination,
       where: {
@@ -51,7 +46,6 @@ export class LeaveRequestQueryRepository
         status: LeaveStatusSchema.enum.PENDING,
       },
     });
-    return this.mapPagination(result, (r) => new LeaveRequest(r));
   }
 
   async sumApprovedAnnualDays(

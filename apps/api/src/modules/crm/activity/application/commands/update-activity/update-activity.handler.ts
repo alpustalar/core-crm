@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateActivityCommand } from './update-activity.command';
-import {
-  ACTIVITY_COMMAND_REPOSITORY,
-  IActivityCommandRepository,
-} from '@modules/crm/activity/domain/repositories/activity.repository';
 import { ActivityNotFoundException } from '@modules/crm/activity/domain/exceptions/activity.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -12,12 +8,15 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ACTIVITY_EVENTS } from '@src/domain/constants/events';
+import {
+  ACTIVITY_COMMAND_REPOSITORY,
+  IActivityCommandRepository,
+} from '@modules/crm/activity/domain/repositories/activity/activity.command.repository';
 
 @CommandHandler(UpdateActivityCommand)
-export class UpdateActivityHandler implements ICommandHandler<
-  UpdateActivityCommand,
-  void
-> {
+export class UpdateActivityHandler
+  implements ICommandHandler<UpdateActivityCommand, void>
+{
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
     private readonly activityRepo: IActivityCommandRepository,

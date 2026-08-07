@@ -1,3 +1,4 @@
+import { isTelegramChannelActive } from '@modules/messaging/channel-config/domain/rules/telegram-channel.rules';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
@@ -34,7 +35,7 @@ export class GetClinicTelegramChannelHandler
         status: channel.status,
         botUsername: channel.botUsername,
         hasBotToken: channel.botTokenEnc !== null,
-        isActive: channel.isActive,
+        isActive: isTelegramChannelActive(channel),
         lastError: channel.lastError,
         createdAt: channel.createdAt,
         updatedAt: channel.updatedAt,

@@ -1,3 +1,4 @@
+import { whatsappChannelNeedsReauth } from '@modules/messaging/channel-config/domain/rules/whatsapp-channel.rules';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
@@ -35,7 +36,7 @@ export class GetClinicWhatsappChannelHandler
         displayPhoneNumber: channel.displayPhoneNumber,
         hasAccessToken: channel.accessToken !== null,
         isActive: channel.isActive,
-        needsReauth: channel.needsReauth(),
+        needsReauth: whatsappChannelNeedsReauth(channel),
         tokenExpiresAt: channel.tokenExpiresAt,
         qualityRating: channel.qualityRating,
         messagingTier: channel.messagingTier,

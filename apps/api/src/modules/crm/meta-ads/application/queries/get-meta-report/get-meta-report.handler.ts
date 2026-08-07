@@ -5,40 +5,41 @@ import { GetMetaReportResponse } from './get-meta-report.response';
 import {
   IMetaCampaignMetricQueryRepository,
   META_CAMPAIGN_METRIC_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
 import {
   IMetaLeadQueryRepository,
   META_LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
 import {
   IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 
 @QueryHandler(GetMetaReportQuery)
-export class GetMetaReportHandler
-  implements IQueryHandler<GetMetaReportQuery, GetMetaReportResponse>
-{
+export class GetMetaReportHandler implements IQueryHandler<
+  GetMetaReportQuery,
+  GetMetaReportResponse
+> {
   constructor(
     @Inject(META_CAMPAIGN_METRIC_QUERY_REPOSITORY)
-    private readonly metricQueryRepo: IMetaCampaignMetricQueryRepository,
+    private readonly metaCampaignMetricRepo: IMetaCampaignMetricQueryRepository,
     @Inject(META_LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: IMetaLeadQueryRepository,
+    private readonly metaLeadRepo: IMetaLeadQueryRepository,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository
+    private readonly metaAdAccountRepo: IMetaAdAccountQueryRepository
   ) {}
 
   async execute(query: GetMetaReportQuery): Promise<GetMetaReportResponse> {
     const { clinicId, from, to, campaignId } = query;
 
     const [metrics, accounts] = await Promise.all([
-      this.metricQueryRepo.aggregateByAccount({
+      this.metaCampaignMetricRepo.aggregateByAccount({
         clinicId,
         from,
         to,
         campaignId,
       }),
-      this.accountQueryRepo.findByClinicId(clinicId),
+      this.metaAdAccountRepo.findByClinicId(clinicId),
     ]);
 
     const totalSpend = metrics.reduce(
@@ -48,7 +49,7 @@ export class GetMetaReportHandler
     const totalClicks = metrics.reduce((sum, m) => sum + m.clicks, 0);
     const averageCpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
 
-    const accountIds = accounts.map((a) => a.id.value);
+    const accountIds = accounts.map((a) => a.id);
     const [totalLeads, convertedLeads] = await Promise.all([
       this.countLeadsByAccounts(accountIds, from, to),
       this.countConvertedLeadsByAccounts(accountIds, from, to),
@@ -120,15 +121,15 @@ export class GetMetaReportHandler
     if (accountIds.length === 0) return 0;
     let total = 0;
     for (const accountId of accountIds) {
-      const result = await this.leadQueryRepo.countByAccountAndStatus(
+      const result = await this.metaLeadRepo.countByAccountAndStatus(
         accountId,
         'NEW'
       );
-      const matched = await this.leadQueryRepo.countByAccountAndStatus(
+      const matched = await this.metaLeadRepo.countByAccountAndStatus(
         accountId,
         'MATCHED'
       );
-      const converted = await this.leadQueryRepo.countByAccountAndStatus(
+      const converted = await this.metaLeadRepo.countByAccountAndStatus(
         accountId,
         'CONVERTED'
       );
@@ -145,7 +146,7 @@ export class GetMetaReportHandler
     if (accountIds.length === 0) return 0;
     let total = 0;
     for (const accountId of accountIds) {
-      const converted = await this.leadQueryRepo.countByAccountAndStatus(
+      const converted = await this.metaLeadRepo.countByAccountAndStatus(
         accountId,
         'CONVERTED'
       );

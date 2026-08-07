@@ -21,9 +21,10 @@ import {
  * bust. Cache bust DB commit'inden SONRA yapılır ki bir sonraki okuma taze veriyi çeksin.
  */
 @CommandHandler(UpdateClinicAppointmentSettingsCommand)
-export class UpdateClinicAppointmentSettingsHandler
-  implements ICommandHandler<UpdateClinicAppointmentSettingsCommand, void>
-{
+export class UpdateClinicAppointmentSettingsHandler implements ICommandHandler<
+  UpdateClinicAppointmentSettingsCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_APPOINTMENT_SETTINGS_COMMAND_REPOSITORY)
     private readonly clinicAppointmentSettingsRepo: IClinicAppointmentSettingsCommandRepository,

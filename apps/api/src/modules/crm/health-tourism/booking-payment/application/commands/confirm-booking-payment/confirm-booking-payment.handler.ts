@@ -10,10 +10,6 @@ import {
   IYZICO_PAYMENT_LINK,
   STRIPE_PAYMENT_LINK,
 } from '@src/infrastructure/payment/links/payment-link.port';
-import {
-  BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  IBookingPaymentCommandRepository,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import {
   BookingPaymentProviderValue,
@@ -38,12 +34,15 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  BOOKING_PAYMENT_COMMAND_REPOSITORY,
+  IBookingPaymentCommandRepository,
+} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 
 @CommandHandler(ConfirmBookingPaymentCommand)
-export class ConfirmBookingPaymentHandler implements ICommandHandler<
-  ConfirmBookingPaymentCommand,
-  void
-> {
+export class ConfirmBookingPaymentHandler
+  implements ICommandHandler<ConfirmBookingPaymentCommand, void>
+{
   private readonly logger = new Logger(ConfirmBookingPaymentHandler.name);
 
   constructor(

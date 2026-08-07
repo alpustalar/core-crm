@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IClinicWhatsappChannelQueryRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
-import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
+import { ClinicWhatsappChannel as IClinicWhatsappChannel } from '@shared';
 
 @Injectable()
 export class ClinicWhatsappChannelQueryRepository
@@ -13,30 +13,17 @@ export class ClinicWhatsappChannelQueryRepository
     super(prisma);
   }
 
-  async findByClinicId(
-    clinicId: string
-  ): Promise<ClinicWhatsappChannel | null> {
-    const raw = await this.db.clinicWhatsappChannel.findUnique({
+  findByClinicId(clinicId: string): Promise<IClinicWhatsappChannel | null> {
+    return this.db.clinicWhatsappChannel.findUnique({
       where: { clinicId },
     });
-    return raw ? new ClinicWhatsappChannel(raw) : null;
   }
 
-  async findByPhoneNumberId(
+  findByPhoneNumberId(
     phoneNumberId: string
-  ): Promise<ClinicWhatsappChannel | null> {
-    const raw = await this.db.clinicWhatsappChannel.findUnique({
+  ): Promise<IClinicWhatsappChannel | null> {
+    return this.db.clinicWhatsappChannel.findUnique({
       where: { phoneNumberId },
     });
-    return raw ? new ClinicWhatsappChannel(raw) : null;
-  }
-
-  async findByDisplayPhoneNumber(
-    displayPhoneNumber: string
-  ): Promise<ClinicWhatsappChannel | null> {
-    const raw = await this.db.clinicWhatsappChannel.findFirst({
-      where: { displayPhoneNumber },
-    });
-    return raw ? new ClinicWhatsappChannel(raw) : null;
   }
 }

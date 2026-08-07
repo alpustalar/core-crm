@@ -5,9 +5,7 @@ import { IssueInvoiceCommand } from './issue-invoice.command';
 import { IssueInvoiceResponse } from './issue-invoice.response';
 import {
   IInvoiceCommandRepository,
-  IInvoiceQueryRepository,
   INVOICE_COMMAND_REPOSITORY,
-  INVOICE_QUERY_REPOSITORY,
 } from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -44,8 +42,6 @@ export class IssueInvoiceHandler
   constructor(
     @Inject(INVOICE_COMMAND_REPOSITORY)
     private readonly invoiceCommandRepo: IInvoiceCommandRepository,
-    @Inject(INVOICE_QUERY_REPOSITORY)
-    private readonly invoiceQueryRepo: IInvoiceQueryRepository,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
@@ -153,10 +149,10 @@ export class IssueInvoiceHandler
 
   private async resolveExisting(input: IssueInvoiceCommand['input']) {
     if (input.appointmentId) {
-      return this.invoiceQueryRepo.findByAppointmentId(input.appointmentId);
+      return this.invoiceCommandRepo.findByAppointmentId(input.appointmentId);
     }
     if (input.paymentId) {
-      return this.invoiceQueryRepo.findByPaymentId(input.paymentId);
+      return this.invoiceCommandRepo.findByPaymentId(input.paymentId);
     }
     return null;
   }

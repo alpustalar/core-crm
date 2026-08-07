@@ -9,13 +9,10 @@ import {
 } from '@modules/organization/organization/domain/repositories/organization-finance-settings.repository.interface';
 
 @QueryHandler(GetOrganizationBillingTargetQuery)
-export class GetOrganizationBillingTargetHandler
-  implements
-    IQueryHandler<
-      GetOrganizationBillingTargetQuery,
-      GetOrganizationBillingTargetResponse
-    >
-{
+export class GetOrganizationBillingTargetHandler implements IQueryHandler<
+  GetOrganizationBillingTargetQuery,
+  GetOrganizationBillingTargetResponse
+> {
   constructor(
     @Inject(ORGANIZATION_FINANCE_SETTINGS_QUERY_REPOSITORY)
     private readonly financeSettingsQueryRepo: IOrganizationFinanceSettingsQueryRepository

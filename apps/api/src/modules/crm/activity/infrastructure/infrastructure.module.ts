@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ActivityRepositoryModule } from '@modules/crm/activity/infrastructure/persistence/prisma/repositories/activity.repository.module';
+import { ActivityRepositoriesModule } from '@modules/crm/activity/infrastructure/persistence/prisma/repositories/repositories.module';
 
-const InfrastructureModules = [ActivityRepositoryModule];
+const InfrastructureModules = [ActivityRepositoriesModule];
 
 @Module({
   imports: [...InfrastructureModules],

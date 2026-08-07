@@ -2,7 +2,7 @@ import { ConfirmBookingPaymentHandler } from './confirm-booking-payment.handler'
 import { ConfirmBookingPaymentCommand } from './confirm-booking-payment.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { IPaymentLinkProvider } from '@src/infrastructure/payment/links/payment-link.port';
-import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
+import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import { BookingPaymentNotFoundException } from '@modules/crm/health-tourism/booking-payment/domain/exceptions/booking-payment.exceptions';
 import {

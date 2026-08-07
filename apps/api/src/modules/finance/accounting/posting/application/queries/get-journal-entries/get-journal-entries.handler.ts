@@ -28,7 +28,7 @@ export class GetJournalEntriesHandler
     );
 
     return {
-      data: items.map((entry) => entry.toPersistence()),
+      data: items,
       meta: { pagination: buildPaginationMeta(pagination, total) },
     };
   }

@@ -12,16 +12,17 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
     const canAccess = options.canAccess ?? true;
     const executionOrder: string[] = [];
 
-    const settingsQueryRepo = {
-      findByClinicId: jest.fn(() => Promise.resolve(options.existing ?? null)),
-    } as any;
-
     // Gerçek sıralamayı yakalamak için spy'ların tetiklenme anını logluyoruz
     const saveSpy = jest.fn().mockImplementation(() => {
       executionOrder.push('update');
       return Promise.resolve();
     });
-    const settingsCommandRepo = { upsertByClinicId: saveSpy } as any;
+    // Okuma da yazma da Command Repo'dan: satır yüklenip üstünde domain metodu
+    // çalıştırılıyor (mutasyonu besleyen okuma → Command Context).
+    const settingsCommandRepo = {
+      findByClinicId: jest.fn(() => Promise.resolve(options.existing ?? null)),
+      upsertByClinicId: saveSpy,
+    } as any;
 
     const policyFactory = {
       clinic: jest.fn().mockReturnValue({
@@ -52,7 +53,6 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
 
     return {
       handler: new UpdateClinicAppointmentSettingsHandler(
-        settingsQueryRepo,
         settingsCommandRepo,
         policyFactory,
         cacheService,

@@ -21,6 +21,6 @@ export class GetRoleByIdHandler
     if (!role) {
       throw new NotFoundException(`Rol bulunamadı: roleId=${query.roleId}`);
     }
-    return { data: role.toPersistence() };
+    return { data: role };
   }
 }

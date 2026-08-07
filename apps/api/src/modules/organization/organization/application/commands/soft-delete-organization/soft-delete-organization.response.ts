@@ -1,1 +1,1 @@
-export type SoftDeleteOrganizationCommandResponse = string
+export type SoftDeleteOrganizationCommandResponse = string;

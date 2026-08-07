@@ -14,6 +14,13 @@ export class ClinicAiAgentConfigCommandRepository
     super(prisma);
   }
 
+  async findByClinicId(clinicId: string): Promise<ClinicAiAgentConfig | null> {
+    const raw = await this.db.clinicAiAgentConfig.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicAiAgentConfig(raw) : null;
+  }
+
   // 1:1 satellite (clinicId unique) → get-or-create (upsert).
   async upsertByClinicId(
     entity: ClinicAiAgentConfig

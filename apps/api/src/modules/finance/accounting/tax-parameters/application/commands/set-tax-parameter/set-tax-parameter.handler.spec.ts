@@ -17,14 +17,13 @@ describe('SetTaxParameterHandler', () => {
     const commandRepo = {
       create: jest.fn().mockImplementation((e: unknown) => Promise.resolve(e)),
       update: jest.fn().mockImplementation((e: unknown) => Promise.resolve(e)),
+      findOpenForUpdate: jest.fn().mockResolvedValue(open),
     };
-    const queryRepo = { findOpen: jest.fn().mockResolvedValue(open) };
     const txManager = {
       run: jest.fn().mockImplementation((cb: () => Promise<unknown>) => cb()),
     };
     const handler = new SetTaxParameterHandler(
       commandRepo as never,
-      queryRepo as never,
       txManager as never
     );
     return { handler, commandRepo };

@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
-import { AccountingPeriodCommandModule } from './application/commands/command.module';
-import { AccountingPeriodQueryModule } from './application/queries/query.module';
-import { AccountingPeriodPresentationModule } from './presentation/accounting-period-presentation.module';
+import { AccountingPeriodPresentationModule } from './presentation/presentation.module';
+import { AccountingPeriodApplicationModule } from '@modules/finance/accounting/periods/application/application.module';
+import { AccountingPeriodInfrastructureModule } from '@modules/finance/accounting/periods/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
-    AccountingPeriodCommandModule,
-    AccountingPeriodQueryModule,
+    AccountingPeriodApplicationModule,
     AccountingPeriodPresentationModule,
+    AccountingPeriodInfrastructureModule,
   ],
-  exports: [AccountingPeriodCommandModule, AccountingPeriodQueryModule],
 })
 export class AccountingPeriodModule {}

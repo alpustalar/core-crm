@@ -3,6 +3,8 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ILeaveCommandRepository } from '@modules/hr/leave/domain/repositories/leave.repository';
 import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.entity';
+import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
+import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';
 
 @Injectable()
 export class LeaveRequestCommandRepository
@@ -11,6 +13,23 @@ export class LeaveRequestCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async sumApprovedAnnualDays(
+    employeeId: string,
+    from: Date,
+    to: Date
+  ): Promise<number> {
+    const result = await this.db.leaveRequest.aggregate({
+      _sum: { days: true },
+      where: {
+        employeeId,
+        type: LeaveTypeSchema.enum.ANNUAL,
+        status: LeaveStatusSchema.enum.APPROVED,
+        startDate: { gte: from, lte: to },
+      },
+    });
+    return result._sum.days ?? 0;
   }
 
   async create(entity: LeaveRequest): Promise<LeaveRequest> {

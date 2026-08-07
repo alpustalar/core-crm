@@ -6,7 +6,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 
 import { AccountingPeriodStatusType as AccountingPeriodStatus } from '@input-type-schemas/AccountingPeriodStatusSchema';
-import { CreateAccountingPeriodProps } from '@modules/finance/accounting/periods/domain/periods.contracts';
+import { CreateAccountingPeriodProps } from '@modules/finance/accounting/periods/domain/contracts/periods.contracts';
 import {
   InvalidPeriodLockException,
   InvalidPeriodReopenException,

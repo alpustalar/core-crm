@@ -13,20 +13,20 @@ import { ProviderSchedule } from '@modules/clinical/provider/domain/value-object
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 import {
   IProviderAvailabilityQueryRepository,
   PROVIDER_AVAILABILITY_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository';
 import {
   IProviderShiftCommandRepository,
   PROVIDER_SHIFT_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository';
 import { ProviderException } from '@modules/clinical/provider/domain/entities/provider-exception.entity';
 import {
   IProviderExceptionCommandRepository,
   PROVIDER_EXCEPTION_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.command.repository';
 import { IProviderBookingService } from '@modules/clinical/provider/domain/services/provider-booking/provider-booking.service.interface';
 
 export interface AssertCanBookParams {

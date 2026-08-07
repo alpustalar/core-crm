@@ -9,9 +9,10 @@ import {
 } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.query.repository.interface';
 
 @QueryHandler(GetClinicCurrencyQuery)
-export class GetClinicCurrencyHandler
-  implements IQueryHandler<GetClinicCurrencyQuery, GetClinicCurrencyResponse>
-{
+export class GetClinicCurrencyHandler implements IQueryHandler<
+  GetClinicCurrencyQuery,
+  GetClinicCurrencyResponse
+> {
   constructor(
     @Inject(CLINIC_FINANCE_SETTINGS_QUERY_REPOSITORY)
     private readonly clinicFinanceSettingsRepo: IClinicFinanceSettingsQueryRepository

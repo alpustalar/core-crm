@@ -1,3 +1,4 @@
+import { AttendanceRecord as IAttendanceRecord } from '@shared';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { AttendanceRecord } from '@modules/hr/attendance/domain/entities/attendance-record.entity';
 import {
@@ -24,10 +25,13 @@ export type IAttendanceCommandRepository =
     ): Promise<AttendanceRecord>;
   };
 
+/**
+ * Okuma tarafı: entity değil, plain model / read-model döner.
+ * NOT: `findById` hiçbir handler tarafından kullanılmıyordu — kaldırıldı.
+ */
 export interface IAttendanceQueryRepository {
-  findById(id: string): Promise<AttendanceRecord | null>;
   findByEmployee(
     filter: FindAttendanceByEmployeeFilter
-  ): Promise<Paginated<AttendanceRecord>>;
+  ): Promise<Paginated<IAttendanceRecord>>;
   getSummary(filter: GetAttendanceSummaryFilter): Promise<AttendanceSummary>;
 }

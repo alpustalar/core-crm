@@ -5,11 +5,11 @@ import {
   HOTELBEDS_API_SERVICE,
   IHotelbedsApiService,
 } from '@modules/crm/health-tourism/hotel/domain/interfaces/hotelbeds-api.interface';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import {
   HOTELBEDS_HOTEL_COMMAND_REPOSITORY,
   IHotelbedsHotelCommandRepository,
-} from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-hotel.repository.interface';
-import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+} from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-hotel/hotelbeds-hotel.command.repository';
 
 const COUNTRY_CODE = 'TR';
 const BATCH_SIZE = 1000;
@@ -23,9 +23,8 @@ export class SyncHotelContentHandler
   constructor(
     @Inject(HOTELBEDS_API_SERVICE)
     private readonly hotelbedsApi: IHotelbedsApiService,
-
     @Inject(HOTELBEDS_HOTEL_COMMAND_REPOSITORY)
-    private readonly hotelCommandRepo: IHotelbedsHotelCommandRepository
+    private readonly hotelbedsHotelRepo: IHotelbedsHotelCommandRepository
   ) {}
 
   async execute(): Promise<void> {
@@ -62,7 +61,7 @@ export class SyncHotelContentHandler
         lastSyncedAt: now,
       }));
 
-      await this.hotelCommandRepo.syncMany(upsertData);
+      await this.hotelbedsHotelRepo.syncMany(upsertData);
 
       synced += result.items.length;
       from += BATCH_SIZE;

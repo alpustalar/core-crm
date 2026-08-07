@@ -8,9 +8,10 @@ import {
 } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
 
 @QueryHandler(GetUnreadCountQuery)
-export class GetUnreadCountHandler
-  implements IQueryHandler<GetUnreadCountQuery, GetUnreadCountResponse>
-{
+export class GetUnreadCountHandler implements IQueryHandler<
+  GetUnreadCountQuery,
+  GetUnreadCountResponse
+> {
   constructor(
     @Inject(STAFF_NOTIFICATION_QUERY_REPOSITORY)
     private readonly staffNotificationQueryRepo: IStaffNotificationQueryRepository

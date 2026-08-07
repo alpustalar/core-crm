@@ -2,11 +2,11 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetTransferBookingsQuery } from './get-transfer-bookings.query';
 import { GetTransferBookingsResponse } from './get-transfer-bookings.response';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   HOTELBEDS_TRANSFER_BOOKING_QUERY_REPOSITORY,
   IHotelbedsTransferBookingQueryRepository,
-} from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
-import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+} from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.query.repository';
 
 @QueryHandler(GetTransferBookingsQuery)
 export class GetTransferBookingsHandler
@@ -15,7 +15,7 @@ export class GetTransferBookingsHandler
 {
   constructor(
     @Inject(HOTELBEDS_TRANSFER_BOOKING_QUERY_REPOSITORY)
-    private readonly bookingQueryRepo: IHotelbedsTransferBookingQueryRepository
+    private readonly hotelbedsTransferBookingRepo: IHotelbedsTransferBookingQueryRepository
   ) {}
 
   async execute(
@@ -25,7 +25,7 @@ export class GetTransferBookingsHandler
     const { actor } = ctx;
 
     const { items: transferBooking, total } =
-      await this.bookingQueryRepo.findMany(
+      await this.hotelbedsTransferBookingRepo.findMany(
         {
           organizationId: actor.organizationId!,
           clinicId: dto.clinicId,
@@ -41,7 +41,7 @@ export class GetTransferBookingsHandler
       );
 
     return {
-      data: transferBooking.map((t) => t.toPersistence()),
+      data: transferBooking,
       meta: {
         pagination: buildPaginationMeta(dto.pagination, total),
       },

@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry-unique-constraint.exception';
+import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetFinancialEventByIdQuery } from '@modules/finance/accounting/financial-events/application/queries/get-financial-event-by-id/get-financial-event-by-id.query';
 import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
@@ -14,16 +14,14 @@ import {
 } from '@src/infrastructure/payment/links/fx-rate.port';
 import {
   IJournalCommandRepository,
-  IJournalQueryRepository,
   JOURNAL_COMMAND_REPOSITORY,
-  JOURNAL_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { AccountResolver } from '@modules/finance/accounting/posting/domain/posting/account-resolver';
 import { FxConversion } from '@modules/finance/accounting/posting/domain/posting/fx-conversion';
 import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
 import { PostFinancialEventCommand } from './post-financial-event.command';
-import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
+import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/contracts/posting.contracts';
 import { AccountingPeriodStatusSchema } from '@shared';
 
 @CommandHandler(PostFinancialEventCommand)
@@ -35,8 +33,6 @@ export class PostFinancialEventHandler
   constructor(
     @Inject(JOURNAL_COMMAND_REPOSITORY)
     private readonly journalCommandRepo: IJournalCommandRepository,
-    @Inject(JOURNAL_QUERY_REPOSITORY)
-    private readonly journalQueryRepo: IJournalQueryRepository,
     private readonly registry: PostingRuleRegistry,
     @Inject(FX_RATE_PROVIDER)
     private readonly fxRateProvider: IFxRateProvider,
@@ -58,8 +54,7 @@ export class PostFinancialEventHandler
     }
 
     // İdempotentlik: olay zaten fişlenmişse mevcut fişi döndür.
-
-    const existing = await this.journalQueryRepo.findByEventId(event.id);
+    const existing = await this.journalCommandRepo.findByEventId(event.id);
     if (existing) return existing.id;
 
     const rule = this.registry.get(event.type);
@@ -203,7 +198,7 @@ export class PostFinancialEventHandler
     } catch (error) {
       // Eşzamanlı posting aynı olay için fiş üretmiş olabilir (event_id unique).
       if (error instanceof JournalEntryUniqueConstraintException) {
-        const raced = await this.journalQueryRepo.findByEventId(event.id);
+        const raced = await this.journalCommandRepo.findByEventId(event.id);
         if (raced) return raced.id;
       }
       throw error;

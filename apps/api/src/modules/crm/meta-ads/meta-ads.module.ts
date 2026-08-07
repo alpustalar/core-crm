@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MetaAdsPresentationModule } from './presentation/meta-ads.presentation.module';
-import { MetaAdsQueueModule } from './infrastructure/queue/meta-ads-queue.module';
+import { MetaAdsPresentationModule } from './presentation/presentation.module';
+import { MetaAdsInfrastructureModule } from '@modules/crm/meta-ads/infrastructure/infrastructure.module';
+import { MetaAdsApplicationModule } from '@modules/crm/meta-ads/application/application.module';
 
 @Module({
-  imports: [MetaAdsPresentationModule, MetaAdsQueueModule],
+  imports: [
+    MetaAdsPresentationModule,
+    MetaAdsInfrastructureModule,
+    MetaAdsApplicationModule,
+  ],
 })
 export class MetaAdsModule {}

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MetaLeadStatus, Prisma } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IMetaLeadCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
+import { IMetaLeadCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
 
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
@@ -18,6 +18,21 @@ export class MetaLeadCommandRepository
 
   async findById(id: string): Promise<MetaLead | null> {
     const raw = await this.db.metaLead.findUnique({ where: { id } });
+    return raw ? new MetaLead(raw) : null;
+  }
+
+  async findByMetaLeadId(metaLeadId: string): Promise<MetaLead | null> {
+    const raw = await this.db.metaLead.findUnique({ where: { metaLeadId } });
+    return raw ? new MetaLead(raw) : null;
+  }
+
+  async findMatchedLeadByPatientId(
+    patientId: string
+  ): Promise<MetaLead | null> {
+    const raw = await this.db.metaLead.findFirst({
+      where: { matchedPatientId: patientId, status: MetaLeadStatus.MATCHED },
+      orderBy: { createdAt: 'desc' },
+    });
     return raw ? new MetaLead(raw) : null;
   }
 

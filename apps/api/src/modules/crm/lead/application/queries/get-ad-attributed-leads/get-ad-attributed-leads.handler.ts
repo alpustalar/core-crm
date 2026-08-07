@@ -5,7 +5,7 @@ import { GetAdAttributedLeadsResponse } from './get-ad-attributed-leads.response
 import {
   ILeadQueryRepository,
   LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 
 @QueryHandler(GetAdAttributedLeadsQuery)
 export class GetAdAttributedLeadsHandler
@@ -14,14 +14,14 @@ export class GetAdAttributedLeadsHandler
 {
   constructor(
     @Inject(LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: ILeadQueryRepository
+    private readonly leadRepo: ILeadQueryRepository
   ) {}
 
   async execute(
     query: GetAdAttributedLeadsQuery
   ): Promise<GetAdAttributedLeadsResponse> {
     const { payload } = query;
-    const data = await this.leadQueryRepo.findAdAttributedConverted({
+    const data = await this.leadRepo.findAdAttributedConverted({
       clinicId: payload.clinicId,
       from: payload.from,
       to: payload.to,

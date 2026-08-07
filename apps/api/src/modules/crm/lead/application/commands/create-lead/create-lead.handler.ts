@@ -4,7 +4,7 @@ import { CreateLeadCommand } from './create-lead.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -18,7 +18,7 @@ export class CreateLeadHandler
 {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: ILeadCommandRepository,
+    private readonly leadRepo: ILeadCommandRepository,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -57,7 +57,7 @@ export class CreateLeadHandler
     });
 
     return this.txManager.run(async () => {
-      const savedLead = await this.leadCommandRepo.create(lead);
+      const savedLead = await this.leadRepo.create(lead);
       return savedLead.id.value;
     });
   }

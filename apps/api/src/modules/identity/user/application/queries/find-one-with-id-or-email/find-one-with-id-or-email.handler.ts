@@ -34,10 +34,10 @@ export class FindOneWithIdOrEmailHandler
 
     const serializationOptions = this.policyFactory
       .user(ctx.actor, ctx.source)
-      .policy.getSerializationOptions(user.id.value, user?.clinicId?.value);
+      .policy.getSerializationOptions(user.id, user.clinicId ?? undefined);
 
     return {
-      data: user.toPersistence(),
+      data: user,
       meta: {
         serializationOptions,
       },

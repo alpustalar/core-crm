@@ -5,8 +5,7 @@ export const CLINIC_AVAILABILITY_COMMAND_REPOSITORY = Symbol(
   'IClinicAvailabilityCommandRepository'
 );
 
-export interface IClinicAvailabilityCommandRepository
-  extends IBaseCommandRepository<ClinicAvailability> {
+export interface IClinicAvailabilityCommandRepository extends IBaseCommandRepository<ClinicAvailability> {
   findByClinicAndDay(
     clinicId: string,
     dayOfWeek: number

@@ -8,9 +8,10 @@ import {
 } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
 
 @QueryHandler(GetClinicTimezoneQuery)
-export class GetClinicTimezoneHandler
-  implements IQueryHandler<GetClinicTimezoneQuery, GetClinicTimezoneResponse>
-{
+export class GetClinicTimezoneHandler implements IQueryHandler<
+  GetClinicTimezoneQuery,
+  GetClinicTimezoneResponse
+> {
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
     private readonly clinicRepo: IClinicQueryRepository

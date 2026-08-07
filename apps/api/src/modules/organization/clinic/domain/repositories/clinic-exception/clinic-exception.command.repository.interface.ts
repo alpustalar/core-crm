@@ -5,8 +5,7 @@ export const CLINIC_EXCEPTION_COMMAND_REPOSITORY = Symbol(
   'IClinicExceptionCommandRepository'
 );
 
-export interface IClinicExceptionCommandRepository
-  extends IBaseCommandRepository<ClinicException> {
+export interface IClinicExceptionCommandRepository extends IBaseCommandRepository<ClinicException> {
   findExceptionByClinicAndDate(
     clinicId: string,
     date: Date

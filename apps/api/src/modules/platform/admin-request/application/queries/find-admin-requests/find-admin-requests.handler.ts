@@ -29,7 +29,7 @@ export class FindAdminRequestsHandler
     });
 
     return {
-      data: items.map((item) => item.toPersistence()),
+      data: items,
       meta: { pagination: buildPaginationMeta(pagination, total) },
     };
   }

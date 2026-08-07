@@ -20,9 +20,7 @@ import {
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
-  CONVERSATION_QUERY_REPOSITORY,
   IConversationCommandRepository,
-  IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 
 interface SendJobData {
@@ -48,8 +46,6 @@ export class MessageDeliveryProcessor extends WorkerHost {
     private readonly channel: MessageChannelPort,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
     private readonly txManager: TransactionManager
@@ -78,7 +74,7 @@ export class MessageDeliveryProcessor extends WorkerHost {
     // Idempotency: yalnızca QUEUED mesaj gönderilir (SENT/FAILED tekrar işlenmez).
     if (message.status !== MessageStatus.QUEUED) return;
 
-    const conversation = await this.conversationQueryRepo.findById(
+    const conversation = await this.conversationCommandRepo.findById(
       message.conversationId
     );
     if (!conversation) {

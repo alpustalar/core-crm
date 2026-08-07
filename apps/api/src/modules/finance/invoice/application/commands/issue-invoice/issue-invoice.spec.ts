@@ -23,15 +23,13 @@ describe('IssueInvoiceHandler', () => {
   };
 
   const make = (existingInvoice: unknown = null) => {
+    // Mükerrer fatura kontrolü yazma kararını beslediği için Command Repo'dan okunur.
     const invoiceCommandRepo = {
       create: jest.fn().mockResolvedValue(undefined),
       update: jest.fn(),
-    };
-    const invoiceQueryRepo = {
       findById: jest.fn(),
       findByAppointmentId: jest.fn().mockResolvedValue(existingInvoice),
       findByPaymentId: jest.fn().mockResolvedValue(existingInvoice),
-      findMany: jest.fn(),
     };
     const txManager = {
       outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
@@ -61,7 +59,6 @@ describe('IssueInvoiceHandler', () => {
 
     const handler = new IssueInvoiceHandler(
       invoiceCommandRepo as never,
-      invoiceQueryRepo as never,
       txManager as never,
       commandBus as never,
       queryBus as never
@@ -70,7 +67,6 @@ describe('IssueInvoiceHandler', () => {
     return {
       handler,
       invoiceCommandRepo,
-      invoiceQueryRepo,
       txManager,
       commandBus,
       queryBus,

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PartyOriginType } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
@@ -13,6 +14,19 @@ export class PartyCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findByOrigin(
+    clinicId: string,
+    originType: PartyOriginType,
+    originId: string
+  ): Promise<Party | null> {
+    const raw = await this.db.party.findUnique({
+      where: {
+        clinicId_originType_originId: { clinicId, originType, originId },
+      },
+    });
+    return raw ? new Party(raw) : null;
   }
 
   async create(party: Party): Promise<Party> {

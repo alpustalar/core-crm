@@ -3,9 +3,7 @@ import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   ITaxParameterCommandRepository,
-  ITaxParameterQueryRepository,
   TAX_PARAMETER_COMMAND_REPOSITORY,
-  TAX_PARAMETER_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
 import { TAX_PARAMETER_DEFAULTS } from '@modules/finance/accounting/tax-parameters/domain/constants/tax-parameter-defaults';
@@ -24,31 +22,31 @@ export class InitializeTaxParametersHandler implements ICommandHandler<
   constructor(
     @Inject(TAX_PARAMETER_COMMAND_REPOSITORY)
     private readonly taxParameterCommandRepo: ITaxParameterCommandRepository,
-    @Inject(TAX_PARAMETER_QUERY_REPOSITORY)
-    private readonly taxParameterQueryRepo: ITaxParameterQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: InitializeTaxParametersCommand): Promise<void> {
-    const { clinicId, organizationId, ctx } = command;
+    const { clinicId, organizationId } = command;
 
-    const alreadyInitialized =
-      await this.taxParameterQueryRepo.existsForClinic(clinicId);
-    if (alreadyInitialized) return;
+    await this.txManager.run(async () => {
+      // İdempotentlik kontrolü seed yazmasını belirlediği için aynı tx içinde,
+      // Command Repo'dan okunur (replica gecikmesi mükerrer seed'e yol açardı).
+      const alreadyInitialized =
+        await this.taxParameterCommandRepo.existsForClinic(clinicId);
+      if (alreadyInitialized) return;
 
-    const validFrom = DateTimeManager.create();
-    const parameters = TAX_PARAMETER_DEFAULTS.map((def) =>
-      TaxParameter.create({
-        clinicId,
-        organizationId,
-        key: def.key,
-        rate: def.rate,
-        validFrom,
-      })
-    );
+      const validFrom = DateTimeManager.create();
+      const parameters = TAX_PARAMETER_DEFAULTS.map((def) =>
+        TaxParameter.create({
+          clinicId,
+          organizationId,
+          key: def.key,
+          rate: def.rate,
+          validFrom,
+        })
+      );
 
-    await this.txManager.run(() =>
-      this.taxParameterCommandRepo.updateMany(parameters)
-    );
+      await this.taxParameterCommandRepo.createMany(parameters);
+    });
   }
 }

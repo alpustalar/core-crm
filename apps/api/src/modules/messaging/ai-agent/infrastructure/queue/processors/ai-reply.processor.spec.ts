@@ -5,7 +5,7 @@ import { AiReplyJobData } from '../producers/ai-reply.producer';
 import { IAiChatPort } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
-import { IConversationQueryRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { SendMessageCommand } from '@modules/messaging/conversation/application/commands/send-message/send-message.command';
 import { RequestConversationHandoffCommand } from '@modules/messaging/conversation/application/commands/request-conversation-handoff/request-conversation-handoff.command';
@@ -48,9 +48,9 @@ describe('AiReplyProcessor (AI otomatik yanıt worker)', () => {
       );
     const chatPort = { generateReply } as unknown as IAiChatPort;
 
-    const conversationQueryRepo = {
+    const conversationCommandRepo = {
       findById: jest.fn().mockResolvedValue(params.conversation),
-    } as unknown as IConversationQueryRepository;
+    } as unknown as IConversationCommandRepository;
 
     const messageQueryRepo = {
       findManyByConversation: jest
@@ -70,7 +70,7 @@ describe('AiReplyProcessor (AI otomatik yanıt worker)', () => {
 
     const processor = new AiReplyProcessor(
       chatPort,
-      conversationQueryRepo,
+      conversationCommandRepo,
       messageQueryRepo,
       commandBus,
       queryBus

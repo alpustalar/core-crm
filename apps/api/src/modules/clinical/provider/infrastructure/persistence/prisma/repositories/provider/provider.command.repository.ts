@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 
 import { Provider } from '@modules/clinical/provider/domain/entities/provider.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
-import { IProviderCommandRepository } from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
+import { IProviderCommandRepository } from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 
 @Injectable()
 export class ProviderCommandRepository

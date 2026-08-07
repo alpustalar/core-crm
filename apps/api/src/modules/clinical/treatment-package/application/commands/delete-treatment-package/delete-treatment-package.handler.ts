@@ -2,22 +2,25 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { DeleteTreatmentPackageCommand } from './delete-treatment-package.command';
 import type { DeleteTreatmentPackageResponse } from './delete-treatment-package.response';
-import {
-  ITreatmentPackageCommandRepository,
-  TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ITreatmentPackageCommandRepository,
+  TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.command.repository';
 
 @CommandHandler(DeleteTreatmentPackageCommand)
-export class DeleteTreatmentPackageHandler implements ICommandHandler<
-  DeleteTreatmentPackageCommand,
-  DeleteTreatmentPackageResponse
-> {
+export class DeleteTreatmentPackageHandler
+  implements
+    ICommandHandler<
+      DeleteTreatmentPackageCommand,
+      DeleteTreatmentPackageResponse
+    >
+{
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,

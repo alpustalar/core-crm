@@ -7,7 +7,7 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import { Paginated } from '@common/interfaces/paginated.type';
 import { normalizeArray } from '@common/utils/normalize-array';
 import { ProviderDirectoryEntry } from '@modules/clinical/provider/domain/contracts/provider.contracts';
-import { IProviderQueryRepository } from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
+import { IProviderQueryRepository } from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
 
 /** Uzmanlık/unvan adı çözümünde tercih edilen dil; yoksa ilk çeviriye düşülür. */
 const PREFERRED_LANG_CODE = 'TR';

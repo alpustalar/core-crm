@@ -13,6 +13,24 @@ export class ClinicWhatsappChannelCommandRepository
     super(prisma);
   }
 
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicWhatsappChannel | null> {
+    const raw = await this.db.clinicWhatsappChannel.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicWhatsappChannel(raw) : null;
+  }
+
+  async findByDisplayPhoneNumber(
+    displayPhoneNumber: string
+  ): Promise<ClinicWhatsappChannel | null> {
+    const raw = await this.db.clinicWhatsappChannel.findFirst({
+      where: { displayPhoneNumber },
+    });
+    return raw ? new ClinicWhatsappChannel(raw) : null;
+  }
+
   // 1:1 satellite (clinicId unique) → get-or-create (upsert).
   async upsertByClinicId(
     entity: ClinicWhatsappChannel

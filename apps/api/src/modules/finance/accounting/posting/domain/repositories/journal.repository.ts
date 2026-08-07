@@ -1,5 +1,5 @@
 import { JournalEntryStatus, Prisma } from '@prisma/client';
-import { Pagination } from '@shared';
+import { Pagination, JournalEntry as IJournalEntry } from '@shared';
 import { JournalEntry } from '../entities/journal-entry.entity';
 
 export const JOURNAL_COMMAND_REPOSITORY = Symbol('IJournalCommandRepository');
@@ -103,6 +103,24 @@ export interface VatDeclaration {
   input: VatMovementRow[]; // 191 hareketleri (indirilecek = borç - alacak)
 }
 
+/** Yevmiye dökümü satırı — fiş başlığı + ham satırları (rapor projeksiyonu). */
+export interface JournalReportLineRow {
+  accountId: string;
+  partyId: string | null;
+  debit: Prisma.Decimal;
+  credit: Prisma.Decimal;
+  lineDesc: string | null;
+}
+
+export interface JournalReportRow {
+  id: string;
+  entryNo: bigint | null;
+  entryDate: Date;
+  description: string | null;
+  status: JournalEntryStatus;
+  lines: JournalReportLineRow[];
+}
+
 export interface IJournalCommandRepository {
   /** Fişi satırlarıyla birlikte yazar. */
   create(entry: JournalEntry): Promise<JournalEntry>;
@@ -115,15 +133,35 @@ export interface IJournalCommandRepository {
    * scalar update). Defter append-only olduğu için tek meşru mutasyon budur.
    */
   applyReversal(entry: JournalEntry): Promise<void>;
+
+  /**
+   * Storno edilecek fişi satırlarıyla + `FOR UPDATE` kilidiyle okur. Fiş REVERSED
+   * işaretleneceği için Command Context'e aittir; kilit olmadan iki eşzamanlı storno
+   * isteği aynı POSTED fişi görüp iki ters kayıt üretebilirdi (`ensureReversible`
+   * yalnız kendi kopyasını korur).
+   */
+  findByIdForUpdate(id: string): Promise<JournalEntry | null>;
+
+  /**
+   * Olayın fişi zaten atılmış mı? Fiş yazılıp yazılmayacağı kararını beslediği için
+   * Command Context'te okunur; nihai güvence `event_id` unique kısıtıdır.
+   */
+  findByEventId(eventId: string): Promise<JournalEntry | null>;
+
+  /**
+   * Mizan — yıl sonu kapanış fişinin tutarlarını üretir. Rapor değil yazma kararı
+   * olduğu için Command Context'ten okunur (replica gecikmesi eksik bakiye ile
+   * kapanış fişi üretirdi).
+   */
+  trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]>;
 }
 
+/** Okuma tarafı: entity değil, plain model / read-model döner. */
 export interface IJournalQueryRepository {
-  findById(id: string): Promise<JournalEntry | null>;
-  findByEventId(eventId: string): Promise<JournalEntry | null>;
   findMany(
     filter: FindJournalEntriesFilter,
     pagination: Pagination
-  ): Promise<{ items: JournalEntry[]; total: number }>;
+  ): Promise<{ items: IJournalEntry[]; total: number }>;
 
   /** Mizan: hesap bazında borç/alacak toplamı (POSTED fiş satırları). */
   trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]>;
@@ -135,7 +173,7 @@ export interface IJournalQueryRepository {
   journalReport(
     filter: JournalReportFilter,
     pagination: Pagination
-  ): Promise<{ items: JournalEntry[]; total: number }>;
+  ): Promise<{ items: JournalReportRow[]; total: number }>;
 
   /** Nakit akışı: nakit/banka hesaplarının POSTED hareketleri + açılış devri. */
   cashFlow(filter: CashFlowFilter): Promise<CashFlow>;

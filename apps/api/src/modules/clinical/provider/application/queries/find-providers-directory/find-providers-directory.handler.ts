@@ -5,7 +5,7 @@ import { FindProvidersDirectoryQueryResponse } from './find-providers-directory.
 import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
 
 @QueryHandler(FindProvidersDirectoryQuery)
 export class FindProvidersDirectoryHandler

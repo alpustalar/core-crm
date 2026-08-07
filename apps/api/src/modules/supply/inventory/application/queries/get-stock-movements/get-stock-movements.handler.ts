@@ -50,7 +50,7 @@ export class GetStockMovementsHandler
         );
 
     return {
-      data: result.items.map((stockMovement) => stockMovement.toPersistence()),
+      data: result.items,
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
       },

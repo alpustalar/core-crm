@@ -3,9 +3,7 @@ import { Inject, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IInvoiceCommandRepository,
-  IInvoiceQueryRepository,
   INVOICE_COMMAND_REPOSITORY,
-  INVOICE_QUERY_REPOSITORY,
 } from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { MarkInvoiceEDocumentResultCommand } from './mark-invoice-edocument-result.command';
 
@@ -17,8 +15,6 @@ export class MarkInvoiceEDocumentResultHandler implements ICommandHandler<
   constructor(
     @Inject(INVOICE_COMMAND_REPOSITORY)
     private readonly invoiceCommandRepo: IInvoiceCommandRepository,
-    @Inject(INVOICE_QUERY_REPOSITORY)
-    private readonly invoiceQueryRepo: IInvoiceQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -26,7 +22,7 @@ export class MarkInvoiceEDocumentResultHandler implements ICommandHandler<
     const { input } = command;
 
     await this.txManager.run(async () => {
-      const invoice = await this.invoiceQueryRepo.findById(input.invoiceId);
+      const invoice = await this.invoiceCommandRepo.findById(input.invoiceId);
       if (!invoice) {
         throw new NotFoundException(`Fatura bulunamadı: ${input.invoiceId}`);
       }

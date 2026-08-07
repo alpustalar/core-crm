@@ -1,3 +1,4 @@
+import { Message as IMessage } from '@shared';
 import { Pagination } from '@shared';
 import { Message } from '../entities/message.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
@@ -22,12 +23,13 @@ export interface IMessageCommandRepository
   findByIdForUpdate(id: string): Promise<Message | null>;
 }
 
+/** Okuma tarafı: entity değil, plain model döner (veri HTTP sınırını geçiyor). */
 export interface IMessageQueryRepository {
-  findById(id: string): Promise<Message | null>;
+  findById(id: string): Promise<IMessage | null>;
   findManyByConversation(
     conversationId: string,
     pagination: Pagination
-  ): Promise<{ items: Message[]; total: number }>;
+  ): Promise<{ items: IMessage[]; total: number }>;
   /** Yazışmadaki en güncel gelen (inbound) mesajın WhatsApp id'si (okundu işareti için). */
   findLatestInboundExternalId(conversationId: string): Promise<string | null>;
   /** Bir dönemde faturalanabilir mesajları konuşma kategorisine göre sayar (maliyet). */

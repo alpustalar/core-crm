@@ -41,7 +41,7 @@ export class GetLeavesByEmployeeHandler
     });
 
     return {
-      data: result.items.map((item) => item.toPersistence()),
+      data: result.items,
       meta: { pagination: buildPaginationMeta(pagination, result.total) },
     };
   }

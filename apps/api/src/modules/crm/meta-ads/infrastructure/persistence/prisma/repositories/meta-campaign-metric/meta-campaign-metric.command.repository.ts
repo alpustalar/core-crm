@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IMetaCampaignMetricCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
+import { IMetaCampaignMetricCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { UpsertCampaignMetricData } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 

@@ -5,14 +5,13 @@ import { SyncCampaignMetricsCommand } from './sync-campaign-metrics.command';
 import { SyncCampaignMetricsResponse } from './sync-campaign-metrics.response';
 import {
   IMetaAdAccountCommandRepository,
-  IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IMetaCampaignMetricCommandRepository,
   META_CAMPAIGN_METRIC_COMMAND_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
 import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
@@ -28,64 +27,71 @@ export class SyncCampaignMetricsHandler implements ICommandHandler<
   private readonly logger = new Logger(SyncCampaignMetricsHandler.name);
 
   constructor(
-    @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
     private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_CAMPAIGN_METRIC_COMMAND_REPOSITORY)
     private readonly metaCampaignMetricCommandRepo: IMetaCampaignMetricCommandRepository,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,
-    private readonly tokenCipher: TokenCipherService
+    private readonly tokenCipher: TokenCipherService,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
     command: SyncCampaignMetricsCommand
   ): Promise<SyncCampaignMetricsResponse> {
-    const accounts = command.clinicId
-      ? await this.accountQueryRepo.findByClinicId(command.clinicId)
-      : await this.accountQueryRepo.findAllActive();
+    const accounts = await this.accountCommandRepo.findSyncCandidates(
+      command.clinicId
+    );
 
     const yesterday = DateTimeManager.subtractDays(DateTimeManager.create(), 1);
     const dateString = DateTimeManager.toDateString(yesterday);
 
     let syncedMetrics = 0;
 
-    for (const account of accounts) {
+    for (const candidate of accounts) {
       try {
-        const token = this.tokenCipher.decrypt(account.accessToken);
+        const token = this.tokenCipher.decrypt(candidate.accessToken);
 
+        // Dış çağrı transaction dışında; metrik yazımı + markSynced tek transaction.
         const insights = await this.metaApi.getCampaignInsights(
-          account.adAccountId,
+          candidate.adAccountId,
           token,
           dateString,
           dateString
         );
 
-        if (insights.length > 0) {
-          await this.metaCampaignMetricCommandRepo.updateMany(
-            insights.map((insight) => ({
-              id: randomUUID(),
-              metaAdAccountId: account.id.value,
-              campaignId: insight.campaign_id,
-              campaignName: insight.campaign_name,
-              date: new Date(insight.date_start),
-              spend: parseFloat(insight.spend ?? '0'),
-              clicks: parseInt(insight.clicks ?? '0', 10),
-              impressions: parseInt(insight.impressions ?? '0', 10),
-              cpc: insight.cpc ? parseFloat(insight.cpc) : null,
-              ctr: insight.ctr ? parseFloat(insight.ctr) : null,
-            }))
-          );
-          syncedMetrics += insights.length;
-        }
+        await this.txManager.run(async () => {
+          if (insights.length > 0) {
+            await this.metaCampaignMetricCommandRepo.updateMany(
+              insights.map((insight) => ({
+                id: randomUUID(),
+                metaAdAccountId: candidate.id.value,
+                campaignId: insight.campaign_id,
+                campaignName: insight.campaign_name,
+                date: new Date(insight.date_start),
+                spend: parseFloat(insight.spend ?? '0'),
+                clicks: parseInt(insight.clicks ?? '0', 10),
+                impressions: parseInt(insight.impressions ?? '0', 10),
+                cpc: insight.cpc ? parseFloat(insight.cpc) : null,
+                ctr: insight.ctr ? parseFloat(insight.ctr) : null,
+              }))
+            );
+            syncedMetrics += insights.length;
+          }
 
-        const updatedAccount = account;
-        updatedAccount.markSynced();
-        await this.accountCommandRepo.update(updatedAccount);
+          // Tarama anındaki kopya bayat olabilir (update tüm alanları yazar) →
+          // taze oku, işaretle, kaydet.
+          const account = await this.accountCommandRepo.findById(
+            candidate.id.value
+          );
+          if (!account) return;
+          account.markSynced();
+          await this.accountCommandRepo.update(account);
+        });
       } catch (err) {
         this.logger.error(
-          `Meta Ads senkronizasyonu başarısız: ${account.adAccountId}`,
+          `Meta Ads senkronizasyonu başarısız: ${candidate.adAccountId}`,
           err
         );
       }

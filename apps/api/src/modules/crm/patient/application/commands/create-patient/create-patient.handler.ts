@@ -1,14 +1,12 @@
-import {
-  IPatientCommandRepository,
-  IPatientQueryRepository,
-  PATIENT_COMMAND_REPOSITORY,
-  PATIENT_QUERY_REPOSITORY,
-} from '@modules/crm/patient/domain/repositories/patient.repository.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreatePatientCommand } from './create-patient.command';
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
 import { CreatePatientResponse } from '@modules/crm/patient/application/commands/create-patient/create-patient.response';
+import {
+  IPatientCommandRepository,
+  PATIENT_COMMAND_REPOSITORY,
+} from '@modules/crm/patient/domain/repositories/patient/patient.command.repository';
 
 @CommandHandler(CreatePatientCommand)
 export class CreatePatientHandler
@@ -16,16 +14,14 @@ export class CreatePatientHandler
 {
   constructor(
     @Inject(PATIENT_COMMAND_REPOSITORY)
-    private readonly patientCommandRepo: IPatientCommandRepository,
-    @Inject(PATIENT_QUERY_REPOSITORY)
-    private readonly patientQueryRepo: IPatientQueryRepository
+    private readonly patientRepo: IPatientCommandRepository
   ) {}
 
   async execute(command: CreatePatientCommand): Promise<CreatePatientResponse> {
     const { dto } = command;
 
     if (dto.phone) {
-      const existing = await this.patientQueryRepo.findByContact({
+      const existing = await this.patientRepo.findByContact({
         organizationId: dto.organizationId,
         phone: dto.phone,
       });
@@ -39,7 +35,7 @@ export class CreatePatientHandler
       firstName: dto.firstName,
     });
 
-    const saved = await this.patientCommandRepo.create(patient);
+    const saved = await this.patientRepo.create(patient);
     return saved.id.value;
   }
 }

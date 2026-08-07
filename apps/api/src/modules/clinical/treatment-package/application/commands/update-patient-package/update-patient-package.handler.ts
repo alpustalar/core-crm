@@ -2,10 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UpdatePatientPackageCommand } from './update-patient-package.command';
 import type { UpdatePatientPackageResponse } from './update-patient-package.response';
-import {
-  IPatientTreatmentPackageCommandRepository,
-  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { PatientTreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
 import {
   IPolicyFactory,
@@ -14,12 +10,16 @@ import {
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
 import { PATIENT_TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
+import {
+  IPatientTreatmentPackageCommandRepository,
+  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.command.repository';
 
 @CommandHandler(UpdatePatientPackageCommand)
-export class UpdatePatientPackageHandler implements ICommandHandler<
-  UpdatePatientPackageCommand,
-  UpdatePatientPackageResponse
-> {
+export class UpdatePatientPackageHandler
+  implements
+    ICommandHandler<UpdatePatientPackageCommand, UpdatePatientPackageResponse>
+{
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly patientTreatmentPackageRepo: IPatientTreatmentPackageCommandRepository,

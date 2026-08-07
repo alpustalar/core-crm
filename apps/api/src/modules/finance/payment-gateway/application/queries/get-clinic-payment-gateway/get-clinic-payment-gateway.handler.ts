@@ -8,13 +8,10 @@ import { GetClinicPaymentGatewayQuery } from './get-clinic-payment-gateway.query
 import { GetClinicPaymentGatewayResponse } from './get-clinic-payment-gateway.response';
 
 @QueryHandler(GetClinicPaymentGatewayQuery)
-export class GetClinicPaymentGatewayHandler
-  implements
-    IQueryHandler<
-      GetClinicPaymentGatewayQuery,
-      GetClinicPaymentGatewayResponse
-    >
-{
+export class GetClinicPaymentGatewayHandler implements IQueryHandler<
+  GetClinicPaymentGatewayQuery,
+  GetClinicPaymentGatewayResponse
+> {
   constructor(
     @Inject(CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY)
     private readonly gatewayQueryRepo: IClinicPaymentGatewayQueryRepository
@@ -28,7 +25,7 @@ export class GetClinicPaymentGatewayHandler
 
     return {
       data: {
-        clinicId: gateway.clinicId.value,
+        clinicId: gateway.clinicId,
         iyzicoSubMerchantKey: gateway.iyzicoSubMerchantKey,
         createdAt: gateway.createdAt,
         updatedAt: gateway.updatedAt,

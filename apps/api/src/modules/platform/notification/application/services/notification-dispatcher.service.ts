@@ -46,13 +46,11 @@ interface AppointmentPatientContact {
 
 export type AppointmentConfirmedNotificationInput = AppointmentPatientContact;
 export type AppointmentRescheduledNotificationInput = AppointmentPatientContact;
-export interface AppointmentCancelledNotificationInput
-  extends AppointmentPatientContact {
+export interface AppointmentCancelledNotificationInput extends AppointmentPatientContact {
   canceledBy: string;
   reason?: string;
 }
-export interface AppointmentReminderNotificationInput
-  extends AppointmentPatientContact {
+export interface AppointmentReminderNotificationInput extends AppointmentPatientContact {
   /** Klinik ayarı: hatırlatmaya hasta yanıtı (iki yönlü onay) bekleniyor mu? */
   requireResponse: boolean;
 }
@@ -282,7 +280,9 @@ export class NotificationDispatcherService {
    * teslimat durumunu (SENT/FAILED) günceller. deliveryStatus = "gateway'e
    * push edildi mi"; okundu (isRead) bundan ayrıdır.
    */
-  private async pushRealtime(notifications: StaffNotification[]): Promise<void> {
+  private async pushRealtime(
+    notifications: StaffNotification[]
+  ): Promise<void> {
     const sentIds: string[] = [];
     const failedIds: string[] = [];
 

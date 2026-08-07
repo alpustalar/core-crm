@@ -6,8 +6,8 @@ import {
   TELEGRAM_BOT_API,
 } from '@modules/messaging/channel-config/domain/interfaces/telegram-bot-api.interface';
 import {
-  CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY,
-  IClinicTelegramChannelQueryRepository,
+  CLINIC_TELEGRAM_CHANNEL_COMMAND_REPOSITORY,
+  IClinicTelegramChannelCommandRepository,
 } from '@modules/messaging/channel-config/domain/repositories/clinic-telegram-channel.repository';
 import { RequestTelegramContactCommand } from './request-telegram-contact.command';
 
@@ -22,15 +22,16 @@ export class RequestTelegramContactHandler
   private readonly logger = new Logger(RequestTelegramContactHandler.name);
 
   constructor(
-    @Inject(CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY)
-    private readonly channelQueryRepo: IClinicTelegramChannelQueryRepository,
+    // Token dış API çağrısını besliyor → Command Context (bkz. repo arayüzü notu).
+    @Inject(CLINIC_TELEGRAM_CHANNEL_COMMAND_REPOSITORY)
+    private readonly channelCommandRepo: IClinicTelegramChannelCommandRepository,
     @Inject(TELEGRAM_BOT_API)
     private readonly botApi: ITelegramBotApi,
     private readonly cipher: TokenCipherService
   ) {}
 
   async execute(command: RequestTelegramContactCommand): Promise<void> {
-    const channel = await this.channelQueryRepo.findByClinicId(
+    const channel = await this.channelCommandRepo.findByClinicId(
       command.clinicId
     );
     if (!channel || !channel.isActive || !channel.botTokenEnc) return;

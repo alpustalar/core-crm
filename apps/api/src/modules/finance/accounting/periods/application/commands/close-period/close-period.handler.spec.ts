@@ -2,7 +2,7 @@ import { PeriodAlreadyClosedException } from '@modules/finance/accounting/period
 import { ClosePeriodHandler } from './close-period.handler';
 import { ClosePeriodCommand } from './close-period.command';
 import { GenerateYearEndClosingCommand } from '@modules/finance/accounting/posting/application/commands/generate-year-end-closing/generate-year-end-closing.command';
-import { IAccountingPeriodCommandRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
+import { IAccountingPeriodCommandRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.command.repository';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {

@@ -1,3 +1,4 @@
+import { isTelegramChannelActive } from '@modules/messaging/channel-config/domain/rules/telegram-channel.rules';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
@@ -26,7 +27,7 @@ export class GetTelegramChannelCredentialsHandler
     query: GetTelegramChannelCredentialsQuery
   ): Promise<GetTelegramChannelCredentialsResponse> {
     const channel = await this.channelQueryRepo.findByClinicId(query.clinicId);
-    if (!channel || !channel.isActive || !channel.botTokenEnc) {
+    if (!channel || !isTelegramChannelActive(channel) || !channel.botTokenEnc) {
       return { data: null };
     }
 

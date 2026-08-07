@@ -7,13 +7,14 @@ import {
   IStaffNotificationQueryRepository,
   STAFF_NOTIFICATION_QUERY_REPOSITORY,
 } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
-import { StaffNotification } from '@modules/platform/notification/domain/entities/staff-notification.entity';
+import { StaffNotification as IStaffNotification } from '@shared';
 import { StaffNotificationListItem } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
 
 @QueryHandler(GetMyNotificationsQuery)
-export class GetMyNotificationsHandler
-  implements IQueryHandler<GetMyNotificationsQuery, GetMyNotificationsResponse>
-{
+export class GetMyNotificationsHandler implements IQueryHandler<
+  GetMyNotificationsQuery,
+  GetMyNotificationsResponse
+> {
   constructor(
     @Inject(STAFF_NOTIFICATION_QUERY_REPOSITORY)
     private readonly staffNotificationQueryRepo: IStaffNotificationQueryRepository
@@ -39,15 +40,15 @@ export class GetMyNotificationsHandler
   }
 
   private toListItem(
-    notification: StaffNotification
+    notification: IStaffNotification
   ): StaffNotificationListItem {
     return {
-      id: notification.id.value,
+      id: notification.id,
       type: notification.type,
       title: notification.title,
       body: notification.body,
-      deepLink: notification.deepLink,
-      paramsJson: notification.paramsJson,
+      deepLink: notification.deepLink as Record<string, unknown> | null,
+      paramsJson: notification.paramsJson as Record<string, unknown> | null,
       priority: notification.priority,
       isRead: notification.isRead,
       readAt: notification.readAt,

@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
-import { PipelinePresentationModule } from './presentation/pipeline.presentation.module';
-import { PipelineCommandModule } from './application/commands/command.module';
-import { PipelineQueryModule } from './application/queries/query.module';
+import { PipelinePresentationModule } from './presentation/presentation.module';
+import { PipelineApplicationModule } from '@modules/crm/pipeline/application/application.module';
+import { PipelineInfrastructureModule } from '@modules/crm/pipeline/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
     PipelinePresentationModule,
-    PipelineCommandModule,
-    PipelineQueryModule,
+    PipelineApplicationModule,
+    PipelineInfrastructureModule,
   ],
-  exports: [PipelineCommandModule, PipelineQueryModule],
 })
 export class PipelineModule {}

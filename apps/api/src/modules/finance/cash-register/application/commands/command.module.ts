@@ -5,7 +5,7 @@ import { ArchiveCashRegisterHandler } from './archive-cash-register/archive-cash
 import { OpenCashSessionHandler } from './open-cash-session/open-cash-session.handler';
 import { RecordCashMovementHandler } from './record-cash-movement/record-cash-movement.handler';
 import { CloseCashSessionHandler } from './close-cash-session/close-cash-session.handler';
-import { CashRegisterRepositoryModule } from '@modules/finance/cash-register/infrastructure/persistence/prisma/repositories/cash-register.repository.module';
+import { CashRegisterRepositoriesModule } from '@modules/finance/cash-register/infrastructure/persistence/prisma/repositories/repositories.module';
 
 export const CASH_REGISTER_COMMAND_HANDLERS = [
   CreateCashRegisterHandler,
@@ -16,7 +16,7 @@ export const CASH_REGISTER_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, CashRegisterRepositoryModule],
+  imports: [CqrsModule, CashRegisterRepositoriesModule],
   providers: CASH_REGISTER_COMMAND_HANDLERS,
   exports: CASH_REGISTER_COMMAND_HANDLERS,
 })

@@ -20,9 +20,10 @@ const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
 
 @CommandHandler(ReconcilePosTransactionsCommand)
-export class ReconcilePosTransactionsHandler
-  implements ICommandHandler<ReconcilePosTransactionsCommand, void>
-{
+export class ReconcilePosTransactionsHandler implements ICommandHandler<
+  ReconcilePosTransactionsCommand,
+  void
+> {
   private readonly logger = new Logger(ReconcilePosTransactionsHandler.name);
 
   constructor(

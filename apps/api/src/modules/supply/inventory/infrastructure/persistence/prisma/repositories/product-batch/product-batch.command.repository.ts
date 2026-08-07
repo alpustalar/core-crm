@@ -4,6 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { IProductBatchCommandRepository } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class ProductBatchCommandRepository
@@ -17,6 +18,25 @@ export class ProductBatchCommandRepository
   async findById(id: string) {
     const raw = await this.db.productBatch.findUnique({ where: { id } });
     return raw ? new ProductBatch(raw) : null;
+  }
+
+  async findAvailableByProduct(
+    productId: string,
+    clinicId: string
+  ): Promise<ProductBatch[]> {
+    const rows = await this.db.productBatch.findMany({
+      where: {
+        productId,
+        clinicId,
+        quantity: { gt: 0 },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: DateTimeManager.create() } },
+        ],
+      },
+      orderBy: { expiresAt: 'asc' },
+    });
+    return rows.map((raw) => new ProductBatch(raw));
   }
 
   async create(batch: ProductBatch): Promise<ProductBatch> {

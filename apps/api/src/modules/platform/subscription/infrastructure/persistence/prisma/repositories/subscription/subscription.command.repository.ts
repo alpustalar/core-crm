@@ -9,6 +9,7 @@ import type {
   SubscriptionOwnerRef,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
+import { Module as IModule } from '@shared';
 import { RenewalChargeModel } from '@modules/platform/subscription/domain/subscription.contracts';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
@@ -106,6 +107,19 @@ export class SubscriptionCommandRepository
 
     return { amount, currency: items[0].currency };
   }
+  async findByOrganizationId(
+    organizationId: string
+  ): Promise<Subscription | null> {
+    const raw = await this.db.subscription.findFirst({
+      where: { organizationId },
+    });
+    return raw ? new Subscription(raw) : null;
+  }
+
+  findModuleByKey(key: string): Promise<IModule | null> {
+    return this.db.module.findUnique({ where: { key } });
+  }
+
   async create(entity: Subscription): Promise<Subscription> {
     const data = entity.toPersistence();
     const raw = await this.db.subscription.create({ data });

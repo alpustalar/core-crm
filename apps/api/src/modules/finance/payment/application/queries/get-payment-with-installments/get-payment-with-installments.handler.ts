@@ -33,19 +33,10 @@ export class GetPaymentWithInstallmentsHandler
       return QueryResponseNull;
     }
 
-    const { installments } = payment;
-
-    const raw = payment.toPersistence();
-
-    const persistenceData = {
-      ...raw,
-      installments: [...installments],
-    };
-
-    const isWithInstallments = paymentHasInstallments(persistenceData);
-
+    // Repo zaten taksitleriyle birlikte düz kayıt döner; tip daraltması taksit
+    // dizisinin dolu olduğunu garanti eder.
     return {
-      data: isWithInstallments ? persistenceData : null,
+      data: paymentHasInstallments(payment) ? payment : null,
     };
   }
 }

@@ -1,3 +1,4 @@
+import { isTelegramChannelActive } from '@modules/messaging/channel-config/domain/rules/telegram-channel.rules';
 import { ClinicTelegramChannel as IClinicTelegramChannel } from '@shared/generated-zod';
 import {
   TelegramProviderSchema,
@@ -106,7 +107,7 @@ export class ClinicTelegramChannel
 
   /** Kanal şu an gönderim/alım için kullanılabilir mi? (status === ACTIVE) */
   get isActive(): boolean {
-    return this._status === TelegramChannelStatusSchema.enum.ACTIVE;
+    return isTelegramChannelActive({ status: this._status });
   }
 
   /**

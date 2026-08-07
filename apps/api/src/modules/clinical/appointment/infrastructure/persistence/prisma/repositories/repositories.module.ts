@@ -4,6 +4,6 @@ import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infra
 const RepositoriesModules = [AppointmentRepositoryModule];
 @Module({
   imports: [...RepositoriesModules],
-  exports: RepositoriesModules,
+  exports: [...RepositoriesModules],
 })
 export class AppointmentRepositoriesModule {}

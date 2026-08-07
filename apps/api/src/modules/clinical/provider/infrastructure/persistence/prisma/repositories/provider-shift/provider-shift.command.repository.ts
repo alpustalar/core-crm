@@ -4,7 +4,7 @@ import { ProviderShift } from '@modules/clinical/provider/domain/entities/provid
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { Prisma } from '@prisma/client';
-import { IProviderShiftCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository.interface';
+import { IProviderShiftCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository';
 
 @Injectable()
 export class ProviderShiftCommandRepository

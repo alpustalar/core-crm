@@ -8,9 +8,10 @@ import {
 } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 
 @QueryHandler(FindPosDevicesQuery)
-export class FindPosDevicesHandler
-  implements IQueryHandler<FindPosDevicesQuery, FindPosDevicesResponse>
-{
+export class FindPosDevicesHandler implements IQueryHandler<
+  FindPosDevicesQuery,
+  FindPosDevicesResponse
+> {
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
     private readonly posDeviceQueryRepo: IPosDeviceQueryRepository
@@ -22,9 +23,9 @@ export class FindPosDevicesHandler
     );
     return {
       data: devices.map((d) => ({
-        id: d.id.value,
-        clinicId: d.clinicId.value,
-        label: d.label.value,
+        id: d.id,
+        clinicId: d.clinicId,
+        label: d.label,
         provider: d.provider,
         terminalId: d.terminalId,
         merchantId: d.merchantId,

@@ -2,8 +2,7 @@ import { BaseEvent } from '@common/interfaces/base-event.interface';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
 
-export interface ClinicSoftDeleteByOrganizationIdEventPayload
-  extends IAuditLog {
+export interface ClinicSoftDeleteByOrganizationIdEventPayload extends IAuditLog {
   organizationId?: string;
   actorId?: string;
   actorEmail?: string;

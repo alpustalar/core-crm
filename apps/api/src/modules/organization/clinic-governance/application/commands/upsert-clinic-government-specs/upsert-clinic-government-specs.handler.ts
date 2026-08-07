@@ -9,9 +9,7 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { GOVERNANCE_EVENTS } from '@src/domain/constants/events';
 import {
   CLINIC_GOVERNMENT_SPECS_COMMAND_REPOSITORY,
-  CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY,
   IClinicGovernmentSpecsCommandRepository,
-  IClinicGovernmentSpecsQueryRepository,
 } from '@modules/organization/clinic-governance/domain/repositories/clinic-government-specs.repository';
 import { ClinicGovernmentSpecs } from '@modules/organization/clinic-governance/domain/entities/clinic-government-specs.entity';
 
@@ -21,8 +19,6 @@ export class UpsertClinicGovernmentSpecsHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY)
-    private readonly specsQueryRepo: IClinicGovernmentSpecsQueryRepository,
     @Inject(CLINIC_GOVERNMENT_SPECS_COMMAND_REPOSITORY)
     private readonly specsCommandRepo: IClinicGovernmentSpecsCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -42,7 +38,7 @@ export class UpsertClinicGovernmentSpecsHandler implements ICommandHandler<
       .orThrow(GOVERNANCE_EVENTS.UPSERT_CLINIC_SPECS);
 
     await this.txManager.run(async () => {
-      const existing = await this.specsQueryRepo.findByClinicId(clinicId);
+      const existing = await this.specsCommandRepo.findByClinicId(clinicId);
       if (existing) {
         existing.update({
           healthFacilityCode: data.healthFacilityCode,

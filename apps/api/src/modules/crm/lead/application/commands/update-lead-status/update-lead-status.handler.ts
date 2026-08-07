@@ -4,7 +4,7 @@ import { UpdateLeadStatusCommand } from './update-lead-status.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import {
   ILeadEventPublisher,
   LEAD_EVENT_PUBLISHER,
@@ -23,13 +23,12 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(UpdateLeadStatusCommand)
-export class UpdateLeadStatusHandler implements ICommandHandler<
-  UpdateLeadStatusCommand,
-  void
-> {
+export class UpdateLeadStatusHandler
+  implements ICommandHandler<UpdateLeadStatusCommand, void>
+{
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: ILeadCommandRepository,
+    private readonly leadRepo: ILeadCommandRepository,
     @Inject(LEAD_EVENT_PUBLISHER)
     private readonly eventPublisher: ILeadEventPublisher,
     @Inject(POLICY_FACTORY)
@@ -41,7 +40,7 @@ export class UpdateLeadStatusHandler implements ICommandHandler<
     const { leadId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const lead = await this.leadCommandRepo.findById(leadId);
+      const lead = await this.leadRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       this.policyFactory
@@ -67,7 +66,7 @@ export class UpdateLeadStatusHandler implements ICommandHandler<
 
       if (data.notes) lead.updateNotes(data.notes);
 
-      const saved = await this.leadCommandRepo.update(lead);
+      const saved = await this.leadRepo.update(lead);
 
       // TODO: event entity içinde raise edilecek
 

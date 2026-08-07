@@ -10,10 +10,10 @@ import {
 import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 
 @CommandHandler(RegisterPosDeviceCommand)
-export class RegisterPosDeviceHandler
-  implements
-    ICommandHandler<RegisterPosDeviceCommand, RegisterPosDeviceResponse>
-{
+export class RegisterPosDeviceHandler implements ICommandHandler<
+  RegisterPosDeviceCommand,
+  RegisterPosDeviceResponse
+> {
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
     private readonly posDeviceCommandRepo: IPosDeviceCommandRepository

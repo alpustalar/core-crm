@@ -19,14 +19,14 @@ import {
 } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
 import { GetAiAgentRuntimeConfigQuery } from '@modules/messaging/ai-agent/application/queries/get-ai-agent-runtime-config/get-ai-agent-runtime-config.query';
 import {
-  CONVERSATION_QUERY_REPOSITORY,
-  IConversationQueryRepository,
+  CONVERSATION_COMMAND_REPOSITORY,
+  IConversationCommandRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
   IMessageQueryRepository,
   MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
+import { Message as IMessage } from '@shared';
 import { SendMessageCommand } from '@modules/messaging/conversation/application/commands/send-message/send-message.command';
 import { RequestConversationHandoffCommand } from '@modules/messaging/conversation/application/commands/request-conversation-handoff/request-conversation-handoff.command';
 import { AiReplyJobData } from '../producers/ai-reply.producer';
@@ -53,8 +53,10 @@ export class AiReplyProcessor extends WorkerHost {
   constructor(
     @Inject(AI_CHAT_PORT)
     private readonly chatPort: IAiChatPort,
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
+    // Yazışma okuması dış gönderim kararını (servis penceresi / AI uygunluğu)
+    // besliyor → bayat okunmamalı, Command Context'ten gelir.
+    @Inject(CONVERSATION_COMMAND_REPOSITORY)
+    private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
     private readonly messageQueryRepo: IMessageQueryRepository,
     private readonly commandBus: TSCommandBus,
@@ -77,7 +79,7 @@ export class AiReplyProcessor extends WorkerHost {
     const { conversationId } = job.data;
 
     const conversation =
-      await this.conversationQueryRepo.findById(conversationId);
+      await this.conversationCommandRepo.findById(conversationId);
     if (!conversation) {
       this.logger.warn(
         `Yazışma bulunamadı, AI yanıtı atlanıyor: ${conversationId}`
@@ -159,7 +161,8 @@ export class AiReplyProcessor extends WorkerHost {
    * INBOUND→user / OUTBOUND→assistant; baştaki assistant mesajları atılır (ilk mesaj
    * user olmalı) ve ardışık aynı-rol mesajlar birleştirilir.
    */
-  private buildHistory(messages: Message[]): AiChatMessage[] {
+  private buildHistory(
+    messages: IMessage[]): AiChatMessage[] {
     const mapped: AiChatMessage[] = [];
     for (const m of messages) {
       const body = m.body?.trim();

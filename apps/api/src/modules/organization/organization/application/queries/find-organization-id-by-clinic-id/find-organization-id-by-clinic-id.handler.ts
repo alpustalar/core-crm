@@ -13,13 +13,10 @@ import {
 } from '@modules/organization/organization/domain/interfaces/organization-cache.service.interface';
 
 @QueryHandler(FindOrganizationIdByClinicIdQuery)
-export class FindOrganizationIdByClinicIdHandler
-  implements
-    IQueryHandler<
-      FindOrganizationIdByClinicIdQuery,
-      FindOrganizationIdByClinicIdQueryResponse
-    >
-{
+export class FindOrganizationIdByClinicIdHandler implements IQueryHandler<
+  FindOrganizationIdByClinicIdQuery,
+  FindOrganizationIdByClinicIdQueryResponse
+> {
   constructor(
     @Inject(ORGANIZATION_QUERY_REPOSITORY)
     private readonly organizationQueryRepo: IOrganizationQueryRepository,

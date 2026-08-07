@@ -17,6 +17,14 @@ export class JournalEntrySequence {
     return this._value;
   }
 
+  /**
+   * Ham sıra numarasından (DB'deki bigint) fiş numarası üretir: en az 3 hane
+   * (`1n` → `'001'`). Hem fiş mühürlenirken hem de raporlarda aynı biçim kullanılır.
+   */
+  public static fromSequence(entryNo: bigint): JournalEntrySequence {
+    return this.create(entryNo.toString().padStart(3, '0'));
+  }
+
   public static create(value: string): JournalEntrySequence {
     const result = this.schema.safeParse(value);
 

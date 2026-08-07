@@ -23,7 +23,7 @@ import { ProcessMetaLeadCommand } from '@modules/crm/meta-ads/application/comman
 import {
   IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 
 interface MetaWebhookEntry {
@@ -121,7 +121,7 @@ export class MetaWebhookController {
     await this.commandBus.execute(
       new ProcessMetaLeadCommand({
         metaLeadId: value.leadgen_id,
-        metaAdAccountId: matchingAccount.id.value,
+        metaAdAccountId: matchingAccount.id,
         formId: value.form_id,
         campaignId: value.campaign_id,
         adsetId: value.adset_id,

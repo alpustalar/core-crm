@@ -2,17 +2,16 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetMyTasksQuery } from './get-my-tasks.query';
 import { GetMyTasksResponse } from './get-my-tasks.response';
+import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   ACTIVITY_QUERY_REPOSITORY,
   IActivityQueryRepository,
-} from '@modules/crm/activity/domain/repositories/activity.repository';
-import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+} from '@modules/crm/activity/domain/repositories/activity/activity.query.repository';
 
 @QueryHandler(GetMyTasksQuery)
-export class GetMyTasksHandler implements IQueryHandler<
-  GetMyTasksQuery,
-  GetMyTasksResponse
-> {
+export class GetMyTasksHandler
+  implements IQueryHandler<GetMyTasksQuery, GetMyTasksResponse>
+{
   constructor(
     @Inject(ACTIVITY_QUERY_REPOSITORY)
     private readonly activityRepo: IActivityQueryRepository

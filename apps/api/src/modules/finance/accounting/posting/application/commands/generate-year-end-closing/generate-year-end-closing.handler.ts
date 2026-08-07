@@ -5,9 +5,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import {
   IJournalCommandRepository,
-  IJournalQueryRepository,
   JOURNAL_COMMAND_REPOSITORY,
-  JOURNAL_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { AccountResolver } from '@modules/finance/accounting/posting/domain/posting/account-resolver';
 import { GenerateYearEndClosingCommand } from './generate-year-end-closing.command';
@@ -25,8 +23,6 @@ export class GenerateYearEndClosingHandler
   constructor(
     @Inject(JOURNAL_COMMAND_REPOSITORY)
     private readonly journalCommandRepo: IJournalCommandRepository,
-    @Inject(JOURNAL_QUERY_REPOSITORY)
-    private readonly journalQueryRepo: IJournalQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -43,26 +39,28 @@ export class GenerateYearEndClosingHandler
     );
     const resolver = new AccountResolver(accounts);
 
-    const rows = await this.journalQueryRepo.trialBalance({
-      clinicId: input.clinicId,
-      dateFrom: input.dateFrom,
-      dateTo: input.dateTo,
-    });
-
-    const closingEntries = YearEndClosingService.generateClosingEntries({
-      clinicId: input.clinicId,
-      organizationId: input.organizationId,
-      periodId: input.periodId,
-      entryDate: input.entryDate,
-      performedById: input.performedById,
-      trialBalanceRows: rows,
-      resolver,
-      accounts,
-    });
-
-    if (isEmpty(closingEntries)) return;
-
+    // Mizan okuması kapanış fişinin tutarlarını üretir → fişlerle aynı transaction
+    // içinde, Command Repo'dan okunur (aradaki yeni fişler ıskalanmasın).
     await this.txManager.outboxRun(async () => {
+      const rows = await this.journalCommandRepo.trialBalance({
+        clinicId: input.clinicId,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      });
+
+      const closingEntries = YearEndClosingService.generateClosingEntries({
+        clinicId: input.clinicId,
+        organizationId: input.organizationId,
+        periodId: input.periodId,
+        entryDate: input.entryDate,
+        performedById: input.performedById,
+        trialBalanceRows: rows,
+        resolver,
+        accounts,
+      });
+
+      if (isEmpty(closingEntries)) return;
+
       for (const entry of closingEntries) {
         const entryNo = await this.journalCommandRepo.nextEntryNo(
           input.clinicId,

@@ -25,7 +25,7 @@ import {
   WaitingRoomRow,
 } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
-import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query-repository.interface';
+import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query.repository';
 
 @Injectable()
 export class AppointmentQueryRepository

@@ -1,3 +1,4 @@
+import { FinanceLedger as IFinanceLedger } from '@shared';
 import { Pagination } from '@shared';
 import { FinanceLedgerEntity } from '../entities/finance-ledger.entity';
 import { LedgerCategoryType as LedgerCategory } from '@input-type-schemas/LedgerCategorySchema';
@@ -62,22 +63,21 @@ export interface IFinanceLedgerCommandRepository {
   ): Promise<void>;
 }
 
+/**
+ * Okuma tarafı: entity değil, plain model / read-model döner.
+ * NOT: `findById`, `findManyByPatientId`, `findManyByPaymentId` hiçbir handler
+ * tarafından kullanılmıyordu — kaldırıldı.
+ */
 export interface IFinanceLedgerQueryRepository {
-  findById(id: string): Promise<FinanceLedgerEntity | null>;
   findManyByClinicId(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: FinanceLedgerEntity[]; total: number }>;
-  findManyByPatientId(
-    patientId: string,
-    pagination: Pagination
-  ): Promise<{ items: FinanceLedgerEntity[]; total: number }>;
+  ): Promise<{ items: IFinanceLedger[]; total: number }>;
   findManyByPatientIdWithDetails(
     patientId: string,
     pagination: Pagination
   ): Promise<{ items: PatientLedgerItem[]; total: number }>;
   getPatientSummary(patientId: string): Promise<PatientFinanceSummary>;
-  findManyByPaymentId(paymentId: string): Promise<FinanceLedgerEntity[]>;
   getClinicSummary(
     clinicId: string,
     filter: GetSummaryFilter

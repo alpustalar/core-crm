@@ -9,6 +9,6 @@ export class GetMetaReportQuery implements IQuery {
     public readonly from: Date,
     public readonly to: Date,
     public readonly ctx: IGetContext,
-    public readonly campaignId?: string,
+    public readonly campaignId?: string
   ) {}
 }

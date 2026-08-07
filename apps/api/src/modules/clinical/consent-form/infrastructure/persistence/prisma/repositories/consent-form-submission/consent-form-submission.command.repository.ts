@@ -3,7 +3,7 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 
 import { ConsentFormSubmission } from '@modules/clinical/consent-form/domain/entities/consent-form-submission.entity';
-import { IConsentFormSubmissionCommandRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.command.repository.interface';
+import { IConsentFormSubmissionCommandRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.command.repository';
 
 @Injectable()
 export class ConsentFormSubmissionCommandRepository

@@ -4,7 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IEmployeeQueryRepository } from '@modules/hr/employee/domain/repositories/employee.repository';
-import { Employee } from '@modules/hr/employee/domain/entities/employee.entity';
+import { Employee as IEmployee } from '@shared';
 import {
   EmployeeWithContracts,
   FindEmployeesFilter,
@@ -30,19 +30,18 @@ export class EmployeeQueryRepository
     return row ? this.toView(row) : null;
   }
 
-  async findByClinic(filter: FindEmployeesFilter): Promise<Paginated<Employee>> {
+  findByClinic(filter: FindEmployeesFilter): Promise<Paginated<IEmployee>> {
     const where: Record<string, unknown> = {
       clinicId: filter.clinicId,
       isDeleted: false,
     };
     if (filter.status) where.status = filter.status;
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.employee,
       pagination: filter.pagination,
       where,
     });
-    return this.mapPagination(result, (r) => new Employee(r));
   }
 
   private toView(row: EmployeeRow): EmployeeWithContracts {

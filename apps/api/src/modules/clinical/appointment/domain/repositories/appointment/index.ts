@@ -1,2 +1,2 @@
-export * from './appointment.command-repository.interface';
-export * from './appointment.query-repository.interface';
+export * from './appointment.command.repository';
+export * from './appointment.query.repository';

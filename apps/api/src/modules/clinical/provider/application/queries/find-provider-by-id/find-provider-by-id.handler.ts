@@ -7,7 +7,7 @@ import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exc
 import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
 
 @QueryHandler(FindProviderByIdQuery)
 export class FindProviderByIdHandler

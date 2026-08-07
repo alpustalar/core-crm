@@ -66,7 +66,7 @@ export class FindAllUsersForManagerHandler
       });
 
       return {
-        data: items.map((user) => user.toPersistence()),
+        data: items,
         meta: {
           pagination: buildPaginationMeta(dto, total),
           serializationOptions,
@@ -81,7 +81,7 @@ export class FindAllUsersForManagerHandler
       });
 
       return {
-        data: items.map((user) => user.toPersistence()),
+        data: items,
         meta: {
           pagination: buildPaginationMeta(dto, total),
           serializationOptions,

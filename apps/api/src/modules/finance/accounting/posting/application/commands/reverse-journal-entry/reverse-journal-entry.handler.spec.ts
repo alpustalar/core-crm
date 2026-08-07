@@ -3,10 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ReverseJournalEntryHandler } from './reverse-journal-entry.handler';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
-import {
-  IJournalCommandRepository,
-  IJournalQueryRepository,
-} from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
+import { IJournalCommandRepository } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { AccountingPeriodStatusSchema } from '@shared';
@@ -51,11 +48,9 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
           : AccountingPeriodStatusSchema.enum.OPEN,
     };
 
-    const journalQueryRepo = {
-      findById: jest.fn().mockResolvedValue(params.original),
-    } as unknown as IJournalQueryRepository;
-
     const journalCommandRepo = {
+      // Storno okuması kilitli: handler orijinali Command Repo'dan çeker.
+      findByIdForUpdate: jest.fn().mockResolvedValue(params.original),
       nextEntryNo: jest.fn().mockResolvedValue(107n),
       create: jest.fn(async (entry: JournalEntry) => entry),
       update: jest.fn(async (entry: JournalEntry) => entry),
@@ -73,7 +68,6 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     return {
       handler: new ReverseJournalEntryHandler(
         journalCommandRepo,
-        journalQueryRepo,
         queryBus,
         txManager
       ),

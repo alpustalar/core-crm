@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPaymentQueryRepository } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+import {
+  IPaymentQueryRepository,
+  PaymentWithInstallments,
+} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { InstallmentStatus, Prisma } from '@prisma/client';
-import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { Payment as IPayment } from '@shared';
 import {
   ArAgingData,
   ArAgingFilter,
@@ -26,22 +29,17 @@ export class PaymentQueryRepository
     super(prisma);
   }
 
-  async findByAppointmentId(appointmentId: string): Promise<Payment | null> {
-    const raw = await this.db.payment.findUnique({
-      where: { appointmentId },
-      include: { installments: { orderBy: { installmentNo: 'asc' } } },
-    });
-    return raw ? new Payment(raw) : null;
+  findByAppointmentId(appointmentId: string): Promise<IPayment | null> {
+    return this.db.payment.findUnique({ where: { appointmentId } });
   }
 
-  async findPaymentWithInstallments(
+  findPaymentWithInstallments(
     paymentId: string
-  ): Promise<Payment | null> {
-    const raw = await this.db.payment.findUnique({
+  ): Promise<PaymentWithInstallments | null> {
+    return this.db.payment.findUnique({
       where: { id: paymentId },
       include: { installments: { orderBy: { installmentNo: 'asc' } } },
     });
-    return raw ? new Payment(raw) : null;
   }
 
   async arAging(filter: ArAgingFilter): Promise<ArAgingData> {

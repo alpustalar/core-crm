@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
-import { IAccountCommandRepository } from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account.repository';
 import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
+import { IAccountCommandRepository } from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account/account.command.repository';
 
 @Injectable()
 export class AccountCommandRepository
@@ -12,6 +12,11 @@ export class AccountCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async existsForClinic(clinicId: string): Promise<boolean> {
+    const count = await this.db.account.count({ where: { clinicId } });
+    return count > 0;
   }
 
   async update(account: Account): Promise<Account> {

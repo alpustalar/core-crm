@@ -1,3 +1,4 @@
+import { Payment as IPayment, PaymentInstallment } from '@shared';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
 import { PaymentMethod } from '@prisma/client';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
@@ -29,9 +30,13 @@ export interface IPaymentCommandRepository
   findByInstallmentIdForUpdate(installmentId: string): Promise<Payment | null>;
 }
 
+/** Okuma tarafı: entity değil, plain model / read-model döner. */
 export interface IPaymentQueryRepository {
-  findByAppointmentId(appointmentId: string): Promise<Payment | null>;
-  findPaymentWithInstallments(paymentId: string): Promise<Payment | null>;
+  findByAppointmentId(appointmentId: string): Promise<IPayment | null>;
+  /** Ödeme + taksitleri (read-model) — taksit listesi doğrudan yanıta gider. */
+  findPaymentWithInstallments(
+    paymentId: string
+  ): Promise<PaymentWithInstallments | null>;
 
   /** AR aging: şubenin açık taksitleri + tahsil edilmiş toplamı (yönetim raporu). */
   arAging(filter: ArAgingFilter): Promise<ArAgingData>;
@@ -41,3 +46,8 @@ export interface IPaymentQueryRepository {
     filter: ProviderRevenueFilterData
   ): Promise<CollectedInstallmentRow[]>;
 }
+
+/** Ödeme başlığı + taksit satırları (okuma modeli). */
+export type PaymentWithInstallments = IPayment & {
+  installments: PaymentInstallment[];
+};

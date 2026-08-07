@@ -4,10 +4,7 @@ import { ClinicPaymentGatewayCommandModule } from '@modules/finance/payment-gate
 import { ClinicPaymentGatewayQueryModule } from '@modules/finance/payment-gateway/application/queries/query.module';
 
 @Module({
-  imports: [
-    ClinicPaymentGatewayCommandModule,
-    ClinicPaymentGatewayQueryModule,
-  ],
+  imports: [ClinicPaymentGatewayCommandModule, ClinicPaymentGatewayQueryModule],
   controllers: [PaymentGatewayController],
 })
 export class PaymentGatewayPresentationModule {}

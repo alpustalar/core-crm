@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead.repository';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 

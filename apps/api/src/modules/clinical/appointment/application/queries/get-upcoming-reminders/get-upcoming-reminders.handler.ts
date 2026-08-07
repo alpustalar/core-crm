@@ -11,7 +11,7 @@ import {
 
 /**
  * Resepsiyon hatırlatma listesi. Aktörün kliniğine sabitlenir; repo, hoursAhead
- * içindeki onaylı yaklaşan randevuları sayfalı döner. Entity → toPersistence.
+ * içindeki onaylı yaklaşan randevuları sayfalı döner (repo düz kayıt verir).
  */
 @QueryHandler(GetUpcomingRemindersQuery)
 export class GetUpcomingRemindersHandler implements IQueryHandler<

@@ -3,9 +3,7 @@ import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY,
-  CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY,
   IClinicWhatsappChannelCommandRepository,
-  IClinicWhatsappChannelQueryRepository,
 } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { RecordWhatsappQualityCommand } from './record-whatsapp-quality.command';
 
@@ -14,15 +12,13 @@ export class RecordWhatsappQualityHandler
   implements ICommandHandler<RecordWhatsappQualityCommand, void>
 {
   constructor(
-    @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
-    private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,
     @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicWhatsappChannelCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: RecordWhatsappQualityCommand): Promise<void> {
-    const channel = await this.channelQueryRepo.findByDisplayPhoneNumber(
+    const channel = await this.channelCommandRepo.findByDisplayPhoneNumber(
       command.displayPhoneNumber
     );
     // Bilinmeyen numara → yok say (başka WABA'ya ait olabilir).

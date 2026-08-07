@@ -2,10 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { DisconnectClinicWhatsappChannelHandler } from './disconnect-clinic-whatsapp-channel.handler';
 import { DisconnectClinicWhatsappChannelCommand } from './disconnect-clinic-whatsapp-channel.command';
 import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
-import {
-  IClinicWhatsappChannelCommandRepository,
-  IClinicWhatsappChannelQueryRepository,
-} from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
+import { IClinicWhatsappChannelCommandRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
 describe('DisconnectClinicWhatsappChannelHandler', () => {
@@ -14,12 +11,9 @@ describe('DisconnectClinicWhatsappChannelHandler', () => {
   const build = (channel: ClinicWhatsappChannel | null) => {
     let saved: ClinicWhatsappChannel | undefined;
 
-    const channelQueryRepo = {
-      findByClinicId: jest.fn().mockResolvedValue(channel),
-      findByPhoneNumberId: jest.fn(),
-    } as unknown as IClinicWhatsappChannelQueryRepository;
-
     const channelCommandRepo = {
+      // Kanal kapatma kararını besleyen okuma da Command Repo'dan.
+      findByClinicId: jest.fn().mockResolvedValue(channel),
       upsertByClinicId: jest.fn(async (c: ClinicWhatsappChannel) => {
         saved = c;
         return c;
@@ -31,7 +25,6 @@ describe('DisconnectClinicWhatsappChannelHandler', () => {
     } as unknown as TransactionManager;
 
     const handler = new DisconnectClinicWhatsappChannelHandler(
-      channelQueryRepo,
       channelCommandRepo,
       txManager
     );

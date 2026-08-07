@@ -14,6 +14,27 @@ export class InvoiceCommandRepository
     super(prisma);
   }
 
+  async findById(id: string): Promise<Invoice | null> {
+    const raw = await this.db.invoice.findUnique({
+      where: { id, isDeleted: false },
+    });
+    return raw ? new Invoice(raw) : null;
+  }
+
+  async findByAppointmentId(appointmentId: string): Promise<Invoice | null> {
+    const raw = await this.db.invoice.findFirst({
+      where: { appointmentId, isDeleted: false },
+    });
+    return raw ? new Invoice(raw) : null;
+  }
+
+  async findByPaymentId(paymentId: string): Promise<Invoice | null> {
+    const raw = await this.db.invoice.findFirst({
+      where: { paymentId, isDeleted: false },
+    });
+    return raw ? new Invoice(raw) : null;
+  }
+
   async create(props: CreateInvoiceProps): Promise<Invoice> {
     const raw = await this.db.invoice.create({
       data: {

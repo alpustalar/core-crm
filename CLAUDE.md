@@ -2230,36 +2230,55 @@ Pagination
 
 ---
 
-**Repository `find*` dönüş tipi — KURAL**:
+**Repository `find*` dönüş tipi — KURAL: Command entity döner, Query read-model döner**:
 
-- Tüm `find*` metodları ham Prisma kaydı değil, **domain entity** döndürür.
-- Mapping (Prisma kaydı → entity) repository içinde yapılır; handler veya use-case'e sızmaz.
-- `findMany` / `paginate` tabanlı sorgular `{ items: Entity[], total: number }` döndürür; `items` elemanları da entity olur.
-- `select` / `include` ile daraltılmış projeksiyonlar (ör. `ConflictingAppointment`, `OccupiedSlot`) entity olmak zorunda değildir; ancak bunlar merkezi kontrat dosyasında (`domain/<module>.contracts.ts`) bir read-model tipi (`Filter`/`Response` veya bileşik tip) olarak tanımlanır ve interface'de açıkça belirtilir.
+Dönüş tipi repository'nin tarafına göre belirlenir. Kural tek cümleyle: **entity yalnız yazma tarafında yaşar.**
+
+| Repository | `find*` dönüşü | Neden |
+| --- | --- | --- |
+| **Command repo** | **Domain entity** | Okunan veri üzerinde iş kuralı işletilecek, state değiştirilecek, `update()`'e verilecek — invariant'lar ve VO'lar gerekli |
+| **Query repo** | **Plain model / read-model** | Veri doğrudan HTTP sınırını geçecek; entity kurup hemen sökmek boşuna iş |
+
+- Mapping (Prisma kaydı → entity) **command** repository içinde yapılır; handler veya use-case'e sızmaz.
+- Command repo'da `findMany` / `paginate` `{ items: Entity[], total: number }` döndürür.
+- Query repo `@shared` generated plain model (`Lead`, `Appointment`) ya da `domain/contracts/<module>.contracts.ts`'te
+  tanımlı bir read-model döndürür. `select` / `include` ile daraltılmış projeksiyonlar (ör. `ConflictingAppointment`,
+  `OccupiedSlot`) da bu kontrat dosyasında adlandırılır ve interface'de açıkça belirtilir.
+- **Query handler artık `toPersistence()` çağırmaz** — çağırıyorsa repo gereksiz yere entity hidrate ediyor demektir.
 
 ```typescript
-// ❌ Yanlış — ham Prisma kaydı dönüyor
-async findById(id: string) {
-  return this.db.appointment.findUnique({ where: { id } });
-}
-
-// ✓ Doğru — domain entity dönüyor
+// ✓ Command repo — entity döner (handler domain metodunu çağırıp update edecek)
 async findById(id: string): Promise<Appointment | null> {
   const raw = await this.db.appointment.findUnique({ where: { id } });
   return raw ? new Appointment(raw) : null;
 }
 
-// ✓ Doğru — findMany: entity listesi dönüyor
-async findMany(spec: Specification<Prisma.AppointmentWhereInput>, pagination: Pagination) {
-  const result = await paginate({ delegate: this.db.appointment, pagination, where: spec.toQuery() });
-  return { items: result.items.map((r) => new Appointment(r)), total: result.total };
+// ✓ Query repo — plain model döner (veri HTTP'ye gidiyor)
+findById(id: string): Promise<IAppointment | null> {
+  return this.db.appointment.findUnique({ where: { id } });
 }
 
-// ✓ Doğru — projeksiyon: domain type dönüyor (entity değil, kabul edilebilir)
+// ❌ Yanlış — query repo entity kuruyor, handler hemen söküyor (satır başına iki gereksiz dönüşüm)
+// repo:    return raw ? new Appointment(raw) : null;
+// handler: return { data: appointment.toPersistence() };
+
+// ✓ Doğru — query repo'da paginate: read-model listesi
+async findMany(spec: Specification<Prisma.AppointmentWhereInput>, pagination: Pagination) {
+  return paginate({ delegate: this.db.appointment, pagination, where: spec.toQuery() });
+}
+
+// ✓ Doğru — projeksiyon: kontrat dosyasında adlandırılmış read-model
 findConflictingAppointment(props: FindConflictingAppointmentProps): Promise<ConflictingAppointment | null> {
   return this.db.appointment.findFirst({ where: { ... }, select: { id: true, startTime: true, endTime: true } });
 }
 ```
+
+**Query handler'da iş kuralı gerekirse** entity hidrate edilmez; kural entity'den **bağımsız** bir yere taşınır:
+
+- Değer hesabı/doğrulaması → **Value Object** (`LeaveBalance.calculate(...)`, `DateRange.validate.isOverlappingWith(...)`)
+- Entity durumuna bağlı kural → entity'nin ürettiği **snapshot** üzerinde çalışan `*Rules` sınıfı
+  (`AppointmentRules(snapshot)`) — böylece aynı kural hem command hem query tarafında, entity kurmadan işler
+- Static hesap → entity static metodu (`Appointment.calculateEndTime(...)`)
 
 ---
 

@@ -1,7 +1,7 @@
 import { RefundBookingPaymentHandler } from './refund-booking-payment.handler';
 import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
 import { IPaymentLinkProvider } from '@src/infrastructure/payment/links/payment-link.port';
-import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
+import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import {
   CreateBookingPaymentProps,

@@ -11,7 +11,7 @@ import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exc
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 
 @CommandHandler(SetProviderExaminationCommand)
 export class SetProviderExaminationHandler

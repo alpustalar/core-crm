@@ -1,14 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  ACCOUNT_COMMAND_REPOSITORY,
-  ACCOUNT_QUERY_REPOSITORY,
-  IAccountCommandRepository,
-  IAccountQueryRepository,
-} from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account.repository';
 import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
 import { InitializeChartOfAccountsCommand } from './initialize-chart-of-accounts.command';
+import {
+  ACCOUNT_COMMAND_REPOSITORY,
+  IAccountCommandRepository,
+} from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account/account.command.repository';
 
 /**
  * Bir clinic (şube/defter) için klinik TDHP hesap planını kurar.
@@ -21,9 +19,7 @@ export class InitializeChartOfAccountsHandler
 {
   constructor(
     @Inject(ACCOUNT_COMMAND_REPOSITORY)
-    private readonly accountCommandRepo: IAccountCommandRepository,
-    @Inject(ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IAccountQueryRepository,
+    private readonly accountRepo: IAccountCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -32,7 +28,7 @@ export class InitializeChartOfAccountsHandler
 
     await this.txManager.run(async () => {
       const alreadyInitialized =
-        await this.accountQueryRepo.existsForClinic(clinicId);
+        await this.accountRepo.existsForClinic(clinicId);
       if (alreadyInitialized) return;
 
       const accounts = Account.buildChartFromTemplate({
@@ -40,7 +36,7 @@ export class InitializeChartOfAccountsHandler
         organizationId,
       });
 
-      await this.accountCommandRepo.createChart(accounts);
+      await this.accountRepo.createChart(accounts);
     });
   }
 }

@@ -7,15 +7,15 @@ import {
   HOTELBEDS_TRANSFER_API_SERVICE,
   IHotelbedsTransferApiService,
 } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
-import {
-  HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY,
-  IHotelbedsTransferBookingCommandRepository,
-} from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
 import { HotelbedsTransferBookingStatusSchema } from '@shared';
 import { JsonValueType } from '@input-type-schemas/JsonValueSchema';
+import {
+  HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY,
+  IHotelbedsTransferBookingCommandRepository,
+} from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.command.repository';
 
 @CommandHandler(BookTransferCommand)
 export class BookTransferHandler
@@ -24,10 +24,8 @@ export class BookTransferHandler
   constructor(
     @Inject(HOTELBEDS_TRANSFER_API_SERVICE)
     private readonly transferApi: IHotelbedsTransferApiService,
-
     @Inject(HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY)
-    private readonly bookingCommandRepo: IHotelbedsTransferBookingCommandRepository,
-
+    private readonly hotelbedsTransferBookingRepo: IHotelbedsTransferBookingCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -70,7 +68,7 @@ export class BookTransferHandler
     });
 
     const booking = await this.txManager.run(async () => {
-      return this.bookingCommandRepo.create(transferBooking);
+      return this.hotelbedsTransferBookingRepo.create(transferBooking);
     });
 
     return booking.id.value;

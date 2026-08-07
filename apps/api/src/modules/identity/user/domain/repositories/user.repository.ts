@@ -23,22 +23,19 @@ export interface IUserCommandRepository extends IBaseCommandRepository<User> {
   ): Promise<{ affectedCount: number }>;
 }
 
+/**
+ * Okuma tarafı: entity değil, plain model / read-model döner.
+ * NOT: `find`, `findByEmail`, `findAllActiveByClinicId`, `findAllByClinicId`,
+ * `findAllByStatusWithClinicId` hiçbir yerden çağrılmıyordu — kaldırıldı.
+ */
 export interface IUserQueryRepository {
-  findByIdOrEmail(userIdOrEmail: string): Promise<User | null>;
-  find(id: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
+  findByIdOrEmail(userIdOrEmail: string): Promise<IUser | null>;
   findForAuth(firebaseUid: string): Promise<AuthUserResponse | null>;
   checkEmailExists(email: string): Promise<number>;
-  findAllActiveByClinicId(clinicId: string): Promise<Paginated<User>>;
   /** Bir klinikte bildirim alacak aktif personel (çalışan + yönetici) userId'leri. */
   findActiveStaffUserIdsByClinicId(clinicId: string): Promise<string[]>;
-  findAllByStatusWithClinicId(
-    status: GlobalStatusType,
-    clinicId: string
-  ): Promise<Paginated<User>>;
-  findAllByClinicId(clinicId: string): Promise<Paginated<User>>;
   listByOrganizationIds(
     data: FindUsersByOrganizationIdsFilter
-  ): Promise<Paginated<User>>;
-  listByClinicIds(data: FindUsersByClinicIdsFilter): Promise<Paginated<User>>;
+  ): Promise<Paginated<IUser>>;
+  listByClinicIds(data: FindUsersByClinicIdsFilter): Promise<Paginated<IUser>>;
 }

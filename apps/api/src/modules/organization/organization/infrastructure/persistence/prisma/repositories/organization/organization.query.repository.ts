@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
+import { Organization as IOrganization } from '@shared';
 import { IOrganizationQueryRepository } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class OrganizationQueryRepository
   extends BaseRepository
@@ -13,24 +14,11 @@ export class OrganizationQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<Organization | null> {
-    const raw = await this.db.organization.findUnique({ where: { id } });
-    return raw ? new Organization(raw) : null;
-  }
-
-  async findBySlug(slug: string): Promise<Organization | null> {
-    const raw = await this.db.organization.findUnique({ where: { slug } });
-    return raw ? new Organization(raw) : null;
-  }
-
-  async findFirstByOwnerCredentials(
-    ownerId: string
-  ): Promise<Organization | null> {
-    const raw = await this.db.organization.findFirst({
+  findFirstByOwnerCredentials(ownerId: string): Promise<IOrganization | null> {
+    return this.db.organization.findFirst({
       where: this.ownerWhere(ownerId),
       orderBy: { createdAt: 'asc' },
     });
-    return raw ? new Organization(raw) : null;
   }
 
   async findIdByClinicId(clinicId: string) {
@@ -41,18 +29,17 @@ export class OrganizationQueryRepository
     return raw ? raw.id : null;
   }
 
-  async findOneByIdByOwner(
+  findOneByIdByOwner(
     ownerId: string,
     organizationId: string
-  ): Promise<Organization | null> {
-    const raw = await this.db.organization.findFirst({
+  ): Promise<IOrganization | null> {
+    return this.db.organization.findFirst({
       where: {
         id: organizationId,
         ...this.ownerWhere(ownerId),
       },
       orderBy: { createdAt: 'asc' },
     });
-    return raw ? new Organization(raw) : null;
   }
 
   private ownerWhere(ownerId: string) {

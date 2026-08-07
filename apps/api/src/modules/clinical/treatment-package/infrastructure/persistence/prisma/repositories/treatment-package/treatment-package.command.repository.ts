@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ITreatmentPackageCommandRepository } from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { randomUUID } from 'crypto';
+import { ITreatmentPackageCommandRepository } from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.command.repository';
 
 @Injectable()
 export class TreatmentPackageCommandRepository

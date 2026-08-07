@@ -2,6 +2,10 @@ import { ClinicWhatsappChannel as IClinicWhatsappChannel } from '@shared/generat
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicWhatsappChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import {
+  isWhatsappTokenExpired,
+  whatsappChannelNeedsReauth,
+} from '@modules/messaging/channel-config/domain/rules/whatsapp-channel.rules';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**
@@ -157,13 +161,18 @@ export class ClinicWhatsappChannel
   /** accessToken'ın geçerlilik süresi dolmuş mu? (reconnect gerekir) */
 
   public isTokenExpired(now: Date = DateTimeManager.create()): boolean {
-    return this._tokenExpiresAt !== null && this._tokenExpiresAt <= now;
+    return isWhatsappTokenExpired({ tokenExpiresAt: this._tokenExpiresAt }, now);
   }
 
   /** Aktif ama token yok/expired → FE yeniden bağlama (reconnect) istemeli. */
   public needsReauth(now: Date = DateTimeManager.create()): boolean {
-    return (
-      this._isActive && (this._accessToken === null || this.isTokenExpired(now))
+    return whatsappChannelNeedsReauth(
+      {
+        isActive: this._isActive,
+        accessToken: this._accessToken,
+        tokenExpiresAt: this._tokenExpiresAt,
+      },
+      now
     );
   }
 

@@ -45,8 +45,8 @@ describe('ConsentFormSubmission entity', () => {
       treatmentId,
     });
 
-    expect(submission.appointmentId).toBe(appointmentId);
-    expect(submission.treatmentId).toBe(treatmentId);
+    expect(submission.appointmentId?.value).toBe(appointmentId);
+    expect(submission.treatmentId?.value).toBe(treatmentId);
   });
 
   it('toPersistence düz shape döner', () => {

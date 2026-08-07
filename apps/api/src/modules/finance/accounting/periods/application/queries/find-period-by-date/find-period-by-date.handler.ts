@@ -1,11 +1,11 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+import { FindPeriodByDateQuery } from './find-period-by-date.query';
+import { FindPeriodByDateResponse } from './find-period-by-date.response';
 import {
   ACCOUNTING_PERIOD_QUERY_REPOSITORY,
   IAccountingPeriodQueryRepository,
-} from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
-import { FindPeriodByDateQuery } from './find-period-by-date.query';
-import { FindPeriodByDateResponse } from './find-period-by-date.response';
+} from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.query.repository';
 
 @QueryHandler(FindPeriodByDateQuery)
 export class FindPeriodByDateHandler
@@ -13,16 +13,16 @@ export class FindPeriodByDateHandler
 {
   constructor(
     @Inject(ACCOUNTING_PERIOD_QUERY_REPOSITORY)
-    private readonly periodQueryRepo: IAccountingPeriodQueryRepository
+    private readonly accountingPeriodRepo: IAccountingPeriodQueryRepository
   ) {}
 
   async execute(
     query: FindPeriodByDateQuery
   ): Promise<FindPeriodByDateResponse> {
-    const period = await this.periodQueryRepo.findByDate(
+    const period = await this.accountingPeriodRepo.findByDate(
       query.clinicId,
       query.date
     );
-    return { data: period?.toPersistence() ?? null };
+    return { data: period };
   }
 }

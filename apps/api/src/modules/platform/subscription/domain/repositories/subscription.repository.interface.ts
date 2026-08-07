@@ -48,6 +48,16 @@ export interface ISubscriptionCommandRepository
   findPastDue(): Promise<Subscription[]>;
   /** Aboneliğin aylık tahsilat tutarı (aktif kalemlerin toplamı) — çekilecek tutarı belirler. */
   findRenewalCharge(subscriptionId: string): Promise<RenewalChargeModel | null>;
+  /**
+   * Org'un aboneliği — modül ekleme gibi kalem/para yazan akışlarda hedef abonelik.
+   * Yazma kararını beslediği için Command Context'te okunur.
+   */
+  findByOrganizationId(organizationId: string): Promise<Subscription | null>;
+  /**
+   * Modül kataloğu satırı — satın alınacak modülün fiyatı/aktifliği tahsilatı
+   * belirler; bayat okuma yanlış tutar çekmeye yol açar.
+   */
+  findModuleByKey(key: string): Promise<IModule | null>;
 }
 
 export interface ISubscriptionQueryRepository {

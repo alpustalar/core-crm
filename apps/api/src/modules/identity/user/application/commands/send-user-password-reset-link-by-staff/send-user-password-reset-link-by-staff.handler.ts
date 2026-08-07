@@ -44,10 +44,12 @@ export class SendUserPasswordResetLinkByStaffHandler
       .evaluator.check((p) => p.isTargetInActorsManagedClinic(data.clinicId))
       .orThrow(USER_EVENTS.SEND_PASSWORD_RESET_LINK_BY_STAFF);
 
+    // Salt okunur ön-kontrol: yerel bir mutasyonu belirlemiyor (yalnız Firebase'e
+    // gidecek e-posta adresi okunuyor) → Query Repo burada meşru.
     const user = await this.userRepo.findByIdOrEmail(data.userId);
 
     if (!user) throw new UserNotFoundException();
 
-    await this.firebaseService.generatePasswordResetLink(user.email.value);
+    await this.firebaseService.generatePasswordResetLink(user.email);
   }
 }

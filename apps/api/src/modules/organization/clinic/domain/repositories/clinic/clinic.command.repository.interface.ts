@@ -3,8 +3,7 @@ import { IBaseCommandRepository } from '@common/domain/repositories/base-command
 
 export const CLINIC_COMMAND_REPOSITORY = Symbol('IClinicCommandRepository');
 
-export interface IClinicCommandRepository
-  extends IBaseCommandRepository<ClinicEntity> {
+export interface IClinicCommandRepository extends IBaseCommandRepository<ClinicEntity> {
   softDeleteManyClinicWithAnOrganizationId(
     organizationId: string
   ): Promise<{ deletedCount: number }>;

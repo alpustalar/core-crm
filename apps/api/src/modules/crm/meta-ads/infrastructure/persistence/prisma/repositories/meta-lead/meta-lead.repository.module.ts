@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import {
   META_LEAD_COMMAND_REPOSITORY,
   META_LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
 import { MetaLeadCommandRepository } from './meta-lead.command.repository';
 import { MetaLeadQueryRepository } from './meta-lead.query.repository';
 

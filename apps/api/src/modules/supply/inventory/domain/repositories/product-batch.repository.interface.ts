@@ -4,15 +4,18 @@ import { IBaseCommandRepository } from '@common/domain/repositories/base-command
 export const PRODUCT_BATCH_COMMAND_REPOSITORY = Symbol(
   'IProductBatchCommandRepository'
 );
-export const PRODUCT_BATCH_QUERY_REPOSITORY = Symbol(
-  'IProductBatchQueryRepository'
-);
 
-export interface IProductBatchCommandRepository
-  extends IBaseCommandRepository<ProductBatch> {}
-
-export interface IProductBatchQueryRepository {
-  findById(id: string): Promise<ProductBatch | null>;
+/**
+ * NOT: Parti (batch) için Query Repo yoktur — partiler yalnız stok düşümü/artışı
+ * akışında, ürün satırı `FOR UPDATE` ile kilitliyken okunur. Okumanın tamamı bir
+ * mutasyonu beslediği için Command Context'e aittir. Dışarıya gösterilen stok
+ * verisi `IProductQueryRepository.getStockLevels` üzerinden gider.
+ */
+export interface IProductBatchCommandRepository extends IBaseCommandRepository<ProductBatch> {
+  /**
+   * Ürünün tüketilebilir partileri (FEFO sırasında). Yalnız kilit altında çağrılır;
+   * dönen partiler aynı transaction içinde güncellenir.
+   */
   findAvailableByProduct(
     productId: string,
     clinicId: string

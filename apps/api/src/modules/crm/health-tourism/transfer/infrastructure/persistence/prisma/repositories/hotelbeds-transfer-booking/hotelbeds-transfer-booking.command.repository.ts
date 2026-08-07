@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
-import { IHotelbedsTransferBookingCommandRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
 import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
+import { IHotelbedsTransferBookingCommandRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.command.repository';
 
 @Injectable()
 export class HotelbedsTransferBookingCommandRepository
@@ -49,5 +49,14 @@ export class HotelbedsTransferBookingCommandRepository
     });
     booking.flushEvents();
     return new HotelbedsTransferBooking(raw);
+  }
+
+  async findByReference(
+    reference: string
+  ): Promise<HotelbedsTransferBooking | null> {
+    const raw = await this.db.hotelbedsTransferBooking.findUnique({
+      where: { reference },
+    });
+    return raw ? new HotelbedsTransferBooking(raw) : null;
   }
 }

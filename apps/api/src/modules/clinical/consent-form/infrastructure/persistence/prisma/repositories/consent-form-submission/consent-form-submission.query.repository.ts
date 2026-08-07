@@ -8,7 +8,7 @@ import {
   FindConsentSubmissionsByPatientFilter,
 } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
-import { IConsentFormSubmissionQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository.interface';
+import { IConsentFormSubmissionQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.query.repository';
 import { ConsentFormSubmission } from '@shared';
 
 const LIST_ITEM_SELECT = {

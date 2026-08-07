@@ -1,16 +1,13 @@
 import { Module } from '@nestjs/common';
-import { PostingCommandModule } from './application/commands/command.module';
-import { PostingQueryModule } from './application/queries/query.module';
-import { PostingPresentationModule } from './presentation/posting-presentation.module';
-import { FinancialEventRecordedListener } from './infrastructure/events/listeners/financial-event-recorded.listener';
+import { PostingPresentationModule } from './presentation/presentation.module';
+import { PostingApplicationModule } from '@modules/finance/accounting/posting/application/application.module';
+import { PostingInfrastructureModule } from '@modules/finance/accounting/posting/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
-    PostingCommandModule,
-    PostingQueryModule,
+    PostingApplicationModule,
     PostingPresentationModule,
+    PostingInfrastructureModule,
   ],
-  providers: [FinancialEventRecordedListener],
-  exports: [PostingCommandModule, PostingQueryModule],
 })
 export class PostingModule {}

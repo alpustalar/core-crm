@@ -8,9 +8,7 @@ import {
 } from '@modules/messaging/channel-config/domain/interfaces/telegram-bot-api.interface';
 import {
   CLINIC_TELEGRAM_CHANNEL_COMMAND_REPOSITORY,
-  CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY,
   IClinicTelegramChannelCommandRepository,
-  IClinicTelegramChannelQueryRepository,
 } from '@modules/messaging/channel-config/domain/repositories/clinic-telegram-channel.repository';
 import { DisconnectClinicTelegramChannelCommand } from './disconnect-clinic-telegram-channel.command';
 
@@ -19,8 +17,6 @@ export class DisconnectClinicTelegramChannelHandler
   implements ICommandHandler<DisconnectClinicTelegramChannelCommand, void>
 {
   constructor(
-    @Inject(CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY)
-    private readonly channelQueryRepo: IClinicTelegramChannelQueryRepository,
     @Inject(CLINIC_TELEGRAM_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicTelegramChannelCommandRepository,
     @Inject(TELEGRAM_BOT_API)
@@ -32,7 +28,7 @@ export class DisconnectClinicTelegramChannelHandler
   async execute(
     command: DisconnectClinicTelegramChannelCommand
   ): Promise<void> {
-    const channel = await this.channelQueryRepo.findByClinicId(
+    const channel = await this.channelCommandRepo.findByClinicId(
       command.clinicId
     );
     if (!channel) throw new NotFoundException('Telegram kanalı bulunamadı.');

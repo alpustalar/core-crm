@@ -1,11 +1,8 @@
 import { ProcessMetaLeadHandler } from './process-meta-lead.handler';
 import { ProcessMetaLeadCommand } from './process-meta-lead.command';
 import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
-import {
-  IMetaLeadCommandRepository,
-  IMetaLeadQueryRepository,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
-import { IMetaAdAccountQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+import { IMetaLeadCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
+import { IMetaAdAccountCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import { IMetaAdsEventPublisher } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -29,20 +26,18 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
   const build = (params: { existing?: unknown }) => {
     const fakeLead = buildFakeMetaLead();
 
+    // Idempotentlik kontrolü ve hesap okuması yazmayı beslediği için Command Repo'dan.
     const leadCommandRepo = {
       create: jest.fn().mockResolvedValue(fakeLead),
       update: jest.fn().mockResolvedValue(fakeLead),
+      findByMetaLeadId: jest.fn().mockResolvedValue(params.existing ?? null),
     } as unknown as IMetaLeadCommandRepository;
 
-    const leadQueryRepo = {
-      findByMetaLeadId: jest.fn().mockResolvedValue(params.existing ?? null),
-    } as unknown as IMetaLeadQueryRepository;
-
-    const accountQueryRepo = {
+    const accountCommandRepo = {
       findById: jest
         .fn()
         .mockResolvedValue({ clinicId: { value: 'clinic-1' } }),
-    } as unknown as IMetaAdAccountQueryRepository;
+    } as unknown as IMetaAdAccountCommandRepository;
 
     const eventPublisher = {
       leadReceived: jest.fn(),
@@ -63,8 +58,7 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
 
     const handler = new ProcessMetaLeadHandler(
       leadCommandRepo,
-      leadQueryRepo,
-      accountQueryRepo,
+      accountCommandRepo,
       eventPublisher,
       queryBus,
       commandBus,

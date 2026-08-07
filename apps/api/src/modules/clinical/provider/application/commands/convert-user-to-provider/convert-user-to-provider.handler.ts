@@ -13,7 +13,7 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 
 @CommandHandler(ConvertUserToProviderCommand)
 export class ConvertUserToProviderHandler

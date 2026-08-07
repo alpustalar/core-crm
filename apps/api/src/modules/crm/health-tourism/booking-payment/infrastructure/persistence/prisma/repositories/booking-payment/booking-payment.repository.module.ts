@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  BOOKING_PAYMENT_QUERY_REPOSITORY,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPaymentCommandRepository } from './booking-payment.command.repository';
 import { BookingPaymentQueryRepository } from './booking-payment.query.repository';
+import { BOOKING_PAYMENT_COMMAND_REPOSITORY } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
+import { BOOKING_PAYMENT_QUERY_REPOSITORY } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.query.repository';
 
 @Module({
   providers: [
@@ -17,6 +15,9 @@ import { BookingPaymentQueryRepository } from './booking-payment.query.repositor
       useClass: BookingPaymentQueryRepository,
     },
   ],
-  exports: [BOOKING_PAYMENT_COMMAND_REPOSITORY, BOOKING_PAYMENT_QUERY_REPOSITORY],
+  exports: [
+    BOOKING_PAYMENT_COMMAND_REPOSITORY,
+    BOOKING_PAYMENT_QUERY_REPOSITORY,
+  ],
 })
 export class BookingPaymentRepositoryModule {}

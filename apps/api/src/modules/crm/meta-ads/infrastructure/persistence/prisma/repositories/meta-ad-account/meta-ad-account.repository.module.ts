@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import {
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import { MetaAdAccountCommandRepository } from './meta-ad-account.command.repository';
 import { MetaAdAccountQueryRepository } from './meta-ad-account.query.repository';
 

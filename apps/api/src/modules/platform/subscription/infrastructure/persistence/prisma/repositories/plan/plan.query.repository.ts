@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity';
 import { IPlanQueryRepository } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
 import { PlanReadModel } from '@modules/platform/subscription/domain/subscription.contracts';
 import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
@@ -22,11 +21,6 @@ export class PlanQueryRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
-  }
-
-  async findByPlanId(planId: PlanId): Promise<Plan | null> {
-    const raw = await this.db.plan.findUnique({ where: { planId } });
-    return raw ? new Plan(raw) : null;
   }
 
   async findAllActiveWithModules(): Promise<PlanReadModel[]> {

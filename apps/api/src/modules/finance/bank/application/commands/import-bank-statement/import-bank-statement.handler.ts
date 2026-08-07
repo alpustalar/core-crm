@@ -3,8 +3,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BankAccountStatusSchema } from '@input-type-schemas/BankAccountStatusSchema';
 import { ImportBankStatementCommand } from './import-bank-statement.command';
 import {
-  BANK_ACCOUNT_QUERY_REPOSITORY,
-  IBankAccountQueryRepository,
+  BANK_ACCOUNT_COMMAND_REPOSITORY,
+  IBankAccountCommandRepository,
 } from '@modules/finance/bank/domain/repositories/bank-account.repository';
 import {
   BANK_STATEMENT_COMMAND_REPOSITORY,
@@ -26,8 +26,10 @@ export class ImportBankStatementHandler
   implements ICommandHandler<ImportBankStatementCommand, string>
 {
   constructor(
-    @Inject(BANK_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IBankAccountQueryRepository,
+    // Hesabın varlığı/arşiv durumu ekstre yazılıp yazılmayacağını belirliyor →
+    // Command Context.
+    @Inject(BANK_ACCOUNT_COMMAND_REPOSITORY)
+    private readonly accountCommandRepo: IBankAccountCommandRepository,
     @Inject(BANK_STATEMENT_COMMAND_REPOSITORY)
     private readonly statementCommandRepo: IBankStatementCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -38,24 +40,24 @@ export class ImportBankStatementHandler
   async execute(command: ImportBankStatementCommand): Promise<string> {
     const { data, ctx } = command;
 
-    const account = await this.accountQueryRepo.findById(data.bankAccountId);
+    const account = await this.accountCommandRepo.findById(data.bankAccountId);
     if (!account) {
       throw new BankAccountNotFoundException(data.bankAccountId);
     }
 
     this.policyFactory
       .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(account.clinicId))
+      .evaluator.check((p) => p.canManageClinicFinances(account.clinicId.value))
       .orThrow('bank-statement.import');
 
     if (account.status === BankAccountStatusSchema.enum.ARCHIVED) {
-      throw new BankAccountArchivedException(account.id);
+      throw new BankAccountArchivedException(account.id.value);
     }
 
     const statement = BankStatement.create({
-      bankAccountId: account.id,
-      clinicId: account.clinicId,
-      organizationId: account.organizationId,
+      bankAccountId: account.id.value,
+      clinicId: account.clinicId.value,
+      organizationId: account.organizationId.value,
       periodStart: data.periodStart,
       periodEnd: data.periodEnd,
       openingBalance: data.openingBalance,

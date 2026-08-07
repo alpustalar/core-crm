@@ -13,6 +13,15 @@ export class ClinicInstagramChannelCommandRepository
     super(prisma);
   }
 
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicInstagramChannel | null> {
+    const raw = await this.db.clinicInstagramChannel.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicInstagramChannel(raw) : null;
+  }
+
   // 1:1 satellite (clinicId unique) → get-or-create (upsert).
   async upsertByClinicId(
     entity: ClinicInstagramChannel

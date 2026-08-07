@@ -11,8 +11,7 @@ export const POS_TRANSACTION_COMMAND_REPOSITORY = Symbol(
  * ödeme akışının (callback, void, mutabakat) içinden okunur; hepsi Command Context'tir
  * ve okunan durum doğrudan bir para hareketine karar verir.
  */
-export interface IPosTransactionCommandRepository
-  extends IBaseCommandRepository<PosTransaction> {
+export interface IPosTransactionCommandRepository extends IBaseCommandRepository<PosTransaction> {
   /** İşlemi `FOR UPDATE` kilitleyerek yükler — yalnız aktif transaction içinde. */
   findByIdForUpdate(id: string): Promise<PosTransaction | null>;
   /**

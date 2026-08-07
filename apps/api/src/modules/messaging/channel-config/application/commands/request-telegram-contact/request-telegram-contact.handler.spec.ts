@@ -1,7 +1,7 @@
 import { RequestTelegramContactHandler } from './request-telegram-contact.handler';
 import { RequestTelegramContactCommand } from './request-telegram-contact.command';
 import { ClinicTelegramChannel } from '@modules/messaging/channel-config/domain/entities/clinic-telegram-channel.entity';
-import { IClinicTelegramChannelQueryRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-telegram-channel.repository';
+import { IClinicTelegramChannelCommandRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-telegram-channel.repository';
 import { ITelegramBotApi } from '@modules/messaging/channel-config/domain/interfaces/telegram-bot-api.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 
@@ -16,9 +16,9 @@ describe('RequestTelegramContactHandler', () => {
     });
 
   const build = (channel: ClinicTelegramChannel | null) => {
-    const channelQueryRepo = {
+    const channelCommandRepo = {
       findByClinicId: jest.fn().mockResolvedValue(channel),
-    } as unknown as IClinicTelegramChannelQueryRepository;
+    } as unknown as IClinicTelegramChannelCommandRepository;
 
     const botApi = {
       getMe: jest.fn(),
@@ -34,7 +34,7 @@ describe('RequestTelegramContactHandler', () => {
     } as unknown as TokenCipherService;
 
     const handler = new RequestTelegramContactHandler(
-      channelQueryRepo,
+      channelCommandRepo,
       botApi,
       cipher
     );

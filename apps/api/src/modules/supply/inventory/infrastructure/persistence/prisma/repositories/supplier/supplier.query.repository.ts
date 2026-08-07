@@ -4,8 +4,9 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { Pagination } from '@shared';
 import { ISupplierQueryRepository } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
-import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
+import { Supplier as ISupplier } from '@shared';
 
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class SupplierQueryRepository
   extends BaseRepository
@@ -15,23 +16,14 @@ export class SupplierQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<Supplier | null> {
-    const raw = await this.db.supplier.findUnique({ where: { id } });
-    return raw ? new Supplier(raw) : null;
-  }
-
-  async findMany(
+  findMany(
     organizationId: string,
     pagination: Pagination
-  ): Promise<{ items: Supplier[]; total: number }> {
-    const result = await paginate({
+  ): Promise<{ items: ISupplier[]; total: number }> {
+    return paginate({
       delegate: this.db.supplier,
       pagination,
       where: { organizationId },
     });
-    return {
-      items: result.items.map((r) => new Supplier(r)),
-      total: result.total,
-    };
   }
 }

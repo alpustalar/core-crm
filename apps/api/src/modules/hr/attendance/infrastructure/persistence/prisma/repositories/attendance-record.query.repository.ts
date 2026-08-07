@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IAttendanceQueryRepository } from '@modules/hr/attendance/domain/repositories/attendance.repository';
-import { AttendanceRecord } from '@modules/hr/attendance/domain/entities/attendance-record.entity';
+import { AttendanceRecord as IAttendanceRecord } from '@shared';
 import {
   AttendanceSummary,
   FindAttendanceByEmployeeFilter,
@@ -11,6 +11,7 @@ import {
 } from '@modules/hr/attendance/domain/contracts/attendance.contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class AttendanceRecordQueryRepository
   extends BaseRepository
@@ -20,14 +21,9 @@ export class AttendanceRecordQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<AttendanceRecord | null> {
-    const raw = await this.db.attendanceRecord.findUnique({ where: { id } });
-    return raw ? new AttendanceRecord(raw) : null;
-  }
-
-  async findByEmployee(
+  findByEmployee(
     filter: FindAttendanceByEmployeeFilter
-  ): Promise<Paginated<AttendanceRecord>> {
+  ): Promise<Paginated<IAttendanceRecord>> {
     const where: Record<string, unknown> = { employeeId: filter.employeeId };
     if (filter.from || filter.to) {
       where.workDate = {
@@ -36,12 +32,11 @@ export class AttendanceRecordQueryRepository
       };
     }
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.attendanceRecord,
       pagination: filter.pagination,
       where,
     });
-    return this.mapPagination(result, (r) => new AttendanceRecord(r));
   }
 
   async getSummary(

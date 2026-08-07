@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { AccountingPeriod as IAccountingPeriod } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IAccountingPeriodQueryRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
-import { AccountingPeriod } from '@modules/finance/accounting/periods/domain/entities/accounting-period.entity';
+import { IAccountingPeriodQueryRepository } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.query.repository';
 
 @Injectable()
 export class AccountingPeriodQueryRepository
@@ -13,40 +13,20 @@ export class AccountingPeriodQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<AccountingPeriod | null> {
-    const raw = await this.db.accountingPeriod.findUnique({ where: { id } });
-    return raw ? new AccountingPeriod(raw) : null;
-  }
-
-  async findByYear(
-    clinicId: string,
-    year: number
-  ): Promise<AccountingPeriod | null> {
-    const raw = await this.db.accountingPeriod.findUnique({
-      where: { clinicId_year: { clinicId, year } },
-    });
-    return raw ? new AccountingPeriod(raw) : null;
-  }
-
-  async findByDate(
-    clinicId: string,
-    date: Date
-  ): Promise<AccountingPeriod | null> {
-    const raw = await this.db.accountingPeriod.findFirst({
+  findByDate(clinicId: string, date: Date): Promise<IAccountingPeriod | null> {
+    return this.db.accountingPeriod.findFirst({
       where: {
         clinicId,
         startsAt: { lte: date },
         endsAt: { gte: date },
       },
     });
-    return raw ? new AccountingPeriod(raw) : null;
   }
 
-  async findAllByClinicId(clinicId: string): Promise<AccountingPeriod[]> {
-    const rows = await this.db.accountingPeriod.findMany({
+  findAllByClinicId(clinicId: string): Promise<IAccountingPeriod[]> {
+    return this.db.accountingPeriod.findMany({
       where: { clinicId },
       orderBy: { year: 'desc' },
     });
-    return rows.map((raw) => new AccountingPeriod(raw));
   }
 }

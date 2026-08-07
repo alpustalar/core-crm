@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { Prisma } from '@prisma/client';
+import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 
 @Injectable()
 export class BookingPaymentCommandRepository

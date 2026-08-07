@@ -1,11 +1,11 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+import { GetClinicHealthTourismConfigQuery } from './get-clinic-health-tourism-config.query';
+import { GetClinicHealthTourismConfigResponse } from './get-clinic-health-tourism-config.response';
 import {
   CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY,
   IClinicHealthTourismConfigQueryRepository,
-} from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config.repository';
-import { GetClinicHealthTourismConfigQuery } from './get-clinic-health-tourism-config.query';
-import { GetClinicHealthTourismConfigResponse } from './get-clinic-health-tourism-config.response';
+} from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config/clinic-health-tourism-config.query.repository';
 
 @QueryHandler(GetClinicHealthTourismConfigQuery)
 export class GetClinicHealthTourismConfigHandler
@@ -17,19 +17,21 @@ export class GetClinicHealthTourismConfigHandler
 {
   constructor(
     @Inject(CLINIC_HEALTH_TOURISM_CONFIG_QUERY_REPOSITORY)
-    private readonly configQueryRepo: IClinicHealthTourismConfigQueryRepository
+    private readonly clinicHealthTourismConfigRepo: IClinicHealthTourismConfigQueryRepository
   ) {}
 
   async execute(
     query: GetClinicHealthTourismConfigQuery
   ): Promise<GetClinicHealthTourismConfigResponse> {
-    const config = await this.configQueryRepo.findByClinicId(query.clinicId);
+    const config = await this.clinicHealthTourismConfigRepo.findByClinicId(
+      query.clinicId
+    );
     if (!config) return { data: null };
 
     return {
       data: {
-        id: config.id.value,
-        clinicId: config.clinicId.value,
+        id: config.id,
+        clinicId: config.clinicId,
         isEnabled: config.isEnabled,
         destinationCode: config.destinationCode,
         nearbyHotelCodes: config.nearbyHotelCodes,
@@ -37,7 +39,7 @@ export class GetClinicHealthTourismConfigHandler
         clinicLocationType: config.clinicLocationType,
         clinicLocationCode: config.clinicLocationCode,
         pickupAddress: config.pickupAddress,
-        defaultCurrency: config.defaultCurrency.value,
+        defaultCurrency: config.defaultCurrency,
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,
       },

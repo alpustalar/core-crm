@@ -1,14 +1,8 @@
 import { Module } from '@nestjs/common';
-import { TransferCommandModule } from './application/commands/command.module';
-import { TransferQueryModule } from './application/queries/query.module';
-import { TransferAiToolsModule } from './application/ai-tools/transfer-ai-tools.module';
+import { TransferApplicationModule } from '@modules/crm/health-tourism/transfer/application/application.module';
+import { TransferInfrastructureModule } from '@modules/crm/health-tourism/transfer/infrastructure/infrastructure.module';
 
 @Module({
-  imports: [
-    TransferCommandModule,
-    TransferQueryModule,
-    TransferAiToolsModule,
-  ],
-  exports: [TransferCommandModule, TransferQueryModule],
+  imports: [TransferApplicationModule, TransferInfrastructureModule],
 })
 export class TransferModule {}

@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@modules/identity/auth/auth/guards';
 import { RegisterClinicSubMerchantDto } from '@shared';
-import { GetContext, IGetContext } from '@common/decorators/get-context.decorator';
+import {
+  GetContext,
+  IGetContext,
+} from '@common/decorators/get-context.decorator';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { RegisterClinicPaymentGatewayCommand } from '@modules/finance/payment-gateway/application/commands/register-clinic-payment-gateway/register-clinic-payment-gateway.command';

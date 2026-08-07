@@ -5,26 +5,29 @@ import { GetMetaAccountsResponse } from './get-meta-accounts.response';
 import {
   IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 
 @QueryHandler(GetMetaAccountsQuery)
-export class GetMetaAccountsHandler
-  implements IQueryHandler<GetMetaAccountsQuery, GetMetaAccountsResponse>
-{
+export class GetMetaAccountsHandler implements IQueryHandler<
+  GetMetaAccountsQuery,
+  GetMetaAccountsResponse
+> {
   constructor(
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository
+    private readonly metaAdAccountRepo: IMetaAdAccountQueryRepository
   ) {}
 
   async execute(query: GetMetaAccountsQuery): Promise<GetMetaAccountsResponse> {
-    const accounts = await this.accountQueryRepo.findByClinicId(query.clinicId);
+    const accounts = await this.metaAdAccountRepo.findByClinicId(
+      query.clinicId
+    );
 
     return {
       data: accounts.map((account) => ({
-        id: account.id.value,
-        clinicId: account.clinicId.value,
+        id: account.id,
+        clinicId: account.clinicId,
         adAccountId: account.adAccountId,
-        businessName: account.businessName?.value ?? null,
+        businessName: account.businessName,
         isActive: account.isActive,
         lastSyncAt: account.lastSyncAt,
         connectedAt: account.createdAt,

@@ -6,9 +6,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ApproveLeaveCommand } from './approve-leave.command';
 import {
   ILeaveCommandRepository,
-  ILeaveQueryRepository,
   LEAVE_COMMAND_REPOSITORY,
-  LEAVE_QUERY_REPOSITORY,
 } from '@modules/hr/leave/domain/repositories/leave.repository';
 import {
   LeaveInsufficientBalanceException,
@@ -35,8 +33,6 @@ export class ApproveLeaveHandler implements ICommandHandler<
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
     private readonly leaveCommandRepo: ILeaveCommandRepository,
-    @Inject(LEAVE_QUERY_REPOSITORY)
-    private readonly leaveQueryRepo: ILeaveQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -84,7 +80,7 @@ export class ApproveLeaveHandler implements ICommandHandler<
     // İzin yılı + bakiye aritmetiği domain'de (LeaveBalance) — bakiye sorgusuyla
     // birebir aynı hesap; iki yerde ayrı ayrı yazılmaz.
     const { from, to } = LeaveBalance.periodOf();
-    const usedDays = await this.leaveQueryRepo.sumApprovedAnnualDays(
+    const usedDays = await this.leaveCommandRepo.sumApprovedAnnualDays(
       employeeId,
       from,
       to

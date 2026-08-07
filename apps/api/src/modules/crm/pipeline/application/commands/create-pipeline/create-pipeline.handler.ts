@@ -1,12 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  IPipelineCommandRepository,
-  IPipelineStageCommandRepository,
-  PIPELINE_COMMAND_REPOSITORY,
-  PIPELINE_STAGE_COMMAND_REPOSITORY,
-} from '@modules/crm/pipeline/domain/repositories/pipeline.repository';
 import { Pipeline } from '@modules/crm/pipeline/domain/entities/pipeline.entity';
 import { PipelineStage } from '@modules/crm/pipeline/domain/entities/pipeline-stage.entity';
 import {
@@ -21,6 +15,14 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { PIPELINE_EVENTS } from '@src/domain/constants/events/pipeline.constant';
+import {
+  IPipelineCommandRepository,
+  PIPELINE_COMMAND_REPOSITORY,
+} from '@modules/crm/pipeline/domain/repositories/pipeline/pipeline.command.repository';
+import {
+  IPipelineStageCommandRepository,
+  PIPELINE_STAGE_COMMAND_REPOSITORY,
+} from '@modules/crm/pipeline/domain/repositories/pipeline-stage/pipeline-stage.command.repository';
 
 @CommandHandler(CreatePipelineCommand)
 export class CreatePipelineHandler
@@ -28,9 +30,9 @@ export class CreatePipelineHandler
 {
   constructor(
     @Inject(PIPELINE_COMMAND_REPOSITORY)
-    private readonly pipelineCommandRepo: IPipelineCommandRepository,
+    private readonly pipelineRepo: IPipelineCommandRepository,
     @Inject(PIPELINE_STAGE_COMMAND_REPOSITORY)
-    private readonly stageCommandRepo: IPipelineStageCommandRepository,
+    private readonly pipelineStageRepo: IPipelineStageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
@@ -68,8 +70,8 @@ export class CreatePipelineHandler
     );
 
     return this.txManager.run(async () => {
-      await this.pipelineCommandRepo.create(pipeline);
-      await this.stageCommandRepo.createMany(stages);
+      await this.pipelineRepo.create(pipeline);
+      await this.pipelineStageRepo.createMany(stages);
       return pipeline.id.value;
     });
   }

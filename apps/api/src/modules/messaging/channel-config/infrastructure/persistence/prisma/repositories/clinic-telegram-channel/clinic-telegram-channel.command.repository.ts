@@ -13,6 +13,16 @@ export class ClinicTelegramChannelCommandRepository
     super(prisma);
   }
 
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicTelegramChannel | null> {
+    // Klinik başına tek kanal (şu an yalnız BOT_API); provider çoğullanırsa filtre eklenir.
+    const raw = await this.db.clinicTelegramChannel.findFirst({
+      where: { clinicId },
+    });
+    return raw ? new ClinicTelegramChannel(raw) : null;
+  }
+
   // Satellite (clinicId + provider unique) → get-or-create (upsert).
   async upsertByClinicAndProvider(
     entity: ClinicTelegramChannel

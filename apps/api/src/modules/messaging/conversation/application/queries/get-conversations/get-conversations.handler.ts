@@ -6,7 +6,7 @@ import {
   CONVERSATION_QUERY_REPOSITORY,
   IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
-import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
+import { Conversation as IConversation } from '@shared';
 import { GetConversationsQuery } from './get-conversations.query';
 import { GetConversationsResponse } from './get-conversations.response';
 
@@ -16,7 +16,7 @@ export class GetConversationsHandler
 {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository
+    private readonly conversationRepo: IConversationQueryRepository
   ) {}
 
   async execute(
@@ -24,7 +24,7 @@ export class GetConversationsHandler
   ): Promise<GetConversationsResponse> {
     const { clinicId, filter, pagination } = query.payload;
 
-    const result = await this.conversationQueryRepo.findMany({
+    const result = await this.conversationRepo.findMany({
       clinicId,
       status: filter.status,
       assignedUserId: filter.assignedUserId,
@@ -32,12 +32,12 @@ export class GetConversationsHandler
     });
 
     return {
-      data: result.items.map((c) => this.toView(c)),
+      data: result.items.map((conversation) => this.toView(conversation)),
       meta: { pagination: buildPaginationMeta(pagination, result.total) },
     };
   }
 
-  private toView(c: Conversation): ConversationResponse {
+  private toView(c: IConversation): ConversationResponse {
     return {
       id: c.id,
       clinicId: c.clinicId,

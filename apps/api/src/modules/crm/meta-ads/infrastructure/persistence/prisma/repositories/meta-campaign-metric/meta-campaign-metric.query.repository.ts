@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IMetaCampaignMetricQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
-import { MetaCampaignMetric } from '@modules/crm/meta-ads/domain/entities/meta-campaign-metric.entity';
+import {
+  AggregateCampaignMetricsFilter,
+  IMetaCampaignMetricQueryRepository,
+} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
+import { MetaCampaignMetric as IMetaCampaignMetric } from '@shared';
 
 @Injectable()
 export class MetaCampaignMetricQueryRepository
@@ -13,41 +17,18 @@ export class MetaCampaignMetricQueryRepository
     super(prisma);
   }
 
-  async findByAccountAndDateRange(props: {
-    metaAdAccountId: string;
-    from: Date;
-    to: Date;
-    campaignId?: string;
-  }): Promise<MetaCampaignMetric[]> {
-    const where: Record<string, unknown> = {
-      metaAdAccountId: props.metaAdAccountId,
-      date: { gte: props.from, lte: props.to },
+  aggregateByAccount(
+    filter: AggregateCampaignMetricsFilter
+  ): Promise<IMetaCampaignMetric[]> {
+    const where: Prisma.MetaCampaignMetricWhereInput = {
+      metaAdAccount: { clinicId: filter.clinicId, isActive: true },
+      date: { gte: filter.from, lte: filter.to },
+      ...(filter.campaignId ? { campaignId: filter.campaignId } : {}),
     };
-    if (props.campaignId) where.campaignId = props.campaignId;
 
-    const rows = await this.db.metaCampaignMetric.findMany({
+    return this.db.metaCampaignMetric.findMany({
       where,
       orderBy: { date: 'asc' },
     });
-    return rows.map((r) => new MetaCampaignMetric(r));
-  }
-
-  async aggregateByAccount(props: {
-    clinicId: string;
-    from: Date;
-    to: Date;
-    campaignId?: string;
-  }): Promise<MetaCampaignMetric[]> {
-    const where: Record<string, unknown> = {
-      metaAdAccount: { clinicId: props.clinicId, isActive: true },
-      date: { gte: props.from, lte: props.to },
-    };
-    if (props.campaignId) where.campaignId = props.campaignId;
-
-    const rows = await this.db.metaCampaignMetric.findMany({
-      where,
-      orderBy: { date: 'asc' },
-    });
-    return rows.map((r) => new MetaCampaignMetric(r));
   }
 }

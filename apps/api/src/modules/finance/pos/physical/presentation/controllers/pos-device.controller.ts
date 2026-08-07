@@ -28,10 +28,7 @@ export class PosDeviceController {
   }
 
   @Post()
-  register(
-    @Body() body: RegisterPosDeviceDto,
-    @GetContext() ctx: IGetContext
-  ) {
+  register(@Body() body: RegisterPosDeviceDto, @GetContext() ctx: IGetContext) {
     return this.commandBus.execute(new RegisterPosDeviceCommand(body, ctx));
   }
 

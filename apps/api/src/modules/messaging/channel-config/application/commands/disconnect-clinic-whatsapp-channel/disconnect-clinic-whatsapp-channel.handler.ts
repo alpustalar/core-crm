@@ -3,9 +3,7 @@ import { Inject, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY,
-  CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY,
   IClinicWhatsappChannelCommandRepository,
-  IClinicWhatsappChannelQueryRepository,
 } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { DisconnectClinicWhatsappChannelCommand } from './disconnect-clinic-whatsapp-channel.command';
 
@@ -14,8 +12,6 @@ export class DisconnectClinicWhatsappChannelHandler
   implements ICommandHandler<DisconnectClinicWhatsappChannelCommand, void>
 {
   constructor(
-    @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
-    private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,
     @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicWhatsappChannelCommandRepository,
     private readonly txManager: TransactionManager
@@ -24,7 +20,7 @@ export class DisconnectClinicWhatsappChannelHandler
   async execute(
     command: DisconnectClinicWhatsappChannelCommand
   ): Promise<void> {
-    const channel = await this.channelQueryRepo.findByClinicId(
+    const channel = await this.channelCommandRepo.findByClinicId(
       command.clinicId
     );
     if (!channel) throw new NotFoundException('WhatsApp kanalı bulunamadı.');

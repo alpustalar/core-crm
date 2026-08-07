@@ -12,14 +12,14 @@ import {
 } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
 import { GetAiAgentRuntimeConfigQuery } from '@modules/messaging/ai-agent/application/queries/get-ai-agent-runtime-config/get-ai-agent-runtime-config.query';
 import {
-  CONVERSATION_QUERY_REPOSITORY,
-  IConversationQueryRepository,
+  CONVERSATION_COMMAND_REPOSITORY,
+  IConversationCommandRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import {
   IMessageQueryRepository,
   MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
+import { Message as IMessage } from '@shared';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { SendMessageCommand } from '@modules/messaging/conversation/application/commands/send-message/send-message.command';
 import { SendTemplateMessageCommand } from '@modules/messaging/conversation/application/commands/send-template-message/send-template-message.command';
@@ -44,8 +44,10 @@ export class SendBookingConfirmationHandler
   constructor(
     @Inject(AI_CHAT_PORT)
     private readonly chatPort: IAiChatPort,
-    @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
+    // Yazışma okuması gönderim yolunu (şablon mu serbest metin mi) belirliyor →
+    // 24 saatlik servis penceresi bayat okunmamalı, Command Context'ten gelir.
+    @Inject(CONVERSATION_COMMAND_REPOSITORY)
+    private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
     private readonly messageQueryRepo: IMessageQueryRepository,
     private readonly commandBus: TSCommandBus,
@@ -54,7 +56,7 @@ export class SendBookingConfirmationHandler
 
   async execute(command: SendBookingConfirmationCommand): Promise<void> {
     const { input } = command;
-    const conversation = await this.conversationQueryRepo.findById(
+    const conversation = await this.conversationCommandRepo.findById(
       input.conversationId
     );
     if (!conversation) {
@@ -121,6 +123,8 @@ export class SendBookingConfirmationHandler
       page: 1,
       limit: HISTORY_LIMIT,
     });
+    // Salt okunur bağlam (AI prompt geçmişi): hiçbir mutasyona karar vermiyor,
+    // Query Repo burada meşru.
     const { items } = await this.messageQueryRepo.findManyByConversation(
       conversation.id,
       pagination
@@ -184,7 +188,8 @@ export class SendBookingConfirmationHandler
   }
 
   /** Mesajları AI sohbet dizisine çevirir (processor ile aynı kural: ilk user, ardışık birleştir). */
-  private buildHistory(messages: Message[]): AiChatMessage[] {
+  private buildHistory(
+    messages: IMessage[]): AiChatMessage[] {
     const mapped: AiChatMessage[] = [];
     for (const m of messages) {
       const body = m.body?.trim();

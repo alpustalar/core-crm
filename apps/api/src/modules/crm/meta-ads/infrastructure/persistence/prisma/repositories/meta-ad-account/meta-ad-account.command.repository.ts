@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IMetaAdAccountCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+import { IMetaAdAccountCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @Injectable()
 export class MetaAdAccountCommandRepository
@@ -25,6 +26,35 @@ export class MetaAdAccountCommandRepository
   async findById(id: string): Promise<MetaAdAccount | null> {
     const raw = await this.db.metaAdAccount.findUnique({ where: { id } });
     return raw ? new MetaAdAccount(raw) : null;
+  }
+
+  async findByClinicAndAdAccountId(
+    clinicId: string,
+    adAccountId: string
+  ): Promise<MetaAdAccount | null> {
+    const raw = await this.db.metaAdAccount.findUnique({
+      where: { clinicId_adAccountId: { clinicId, adAccountId } },
+    });
+    return raw ? new MetaAdAccount(raw) : null;
+  }
+
+  async findExpiringSoon(withinDays: number): Promise<MetaAdAccount[]> {
+    const threshold = DateTimeManager.addDays(
+      DateTimeManager.create(),
+      withinDays
+    );
+    const rows = await this.db.metaAdAccount.findMany({
+      where: { isActive: true, tokenExpiresAt: { lte: threshold } },
+    });
+    return rows.map((raw) => new MetaAdAccount(raw));
+  }
+
+  async findSyncCandidates(clinicId?: string): Promise<MetaAdAccount[]> {
+    const rows = await this.db.metaAdAccount.findMany({
+      where: { isActive: true, ...(clinicId ? { clinicId } : {}) },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((raw) => new MetaAdAccount(raw));
   }
 
   async update(entity: MetaAdAccount) {

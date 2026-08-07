@@ -3,15 +3,11 @@ import { Inject } from '@nestjs/common';
 import { AdjustStockCommand } from './adjust-stock.command';
 import {
   IProductCommandRepository,
-  IProductQueryRepository,
   PRODUCT_COMMAND_REPOSITORY,
-  PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import {
   IProductBatchCommandRepository,
-  IProductBatchQueryRepository,
   PRODUCT_BATCH_COMMAND_REPOSITORY,
-  PRODUCT_BATCH_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
 import {
   IStockMovementCommandRepository,
@@ -32,12 +28,8 @@ export class AdjustStockHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productCommandRepo: IProductCommandRepository,
-    @Inject(PRODUCT_BATCH_QUERY_REPOSITORY)
-    private readonly productBatchQueryRepo: IProductBatchQueryRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
     private readonly productBatchCommandRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
@@ -51,7 +43,7 @@ export class AdjustStockHandler implements ICommandHandler<
     const { clinicId, data, ctx } = command.payload;
     const { actor, source } = ctx;
 
-    const product = await this.productQueryRepo.findById(data.productId);
+    const product = await this.productCommandRepo.findById(data.productId);
     if (!product) throw new ProductNotFoundException();
 
     this.policyFactory
@@ -72,7 +64,7 @@ export class AdjustStockHandler implements ICommandHandler<
       if (!lockedProduct) throw new ProductNotFoundException();
 
       const availableBatches =
-        await this.productBatchQueryRepo.findAvailableByProduct(
+        await this.productBatchCommandRepo.findAvailableByProduct(
           lockedProduct.id.value,
           clinicId
         );

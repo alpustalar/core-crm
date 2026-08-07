@@ -1,5 +1,5 @@
 import { BaseRules } from '@common/domain/rules/base.rules';
-import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import type { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import {
   CreateTreatmentPackageProps,
@@ -23,7 +23,10 @@ export class TreatmentPackageRules extends BaseRules {
     const isValid = props.price.validate.greaterThanZero.isValid;
     return this.evaluate(
       isValid,
-      () => new Error('Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'),
+      () =>
+        new InvalidMoneyAmountException(
+          'Tedavi paket fiyatı sıfırdan büyük olmak zorundadır.'
+        ),
       this.validateOptions
     );
   }

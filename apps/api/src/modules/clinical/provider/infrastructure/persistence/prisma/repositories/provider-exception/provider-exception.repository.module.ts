@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { ProviderExceptionQueryRepository } from '@modules/clinical/provider/infrastructure/persistence/prisma/repositories/provider-exception/provider-exception.query.repository';
-import { PROVIDER_EXCEPTION_QUERY_REPOSITORY } from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.query.repository.interface';
-import { PROVIDER_EXCEPTION_COMMAND_REPOSITORY } from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.command.repository.interface';
+import { PROVIDER_EXCEPTION_QUERY_REPOSITORY } from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.query.repository';
+import { PROVIDER_EXCEPTION_COMMAND_REPOSITORY } from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.command.repository';
 import { ProviderExceptionCommandRepository } from '@modules/clinical/provider/infrastructure/persistence/prisma/repositories/provider-exception/provider-exception.command.repository';
 
 @Module({

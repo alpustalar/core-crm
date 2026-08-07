@@ -8,7 +8,7 @@ import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-as
 import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
 
 @QueryHandler(FindAllProvidersQuery)
 export class FindAllProvidersHandler

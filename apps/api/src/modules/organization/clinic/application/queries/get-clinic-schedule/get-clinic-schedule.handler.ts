@@ -12,10 +12,10 @@ import {
 } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.query.repository.interface';
 
 @QueryHandler(GetClinicScheduleQuery)
-export class GetClinicScheduleHandler
-  implements
-    IQueryHandler<GetClinicScheduleQuery, GetClinicScheduleQueryResponse>
-{
+export class GetClinicScheduleHandler implements IQueryHandler<
+  GetClinicScheduleQuery,
+  GetClinicScheduleQueryResponse
+> {
   constructor(
     @Inject(CLINIC_AVAILABILITY_QUERY_REPOSITORY)
     private readonly clinicAvailabilityQueryRepo: IClinicAvailabilityQueryRepository,

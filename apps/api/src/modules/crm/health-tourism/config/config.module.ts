@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
-import { HealthTourismConfigCommandModule } from './application/commands/command.module';
-import { HealthTourismConfigQueryModule } from './application/queries/query.module';
-import { ClinicHealthTourismConfigController } from './presentation/controllers/clinic-health-tourism-config.controller';
+import { HealthTourismConfigApplicationModule } from '@modules/crm/health-tourism/config/application/application.module';
+import { HealthTourismConfigInfrastructureModule } from '@modules/crm/health-tourism/config/infrastructure/infrastructure.module';
+import { HealthTourismConfigPresentationModule } from '@modules/crm/health-tourism/config/presentation/presentation.module';
 
 /**
  * Klinik-başına sağlık-turizmi config'i (B0). Configure command + Get query'yi açar;
  * AI executor (B2/B3) GetClinicHealthTourismConfigQuery'yi bus üzerinden tüketir.
  */
 @Module({
-  imports: [HealthTourismConfigCommandModule, HealthTourismConfigQueryModule],
-  controllers: [ClinicHealthTourismConfigController],
+  imports: [
+    HealthTourismConfigApplicationModule,
+    HealthTourismConfigInfrastructureModule,
+    HealthTourismConfigPresentationModule,
+  ],
 })
 export class HealthTourismConfigModule {}

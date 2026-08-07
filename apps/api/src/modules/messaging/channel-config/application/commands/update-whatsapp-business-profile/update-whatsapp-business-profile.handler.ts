@@ -6,8 +6,8 @@ import {
   WHATSAPP_CLOUD_API,
 } from '@modules/messaging/channel-config/domain/interfaces/whatsapp-cloud-api.interface';
 import {
-  CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY,
-  IClinicWhatsappChannelQueryRepository,
+  CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY,
+  IClinicWhatsappChannelCommandRepository,
 } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { UpdateWhatsappBusinessProfileCommand } from './update-whatsapp-business-profile.command';
 
@@ -16,15 +16,16 @@ export class UpdateWhatsappBusinessProfileHandler
   implements ICommandHandler<UpdateWhatsappBusinessProfileCommand, void>
 {
   constructor(
-    @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
-    private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,
+    // Token dış API çağrısını besliyor → Command Context (bkz. repo arayüzü notu).
+    @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)
+    private readonly channelCommandRepo: IClinicWhatsappChannelCommandRepository,
     @Inject(WHATSAPP_CLOUD_API)
     private readonly cloudApi: IWhatsappCloudApi,
     private readonly cipher: TokenCipherService
   ) {}
 
   async execute(command: UpdateWhatsappBusinessProfileCommand): Promise<void> {
-    const channel = await this.channelQueryRepo.findByClinicId(
+    const channel = await this.channelCommandRepo.findByClinicId(
       command.clinicId
     );
     if (!channel || !channel.isActive || !channel.accessToken) {

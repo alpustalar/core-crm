@@ -1,7 +1,7 @@
 import { SendBookingConfirmationHandler } from './send-booking-confirmation.handler';
 import { SendBookingConfirmationCommand } from './send-booking-confirmation.command';
 import { IAiChatPort } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
-import { IConversationQueryRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -48,9 +48,9 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
       })),
     } as unknown as IAiChatPort;
 
-    const conversationQueryRepo = {
+    const conversationCommandRepo = {
       findById: jest.fn(async () => opts.conversation),
-    } as unknown as IConversationQueryRepository;
+    } as unknown as IConversationCommandRepository;
 
     const messageQueryRepo = {
       findManyByConversation: jest.fn(async () => ({
@@ -83,7 +83,7 @@ describe('SendBookingConfirmationHandler — (b) ödeme sonrası onay', () => {
     return {
       handler: new SendBookingConfirmationHandler(
         chatPort,
-        conversationQueryRepo,
+        conversationCommandRepo,
         messageQueryRepo,
         commandBus,
         queryBus

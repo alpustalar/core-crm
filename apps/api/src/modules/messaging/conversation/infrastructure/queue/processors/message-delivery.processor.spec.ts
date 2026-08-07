@@ -8,7 +8,6 @@ import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import {
   IConversationCommandRepository,
-  IConversationQueryRepository,
 } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 
@@ -34,13 +33,9 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
       update: jest.fn(async (m: Message) => m),
     } as unknown as IMessageCommandRepository;
 
-    const conversationQueryRepo = {
-      findById: jest.fn().mockResolvedValue(params.conversation ?? null),
-      findByContact: jest.fn(),
-      findMany: jest.fn(),
-    } as unknown as IConversationQueryRepository;
-
     const conversationCommandRepo = {
+      // Gönderim öncesi okuma da Command Repo'dan (kanal/servis penceresi kararı).
+      findById: jest.fn().mockResolvedValue(params.conversation ?? null),
       findByIdForUpdate: jest
         .fn()
         .mockResolvedValue(
@@ -59,7 +54,6 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
     const processor = new MessageDeliveryProcessor(
       channel,
       messageCommandRepo,
-      conversationQueryRepo,
       conversationCommandRepo,
       txManager
     );

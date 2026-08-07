@@ -1,13 +1,11 @@
 import { GlobalStatus, Prisma } from '@prisma/client';
-import { GlobalStatusType } from '@input-type-schemas/GlobalStatusSchema';
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { z } from 'zod';
-import { Pagination } from '@shared';
+import { User as IUser } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IUserQueryRepository } from '@modules/identity/user/domain/repositories/user.repository';
-import { User } from '@modules/identity/user/domain/entities/user.entity';
 import { RoleWithCapabilities } from '@common/interfaces';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { normalizeArray } from '@common/utils/normalize-array';
@@ -16,33 +14,8 @@ import {
   FindUsersByClinicIdsFilter,
   FindUsersByOrganizationIdsFilter,
 } from '@modules/identity/user/domain/contracts/user.contracts';
-import { Priority } from '@src/domain/value-objects/priority.vo';
 
-const USER_ENTITY_INCLUDE = {
-  role: { select: { id: true, priority: true } },
-  workingClinic: { select: { id: true } },
-  managedClinics: { select: { id: true } },
-  ownedOrganizations: { select: { id: true } },
-  providerProfile: { select: { id: true } },
-} as const satisfies Prisma.UserInclude;
-
-function toUserEntity(
-  raw: Prisma.UserGetPayload<{ include: typeof USER_ENTITY_INCLUDE }>
-): User {
-  const { managedClinics, ownedOrganizations, providerProfile, role, ...rest } =
-    raw;
-  return new User({
-    ...rest,
-    role: {
-      priority: Priority.fromTrusted(role.priority),
-      id: role.id,
-    },
-    managedClinicIds: managedClinics.map((c) => c.id),
-    ownedOrganizationIds: ownedOrganizations.map((o) => o.id),
-    providerProfileId: providerProfile?.id ?? null,
-  });
-}
-
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class UserQueryRepository
   extends BaseRepository
@@ -52,39 +25,11 @@ export class UserQueryRepository
     super(prisma);
   }
 
-  async findByIdOrEmail(userIdOrEmail: string): Promise<User | null> {
+  findByIdOrEmail(userIdOrEmail: string): Promise<IUser | null> {
     const { success: isEmail } = z.email().safeParse(userIdOrEmail);
-    if (isEmail) {
-      return this.findByEmail(userIdOrEmail);
-    }
-    return this.find(userIdOrEmail);
-  }
-
-  async find(id: string): Promise<User | null> {
-    const raw = await this.db.user.findFirst({
-      where: { id },
-      include: USER_ENTITY_INCLUDE,
+    return this.db.user.findFirst({
+      where: isEmail ? { email: userIdOrEmail } : { id: userIdOrEmail },
     });
-    if (!raw) return null;
-    return toUserEntity(raw);
-  }
-
-  async findByEmail(email: string): Promise<User | null> {
-    const raw = await this.db.user.findFirst({
-      where: { email },
-      include: USER_ENTITY_INCLUDE,
-    });
-    if (!raw) return null;
-    return toUserEntity(raw);
-  }
-
-  async findAllActiveByClinicId(clinicId: string): Promise<Paginated<User>> {
-    const raws = await this.db.user.findMany({
-      where: { clinicId, status: { not: GlobalStatus.DELETED } },
-      include: USER_ENTITY_INCLUDE,
-    });
-    const items = raws.map(toUserEntity);
-    return { items, total: items.length };
   }
 
   async findActiveStaffUserIdsByClinicId(clinicId: string): Promise<string[]> {
@@ -100,26 +45,6 @@ export class UserQueryRepository
     return rows.map((row) => row.id);
   }
 
-  async findAllByStatusWithClinicId(
-    status: GlobalStatusType,
-    clinicId: string
-  ): Promise<Paginated<User>> {
-    const raws = await this.db.user.findMany({
-      where: { clinicId, status },
-      include: USER_ENTITY_INCLUDE,
-    });
-    const items = raws.map(toUserEntity);
-    return { items, total: items.length };
-  }
-
-  async findAllByClinicId(clinicId: string): Promise<Paginated<User>> {
-    const raws = await this.db.user.findMany({
-      where: { clinicId },
-      include: USER_ENTITY_INCLUDE,
-    });
-    const items = raws.map(toUserEntity);
-    return { items, total: items.length };
-  }
 
   checkEmailExists(email: string): Promise<number> {
     return this.db.user.count({ where: { email } });
@@ -160,59 +85,33 @@ export class UserQueryRepository
     };
   }
 
-  async list(
-    pagination: Pagination,
-    where?: Record<string, unknown>
-  ): Promise<Paginated<User>> {
-    const result = await paginate<
-      Prisma.UserGetPayload<{ include: typeof USER_ENTITY_INCLUDE }>,
-      Prisma.UserWhereInput
-    >({
-      delegate: this.db.user as never,
-      pagination,
-      where: where as Prisma.UserWhereInput,
-      include: USER_ENTITY_INCLUDE,
-    });
-    return this.mapPagination(result, toUserEntity);
-  }
-
-  async listByOrganizationIds({
+  listByOrganizationIds({
     pagination,
     organizationId,
-  }: FindUsersByOrganizationIdsFilter): Promise<Paginated<User>> {
+  }: FindUsersByOrganizationIdsFilter): Promise<Paginated<IUser>> {
     const organizationIds = normalizeArray(organizationId);
-    const result = await paginate<
-      Prisma.UserGetPayload<{ include: typeof USER_ENTITY_INCLUDE }>,
-      Prisma.UserWhereInput
-    >({
-      delegate: this.db.user as never,
+    return paginate({
+      delegate: this.db.user,
       pagination,
       where: {
         workingClinic: { is: { organizationId: { in: organizationIds } } },
         status: { not: GlobalStatus.DELETED },
       },
-      include: USER_ENTITY_INCLUDE,
     });
-    return this.mapPagination(result, toUserEntity);
   }
 
-  async listByClinicIds({
+  listByClinicIds({
     pagination,
     clinicId,
-  }: FindUsersByClinicIdsFilter): Promise<Paginated<User>> {
+  }: FindUsersByClinicIdsFilter): Promise<Paginated<IUser>> {
     const clinicIds = normalizeArray(clinicId);
-    const result = await paginate<
-      Prisma.UserGetPayload<{ include: typeof USER_ENTITY_INCLUDE }>,
-      Prisma.UserWhereInput
-    >({
-      delegate: this.db.user as never,
+    return paginate({
+      delegate: this.db.user,
       pagination,
       where: {
         clinicId: { in: clinicIds },
         status: { not: GlobalStatus.DELETED },
       },
-      include: USER_ENTITY_INCLUDE,
     });
-    return this.mapPagination(result, toUserEntity);
   }
 }

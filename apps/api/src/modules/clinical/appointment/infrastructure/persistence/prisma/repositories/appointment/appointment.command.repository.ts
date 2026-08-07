@@ -3,7 +3,7 @@ import { AppointmentStatusSchema } from '@shared';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import { IAppointmentCommandRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command-repository.interface';
+import { IAppointmentCommandRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command.repository';
 import {
   CancelProviderAppointmentsData,
   FindDueForReminderData,

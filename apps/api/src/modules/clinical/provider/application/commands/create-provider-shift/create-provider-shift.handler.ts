@@ -14,11 +14,11 @@ import { ProviderShift } from '@modules/clinical/provider/domain/entities/provid
 import {
   IProviderCommandRepository,
   PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 import {
   IProviderShiftCommandRepository,
   PROVIDER_SHIFT_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository';
 import {
   CLINIC_BOOKING_SERVICE,
   IClinicBookingService,

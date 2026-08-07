@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { OrganizationFinanceSettings } from '@modules/organization/organization/domain/entities/organization-finance-settings.entity';
+import { OrganizationFinanceSettings as IOrganizationFinanceSettings } from '@shared';
 import { IOrganizationFinanceSettingsQueryRepository } from '@modules/organization/organization/domain/repositories/organization-finance-settings.repository.interface';
 
 @Injectable()
@@ -13,12 +13,11 @@ export class OrganizationFinanceSettingsQueryRepository
     super(prisma);
   }
 
-  async findByOrganizationId(
+  findByOrganizationId(
     organizationId: string
-  ): Promise<OrganizationFinanceSettings | null> {
-    const raw = await this.db.organizationFinanceSettings.findUnique({
+  ): Promise<IOrganizationFinanceSettings | null> {
+    return this.db.organizationFinanceSettings.findUnique({
       where: { organizationId },
     });
-    return raw ? new OrganizationFinanceSettings(raw) : null;
   }
 }

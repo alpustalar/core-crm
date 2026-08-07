@@ -19,7 +19,7 @@ import {
   PatientRevenue,
   SumIncomeByPatientsFilter,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
-import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
+import { FinanceLedger as IFinanceLedger } from '@shared';
 
 @Injectable()
 export class FinanceLedgerQueryRepository
@@ -30,38 +30,15 @@ export class FinanceLedgerQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<FinanceLedgerEntity | null> {
-    const raw = await this.db.financeLedger.findUnique({ where: { id } });
-    return raw ? new FinanceLedgerEntity(raw) : null;
-  }
-
-  async findManyByClinicId(
+  findManyByClinicId(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: FinanceLedgerEntity[]; total: number }> {
-    const result = await paginate({
+  ): Promise<{ items: IFinanceLedger[]; total: number }> {
+    return paginate({
       delegate: this.db.financeLedger,
       pagination,
       where: { clinicId },
     });
-    return { items: result.items.map((r) => new FinanceLedgerEntity(r)), total: result.total };
-  }
-
-  async findManyByPatientId(
-    patientId: string,
-    pagination: Pagination
-  ): Promise<{ items: FinanceLedgerEntity[]; total: number }> {
-    const result = await paginate({
-      delegate: this.db.financeLedger,
-      pagination,
-      where: { patientId },
-    });
-    return { items: result.items.map((r) => new FinanceLedgerEntity(r)), total: result.total };
-  }
-
-  async findManyByPaymentId(paymentId: string): Promise<FinanceLedgerEntity[]> {
-    const rows = await this.db.financeLedger.findMany({ where: { paymentId } });
-    return rows.map((r) => new FinanceLedgerEntity(r));
   }
 
   async findManyByPatientIdWithDetails(

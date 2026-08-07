@@ -18,7 +18,7 @@ import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions
 import {
   CONSENT_FORM_SUBMISSION_COMMAND_REPOSITORY,
   IConsentFormSubmissionCommandRepository,
-} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.command.repository.interface';
+} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.command.repository';
 import {
   CONSENT_TEMPLATE_COMMAND_REPOSITORY,
   IConsentTemplateCommandRepository,

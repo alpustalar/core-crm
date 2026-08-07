@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IBookingPaymentQueryRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
-import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
+import { BookingPayment } from '@shared';
+import { IBookingPaymentQueryRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.query.repository';
 
 @Injectable()
 export class BookingPaymentQueryRepository
@@ -13,26 +13,21 @@ export class BookingPaymentQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<BookingPayment | null> {
-    const raw = await this.db.bookingPayment.findUnique({ where: { id } });
-    return raw ? new BookingPayment(raw) : null;
+  findById(id: string): Promise<BookingPayment | null> {
+    return this.db.bookingPayment.findUnique({ where: { id } });
   }
 
-  async findByStripeSessionId(
-    sessionId: string
-  ): Promise<BookingPayment | null> {
-    const raw = await this.db.bookingPayment.findUnique({
+  findByStripeSessionId(sessionId: string): Promise<BookingPayment | null> {
+    return this.db.bookingPayment.findUnique({
       where: { stripeSessionId: sessionId },
     });
-    return raw ? new BookingPayment(raw) : null;
   }
 
-  async findByIyzicoConversationId(
+  findByIyzicoConversationId(
     conversationId: string
   ): Promise<BookingPayment | null> {
-    const raw = await this.db.bookingPayment.findUnique({
+    return this.db.bookingPayment.findUnique({
       where: { iyzicoConversationId: conversationId },
     });
-    return raw ? new BookingPayment(raw) : null;
   }
 }

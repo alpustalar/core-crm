@@ -1,22 +1,21 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CompleteActivityCommand } from './complete-activity.command';
-import {
-  ACTIVITY_COMMAND_REPOSITORY,
-  IActivityCommandRepository,
-} from '@modules/crm/activity/domain/repositories/activity.repository';
 import { ActivityNotFoundException } from '@modules/crm/activity/domain/exceptions/activity.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ACTIVITY_COMMAND_REPOSITORY,
+  IActivityCommandRepository,
+} from '@modules/crm/activity/domain/repositories/activity/activity.command.repository';
 
 @CommandHandler(CompleteActivityCommand)
-export class CompleteActivityHandler implements ICommandHandler<
-  CompleteActivityCommand,
-  void
-> {
+export class CompleteActivityHandler
+  implements ICommandHandler<CompleteActivityCommand, void>
+{
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
     private readonly activityRepo: IActivityCommandRepository,

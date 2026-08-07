@@ -2,24 +2,27 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { UpdateTreatmentPackageCommand } from './update-treatment-package.command';
 import type { UpdateTreatmentPackageResponse } from './update-treatment-package.response';
-import {
-  ITreatmentPackageCommandRepository,
-  TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { Money } from '@src/domain/value-objects/money.vo';
+import { Money } from '@src/domain/value-objects';
 import { Decimal } from 'decimal.js';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
+import {
+  ITreatmentPackageCommandRepository,
+  TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.command.repository';
 
 @CommandHandler(UpdateTreatmentPackageCommand)
-export class UpdateTreatmentPackageHandler implements ICommandHandler<
-  UpdateTreatmentPackageCommand,
-  UpdateTreatmentPackageResponse
-> {
+export class UpdateTreatmentPackageHandler
+  implements
+    ICommandHandler<
+      UpdateTreatmentPackageCommand,
+      UpdateTreatmentPackageResponse
+    >
+{
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
     private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,

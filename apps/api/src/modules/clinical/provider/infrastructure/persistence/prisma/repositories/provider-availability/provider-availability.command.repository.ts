@@ -3,7 +3,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
-import { IProviderAvailabilityCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.command.repository.interface';
+import { IProviderAvailabilityCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.command.repository';
 
 @Injectable()
 export class ProviderAvailabilityCommandRepository

@@ -1,13 +1,11 @@
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
   IProductBatchCommandRepository,
-  IProductBatchQueryRepository,
   PRODUCT_BATCH_COMMAND_REPOSITORY,
-  PRODUCT_BATCH_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
 import {
-  IProductQueryRepository,
-  PRODUCT_QUERY_REPOSITORY,
+  IProductCommandRepository,
+  PRODUCT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import {
   IStockMovementCommandRepository,
@@ -26,10 +24,8 @@ export class RecordProductUsageHandler implements ICommandHandler<
   void
 > {
   constructor(
-    @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
-    @Inject(PRODUCT_BATCH_QUERY_REPOSITORY)
-    private readonly productBatchQueryRepo: IProductBatchQueryRepository,
+    @Inject(PRODUCT_COMMAND_REPOSITORY)
+    private readonly productCommandRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
     private readonly productBatchCommandRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
@@ -41,36 +37,42 @@ export class RecordProductUsageHandler implements ICommandHandler<
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const product = await this.productQueryRepo.findById(dto.productId);
-    if (!product) throw new ProductNotFoundException();
-
     const quantity = new Decimal(dto.quantity);
 
-    let batch = dto.batchId
-      ? await this.productBatchCommandRepo.findById(dto.batchId)
-      : null;
-
-    if (!batch) {
-      const available = await this.productBatchQueryRepo.findAvailableByProduct(
-        product.id.value,
-        clinicId
-      );
-      batch = available[0] ?? null;
-    }
-
-    if (!batch) {
-      throw new BadRequestException('Kullanılabilir stok bulunamadı.');
-    }
-
-    const stockMovementProps = batch.deductQuantity({
-      qty: quantity,
-      performedById: actor.userId,
-      notes: dto.notes,
-    });
-
-    const stockMovement = StockMovement.create(stockMovementProps);
-
+    // Ürün satırı FOR UPDATE ile kilitlenir, partiler kilit altında okunup düşülür:
+    // aksi halde aynı ürüne eşzamanlı iki kullanım aynı parti bakiyesini okuyup
+    // ayrı ayrı düşer → lost update (stok olduğundan fazla görünür).
     await this.txManager.run(async () => {
+      const product = await this.productCommandRepo.findByIdForUpdate(
+        dto.productId
+      );
+      if (!product) throw new ProductNotFoundException();
+
+      let batch = dto.batchId
+        ? await this.productBatchCommandRepo.findById(dto.batchId)
+        : null;
+
+      if (!batch) {
+        const available =
+          await this.productBatchCommandRepo.findAvailableByProduct(
+            product.id.value,
+            clinicId
+          );
+        batch = available[0] ?? null;
+      }
+
+      if (!batch) {
+        throw new BadRequestException('Kullanılabilir stok bulunamadı.');
+      }
+
+      const stockMovementProps = batch.deductQuantity({
+        qty: quantity,
+        performedById: actor.userId,
+        notes: dto.notes,
+      });
+
+      const stockMovement = StockMovement.create(stockMovementProps);
+
       await this.productBatchCommandRepo.update(batch);
       await this.stockMovementCommandRepo.create(stockMovement);
     });

@@ -15,10 +15,6 @@ import {
   IServiceFeeProvider,
   SERVICE_FEE_PROVIDER,
 } from '@src/infrastructure/payment/links/service-fee.port';
-import {
-  BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  IBookingPaymentCommandRepository,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import {
   BookingIntent,
@@ -31,12 +27,19 @@ import {
   InitiateBookingPaymentResponse,
 } from './initiate-booking-payment.response';
 import { Currency } from '@src/domain/value-objects';
+import {
+  BOOKING_PAYMENT_COMMAND_REPOSITORY,
+  IBookingPaymentCommandRepository,
+} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 
 @CommandHandler(InitiateBookingPaymentCommand)
-export class InitiateBookingPaymentHandler implements ICommandHandler<
-  InitiateBookingPaymentCommand,
-  InitiateBookingPaymentResponse
-> {
+export class InitiateBookingPaymentHandler
+  implements
+    ICommandHandler<
+      InitiateBookingPaymentCommand,
+      InitiateBookingPaymentResponse
+    >
+{
   private readonly logger = new Logger(InitiateBookingPaymentHandler.name);
 
   constructor(

@@ -1,3 +1,4 @@
+import { Conversation as IConversation } from '@shared';
 import { Conversation } from '../entities/conversation.entity';
 import {
   FindConversationByContactProps,
@@ -26,12 +27,13 @@ export interface IConversationCommandRepository
   ): Promise<Conversation | null>;
 }
 
+/** Okuma tarafı: entity değil, plain model döner (veri HTTP sınırını geçiyor). */
 export interface IConversationQueryRepository {
-  findById(id: string): Promise<Conversation | null>;
+  findById(id: string): Promise<IConversation | null>;
   findByContact(
     props: FindConversationByContactProps
-  ): Promise<Conversation | null>;
+  ): Promise<IConversation | null>;
   findMany(
     filter: FindConversationsFilter
-  ): Promise<{ items: Conversation[]; total: number }>;
+  ): Promise<{ items: IConversation[]; total: number }>;
 }

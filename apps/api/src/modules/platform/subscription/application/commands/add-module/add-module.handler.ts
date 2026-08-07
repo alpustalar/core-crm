@@ -2,8 +2,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { AddModuleCommand } from './add-module.command';
 import {
-  ISubscriptionQueryRepository,
-  SUBSCRIPTION_QUERY_REPOSITORY,
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import {
   BILLING_ADAPTER,
@@ -34,8 +34,8 @@ export class AddModuleHandler
   constructor(
     @Inject(SUBSCRIPTION_ITEM_COMMAND_REPOSITORY)
     private readonly subscriptionItemCommandRepo: ISubscriptionItemCommandRepository,
-    @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
+    @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
+    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter
   ) {}
@@ -49,12 +49,12 @@ export class AddModuleHandler
     }
 
     const subscription =
-      await this.subscriptionQueryRepo.findByOrganizationId(organizationId);
+      await this.subscriptionCommandRepo.findByOrganizationId(organizationId);
     if (!subscription) {
       throw new SubscriptionNotFoundException();
     }
 
-    const module = await this.subscriptionQueryRepo.findModuleByKey(moduleKey);
+    const module = await this.subscriptionCommandRepo.findModuleByKey(moduleKey);
 
     if (!module) {
       throw new SubscriptionModuleNotFoundException(moduleKey);
@@ -74,7 +74,7 @@ export class AddModuleHandler
       });
 
     const subscriptionItem = SubscriptionItem.create({
-      subscriptionId: subscription.id, // read-model → düz string id
+      subscriptionId: subscription.id.value,
       moduleId: module.id,
       priceAtPurchase: price,
       externalPriceId: externalPriceId ?? conversationId,

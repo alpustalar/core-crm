@@ -1,22 +1,20 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { AppointmentCompletedEvent } from '@modules/clinical/appointment/domain/events/complete-appointment.event';
 import {
   IMetaLeadCommandRepository,
-  IMetaLeadQueryRepository,
   META_LEAD_COMMAND_REPOSITORY,
-  META_LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
 
 @Injectable()
 export class MetaLeadConversionListener {
   private readonly logger = new Logger(MetaLeadConversionListener.name);
 
   constructor(
-    @Inject(META_LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: IMetaLeadQueryRepository,
     @Inject(META_LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: IMetaLeadCommandRepository
+    private readonly leadCommandRepo: IMetaLeadCommandRepository,
+    private readonly txManager: TransactionManager
   ) {}
 
   @OnEvent(AppointmentCompletedEvent.NAME, { async: true })
@@ -24,13 +22,16 @@ export class MetaLeadConversionListener {
     if (!event.patientId) return;
 
     try {
-      const lead = await this.leadQueryRepo.findMatchedLeadByPatientId(
-        event.patientId
-      );
-      if (!lead) return;
+      // Okuma da yazma da Command Repo'dan: lead durumu değiştirilecek.
+      await this.txManager.run(async () => {
+        const lead = await this.leadCommandRepo.findMatchedLeadByPatientId(
+          event.patientId!
+        );
+        if (!lead) return;
 
-      lead.markConverted(event.appointmentId);
-      await this.leadCommandRepo.update(lead);
+        lead.markConverted(event.appointmentId);
+        await this.leadCommandRepo.update(lead);
+      });
     } catch (err) {
       this.logger.error(
         `Meta lead dönüşüm hatası — patientId: ${event.patientId}`,

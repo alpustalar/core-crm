@@ -1,9 +1,7 @@
 import { Inject } from '@nestjs/common';
 import {
   IUserCommandRepository,
-  IUserQueryRepository,
   USER_COMMAND_REPOSITORY,
-  USER_QUERY_REPOSITORY,
 } from '@modules/identity/user/domain/repositories/user.repository';
 import { ChangeAllUsersStatusInClinicCommand } from '@modules/identity/user/application/commands/change-all-users-status-in-clinic/change-all-users-status-in-clinic.command';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
@@ -22,8 +20,6 @@ export class ChangeAllUsersStatusInClinicHandler
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
     private readonly userCommandRepo: IUserCommandRepository,
-    @Inject(USER_QUERY_REPOSITORY)
-    private readonly userQueryRepo: IUserQueryRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -32,12 +28,10 @@ export class ChangeAllUsersStatusInClinicHandler
     command: ChangeAllUsersStatusInClinicCommand
   ): Promise<ChangeAllUsersStatusInClinicResponse> {
     const { status, clinicId } = command;
-    await this.txManager.run(async () => {
-      await this.userCommandRepo.changeStatus(status, clinicId);
-      return await this.userQueryRepo.findAllByStatusWithClinicId(
-        status,
-        clinicId
-      );
-    });
+    // Dönüş void; toplu güncelleme sonrası kullanıcıları tekrar okumanın karşılığı
+    // yoktu (sonuç atılıyordu) — okuma kaldırıldı.
+    await this.txManager.run(() =>
+      this.userCommandRepo.changeStatus(status, clinicId)
+    );
   }
 }
