@@ -13,18 +13,22 @@ import {
   Req,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
-import { ENV } from '@common/constants/env.constant';
 import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
-import { ProcessMetaLeadCommand } from '@modules/crm/meta-ads/application/commands/process-meta-lead/process-meta-lead.command';
+import {
+  ProcessMetaLeadCommand
+} from '@modules/crm/meta-ads/application/commands/process-meta-lead/process-meta-lead.command';
 import {
   IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import {
+  IMetaAdsPresentationConfig,
+  META_ADS_PRESENTATION_CONFIG,
+} from '@modules/crm/meta-ads/domain/interfaces/meta-ads-config.interface';
 
 interface MetaWebhookEntry {
   id: string;
@@ -47,7 +51,8 @@ export class MetaWebhookController {
   private readonly logger = new Logger(MetaWebhookController.name);
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject(META_ADS_PRESENTATION_CONFIG)
+    private readonly metaAdsConfig: IMetaAdsPresentationConfig,
     private readonly commandBus: TSCommandBus,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,
@@ -62,9 +67,7 @@ export class MetaWebhookController {
     @Query('hub.challenge') challenge: string,
     @Query('hub.verify_token') verifyToken: string
   ) {
-    const expectedToken = this.configService.getOrThrow<string>(
-      ENV.META_WEBHOOK_VERIFY_TOKEN
-    );
+    const expectedToken = this.metaAdsConfig.verifyToken;
 
     if (mode === 'subscribe' && verifyToken === expectedToken) {
       return parseInt(challenge, 10);
@@ -82,9 +85,8 @@ export class MetaWebhookController {
   ) {
     if (!req.rawBody) throw new BadRequestException();
 
-    const appSecret = this.configService.getOrThrow<string>(
-      ENV.META_APP_SECRET
-    );
+    const appSecret = this.metaAdsConfig.appSecret;
+
     const isValid = this.metaApi.verifyWebhookSignature(
       req.rawBody,
       signature ?? '',

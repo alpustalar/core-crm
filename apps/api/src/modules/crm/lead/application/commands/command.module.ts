@@ -4,8 +4,7 @@ import { UpdateLeadStatusHandler } from './update-lead-status/update-lead-status
 import { ConvertLeadHandler } from './convert-lead/convert-lead.handler';
 import { MarkLeadLostHandler } from './mark-lead-lost/mark-lead-lost.handler';
 import { MoveLeadToStageHandler } from './move-lead-to-stage/move-lead-to-stage.handler';
-import { LeadRepositoryModule } from '@modules/crm/lead/infrastructure/persistence/prisma/repositories/lead/lead.repository.module';
-import { LeadEventModule } from '@modules/crm/lead/infrastructure/events/lead-event.module';
+import { LeadInfrastructureModule } from '@modules/crm/lead/infrastructure/infrastructure.module';
 
 export const LEAD_COMMAND_HANDLERS = [
   CreateLeadHandler,
@@ -16,7 +15,7 @@ export const LEAD_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [LeadRepositoryModule, LeadEventModule],
+  imports: [LeadInfrastructureModule],
   providers: LEAD_COMMAND_HANDLERS,
   exports: LEAD_COMMAND_HANDLERS,
 })

@@ -24,7 +24,7 @@
 | 6.2 | İzin (request/approve/balance) + Devam/mesai | ✅ (authz + bakiye guard; attendance check-in/out + fazla mesai) |
 | 6.3 | Bordro (payroll) | ✅ |
 | 7 | Üretim (dış iş emri / lab) | 🟡 (dış iş emri ✅; klinik içi üretim + BOM/MRP 🔴 — kapsam dışı bırakıldı) |
-| 8 | Proje yönetimi | 🔴 |
+| 8 | Proje yönetimi | ✅ (proje+aşama, görev/Kanban, bütçe-fiili, kaynak planlama) |
 | 9.1 | E-nabız | 🟡 (yalnız schema `enabiz.prisma`) |
 | 9.2 | E-reçete | 🔴 |
 | 9.3 | E-rapor | 🔴 |
@@ -62,7 +62,28 @@
 
 - **7.1 Dış İş Emri (External Work Order)** ✅ — yeni `supply/work-order` modülü (2026-08-05): platform çok-dikeyli olduğu için modül **dental lab'e özel değil**, klinik dışındaki üçüncü parti tedarikçilere (diş laboratuvarı, saç protezi üreticisi, medikal protez tedarikçisi) verilen iş emirlerini takip eder. **`ExternalWorkOrder`** (durum akışı `DRAFT → SENT → IN_PROGRESS ⇄ TRY_IN → READY → DELIVERED → FITTED`, + terminal olmayan her durumdan `CANCELLED`) + **`ExternalWorkOrderItem`**. Tedarikçi **mevcut `supply/inventory` Supplier**'dır (yeni satıcı tablosu yok, bounded-context: scalar `supplierId`); hasta/tedavi/hekim de scalar id. **Sektöre özgü teknik detay satır bazında `specs Json`** + `@shared/modules/work-order`'da `kind` ile ayrışan zod discriminated union (`DENTAL` diş no/renk/materyal, `HAIR` taban/yoğunluk/kalıp, `AESTHETIC`, `GENERIC` anahtar-değer) — yeni dikey eklemek migration değil şema işi. **Yeniden yapım (remake)** kaynağı değiştirmez: satırları kopyalanmış yeni DRAFT açılır, `remakeOfId` ile bağlanır (remake oranı bu bağdan hesaplanır). **Termin takibi**: BullMQ repeatable job (`*/30 * * * *`) → `ScanOverdueWorkOrdersCommand` → `markOverdueNotified()` (entity `overdueNotifiedAt` damgası = idempotency) → `WorkOrderOverdueEvent` → `platform/notification` listener'ı in-app personel bildirimi üretir (`WORK_ORDER_OVERDUE`, deepLink `work-orders`). **Maliyet v1'de yalnız alan** (`agreedCost`/`actualCost` + para birimi) — **muhasebe fişi üretilmez**, lab faturası zaten `finance/purchase-invoice` üzerinden 320'ye işleniyor (mükerrer kayıt önlenir). Authz yeni `WorkOrderPolicy` (`PolicyFactory.workOrder()`): açma/görüntüleme/ara ilerleme = aynı klinik personeli, teslim alma + iptal + remake = klinik yöneticisi. Endpoint kökü `work-orders/orders/*` (command/query controller ayrımıyla). Şema `work-order.prisma`. Testler: entity durum makinesi + specs union + tarama idempotency (27 test). **⚠️ Migration uygulanmadı** (`pnpm migrate:dev` — external_work_orders + items + `WORK_ORDER_OVERDUE`/`WORK_ORDER_DUE_SOON` notification enum).
 - **7.2 Klinik içi üretim / BOM / MRP** 🔴 — bilinçli kapsam dışı: iş emri türü başına reçete (BOM), stok tüketimi, kapasite/iş merkezi planlaması. v1 şeması engellemiyor.
-### GRUP 8 — Proje Yönetimi 🔴
+### GRUP 8 — Proje Yönetimi ✅
+
+Klinik içi iş/yatırım projeleri (`organization/project`). **`crm/activity` ile karıştırılmamalı**: Activity satış
+hunisine aittir (lead/hasta bağlı); ProjectTask iç iş takibidir ve lead/hasta bilmez. Endpoint kökü `project-management/*`.
+
+- **Proje + aşama** — Project (PLANNING → ACTIVE ⇄ ON_HOLD → COMPLETED, iptal her aşamadan) + ProjectPhase (sıralı,
+  `[projectId, order]` unique). Aşama durumu bilinçli olarak serbest: gerçek projelerde aşamalar paralel yürür,
+  atlanır, geri açılır — zorlayıcı öncül-ardıl kuralı yok. Terminal projeye görev/maliyet/tahsis eklenemez.
+- **Görev atama/takip** — ProjectTask + Kanban (TODO/IN_PROGRESS/REVIEW/DONE/CANCELLED, `boardOrder` kolon-içi sıra,
+  öncelik, alt görev, tahmini/gerçekleşen saat). Kart taşıma **personel** yetkisiyle (herkes kendi işini ilerletmeli),
+  atama **yönetici** yetkisiyle. CANCELLED terminal; DONE'dan geri dönüş serbest (yeniden açma).
+- **Bütçe ve maliyet** — proje/aşama bütçesi + ProjectCost etiketleme defteri. **Muhasebe fişi ÜRETMEZ** — satın alma
+  faturası/dış iş emri zaten kendi modülünde muhasebeleşiyor (banka modülüyle aynı yaklaşım, mükerrer önlenir).
+  `[projectId, source, sourceRefId]` unique → aynı dış kayıt iki kez etiketlenemez. `GET :id/budget` bütçe-vs-fiili:
+  aşama kırılımı + kaynak kırılımı + kullanım yüzdesi + aşım bayrağı. **Aşım engellenmez, raporlanır.**
+- **Kaynak planlaması** — ProjectResourceAllocation (EMPLOYEE → hr.Employee, ROOM/EQUIPMENT → Resource; scalar id).
+  Kapasite kuralı `domain/rules/resource-capacity.rules.ts`: personel bölünebilir (çakışan aralıklarda yüzde toplamı
+  ≤ %100), oda/cihaz bölünemez (tek çakışma bile ret). Çakışma kontrolü tahsisle **aynı transaction**'da Command
+  Repo'dan okunur. Hata `meta` ile çakışan projeleri taşır. `GET resources/schedule` = "kim müsait" takvimi.
+- Authz `ProjectPolicy` (görüntüle/kart taşı = klinik personeli · tanımla/tahsis = yönetici · bütçe/maliyet = finans).
+- Testler: kapasite kuralı 13, proje durum makinesi 11, tahsis handler'ı 8.
+
 
 ### GRUP 9 — Sağlık Entegrasyonları 🟡
 - **9.1 E-nabız** 🟡 — `enabiz.prisma` schema var, **modül/implementasyon 🔴** (Sağlık Bakanlığı API gerektirir).
@@ -75,5 +96,5 @@
 
 1. ~~**Banka oto-eşleştirme** (4.1)~~ ✅ 2026-08-07.
 2. Opsiyonel: **P&L dönem karşılaştırması** (4.3) — mevcut `income-statement`'a önceki-dönem kıyas + delta (Ajans ROI deseni).
-3. ~~**Üretim** (Grup 7)~~ → dış iş emri ✅ (2026-08-05); **Proje yönetimi** (Grup 8) — kalan büyük modül. **← sıradaki**
+3. ~~**Üretim** (Grup 7)~~ → dış iş emri ✅ (2026-08-05); ~~**Proje yönetimi** (Grup 8)~~ ✅ 2026-08-07.
 4. Dış-kimlik gerektirenler (E-Fatura gerçek adapter, E-nabız/E-reçete, Messenger, **Onam formu nitelikli e-imza**) — kimlik/erişim geldiğinde.

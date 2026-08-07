@@ -1,0 +1,233 @@
+// Proje Yönetimi (Grup 8): klinik içi iş/yatırım projeleri.
+// Kapsam: proje + aşama, görev atama/takip, bütçe & maliyet izleme, kaynak planlaması.
+//
+// `crm/activity` ile karıştırılmamalı: Activity satış hunisine ait (lead/hasta bağlı)
+// aktivitedir; ProjectTask iç iş takibidir ve lead/hasta bilmez.
+//
+// Maliyet: bu modül muhasebe fişi ÜRETMEZ. ProjectCost bir *etiketleme defteridir* —
+// satın alma faturası / dış iş emri gibi zaten muhasebeleşmiş kalemleri projeye
+// iliştirir (mükerrer posting olmaz; bkz. finance/bank aynı yaklaşım).
+//
+// clinicId/organizationId denormalize scalar (bounded-context: navigation yok).
+
+enum ProjectStatus {
+  PLANNING // hazırlık, henüz başlamadı
+  ACTIVE // yürüyor
+  ON_HOLD // askıya alındı
+  COMPLETED // tamamlandı (terminal)
+  CANCELLED // iptal (terminal)
+}
+
+enum ProjectPhaseStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  SKIPPED
+}
+
+enum ProjectTaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum ProjectTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+/// Maliyet kaleminin nereden geldiği. MANUAL dışındakiler zaten muhasebeleşmiş
+/// bir kaydın projeye etiketlenmesidir (sourceRefId o kaydın id'si).
+enum ProjectCostSource {
+  MANUAL
+  PURCHASE_INVOICE
+  WORK_ORDER
+  PAYROLL
+}
+
+/// Ayrılan kaynağın türü. EMPLOYEE → hr.Employee, ROOM/EQUIPMENT → Resource.
+enum ProjectResourceKind {
+  EMPLOYEE
+  ROOM
+  EQUIPMENT
+}
+
+model Project {
+  id             String @id
+  clinicId       String @map("clinic_id")
+  organizationId String @map("organization_id")
+
+  /// Klinik içinde insan-okur proje kodu (PRJ-2026-004 gibi); elle girilir.
+  code        String?
+  name        String
+  description String? @db.Text
+
+  status  ProjectStatus @default(PLANNING)
+  ownerId String        @map("owner_id") // sorumlu personel (User.id)
+
+  startDate DateTime? @map("start_date")
+  dueDate   DateTime? @map("due_date")
+
+  /// Onaylı bütçe. Null = bütçesiz proje (takip yalnız görev/aşama üzerinden).
+  budget   Decimal? @db.Decimal(16, 2)
+  currency Currency @default(TRY)
+
+  completedAt  DateTime? @map("completed_at")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  phases      ProjectPhase[]
+  tasks       ProjectTask[]
+  costs       ProjectCost[]
+  allocations ProjectResourceAllocation[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, status])
+  @@index([organizationId])
+  @@index([ownerId, status])
+  @@map("projects")
+}
+
+model ProjectPhase {
+  id        String @id
+  projectId String @map("project_id")
+  clinicId  String @map("clinic_id")
+
+  name  String
+  /// Proje içi sıra (0'dan artan); aynı projede tekil.
+  order Int
+
+  status ProjectPhaseStatus @default(PENDING)
+
+  startDate   DateTime? @map("start_date")
+  dueDate     DateTime? @map("due_date")
+  completedAt DateTime? @map("completed_at")
+
+  /// Aşama bütçesi (opsiyonel). Toplamı proje bütçesini aşabilir — engellenmez, raporda gösterilir.
+  budget Decimal? @db.Decimal(16, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project     Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       ProjectTask[]
+  costs       ProjectCost[]
+  allocations ProjectResourceAllocation[]
+
+  @@unique([projectId, order])
+  @@index([projectId, status])
+  @@map("project_phases")
+}
+
+model ProjectTask {
+  id             String  @id
+  projectId      String  @map("project_id")
+  phaseId        String? @map("phase_id")
+  clinicId       String  @map("clinic_id")
+  organizationId String  @map("organization_id")
+
+  /// Alt görev zinciri (self-relation). Tek seviye beklenir; derinlik zorlanmaz.
+  parentTaskId String? @map("parent_task_id")
+
+  title       String
+  description String? @db.Text
+
+  status   ProjectTaskStatus   @default(TODO)
+  priority ProjectTaskPriority @default(MEDIUM)
+
+  assigneeId  String? @map("assignee_id") // User.id
+  createdById String  @map("created_by_id")
+
+  startDate   DateTime? @map("start_date")
+  dueAt       DateTime? @map("due_at")
+  completedAt DateTime? @map("completed_at")
+
+  /// Kanban kolonu içi sıra.
+  boardOrder Int @default(0) @map("board_order")
+
+  estimatedHours Decimal? @map("estimated_hours") @db.Decimal(8, 2)
+  actualHours    Decimal? @map("actual_hours") @db.Decimal(8, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase      ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  parentTask ProjectTask?  @relation("ProjectTaskTree", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subTasks   ProjectTask[] @relation("ProjectTaskTree")
+
+  @@index([projectId, status])
+  @@index([phaseId])
+  @@index([assigneeId, status])
+  @@index([clinicId, dueAt])
+  @@map("project_tasks")
+}
+
+model ProjectCost {
+  id             String  @id
+  projectId      String  @map("project_id")
+  phaseId        String? @map("phase_id")
+  clinicId       String  @map("clinic_id")
+  organizationId String  @map("organization_id")
+
+  source ProjectCostSource @default(MANUAL)
+  /// Kaynak kaydın id'si (purchaseInvoiceId / workOrderId / payrollRunId). MANUAL'da null.
+  sourceRefId String? @map("source_ref_id")
+
+  description String
+  amount      Decimal  @db.Decimal(16, 2)
+  currency    Currency @default(TRY)
+  incurredAt  DateTime @map("incurred_at")
+
+  recordedById String   @map("recorded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase   ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+
+  /// Aynı dış kaydın aynı projeye iki kez etiketlenmesini DB seviyesinde engeller.
+  @@unique([projectId, source, sourceRefId])
+  @@index([projectId, incurredAt])
+  @@index([clinicId])
+  @@map("project_costs")
+}
+
+model ProjectResourceAllocation {
+  id        String  @id
+  projectId String  @map("project_id")
+  phaseId   String? @map("phase_id")
+  clinicId  String  @map("clinic_id")
+
+  kind ProjectResourceKind
+  /// EMPLOYEE → Employee.id, ROOM/EQUIPMENT → Resource.id (scalar; navigation yok).
+  resourceId String @map("resource_id")
+
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+
+  /// Personelin bu projeye ayrılan kapasite yüzdesi (1-100).
+  /// Oda/cihazda daima 100'dür — mekân bölünmez.
+  allocationPercent Int @default(100) @map("allocation_percent")
+
+  note String?
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase   ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+
+  /// Çakışma kontrolü kaynak + tarih aralığı üzerinden yapılır.
+  @@index([clinicId, kind, resourceId, startDate, endDate])
+  @@index([projectId])
+  @@map("project_resource_allocations")
+}
