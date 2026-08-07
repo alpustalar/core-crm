@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PolicyModule } from '@modules/platform/policy/policy.module';
 import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 import { ConvertUserToProviderHandler } from './convert-user-to-provider/convert-user-to-provider.handler';
@@ -10,7 +9,7 @@ import { SetProviderActiveHandler } from './set-provider-active/set-provider-act
 import { SetProviderOperationModeHandler } from './set-provider-operation-mode/set-provider-operation-mode.handler';
 import { SetProviderExaminationHandler } from './set-provider-examination/set-provider-examination.handler';
 import { CreateProviderShiftHandler } from './create-provider-shift/create-provider-shift.handler';
-import { ProviderRepositoriesModule } from '@modules/clinical/provider/infrastructure/persistence/prisma/repositories/repositories.module';
+import { ProviderInfrastructureModule } from '@modules/clinical/provider/infrastructure/infrastructure.module';
 
 const CommandHandlers = [
   ConvertUserToProviderHandler,
@@ -24,7 +23,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [ClinicDomainServicesModule, ProviderRepositoriesModule],
+  imports: [ClinicDomainServicesModule, ProviderInfrastructureModule],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })

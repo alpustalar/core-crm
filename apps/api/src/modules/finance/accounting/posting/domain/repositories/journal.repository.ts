@@ -49,6 +49,33 @@ export interface AccountLedger {
   movements: LedgerMovementRow[]; // entryDate, entryNo sırasında
 }
 
+/**
+ * Banka mutabakatı aday filtresi — verilen hesapların (102) POSTED satırları.
+ * Tarih aralığı ekstre dönemi + tolerans kadar genişletilmiş hâlde gelir.
+ */
+export interface BankLedgerLinesFilter {
+  clinicId: string;
+  accountIds: string[];
+  dateFrom: Date;
+  dateTo: Date;
+}
+
+/**
+ * Mutabakat adayı olarak dönen tek fiş satırı. `lineId` eşleşince ekstre
+ * satırında `matchedRef` olarak saklanır — bu yüzden satır kimliği zorunludur
+ * (mevcut `LedgerMovementRow` yalnız fiş kimliği taşır, aday tekilliğine yetmez).
+ */
+export interface BankLedgerLineRow {
+  lineId: string;
+  entryId: string;
+  entryNo: bigint | null;
+  entryDate: Date;
+  entryDescription: string | null;
+  lineDesc: string | null;
+  debit: Prisma.Decimal;
+  credit: Prisma.Decimal;
+}
+
 /** Yevmiye Defteri filtresi — şube bazlı, kronolojik POSTED fişler. */
 export interface JournalReportFilter {
   clinicId: string;
@@ -180,4 +207,11 @@ export interface IJournalQueryRepository {
 
   /** KDV beyan özeti: 391/191 POSTED hareketleri (aylık gruplama handler'da). */
   vatDeclaration(filter: VatDeclarationFilter): Promise<VatDeclaration>;
+
+  /**
+   * Banka mutabakatı adayları: verilen hesapların tarih aralığındaki POSTED
+   * satırları (satır kimliğiyle). Eşleştirme kararını banka modülü verir; burası
+   * yalnız ham hareketi döndürür.
+   */
+  bankLedgerLines(filter: BankLedgerLinesFilter): Promise<BankLedgerLineRow[]>;
 }

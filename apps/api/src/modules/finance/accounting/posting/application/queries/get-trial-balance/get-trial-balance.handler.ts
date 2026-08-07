@@ -24,9 +24,10 @@ interface NormalizedRow {
 }
 
 @QueryHandler(GetTrialBalanceQuery)
-export class GetTrialBalanceHandler
-  implements IQueryHandler<GetTrialBalanceQuery, GetTrialBalanceResponse>
-{
+export class GetTrialBalanceHandler implements IQueryHandler<
+  GetTrialBalanceQuery,
+  GetTrialBalanceResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,

@@ -1,10 +1,6 @@
 import { StaffRescheduleHandler } from './staff-reschedule/staff-reschedule.handler';
-import {
-  SoftDeleteAppointmentsByOrganizationIdHandler
-} from './soft-delete-appointments-by-organization-id/soft-delete-appointments-by-organization-id.handler';
-import {
-  SoftDeleteAppointmentsByClinicIdHandler
-} from './soft-delete-appointments-by-clinic-id/soft-delete-appointments-by-clinic-id.handler';
+import { SoftDeleteAppointmentsByOrganizationIdHandler } from './soft-delete-appointments-by-organization-id/soft-delete-appointments-by-organization-id.handler';
+import { SoftDeleteAppointmentsByClinicIdHandler } from './soft-delete-appointments-by-clinic-id/soft-delete-appointments-by-clinic-id.handler';
 import { ScheduleAppointmentHandler } from './schedule-appointment/schedule-appointment.handler';
 import { MarkNoShowHandler } from './mark-no-show/mark-no-show.handler';
 import { ConfirmAppointmentHandler } from './confirm-appointment/confirm-appointment.handler';
@@ -19,12 +15,8 @@ import { CancelProviderDayHandler } from './cancel-provider-day/cancel-provider-
 import { CheckInAppointmentHandler } from './check-in-appointment/check-in-appointment.handler';
 import { LockAppointmentSlotHandler } from './lock-appointment-slot/lock-appointment-slot.handler';
 import { ReleaseAppointmentSlotHandler } from './release-appointment-slot/release-appointment-slot.handler';
-import {
-  ProcessAppointmentRemindersHandler
-} from './process-appointment-reminders/process-appointment-reminders.handler';
-import {
-  AppointmentCheckerService
-} from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service';
+import { ProcessAppointmentRemindersHandler } from './process-appointment-reminders/process-appointment-reminders.handler';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service';
 import { ProviderDomainServicesModule } from '@modules/clinical/provider/domain/services/services.module';
 import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 import { AppointmentInfrastructureModule } from '@modules/clinical/appointment/infrastructure/infrastructure.module';

@@ -18,9 +18,10 @@ import {
 import { Account } from '@shared';
 
 @QueryHandler(GetJournalReportQuery)
-export class GetJournalReportHandler
-  implements IQueryHandler<GetJournalReportQuery, GetJournalReportResponse>
-{
+export class GetJournalReportHandler implements IQueryHandler<
+  GetJournalReportQuery,
+  GetJournalReportResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,

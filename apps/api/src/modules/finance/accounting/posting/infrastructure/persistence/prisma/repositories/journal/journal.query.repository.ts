@@ -7,6 +7,8 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import {
   AccountLedger,
   AccountLedgerFilter,
+  BankLedgerLineRow,
+  BankLedgerLinesFilter,
   CashFlow,
   CashFlowFilter,
   FindJournalEntriesFilter,
@@ -93,10 +95,7 @@ export class JournalQueryRepository
           },
         },
       },
-      orderBy: [
-        { entry: { entryDate: 'asc' } },
-        { entry: { entryNo: 'asc' } },
-      ],
+      orderBy: [{ entry: { entryDate: 'asc' } }, { entry: { entryNo: 'asc' } }],
     });
 
     return {
@@ -202,9 +201,7 @@ export class JournalQueryRepository
     };
   }
 
-  async vatDeclaration(
-    filter: VatDeclarationFilter
-  ): Promise<VatDeclaration> {
+  async vatDeclaration(filter: VatDeclarationFilter): Promise<VatDeclaration> {
     const entryWhere: Prisma.JournalEntryWhereInput = {
       clinicId: filter.clinicId,
       status: JournalEntryStatus.POSTED,
@@ -216,7 +213,11 @@ export class JournalQueryRepository
     const fetch = (accountIds: string[]) =>
       accountIds.length === 0
         ? Promise.resolve(
-            [] as { entry: { entryDate: Date }; debit: Prisma.Decimal; credit: Prisma.Decimal }[]
+            [] as {
+              entry: { entryDate: Date };
+              debit: Prisma.Decimal;
+              credit: Prisma.Decimal;
+            }[]
           )
         : this.db.journalLine.findMany({
             where: { accountId: { in: accountIds }, entry: entryWhere },
@@ -234,7 +235,11 @@ export class JournalQueryRepository
     ]);
 
     const toRows = (
-      rows: { entry: { entryDate: Date }; debit: Prisma.Decimal; credit: Prisma.Decimal }[]
+      rows: {
+        entry: { entryDate: Date };
+        debit: Prisma.Decimal;
+        credit: Prisma.Decimal;
+      }[]
     ) =>
       rows.map((row) => ({
         entryDate: row.entry.entryDate,
@@ -243,5 +248,48 @@ export class JournalQueryRepository
       }));
 
     return { output: toRows(outputRows), input: toRows(inputRows) };
+  }
+
+  async bankLedgerLines(
+    filter: BankLedgerLinesFilter
+  ): Promise<BankLedgerLineRow[]> {
+    if (filter.accountIds.length === 0) return [];
+
+    const rows = await this.db.journalLine.findMany({
+      where: {
+        accountId: { in: filter.accountIds },
+        entry: {
+          clinicId: filter.clinicId,
+          status: JournalEntryStatus.POSTED,
+          entryDate: { gte: filter.dateFrom, lte: filter.dateTo },
+        },
+      },
+      select: {
+        id: true,
+        debit: true,
+        credit: true,
+        lineDesc: true,
+        entry: {
+          select: {
+            id: true,
+            entryNo: true,
+            entryDate: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: { entry: { entryDate: 'asc' } },
+    });
+
+    return rows.map((row) => ({
+      lineId: row.id,
+      entryId: row.entry.id,
+      entryNo: row.entry.entryNo,
+      entryDate: row.entry.entryDate,
+      entryDescription: row.entry.description,
+      lineDesc: row.lineDesc,
+      debit: row.debit,
+      credit: row.credit,
+    }));
   }
 }

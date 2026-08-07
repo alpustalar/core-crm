@@ -25,9 +25,10 @@ import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting
 import { AccountingPeriodStatusSchema } from '@shared';
 
 @CommandHandler(PostFinancialEventCommand)
-export class PostFinancialEventHandler
-  implements ICommandHandler<PostFinancialEventCommand, string | null>
-{
+export class PostFinancialEventHandler implements ICommandHandler<
+  PostFinancialEventCommand,
+  string | null
+> {
   private readonly logger = new Logger(PostFinancialEventHandler.name);
 
   constructor(

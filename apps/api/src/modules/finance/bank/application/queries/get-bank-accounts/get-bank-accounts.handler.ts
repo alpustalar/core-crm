@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetBankAccountsQuery)
-export class GetBankAccountsHandler
-  implements IQueryHandler<GetBankAccountsQuery, GetBankAccountsResponse>
-{
+export class GetBankAccountsHandler implements IQueryHandler<
+  GetBankAccountsQuery,
+  GetBankAccountsResponse
+> {
   constructor(
     @Inject(BANK_ACCOUNT_QUERY_REPOSITORY)
     private readonly accountQueryRepo: IBankAccountQueryRepository,
@@ -23,9 +24,7 @@ export class GetBankAccountsHandler
     private readonly policyFactory: IPolicyFactory
   ) {}
 
-  async execute(
-    query: GetBankAccountsQuery
-  ): Promise<GetBankAccountsResponse> {
+  async execute(query: GetBankAccountsQuery): Promise<GetBankAccountsResponse> {
     const { filter, pagination, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 

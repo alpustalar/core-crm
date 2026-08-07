@@ -12,4 +12,4 @@ import { ConsentFormTemplateRepositoryModule } from '@modules/clinical/consent-f
     ConsentFormSubmissionRepositoryModule,
   ],
 })
-export class ConsentFormRepositoryModule {}
+export class ConsentFormRepositoriesModule {}

@@ -44,8 +44,14 @@ describe('SalesInvoiceIssuedRule', () => {
       partyId: 'party-1',
       debit: '1100.00',
     });
-    expect(draft.lines[1]).toMatchObject({ accountCode: '600.01', credit: '1000.00' });
-    expect(draft.lines[2]).toMatchObject({ accountCode: '391', credit: '100.00' });
+    expect(draft.lines[1]).toMatchObject({
+      accountCode: '600.01',
+      credit: '1000.00',
+    });
+    expect(draft.lines[2]).toMatchObject({
+      accountCode: '391',
+      credit: '100.00',
+    });
     expect(sumDebit(draft.lines)).toBe(sumCredit(draft.lines));
   });
 
@@ -68,9 +74,18 @@ describe('SalesInvoiceIssuedRule', () => {
       partyId: 'party-1',
       debit: '900.00',
     });
-    expect(draft.lines[1]).toMatchObject({ accountCode: '193', debit: '200.00' });
-    expect(draft.lines[2]).toMatchObject({ accountCode: '600.01', credit: '1000.00' });
-    expect(draft.lines[3]).toMatchObject({ accountCode: '391', credit: '100.00' });
+    expect(draft.lines[1]).toMatchObject({
+      accountCode: '193',
+      debit: '200.00',
+    });
+    expect(draft.lines[2]).toMatchObject({
+      accountCode: '600.01',
+      credit: '1000.00',
+    });
+    expect(draft.lines[3]).toMatchObject({
+      accountCode: '391',
+      credit: '100.00',
+    });
     // Denge: (900 + 200) borç = (1000 + 100) alacak.
     expect(sumDebit(draft.lines)).toBe(1100);
     expect(sumDebit(draft.lines)).toBe(sumCredit(draft.lines));

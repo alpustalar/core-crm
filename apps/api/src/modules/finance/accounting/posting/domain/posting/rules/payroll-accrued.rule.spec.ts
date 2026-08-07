@@ -36,16 +36,28 @@ describe('PayrollAccruedRule', () => {
     );
 
     expect(draft.lines).toHaveLength(5);
-    expect(draft.lines[0]).toMatchObject({ accountCode: '770', debit: '10000.00' });
-    expect(draft.lines[1]).toMatchObject({ accountCode: '770', debit: '2000.00' });
+    expect(draft.lines[0]).toMatchObject({
+      accountCode: '770',
+      debit: '10000.00',
+    });
+    expect(draft.lines[1]).toMatchObject({
+      accountCode: '770',
+      debit: '2000.00',
+    });
     expect(draft.lines[2]).toMatchObject({
       accountCode: '335',
       partyId: 'party-1',
       credit: '7000.00',
     });
-    expect(draft.lines[3]).toMatchObject({ accountCode: '360', credit: '1500.00' });
+    expect(draft.lines[3]).toMatchObject({
+      accountCode: '360',
+      credit: '1500.00',
+    });
     // 361 = işçi SGK 1500 + işveren SGK 2000 = 3500
-    expect(draft.lines[4]).toMatchObject({ accountCode: '361', credit: '3500.00' });
+    expect(draft.lines[4]).toMatchObject({
+      accountCode: '361',
+      credit: '3500.00',
+    });
 
     const debit = draft.lines.reduce((s, l) => s + Number(l.debit ?? 0), 0);
     const credit = draft.lines.reduce((s, l) => s + Number(l.credit ?? 0), 0);

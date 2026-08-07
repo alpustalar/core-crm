@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client'
 import { BankStatementLineMatchStatusSchema } from '../inputTypeSchemas/BankStatementLineMatchStatusSchema'
+import { BankStatementLineMatchSourceSchema } from '../inputTypeSchemas/BankStatementLineMatchSourceSchema'
 
 /////////////////////////////////////////
 // BANK STATEMENT LINE SCHEMA
@@ -8,6 +9,7 @@ import { BankStatementLineMatchStatusSchema } from '../inputTypeSchemas/BankStat
 
 export const BankStatementLineSchema = z.object({
   matchStatus: BankStatementLineMatchStatusSchema,
+  matchSource: BankStatementLineMatchSourceSchema,
   id: z.string(),
   bankStatementId: z.string(),
   bankAccountId: z.string(),

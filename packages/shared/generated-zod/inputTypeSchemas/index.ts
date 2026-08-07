@@ -127,6 +127,7 @@ export { ExaminationTypeSchema } from './ExaminationTypeSchema';
 export { VisitTypeSchema } from './VisitTypeSchema';
 export { BankAccountStatusSchema } from './BankAccountStatusSchema';
 export { BankStatementLineMatchStatusSchema } from './BankStatementLineMatchStatusSchema';
+export { BankStatementLineMatchSourceSchema } from './BankStatementLineMatchSourceSchema';
 export { CashRegisterStatusSchema } from './CashRegisterStatusSchema';
 export { CashSessionStatusSchema } from './CashSessionStatusSchema';
 export { CashMovementTypeSchema } from './CashMovementTypeSchema';

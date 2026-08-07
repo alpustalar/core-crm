@@ -6,6 +6,8 @@ import { GetBankAccountByIdHandler } from './get-bank-account-by-id/get-bank-acc
 import { GetBankStatementsHandler } from './get-bank-statements/get-bank-statements.handler';
 import { GetBankStatementByIdHandler } from './get-bank-statement-by-id/get-bank-statement-by-id.handler';
 import { GetReconciliationSummaryHandler } from './get-reconciliation-summary/get-reconciliation-summary.handler';
+import { GetLineMatchSuggestionsHandler } from './get-line-match-suggestions/get-line-match-suggestions.handler';
+import { PostingQueryModule } from '@modules/finance/accounting/posting/application/queries/query.module';
 
 export const BANK_QUERY_HANDLERS = [
   GetBankAccountsHandler,
@@ -13,10 +15,12 @@ export const BANK_QUERY_HANDLERS = [
   GetBankStatementsHandler,
   GetBankStatementByIdHandler,
   GetReconciliationSummaryHandler,
+  GetLineMatchSuggestionsHandler,
 ];
 
 @Module({
-  imports: [CqrsModule, BankRepositoryModule],
+  // PostingQueryModule: aday önerileri 102 defterinden QueryBus ile gelir.
+  imports: [CqrsModule, BankRepositoryModule, PostingQueryModule],
   providers: BANK_QUERY_HANDLERS,
   exports: BANK_QUERY_HANDLERS,
 })

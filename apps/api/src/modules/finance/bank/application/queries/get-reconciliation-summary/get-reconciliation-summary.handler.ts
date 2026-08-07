@@ -12,13 +12,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetReconciliationSummaryQuery)
-export class GetReconciliationSummaryHandler
-  implements
-    IQueryHandler<
-      GetReconciliationSummaryQuery,
-      GetReconciliationSummaryResponse
-    >
-{
+export class GetReconciliationSummaryHandler implements IQueryHandler<
+  GetReconciliationSummaryQuery,
+  GetReconciliationSummaryResponse
+> {
   constructor(
     @Inject(BANK_STATEMENT_QUERY_REPOSITORY)
     private readonly statementQueryRepo: IBankStatementQueryRepository,
@@ -39,9 +36,8 @@ export class GetReconciliationSummaryHandler
       .evaluator.check((p) => p.canAccessClinicFinances(statement.clinicId))
       .orThrow('bank-reconciliation.summary');
 
-    const data = await this.statementQueryRepo.reconciliationSummary(
-      statementId
-    );
+    const data =
+      await this.statementQueryRepo.reconciliationSummary(statementId);
 
     return { data };
   }

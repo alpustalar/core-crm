@@ -15,6 +15,7 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { PaginationDto } from '@shared';
 import {
+  AutoMatchStatementLinesDto,
   ImportBankStatementDto,
   ReconcileStatementLineDto,
 } from '@shared/modules/bank/dto/commands';
@@ -24,6 +25,8 @@ import { ReconcileStatementLineCommand } from '@modules/finance/bank/application
 import { GetBankStatementsQuery } from '@modules/finance/bank/application/queries/get-bank-statements/get-bank-statements.query';
 import { GetBankStatementByIdQuery } from '@modules/finance/bank/application/queries/get-bank-statement-by-id/get-bank-statement-by-id.query';
 import { GetReconciliationSummaryQuery } from '@modules/finance/bank/application/queries/get-reconciliation-summary/get-reconciliation-summary.query';
+import { AutoMatchStatementLinesCommand } from '@modules/finance/bank/application/commands/auto-match-statement-lines/auto-match-statement-lines.command';
+import { GetLineMatchSuggestionsQuery } from '@modules/finance/bank/application/queries/get-line-match-suggestions/get-line-match-suggestions.query';
 
 @UseGuards(AuthGuard)
 @Controller('statements')
@@ -69,6 +72,22 @@ export class BankStatementController {
     );
   }
 
+  /** Oto-eşleştirme taraması: yalnız tutar+yön birebir ve tek aday olan satırları kapatır. */
+  @Post(':statementId/auto-match')
+  autoMatch(
+    @Param('statementId', ParseUUIDPipe) statementId: string,
+    @Body() dto: AutoMatchStatementLinesDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new AutoMatchStatementLinesCommand({
+        bankStatementId: statementId,
+        data: dto,
+        ctx,
+      })
+    );
+  }
+
   @Put('lines/:lineId/reconcile')
   reconcileLine(
     @Param('lineId', ParseUUIDPipe) lineId: string,
@@ -78,5 +97,14 @@ export class BankStatementController {
     return this.commandBus.execute(
       new ReconcileStatementLineCommand({ lineId, data: dto, ctx })
     );
+  }
+
+  /** Elle mutabakat için aday öneri listesi (puan sıralı). */
+  @Get('lines/:lineId/suggestions')
+  lineSuggestions(
+    @Param('lineId', ParseUUIDPipe) lineId: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.queryBus.execute(new GetLineMatchSuggestionsQuery(lineId, ctx));
   }
 }

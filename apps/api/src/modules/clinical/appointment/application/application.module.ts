@@ -10,5 +10,6 @@ const ApplicationModules = [
 ];
 @Module({
   imports: [...ApplicationModules],
+  exports: [...ApplicationModules],
 })
 export class AppointmentApplicationModule {}

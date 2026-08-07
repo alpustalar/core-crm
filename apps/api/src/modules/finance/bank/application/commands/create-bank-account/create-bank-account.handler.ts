@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateBankAccountCommand)
-export class CreateBankAccountHandler
-  implements ICommandHandler<CreateBankAccountCommand, string>
-{
+export class CreateBankAccountHandler implements ICommandHandler<
+  CreateBankAccountCommand,
+  string
+> {
   constructor(
     @Inject(BANK_ACCOUNT_COMMAND_REPOSITORY)
     private readonly accountCommandRepo: IBankAccountCommandRepository,

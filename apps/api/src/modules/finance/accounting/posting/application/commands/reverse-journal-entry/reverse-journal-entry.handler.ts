@@ -13,9 +13,10 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(ReverseJournalEntryCommand)
-export class ReverseJournalEntryHandler
-  implements ICommandHandler<ReverseJournalEntryCommand, string>
-{
+export class ReverseJournalEntryHandler implements ICommandHandler<
+  ReverseJournalEntryCommand,
+  string
+> {
   constructor(
     @Inject(JOURNAL_COMMAND_REPOSITORY)
     private readonly journalCommandRepo: IJournalCommandRepository,

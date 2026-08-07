@@ -22,9 +22,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ImportBankStatementCommand)
-export class ImportBankStatementHandler
-  implements ICommandHandler<ImportBankStatementCommand, string>
-{
+export class ImportBankStatementHandler implements ICommandHandler<
+  ImportBankStatementCommand,
+  string
+> {
   constructor(
     // Hesabın varlığı/arşiv durumu ekstre yazılıp yazılmayacağını belirliyor →
     // Command Context.

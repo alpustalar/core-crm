@@ -35,8 +35,16 @@ export class CashSessionClosedRule implements PostingRule {
 
     if (bankDeposit.gt(0)) {
       const amount = bankDeposit.toFixed(2);
-      lines.push({ accountCode: '102', debit: amount, desc: 'Bankaya yatırma' });
-      lines.push({ accountCode: '100', credit: amount, desc: 'Bankaya yatırma' });
+      lines.push({
+        accountCode: '102',
+        debit: amount,
+        desc: 'Bankaya yatırma',
+      });
+      lines.push({
+        accountCode: '100',
+        credit: amount,
+        desc: 'Bankaya yatırma',
+      });
     }
 
     if (expense.gt(0)) {
@@ -47,12 +55,28 @@ export class CashSessionClosedRule implements PostingRule {
 
     if (difference.gt(0)) {
       const amount = difference.toFixed(2);
-      lines.push({ accountCode: '100', debit: amount, desc: 'Kasa sayım fazlası' });
-      lines.push({ accountCode: '679', credit: amount, desc: 'Kasa sayım fazlası' });
+      lines.push({
+        accountCode: '100',
+        debit: amount,
+        desc: 'Kasa sayım fazlası',
+      });
+      lines.push({
+        accountCode: '679',
+        credit: amount,
+        desc: 'Kasa sayım fazlası',
+      });
     } else if (difference.lt(0)) {
       const amount = difference.abs().toFixed(2);
-      lines.push({ accountCode: '689', debit: amount, desc: 'Kasa sayım açığı' });
-      lines.push({ accountCode: '100', credit: amount, desc: 'Kasa sayım açığı' });
+      lines.push({
+        accountCode: '689',
+        debit: amount,
+        desc: 'Kasa sayım açığı',
+      });
+      lines.push({
+        accountCode: '100',
+        credit: amount,
+        desc: 'Kasa sayım açığı',
+      });
     }
 
     return {

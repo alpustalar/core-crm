@@ -17,9 +17,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(GenerateYearEndClosingCommand)
-export class GenerateYearEndClosingHandler
-  implements ICommandHandler<GenerateYearEndClosingCommand, void>
-{
+export class GenerateYearEndClosingHandler implements ICommandHandler<
+  GenerateYearEndClosingCommand,
+  void
+> {
   constructor(
     @Inject(JOURNAL_COMMAND_REPOSITORY)
     private readonly journalCommandRepo: IJournalCommandRepository,

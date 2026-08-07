@@ -14,7 +14,7 @@ import { GetWaitingRoomHandler } from './get-waiting-room/get-waiting-room.handl
 import { SearchClinicAppointmentsHandler } from './search-clinic-appointments/search-clinic-appointments.handler';
 import { GetUpcomingRemindersHandler } from './get-upcoming-reminders/get-upcoming-reminders.handler';
 import { GetClinicDailySummaryHandler } from './get-clinic-daily-summary/get-clinic-daily-summary.handler';
-import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
+import { AppointmentRepositoriesModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/repositories.module';
 
 const QueryHandlers = [
   GetProviderCalendarHandler,
@@ -35,7 +35,7 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [AppointmentRepositoryModule],
+  imports: [AppointmentRepositoriesModule],
   providers: [...QueryHandlers],
   exports: [...QueryHandlers],
 })

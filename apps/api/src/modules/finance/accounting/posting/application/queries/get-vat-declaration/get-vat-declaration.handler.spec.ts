@@ -64,8 +64,18 @@ describe('GetVatDeclarationHandler (doc 06 §1)', () => {
     expect(data.payableVat).toBe('1100.00');
     expect(data.carryForwardVat).toBe('0.00');
     expect(data.months).toEqual([
-      { month: '2026-01', outputVat: '1000.00', inputVat: '300.00', net: '700.00' },
-      { month: '2026-02', outputVat: '500.00', inputVat: '100.00', net: '400.00' },
+      {
+        month: '2026-01',
+        outputVat: '1000.00',
+        inputVat: '300.00',
+        net: '700.00',
+      },
+      {
+        month: '2026-02',
+        outputVat: '500.00',
+        inputVat: '100.00',
+        net: '400.00',
+      },
     ]);
   });
 

@@ -9,9 +9,10 @@ import { GetJournalEntriesQuery } from './get-journal-entries.query';
 import { GetJournalEntriesResponse } from './get-journal-entries.response';
 
 @QueryHandler(GetJournalEntriesQuery)
-export class GetJournalEntriesHandler
-  implements IQueryHandler<GetJournalEntriesQuery, GetJournalEntriesResponse>
-{
+export class GetJournalEntriesHandler implements IQueryHandler<
+  GetJournalEntriesQuery,
+  GetJournalEntriesResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository
