@@ -16,6 +16,22 @@ export interface PaymentReceivedEventPayload {
   currency?: CurrencyType;
 }
 
+/**
+ * Satıcıya yapılan ödeme — 320'deki borcu kapatır.
+ *
+ * `PaymentReceivedEventPayload`'ın karşı yönü: orada müşteriden tahsil edilip
+ * 120 kapanır, burada satıcıya ödenip 320 kapanır.
+ */
+export interface PaymentMadeEventPayload {
+  method: 'CASH' | 'BANK_TRANSFER' | string;
+  amount: string;
+  partyId: string;
+  /** Verilmezse defterin fonksiyonel para birimi varsayılır (bkz. Model A). */
+  currency?: CurrencyType;
+  /** Havale/dekont referansı — fiş açıklamasına geçer. */
+  reference?: string;
+}
+
 export interface SalesInvoiceIssuedEventPayload {
   partyId: string;
   netTotal: string;

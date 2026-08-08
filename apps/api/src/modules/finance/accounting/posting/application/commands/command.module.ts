@@ -11,6 +11,7 @@ import { PurchaseInvoiceReceivedRule } from '@modules/finance/accounting/posting
 import { PayrollAccruedRule } from '@modules/finance/accounting/posting/domain/posting/rules/payroll-accrued.rule';
 import { CashSessionClosedRule } from '@modules/finance/accounting/posting/domain/posting/rules/cash-session-closed.rule';
 import { PlatformBookingSettledRule } from '@modules/finance/accounting/posting/domain/posting/rules/platform-booking-settled.rule';
+import { PaymentMadeRule } from '@modules/finance/accounting/posting/domain/posting/rules/payment-made.rule';
 import { PLATFORM_TENANT_PROVIDER } from '@modules/finance/accounting/posting/domain/interfaces/platform-tenant.provider.interface';
 import { PlatformTenantProvider } from '@modules/finance/accounting/posting/infrastructure/platform-tenant.provider';
 import { ChartOfAccountsCommandModule } from '@modules/finance/accounting/chart-of-accounts/application/commands/command.module';
@@ -36,6 +37,7 @@ const CommandHandlers = [
     PayrollAccruedRule,
     CashSessionClosedRule,
     PlatformBookingSettledRule,
+    PaymentMadeRule,
     { provide: PLATFORM_TENANT_PROVIDER, useClass: PlatformTenantProvider },
     {
       provide: POSTING_RULES,
@@ -45,7 +47,8 @@ const CommandHandlers = [
         purchaseInvoiceReceived: PurchaseInvoiceReceivedRule,
         payrollAccrued: PayrollAccruedRule,
         cashSessionClosed: CashSessionClosedRule,
-        platformBookingSettled: PlatformBookingSettledRule
+        platformBookingSettled: PlatformBookingSettledRule,
+        paymentMade: PaymentMadeRule
       ) => [
         paymentReceived,
         salesInvoiceIssued,
@@ -53,6 +56,7 @@ const CommandHandlers = [
         payrollAccrued,
         cashSessionClosed,
         platformBookingSettled,
+        paymentMade,
       ],
       inject: [
         PaymentReceivedRule,
@@ -61,6 +65,7 @@ const CommandHandlers = [
         PayrollAccruedRule,
         CashSessionClosedRule,
         PlatformBookingSettledRule,
+        PaymentMadeRule,
       ],
     },
     PostingRuleRegistry,
