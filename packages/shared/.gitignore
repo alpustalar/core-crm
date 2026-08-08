@@ -1,0 +1,9 @@
+# Derleme çıktıları asla commit edilmez.
+#
+# Paket ham TypeScript yayınlıyor (`"main": "index.ts"`), yani bu dosyalar hiç
+# tüketilmiyor — ama yanlarındaki `.ts` yerine Node/TS çözümlemesine takılıp
+# "kodu değiştirdim ama değişmiyor" tipi hatalara yol açıyorlardı. Nitekim
+# kaynağı silinmiş dosyaların (update-doctor.dto) bayat çıktıları hâlâ duruyordu.
+*.js
+*.js.map
+*.d.ts

@@ -4,6 +4,14 @@
   "private": true,
   "main": "index.ts",
   "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./client": "./client.ts",
+    "./generated-zod": "./generated-zod/index.ts",
+    "./generated-zod/*": "./generated-zod/*",
+    "./modules/*": "./modules/*",
+    "./common/*": "./common/*"
+  },
   "dependencies": {
     "decimal.js": "^10.6.0",
     "nestjs-zod": "^5.1.1",

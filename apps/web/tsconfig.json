@@ -19,7 +19,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      // `@core-crm/shared` kendi içinde `@shared/*` alias'ıyla import ediyor
+      // (api'nin tsconfig'inden miras kalan bir konvansiyon). Paketi tüketen
+      // her uygulama bu eşlemeyi tanımlamak zorunda, yoksa paketin İÇ
+      // import'ları çözülemez.
+      "@shared/*": ["../../packages/shared/*"]
     }
   },
   "include": [
