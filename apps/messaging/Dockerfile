@@ -19,12 +19,21 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
-COPY --from=installer /app/node_modules                ./node_modules
-COPY --from=installer /app/apps/messaging/node_modules ./apps/messaging/node_modules
-
 COPY packages/shared/      ./packages/shared/
 COPY packages/nest-kernel/ ./packages/nest-kernel/
 COPY apps/messaging/       ./apps/messaging/
+
+# node_modules kaynak kopyasından SONRA gelir: .dockerignore bağlamdan
+# **/node_modules'ü dışladığı için üstlerine yazacak bir şey yok, ama sıra
+# tersine dönerse paketlerin bağımlılıkları kaybolur.
+#
+# pnpm'in katı düzeninde her workspace paketi kendi node_modules'ünü taşır;
+# paketlerinki atlanırsa `packages/shared` derlenirken kendi bağımlılığını
+# (zod) bulamaz ve build "Cannot find module 'zod'" ile düşer.
+COPY --from=installer /app/node_modules                     ./node_modules
+COPY --from=installer /app/apps/messaging/node_modules      ./apps/messaging/node_modules
+COPY --from=installer /app/packages/shared/node_modules     ./packages/shared/node_modules
+COPY --from=installer /app/packages/nest-kernel/node_modules ./packages/nest-kernel/node_modules
 
 # Prisma üretimi YOK: messaging'in veritabanı MongoDB, Prisma şeması yok.
 WORKDIR /app/apps/messaging
