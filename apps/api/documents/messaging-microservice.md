@@ -1,6 +1,6 @@
 # Messaging Mikroservis Ayrımı — Mimari Plan
 
-**Durum:** **AYRIM TAMAMLANDI ✅ (2026-08-08)** — Faz 0/1/2 · Cutover · Faz 3.1–3.5. Messaging ayrı bir servis (`apps/messaging`, :8081, kendi MongoDB'si, NATS ile core'a bağlı). Kalan tek iş operasyonel: webhook trafiğinin 8081'e yönlendirilmesi (3.6).
+**Durum:** **AYRIM TAMAMLANDI ✅ (2026-08-08)** — Faz 0/1/2 · Cutover · Faz 3.1–3.6. Messaging ayrı bir servis (`apps/messaging`, :8081, kendi MongoDB'si, NATS ile core'a bağlı). Giriş yönlendirmesi ters vekille çözüldü (`infra/caddy/Caddyfile`); kalan iş elle yapılacak iki ayar: `PUBLIC_BASE_URL` ve Meta panelindeki geri-çağrı adresleri (3.6 sonu).
 **Karar tarihi:** 2026-08-07
 **Kapsam:** `apps/api/src/modules/messaging/` (263 dosya, 3 alt-context, 40 spec)
 
@@ -410,12 +410,50 @@ etmiyor" kalıbı): `AiToolsModule` (artık `CoreTransportModule` import ediyor)
 `TSCqrsModule` ve `CryptoModule` (messaging'in app.module'üne eklendi; `crypto.module.ts`
 servisiyle birlikte çekirdeğe taşındı).
 
-**3.6 Webhook'lar — kod tarafı bitti, kalan operasyon.** Üç webhook route'u
-(`/whatsapp/webhook`, `/telegram/bot/:clinicId`, `/instagram/webhook`) modülle birlikte
-messaging'e geçti ve artık **8081**'de. Yapılması gereken tek şey trafiğin oraya
-yönlendirilmesi: reverse proxy'de bu üç yol messaging servisine gitmeli **ya da** Meta/
-Telegram'daki kayıtlı webhook adresleri güncellenmeli. Atlanırsa gelen mesajlar sessizce
-düşer — hiçbir yerde hata görünmez.
+**3.6 Giriş yönlendirmesi — ters vekil (reverse proxy).** Karar: trafiği vekil
+yönlendirir; sağlayıcıdaki webhook adresleri **değiştirilmez**. Belirleyici olan, adres
+değiştirmenin maliyetinin sağlayıcıya göre değişmesi: WhatsApp ve Instagram için tek bir
+panel alanı, ama **Telegram için klinik başına** — adres `setWebhook` ile bot bot kaydedilir
+(`connect-clinic-telegram-bot-channel.handler.ts`), yani her klinik için Telegram API'sine
+tekrar gitmek gerekirdi. Vekilde ise public URL hiç değişmez: kayıtlar olduğu gibi kalır,
+geri dönüş tek satırlık yapılandırma değişikliğidir ve servis ikiye bölünmüş olduğu bilgisi
+dışarı sızmaz.
+
+**Kod tarafında iki eksik çıktı — ikisi de kapatıldı.**
+
+*(a) Rotalar `messaging` öneki olmadan yayınlanıyordu.* Ayrımdan önce api'de
+`RouterModule.register(APP_ROUTES)` içinde `{ path: 'messaging', module: MessagingModule }`
+vardı ama **hiçbir zaman uygulanmamıştı**: `RouterModule` yolu modül sınıfının
+metadata'sına yazar ve yalnız o modülün `controllers`'ına uygular; `MessagingModule` ise
+sadece alt modül import ediyor, kendi controller'ı yok. Yani kayıt sessizce etkisizdi ve
+rotalar `/api/v1/whatsapp/webhook` olarak yayınlanıyordu — oysa `buildWebhookUrl`
+Telegram'a `/api/v1/messaging/telegram/bot/:clinicId` kaydediyordu. İkisi hiç eşleşmiyordu.
+Önek artık `children:` ile veriliyor ve gerçekten uygulanıyor (boot çıktısıyla doğrulandı:
+32 rotanın tamamı `/messaging` altında).
+
+*(b) messaging `SetupApp`'i çağırmıyordu.* Ayrı app iskeleti kurulurken `main.ts`'e
+taşınmamıştı; sürümleme öneki (`api/v1`), doğrulama pipe'ları, hata filtresi ve
+`trust proxy` yoktu. Yani DTO doğrulaması hiç çalışmıyor, `DomainException` 500'e düşüyor,
+vekil arkasında istemci IP'si görünmüyordu. Ortak açılış ayarı çekirdeğe alındı
+(`packages/nest-kernel/src/http/setup-app.ts`) ve iki servis de onu çağırıyor — kopyalanmış
+olsaydı yine sessizce ayrışırlardı. Hata filtresinin Prisma dalı api'ye özgü olduğu için
+`BaseExceptionFilter` çekirdekte, api onu `mapPlatformException` ile genişletiyor
+(çekirdek Faz 3.2'de Prisma'dan koparılmıştı; messaging'in Prisma'sı yok).
+
+**Yapılandırma:** `infra/caddy/Caddyfile` (öneri — TLS'i kendi yönetir) ve
+`infra/nginx/core-crm.conf`. Tek kural bütün messaging yüzeyini karşılar:
+
+```
+/api/v1/messaging/*  → messaging:8081
+diğer her şey        → api:8080
+```
+
+docker-compose'a `proxy` profili altında eklendi (`docker compose --profile proxy up`);
+yerel geliştirmede servislere doğrudan gidildiği için varsayılanda kapalı.
+
+**Kalan elle iş:** `PUBLIC_BASE_URL` public alan adı olmalı (servisin kendi portu değil) —
+Telegram webhook'u bundan türetiliyor; ve Meta panelinde WhatsApp + Instagram geri-çağrı
+adreslerine `/messaging` segmenti eklenmeli (tek seferlik, klinik başına değil).
 
 ---
 

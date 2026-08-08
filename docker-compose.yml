@@ -130,6 +130,27 @@ services:
       # Token imzasını yerel doğrular; api ile aynı servis hesabını kullanır.
       - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
 
+  # Tek public giriş noktası: /api/v1/messaging/* → messaging, gerisi → api.
+  # Yerel geliştirmede gerekmez (servislere doğrudan 8080/8081'den gidilir),
+  # bu yüzden profil arkasında: `docker compose --profile proxy up`.
+  # Sunucuda DOMAIN env'i verilir; TLS'i Caddy kendi alır ve yeniler.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["proxy"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - messaging
+
   web:
     build:
       context: .
@@ -149,3 +170,5 @@ volumes:
   postgres_data:
   mongo_data:
   redis_data:
+  caddy_data:
+  caddy_config:

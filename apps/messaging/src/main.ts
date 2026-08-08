@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ENV } from '@common/constants/env.constant';
+import { BaseExceptionFilter, setupApp } from '@src/http';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
@@ -11,7 +12,10 @@ async function bootstrap(): Promise<void> {
     rawBody: true,
   });
 
-  app.enableShutdownHooks();
+  // api ile aynı HTTP sözleşmesi: `api/v1` sürüm öneki, doğrulama pipe'ları,
+  // DomainException → doğru HTTP statüsü, ters vekil arkasında `trust proxy`.
+  // messaging'in Prisma'sı yok, o yüzden çekirdek filtresi doğrudan kullanılır.
+  setupApp(app, { exceptionFilter: new BaseExceptionFilter() });
 
   const configService = app.get(ConfigService);
 

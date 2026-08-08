@@ -13,8 +13,10 @@
     "@nestjs/microservices": "^11.1.28",
     "@nestjs/mongoose": "^11.0.4",
     "dayjs": "^1.11.20",
+    "helmet": "^8.1.0",
     "ioredis": "^5.9.2",
     "mongoose": "^9.1.5",
+    "nestjs-zod": "^5.1.1",
     "reflect-metadata": "^0.2.2",
     "slugify": "^1.6.6",
     "zod": "^4.3.6"

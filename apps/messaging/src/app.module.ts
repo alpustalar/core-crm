@@ -18,6 +18,8 @@ import { MessagingModule } from './modules/messaging.module';
  * `MessagingModule` yazışma/kanal/AI bağlamlarının tamamını taşır; `apps/api`'den
  * buraya taşındı ve core'a bakan üç bağımlılığı (AI araçları, kontak çözümleme,
  * `ActorContext`) artık NATS adapter'ları karşılıyor.
+ *
+ * `messaging` yol öneki `MessagingModule` içinde veriliyor.
  */
 @Module({
   imports: [
