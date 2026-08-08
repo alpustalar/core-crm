@@ -11,6 +11,7 @@ import {
 import { mongoSessionStorage } from './session-storage';
 import { MESSAGING_MONGO_CONNECTION } from './mongo.connection';
 import { MongoOutbox, MongoOutboxDocument } from './outbox/mongo-outbox.schema';
+import { MongoOutboxRelay } from './outbox/mongo-outbox.relay';
 
 /** Mongo'nun yeniden denenebilir işaretlediği geçici transaction hataları. */
 const TRANSIENT_LABELS = [
@@ -50,7 +51,8 @@ export class MongoTransactionManager implements OnApplicationBootstrap {
     private readonly connection: Connection,
     @InjectModel(MongoOutbox.name, MESSAGING_MONGO_CONNECTION)
     private readonly outboxModel: Model<MongoOutboxDocument>,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private readonly outboxRelay: MongoOutboxRelay
   ) {}
 
   /**
@@ -103,19 +105,27 @@ export class MongoTransactionManager implements OnApplicationBootstrap {
    * İşi bir Mongo transaction'ında çalıştırır ve biriken event'leri **aynı session
    * içinde** outbox koleksiyonuna mühürler. Yazma geri sarılırsa event de sarılır;
    * event yazılamazsa yazma da geri sarılır.
+   *
+   * Mühürleme tek başına yetmez: event'i dinleyicilere ulaştıran `MongoOutboxRelay`'dir.
+   * Commit'ten sonra relay doğrudan dürtülür (beklemeden — hata relay içinde loglanır),
+   * çünkü periyodik taramayı beklemek gelen mesaja verilen yanıtı geciktirirdi.
    */
   async outboxRun<T>(work: () => Promise<T>): Promise<T> {
     if (mongoSessionStorage.getStore()) {
       return work();
     }
 
-    const { result } = await this.withTransaction(
+    const { result, events } = await this.withTransaction(
       work,
-      async (events, session) => {
-        if (events.length === 0) return;
-        await this.saveToOutbox(events, session);
+      async (outboxEvents, session) => {
+        if (outboxEvents.length === 0) return;
+        await this.saveToOutbox(outboxEvents, session);
       }
     );
+
+    if (events.length > 0) {
+      void this.outboxRelay.drain();
+    }
 
     return result;
   }

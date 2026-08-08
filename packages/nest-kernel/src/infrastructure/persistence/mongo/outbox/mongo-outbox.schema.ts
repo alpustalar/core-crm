@@ -28,6 +28,14 @@ export class MongoOutbox {
   /** Null ise henüz yayınlanmadı (relay bu alana bakar). */
   @Prop({ type: Date, default: null })
   processedAt!: Date | null;
+
+  /**
+   * Kaç kez yayınlanmaya çalışıldı. Sürekli hata veren bir kayıt (poison pill)
+   * relay'i sonsuz döngüye sokmasın diye üst sınıra ulaşınca artık alınmaz;
+   * `processedAt: null` + `attempts: MAX` olarak görünür kalır ve loglanır.
+   */
+  @Prop({ type: Number, default: 0 })
+  attempts!: number;
 }
 
 export const MongoOutboxSchema = SchemaFactory.createForClass(MongoOutbox);
