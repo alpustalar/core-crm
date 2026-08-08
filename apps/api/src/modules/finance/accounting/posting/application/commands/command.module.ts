@@ -10,6 +10,10 @@ import { SalesInvoiceIssuedRule } from '@modules/finance/accounting/posting/doma
 import { PurchaseInvoiceReceivedRule } from '@modules/finance/accounting/posting/domain/posting/rules/purchase-invoice-received.rule';
 import { PayrollAccruedRule } from '@modules/finance/accounting/posting/domain/posting/rules/payroll-accrued.rule';
 import { CashSessionClosedRule } from '@modules/finance/accounting/posting/domain/posting/rules/cash-session-closed.rule';
+import { PlatformBookingSettledRule } from '@modules/finance/accounting/posting/domain/posting/rules/platform-booking-settled.rule';
+import { PLATFORM_TENANT_PROVIDER } from '@modules/finance/accounting/posting/domain/interfaces/platform-tenant.provider.interface';
+import { PlatformTenantProvider } from '@modules/finance/accounting/posting/infrastructure/platform-tenant.provider';
+import { ChartOfAccountsCommandModule } from '@modules/finance/accounting/chart-of-accounts/application/commands/command.module';
 import { FX_RATE_PROVIDER } from '@src/infrastructure/payment/links/fx-rate.port';
 import { StaticEnvFxRateProvider } from '@src/infrastructure/payment/links/adapters/static-env-fx-rate.provider';
 import { TcmbFxRateProvider } from '@src/infrastructure/payment/links/adapters/tcmb-fx-rate.provider';
@@ -21,7 +25,9 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [JournalRepositoryModule],
+  // ChartOfAccountsCommandModule: platform kliniğinin hesap planını ilk
+  // kullanımda kuran idempotent komut için (PlatformTenantProvider).
+  imports: [JournalRepositoryModule, ChartOfAccountsCommandModule],
   providers: [
     ...CommandHandlers,
     PaymentReceivedRule,
@@ -29,6 +35,8 @@ const CommandHandlers = [
     PurchaseInvoiceReceivedRule,
     PayrollAccruedRule,
     CashSessionClosedRule,
+    PlatformBookingSettledRule,
+    { provide: PLATFORM_TENANT_PROVIDER, useClass: PlatformTenantProvider },
     {
       provide: POSTING_RULES,
       useFactory: (
@@ -36,13 +44,15 @@ const CommandHandlers = [
         salesInvoiceIssued: SalesInvoiceIssuedRule,
         purchaseInvoiceReceived: PurchaseInvoiceReceivedRule,
         payrollAccrued: PayrollAccruedRule,
-        cashSessionClosed: CashSessionClosedRule
+        cashSessionClosed: CashSessionClosedRule,
+        platformBookingSettled: PlatformBookingSettledRule
       ) => [
         paymentReceived,
         salesInvoiceIssued,
         purchaseInvoiceReceived,
         payrollAccrued,
         cashSessionClosed,
+        platformBookingSettled,
       ],
       inject: [
         PaymentReceivedRule,
@@ -50,6 +60,7 @@ const CommandHandlers = [
         PurchaseInvoiceReceivedRule,
         PayrollAccruedRule,
         CashSessionClosedRule,
+        PlatformBookingSettledRule,
       ],
     },
     PostingRuleRegistry,
@@ -58,6 +69,6 @@ const CommandHandlers = [
     StaticEnvFxRateProvider,
     { provide: FX_RATE_PROVIDER, useClass: TcmbFxRateProvider },
   ],
-  exports: [...CommandHandlers],
+  exports: [...CommandHandlers, PLATFORM_TENANT_PROVIDER],
 })
 export class PostingCommandModule {}

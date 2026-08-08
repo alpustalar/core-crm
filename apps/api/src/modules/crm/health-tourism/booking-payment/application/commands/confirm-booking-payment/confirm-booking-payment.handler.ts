@@ -43,6 +43,15 @@ import {
   BOOKING_PAYMENT_COMMAND_REPOSITORY,
   IBookingPaymentCommandRepository,
 } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
+import { FinancialEventTypeSchema } from '@shared';
+import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import {
+  IPlatformTenantProvider,
+  PLATFORM_TENANT_PROVIDER,
+} from '@modules/finance/accounting/posting/domain/interfaces/platform-tenant.provider.interface';
+import { PlatformBookingSettledEventPayload } from '@modules/finance/accounting/posting/domain/posting/event-payloads';
 
 @CommandHandler(ConfirmBookingPaymentCommand)
 export class ConfirmBookingPaymentHandler
@@ -61,7 +70,9 @@ export class ConfirmBookingPaymentHandler
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(NATS_CLIENT)
-    private readonly natsClient: ClientProxy
+    private readonly natsClient: ClientProxy,
+    @Inject(PLATFORM_TENANT_PROVIDER)
+    private readonly platformTenant: IPlatformTenantProvider
   ) {}
 
   async execute(command: ConfirmBookingPaymentCommand): Promise<void> {
@@ -106,9 +117,10 @@ export class ConfirmBookingPaymentHandler
       this.logger.log(
         `Rezervasyon tamamlandı (bp=${bookingPaymentId}, bookingId=${bookingId}).`
       );
-      // NOT: Tahsilat kliniğin finans defterine YAZILMAZ. Otel/transfer bir platform işlemidir
-      // (hasta platform hesabına öder, platform HotelBeds'e öder); komisyon platform geliridir.
-      // Klinik bu işleme finansal olarak taraf değildir. Platform-gelir defteri ayrı ele alınacak.
+      // Tahsilat kliniğin defterine YAZILMAZ; platform defterine yazılır. Otel/transfer
+      // bir platform işlemidir (hasta platforma öder, platform HotelBeds'e öder) ve
+      // komisyon platform geliridir — klinik bu işleme finansal olarak taraf değildir.
+      await this.postSettlementToPlatformLedger(bp, provider);
       // Müşteriye mesajlaşma kanalından onay (AI dilinde / pencere dışı HSM); hatası bozmaz.
       this.notifyCustomer(bp);
     } catch (err) {
@@ -133,6 +145,79 @@ export class ConfirmBookingPaymentHandler
         );
       }
     }
+  }
+
+  /**
+   * Tahsilatı **platform** defterine yazar (komisyon geliri + tedarikçi borcu).
+   *
+   * Bilerek best-effort: buraya gelindiğinde para tahsil edilmiş ve rezervasyon
+   * açılmıştır. Muhasebe kaydı atılamadı diye hata fırlatmak, üstteki catch'i
+   * tetikleyip başarılı bir rezervasyonu iade akışına sokardı — kaydı sonradan
+   * tamamlamak, müşterinin rezervasyonunu iptal etmekten çok daha ucuz.
+   * `dedupeKey` sayesinde olay yeniden denendiğinde mükerrer yazılmaz.
+   */
+  private async postSettlementToPlatformLedger(
+    bp: BookingPayment,
+    provider: BookingPaymentProviderValue
+  ): Promise<void> {
+    try {
+      const target = await this.platformTenant.resolve();
+
+      const sale = bp.saleAmount.value;
+      const supplier = bp.netAmount.value;
+      // `satisfies`: sözleşmeye uygunluk derleyicide doğrulanır ama literal tipi
+      // korunur — `Record<string, unknown>`'a genişletmek olayın JSON payload
+      // tipiyle (InputJsonValue) uyuşmuyor.
+      const payload = {
+        saleAmount: sale.toFixed(2),
+        supplierAmount: supplier.toFixed(2),
+        commission: sale.minus(supplier).toFixed(2),
+        currency: bp.saleCurrency.value,
+        bookingType: bp.bookingType,
+        provider,
+      } satisfies PlatformBookingSettledEventPayload;
+
+      await this.commandBus.execute(
+        new RecordFinancialEventCommand(
+          {
+            clinicId: target.clinicId,
+            type: FinancialEventTypeSchema.enum.PLATFORM_BOOKING_SETTLED,
+            payload,
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.BOOKING_PAYMENT,
+            sourceRefId: bp.id.value,
+            dedupeKey: FinancialEventDedupeKeys.platform_booking_settled(
+              bp.id.value
+            ),
+          },
+          this.buildPlatformContext(target.clinicId, target.organizationId)
+        )
+      );
+    } catch (err) {
+      this.logger.error(
+        `Platform defterine tahsilat yazılamadı (bp=${bp.id.value}); rezervasyon etkilenmedi, kayıt sonradan tamamlanmalı: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
+  }
+
+  /** Platform defterine yazarken kullanılacak sistem context'i. */
+  private buildPlatformContext(
+    clinicId: string,
+    organizationId: string
+  ): IGetContext {
+    const actor: ActorContext = {
+      ...SYSTEM_ACTOR,
+      clinicId,
+      organizationId,
+      managedClinics: [{ id: clinicId }],
+    };
+    return {
+      actor,
+      source: ExecutionSources.INTERNAL_CASCADE,
+      ip: '127.0.0.1',
+      userAgent: 'BOOKING_PAYMENT_WEBHOOK',
+    };
   }
 
   /**

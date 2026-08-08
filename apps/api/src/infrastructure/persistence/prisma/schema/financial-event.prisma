@@ -21,6 +21,9 @@ enum FinancialEventType {
   OPENING_BALANCE
   PERIOD_CLOSING
   CASH_SESSION_CLOSED
+  /// Sağlık turizmi rezervasyonunun tahsilatı — platform defterine yazılır.
+  /// Klinik defterine YAZILMAZ: klinik bu işleme finansal olarak taraf değildir.
+  PLATFORM_BOOKING_SETTLED
 }
 
 model FinancialEvent {

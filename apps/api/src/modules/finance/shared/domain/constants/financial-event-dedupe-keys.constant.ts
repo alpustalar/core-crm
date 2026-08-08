@@ -10,6 +10,8 @@ export const FinancialEventDedupeKeys = {
   payment_received_pos: (posTransactionId: string) =>
     `payment-received:pos:${posTransactionId}`,
   sales_invoice: (invoiceId: string) => `sales-invoice:${invoiceId}`,
+  platform_booking_settled: (bookingPaymentId: string) =>
+    `platform-booking-settled:${bookingPaymentId}`,
 } as const;
 
 export type FinancialEventDedupeKey =

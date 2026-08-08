@@ -46,6 +46,7 @@ export class Clinic extends AggregateRoot {
     this._status = data.status;
     this._timezone = TimeZone.fromTrusted(data.timezone);
     this._logo = Img.fromTrusted(data.logo);
+    this._isPlatform = data.isPlatform;
     this._organizationId = UUID.fromTrusted(data.organizationId);
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -128,6 +129,16 @@ export class Clinic extends AggregateRoot {
   private _logo: Img | null;
   get logo(): Img | null {
     return this._logo;
+  }
+
+  /**
+   * Platformun kendi defter sahibi "şube"si mi. Sistem satırıdır (migration ile
+   * kurulur); uygulamadan açılan hiçbir klinik bu bayrağı alamaz ve bayrağı
+   * değiştiren bir domain metodu bilerek yoktur.
+   */
+  private _isPlatform: boolean;
+  get isPlatform(): boolean {
+    return this._isPlatform;
   }
 
   private _organizationId: UUID;
@@ -243,6 +254,10 @@ export class Clinic extends AggregateRoot {
         ? Img.create(props.organizationId).orThrow().value
         : null,
 
+      // Uygulamadan açılan klinik hiçbir zaman platform değildir; platform
+      // kiracısı migration ile kurulan tek bir sistem satırıdır.
+      isPlatform: false,
+
       organizationId: UUID.create(props.organizationId).orThrow().value,
       createdAt: now,
       updatedAt: now,
@@ -345,6 +360,7 @@ export class Clinic extends AggregateRoot {
       status: this.status,
       timezone: this.timezone.value,
       logo: this.logo?.value ?? null,
+      isPlatform: this.isPlatform,
       organizationId: this.organizationId?.value ?? null,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

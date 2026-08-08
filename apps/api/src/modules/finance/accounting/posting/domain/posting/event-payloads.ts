@@ -50,3 +50,22 @@ export interface CashSessionClosedEventPayload {
   difference: string; // sayım − beklenen (imzalı): + fazla (B 100 / A 679), − açık (B 689 / A 100)
   currency?: CurrencyType; // yabancı kasa → posting fonksiyonel paraya çevirir (Model A)
 }
+
+/**
+ * Sağlık turizmi rezervasyon tahsilatı — **platform** defterine yazılır.
+ *
+ * Platform aracıdır (acente): müşteriden `saleAmount` tahsil edilir, bunun
+ * `supplierAmount` kadarı tedarikçiye (HotelBeds) borçtur, kalan `commission`
+ * platformun geliridir. Bu yüzden gelir olarak **yalnız komisyon** yazılır;
+ * tedarikçi payı hasılat değil borçtur (aracı/net yaklaşımı).
+ *
+ * `saleAmount = commission + supplierAmount` — kural bu eşitliği doğrular.
+ */
+export interface PlatformBookingSettledEventPayload {
+  saleAmount: string; // müşteriden tahsil edilen brüt
+  supplierAmount: string; // tedarikçiye (HotelBeds) borç — net maliyet
+  commission: string; // platform geliri = saleAmount − supplierAmount
+  currency: CurrencyType; // satış para birimi; posting fonksiyonel paraya çevirir (Model A)
+  bookingType: string; // HOTEL | TRANSFER — fiş açıklaması için
+  provider: string; // IYZICO | STRIPE — tahsilatın geldiği kanal
+}

@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import {
-  IPaymentQueryRepository,
-  PaymentWithInstallments,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { InstallmentStatus, Prisma } from '@prisma/client';
-import { Payment as IPayment } from '@shared';
+import { Payment } from '@shared';
 import {
   ArAgingData,
   ArAgingFilter,
   CollectedInstallmentRow,
   ProviderRevenueFilterData,
 } from '@modules/finance/payment/domain/contracts/payment.contracts';
+import {
+  IPaymentQueryRepository,
+  PaymentWithInstallments,
+} from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
 
 /** Henüz tahsil edilmemiş (açık) taksit durumları. */
 const OUTSTANDING_STATUSES = [
@@ -29,7 +29,7 @@ export class PaymentQueryRepository
     super(prisma);
   }
 
-  findByAppointmentId(appointmentId: string): Promise<IPayment | null> {
+  findByAppointmentId(appointmentId: string): Promise<Payment | null> {
     return this.db.payment.findUnique({ where: { appointmentId } });
   }
 

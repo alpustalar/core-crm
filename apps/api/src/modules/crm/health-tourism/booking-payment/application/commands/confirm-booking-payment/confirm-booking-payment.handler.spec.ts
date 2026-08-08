@@ -117,6 +117,14 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
       }),
     } as any;
 
+    // Platform defteri: tahsilat kliniğe değil buraya postlanır.
+    const platformTenant = {
+      resolve: jest.fn().mockResolvedValue({
+        clinicId: 'platform-clinic',
+        organizationId: 'platform-org',
+      }),
+    } as any;
+
     return {
       handler: new ConfirmBookingPaymentHandler(
         commandBus,
@@ -124,8 +132,10 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         stripeLink,
         commandRepo,
         policyFactory,
-        natsClient
+        natsClient,
+        platformTenant
       ),
+      platformTenant,
       commandBus,
       iyzicoLink,
       stripeLink,
@@ -161,7 +171,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     expect(iyzicoLink.expireLink).toHaveBeenCalledWith(bp.id.value);
   });
 
-  it('hastalı rezervasyonda bile klinik muhasebe köprüsü YOK: yalnız book + onay bildirimi dispatch edilir (tahsilat platform işlemi)', async () => {
+  it('hastalı rezervasyonda bile tahsilat KLİNİK defterine yazılmaz: platform defterine yazılır', async () => {
     const bp = makeBp('PENDING', PATIENT_ID);
     const { handler, commandBus, natsClient } = build(bp);
 
@@ -175,18 +185,75 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     );
 
     expect(bp.status).toBe('BOOKED');
-    const dispatched = (commandBus.execute as jest.Mock).mock.calls.map(
-      (c) => (c[0] as object).constructor.name
+    const commands = (commandBus.execute as jest.Mock).mock.calls.map(
+      (c) => c[0]
     );
-    // Komisyon platform geliridir → klinik defterine PAYMENT_RECEIVED yazılmaz.
-    expect(dispatched).not.toContain('RecordFinancialEventCommand');
+    const dispatched = commands.map((c) => (c as object).constructor.name);
+
+    // Klinik cari hesabı açılmaz — klinik bu işleme finansal olarak taraf değil.
     expect(dispatched).not.toContain('EnsurePartyForPatientCommand');
-    // Yalnız rezervasyon replay'i komut olarak kalır; onay bildirimi NATS olayıdır.
+
+    const financialEvent = commands.find(
+      (c) => (c as object).constructor.name === 'RecordFinancialEventCommand'
+    ) as { data: { clinicId: string; type: string } };
+
+    // Olay yazılır ama defter sahibi PLATFORM'dur; rezervasyonun kliniği DEĞİL.
+    expect(financialEvent).toBeDefined();
+    expect(financialEvent.data.clinicId).toBe('platform-clinic');
+    expect(financialEvent.data.clinicId).not.toBe(CLINIC_ID);
+    expect(financialEvent.data.type).toBe('PLATFORM_BOOKING_SETTLED');
+
     expect(dispatched).toEqual(expect.arrayContaining(['BookHotelCommand']));
     expect(natsClient.emit).toHaveBeenCalledWith(
       NATS_SUBJECTS.booking.confirmed,
       expect.objectContaining({ clinicId: CLINIC_ID })
     );
+  });
+
+  it('komisyon = brüt − tedarikçi payı; hasılat yalnız komisyon olacak şekilde yazılır', async () => {
+    const bp = makeBp('PENDING', PATIENT_ID);
+    const { handler, commandBus } = build(bp);
+
+    await handler.execute(
+      new ConfirmBookingPaymentCommand({
+        bookingPaymentId: bp.id.value,
+        provider: 'STRIPE',
+        providerRef: 'pi_1',
+        ctx,
+      })
+    );
+
+    const event = (commandBus.execute as jest.Mock).mock.calls
+      .map((c) => c[0])
+      .find(
+        (c) => (c as object).constructor.name === 'RecordFinancialEventCommand'
+      ) as { data: { payload: Record<string, string>; dedupeKey?: string } };
+
+    const { saleAmount, supplierAmount, commission } = event.data.payload;
+    expect(Number(commission)).toBeCloseTo(
+      Number(saleAmount) - Number(supplierAmount),
+      2
+    );
+  });
+
+  it('muhasebe kaydı düşse bile rezervasyon bozulmaz (tahsilat alınmış, otel açılmış)', async () => {
+    const bp = makeBp('PENDING', PATIENT_ID);
+    const { handler, platformTenant } = build(bp);
+    platformTenant.resolve.mockRejectedValue(
+      new Error('platform kiracısı yok')
+    );
+
+    await handler.execute(
+      new ConfirmBookingPaymentCommand({
+        bookingPaymentId: bp.id.value,
+        provider: 'STRIPE',
+        providerRef: 'pi_1',
+        ctx,
+      })
+    );
+
+    // Kayıt atılamadı ama rezervasyon ayakta; iade akışına DÜŞMEZ.
+    expect(bp.status).toBe('BOOKED');
   });
 
   it('çift-çekim: zaten BOOKED kayda ikinci ödeme → ikinci ödeme iade, rebook YOK', async () => {

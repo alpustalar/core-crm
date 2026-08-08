@@ -17,6 +17,13 @@ export const OrganizationSchema = z.object({
   address: z.string().nullable(),
   city: z.string().nullable(),
   district: z.string().nullable(),
+  /**
+   * Platformun (bizim) kendi kiracı satırı. Sağlık turizmi komisyonu klinik
+   * değil platform geliridir; defter clinicId zorunlu olduğu için platform da
+   * bir kiracı olarak modellenir ve kendi defterini tutar. Kiracıya dönük
+   * listeler/raporlar bu bayrakla dışlar. Sistemde en fazla bir tane olur.
+   */
+  isPlatform: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),

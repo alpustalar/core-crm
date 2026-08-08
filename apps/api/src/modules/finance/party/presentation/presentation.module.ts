@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PartyController } from './controllers/party.controller';
-import { PartyQueryModule } from '@modules/finance/party/application/queries/query.module';
+import { PartyApplicationModule } from '@modules/finance/party/application/application.module';
 
 @Module({
-  imports: [PartyQueryModule],
+  imports: [PartyApplicationModule],
   controllers: [PartyController],
 })
 export class PartyPresentationModule {}

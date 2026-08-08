@@ -12,6 +12,12 @@ model Organization {
   status   GlobalStatus @default(ACTIVE)
   timezone TimeZone     @default(Europe_Istanbul)
 
+  /// Platformun (bizim) kendi kiracı satırı. Sağlık turizmi komisyonu klinik
+  /// değil platform geliridir; defter clinicId zorunlu olduğu için platform da
+  /// bir kiracı olarak modellenir ve kendi defterini tutar. Kiracıya dönük
+  /// listeler/raporlar bu bayrakla dışlar. Sistemde en fazla bir tane olur.
+  isPlatform Boolean @default(false) @map("is_platform")
+
   clinics            Clinic[]
   patients           Patient[]
   organizationOwners User[]    @relation("organization_owners")

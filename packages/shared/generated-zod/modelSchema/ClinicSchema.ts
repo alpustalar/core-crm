@@ -22,6 +22,12 @@ export const ClinicSchema = z.object({
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
   consultationSlotDuration: z.number().int(),
+  /**
+   * Platformun kendi defter sahibi "şube"si — gerçek bir klinik değildir.
+   * Sağlık turizmi komisyonu buraya postlanır (bkz. Organization.isPlatform).
+   * Kiracıya dönük klinik listelerinden dışlanır.
+   */
+  isPlatform: z.boolean(),
   logo: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

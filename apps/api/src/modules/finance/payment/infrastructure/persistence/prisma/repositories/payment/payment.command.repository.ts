@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
-import { IPaymentCommandRepository } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
+import { IPaymentCommandRepository } from '@modules/finance/payment/domain/repositories/payment/payment.command.repository';
 
 @Injectable()
 export class PaymentCommandRepository

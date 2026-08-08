@@ -5,6 +5,8 @@ export const FINANCIAL_EVENT_SOURCE_MODULES = {
   POS: 'pos',
   CASH_REGISTER: 'cash-register',
   INVOICE: 'invoice',
+  /** Sağlık turizmi rezervasyon tahsilatı — platform defterine yazar. */
+  BOOKING_PAYMENT: 'booking-payment',
 } as const;
 
 export type FinancialEventSourceModule =
