@@ -165,7 +165,7 @@ metotta (`notifyCustomer`) izole ve hatası yutuluyor. Faz 3'te doğru şekli bi
 değil, core'un yayımladığı bir **domain event**'e messaging'in NATS üzerinden abone
 olmasıdır — şimdi port yazmak, sonra geri alınacak iş olurdu.
 
-### Faz 2 — MongoDB'ye taşıma 🔄 (2.1–2.3 ✅, 2.4 açık)
+### Faz 2 — MongoDB'ye taşıma ✅ TAMAM (2.1–2.4)
 
 Kararlar: **tek-düğüm replica set + Mongo transaction + Mongo outbox**, **tek seferde kesme**.
 
