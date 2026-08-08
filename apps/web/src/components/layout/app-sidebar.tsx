@@ -23,7 +23,9 @@ export function AppSidebar() {
 
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {NAV_ITEMS.filter(
-          (item) => !item.capability || actorHasCapability(actor, item.capability)
+          (item) =>
+            (!item.capability || actorHasCapability(actor, item.capability)) &&
+            (!item.requiresClinic || Boolean(clinicId))
         ).map((item) => {
           const href = item.href({ clinicId });
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
