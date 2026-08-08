@@ -4,8 +4,10 @@ import { MongoPersistenceModule } from '@src/infrastructure/persistence/mongo/mo
 import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
 import { CryptoModule } from '@src/infrastructure/security/crypto/crypto.module';
 import { NatsClientModule } from '@src/transport';
+import { KernelHealthModule, RedisHealthIndicator } from '@src/http';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { MessagingAuthModule } from './infrastructure/auth/auth.module';
+import { MongoHealthIndicator } from './infrastructure/health/mongo-health.indicator';
 import { MessagingModule } from './modules/messaging.module';
 
 /**
@@ -32,6 +34,12 @@ import { MessagingModule } from './modules/messaging.module';
     CryptoModule,
     MongoPersistenceModule,
     NatsClientModule,
+    // Readiness'ta Mongo + Redis var, NATS YOK: core'a ulaşamadığında messaging
+    // körelir ama çalışır (webhook'u alır, mesajı kaydeder, AI aracı olmadan
+    // yanıtlar). NATS'ı buraya koymak, çalışan bir örneği trafikten çekerdi.
+    KernelHealthModule.forRoot({
+      indicators: [MongoHealthIndicator, RedisHealthIndicator],
+    }),
     MessagingAuthModule,
     MessagingModule,
   ],

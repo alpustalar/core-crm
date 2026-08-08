@@ -11,6 +11,8 @@ import { ThrottleMonitorGuard } from '@common/guards/throttle-monitor.guard';
 import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listener';
 import { UserModule } from '@modules/identity/user/user.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
+import { KernelHealthModule, RedisHealthIndicator } from '@src/http';
+import { PrismaHealthIndicator } from '@src/infrastructure/health/prisma-health.indicator';
 import { MongoPersistenceModule } from '@src/infrastructure/persistence/mongo/mongo-persistence.module';
 import { CoreTransportModule } from '@src/infrastructure/transport/core-transport.module';
 import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
@@ -75,6 +77,12 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     FirebaseModule,
     PrismaModule,
     MongoPersistenceModule,
+    // Readiness: api'nin işini yapamayacağı iki bağımlılık. Mongo YOK — orası
+    // yalnız audit log tutuyor, erişilemediğinde api istekleri karşılamayı
+    // sürdürür (log kaybı, hizmet kaybı değil).
+    KernelHealthModule.forRoot({
+      indicators: [PrismaHealthIndicator, RedisHealthIndicator],
+    }),
     CoreTransportModule,
     AuthModule,
     TSCqrsModule,

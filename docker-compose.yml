@@ -97,6 +97,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Readiness probe'u: bağımlılıkları (postgres + redis) yoklar, 503 dönerse
+    # konteyner "unhealthy" olur. Liveness (/health) yeniden başlatma içindir ve
+    # burada kullanılmaz — compose healthcheck'i trafik değil durum bildirir.
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:8080/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     volumes:
       # Firebase Admin SDK — place your service account JSON here before running.
       # File expected at process.cwd()/secrets/firebase-sdk.json inside the container.
@@ -126,6 +136,15 @@ services:
         condition: service_healthy
       nats:
         condition: service_healthy
+    # Readiness Mongo + Redis'e bakar, NATS'a BAKMAZ: core'a ulaşamadığında
+    # messaging körelir ama çalışır (webhook alır, mesajı kaydeder).
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:8081/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       # Token imzasını yerel doğrular; api ile aynı servis hesabını kullanır.
       - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
@@ -148,8 +167,10 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - api
-      - messaging
+      api:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
 
   web:
     build:

@@ -1,10 +1,5 @@
 import helmet from 'helmet';
-import {
-  ExceptionFilter,
-  INestApplication,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
+import { ExceptionFilter, INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { API_CONFIG } from '@common/constants/api-config.constant';
@@ -21,14 +16,15 @@ export interface SetupAppOptions {
  * Tüm HTTP servislerinin ortak açılış ayarı: sürümleme, güvenlik başlıkları,
  * CORS, hata filtresi ve doğrulama pipe'ları.
  *
- * Bu fonksiyon çekirdekte duruyor çünkü kopyası çıkarsa iki servis sessizce
- * ayrışır — nitekim ayrımdan sonra messaging bir süre sürümleme öneki ve
- * doğrulama pipe'ı olmadan çalıştı.
  */
 export const setupApp = (
   app: INestApplication,
-  options: SetupAppOptions
+  options: SetupAppOptions,
 ): void => {
+
+  const configService = app.get(ConfigService);
+  const isProduction = configService.get<string>('NODE_ENV') === 'production';
+
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: API_CONFIG.CURRENT_VERSION,
@@ -37,12 +33,14 @@ export const setupApp = (
 
   app.use(helmet());
 
-  const configService = app.get(ConfigService);
+  const allowedOrigins = configService
+      .get<string>('ALLOWED_ORIGINS', 'http://localhost:3000')
+      .split(',')
+      .map((origin) => origin.trim());
+
 
   app.enableCors({
-    origin: configService
-      .get<string>('ALLOWED_ORIGINS', 'http://localhost:3000')
-      .split(','),
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -53,16 +51,18 @@ export const setupApp = (
   // Ters vekil (reverse proxy) arkasında çalışırken istemci IP'si ve protokol
   // X-Forwarded-* başlıklarından okunur; bu olmadan rate-limit ve loglar
   // vekilin IP'sini görür.
-  const isProduction = configService.get('NODE_ENV') === 'production';
+
   if (isProduction) {
-    const expressApp = app.getHttpAdapter().getInstance() as {
-      set: (key: string, value: unknown) => void;
-    };
-    expressApp.set('trust proxy', 1);
+    const instance = app.getHttpAdapter().getInstance();
+    if (typeof instance?.set === 'function') {
+      instance.set('trust proxy', 1);
+    }
   }
 
-  app.useGlobalPipes(new ZodValidationPipe());
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(
+    new ZodValidationPipe(),
+    new ValidationPipe({ whitelist: true, transform: true }),
+  );
 
   app.enableShutdownHooks();
 };
