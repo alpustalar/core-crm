@@ -5,7 +5,7 @@ import { GetRoleByIdQueryResponse } from './get-role-by-id.response';
 import {
   IRoleQueryRepository,
   ROLE_QUERY_REPOSITORY,
-} from '@modules/identity/role/domain/repositories/role.repository.interface';
+} from '@modules/identity/role/domain/repositories/role/role.query.repository';
 
 @QueryHandler(GetRoleByIdQuery)
 export class GetRoleByIdHandler

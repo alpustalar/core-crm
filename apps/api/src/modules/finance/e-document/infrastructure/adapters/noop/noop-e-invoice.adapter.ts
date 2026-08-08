@@ -9,7 +9,7 @@ import {
   EDocumentRequest,
   EDocumentResult,
   MailboxInfo,
-} from '@modules/finance/e-document/domain/e-document.contracts';
+} from '@modules/finance/e-document/domain/contracts/e-document.contracts';
 
 /**
  * Entegratör kapalıyken devrede olan fallback (doc 07 §1). Belge INTERNAL (iç belge)

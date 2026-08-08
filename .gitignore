@@ -43,6 +43,7 @@ secrets/
 !tsconfig*.json
 !nest-cli.json
 !project.json
+!components.json
 !firebase-sdk.json.example
 
 firebase-sdk.json

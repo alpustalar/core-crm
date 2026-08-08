@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { SubscriptionPaymentMethod } from '@modules/platform/subscription/domain/entities/subscription-payment-method.entity';
-import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
 import {
   CreateSubscriptionPaymentMethodProps,
   SavedCardChargeModel,
-} from '@modules/platform/subscription/domain/subscription.contracts';
+} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 
 @Injectable()
 export class SubscriptionPaymentMethodCommandRepository

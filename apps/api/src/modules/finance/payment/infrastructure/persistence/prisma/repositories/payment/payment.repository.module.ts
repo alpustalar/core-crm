@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { PaymentCommandRepository } from '@modules/finance/payment/infrastructure/persistence/prisma/repositories/payment.command.repository';
-import { PaymentQueryRepository } from '@modules/finance/payment/infrastructure/persistence/prisma/repositories/payment.query.repository';
+import { PaymentCommandRepository } from '@modules/finance/payment/infrastructure/persistence/prisma/repositories/payment/payment.command.repository';
+import { PaymentQueryRepository } from '@modules/finance/payment/infrastructure/persistence/prisma/repositories/payment/payment.query.repository';
 import { PAYMENT_COMMAND_REPOSITORY } from '@modules/finance/payment/domain/repositories/payment/payment.command.repository';
 import { PAYMENT_QUERY_REPOSITORY } from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
 

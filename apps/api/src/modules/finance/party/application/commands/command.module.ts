@@ -13,6 +13,5 @@ const CommandHandlers = [
 @Module({
   imports: [PartyRepositoryModule],
   providers: [...CommandHandlers],
-  exports: [...CommandHandlers],
 })
 export class PartyCommandModule {}

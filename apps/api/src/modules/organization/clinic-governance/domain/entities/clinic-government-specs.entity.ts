@@ -8,7 +8,7 @@ import { Vkn } from '@src/domain/value-objects/vkn.vo';
 import {
   CreateClinicGovernmentSpecsProps,
   UpdateClinicGovernmentSpecsProps,
-} from '@modules/organization/clinic-governance/domain/clinic-governance.contracts';
+} from '@modules/organization/clinic-governance/domain/contracts/clinic-governance.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

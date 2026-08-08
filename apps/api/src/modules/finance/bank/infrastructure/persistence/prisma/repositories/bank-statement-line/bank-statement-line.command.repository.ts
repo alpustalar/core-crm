@@ -3,7 +3,7 @@ import { BankStatementLineMatchStatus } from '@prisma/client';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/transaction/als-storage';
-import { IBankStatementLineCommandRepository } from '@modules/finance/bank/domain/repositories/bank-statement-line.repository';
+import { IBankStatementLineCommandRepository } from '@modules/finance/bank/domain/repositories/bank-statement-line/bank-statement-line.repository';
 import { BankStatementLine } from '@modules/finance/bank/domain/entities/bank-statement-line.entity';
 
 @Injectable()

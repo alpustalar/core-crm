@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { ICashSessionQueryRepository } from '@modules/finance/cash-register/domain/repositories/cash-session.repository';
 import {
   CashSessionWithMovements,
   FindCashSessionsFilter,
 } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
 import { CashSession as ICashSession } from '@model-schema/CashSessionSchema';
 import { Paginated } from '@common/interfaces/paginated.type';
+import { ICashSessionQueryRepository } from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.query.repository';
 
 @Injectable()
 export class CashSessionQueryRepository

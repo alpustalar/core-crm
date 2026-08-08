@@ -3,10 +3,6 @@ import { Inject } from '@nestjs/common';
 import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { MarkInstallmentAsRefundedCommand } from './mark-installment-as-refunded.command';
 import {
-  IPaymentCommandRepository,
-  PAYMENT_COMMAND_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
-import {
   IPaymentEventPublisher,
   PAYMENT_EVENT_PUBLISHER,
 } from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
@@ -16,15 +12,18 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IPaymentCommandRepository,
+  PAYMENT_COMMAND_REPOSITORY,
+} from '@modules/finance/payment/domain/repositories/payment/payment.command.repository';
 
 @CommandHandler(MarkInstallmentAsRefundedCommand)
-export class MarkInstallmentAsRefundedHandler implements ICommandHandler<
-  MarkInstallmentAsRefundedCommand,
-  void
-> {
+export class MarkInstallmentAsRefundedHandler
+  implements ICommandHandler<MarkInstallmentAsRefundedCommand, void>
+{
   constructor(
     @Inject(PAYMENT_COMMAND_REPOSITORY)
-    private readonly paymentCommandRepo: IPaymentCommandRepository,
+    private readonly paymentRepo: IPaymentCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     @Inject(POLICY_FACTORY)
@@ -37,9 +36,7 @@ export class MarkInstallmentAsRefundedHandler implements ICommandHandler<
 
     await this.txManager.outboxRun(async () => {
       const payment =
-        await this.paymentCommandRepo.findByInstallmentIdForUpdate(
-          installmentId
-        );
+        await this.paymentRepo.findByInstallmentIdForUpdate(installmentId);
       if (!payment) throw new InstallmentNotFoundException(installmentId);
 
       const validateOptions = this.policyFactory
@@ -49,7 +46,7 @@ export class MarkInstallmentAsRefundedHandler implements ICommandHandler<
       payment.rules(validateOptions).canRefund().orThrow();
 
       payment.refundInstallment(installmentId);
-      await this.paymentCommandRepo.update(payment);
+      await this.paymentRepo.update(payment);
 
       // TODO: entity içinde refundInstallment içinde domain event olarak raise et
       this.paymentEventPublisher.paymentRefund({

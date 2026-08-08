@@ -2,24 +2,23 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetBankAccountsQuery } from './get-bank-accounts.query';
 import { GetBankAccountsResponse } from './get-bank-accounts.response';
-import {
-  BANK_ACCOUNT_QUERY_REPOSITORY,
-  IBankAccountQueryRepository,
-} from '@modules/finance/bank/domain/repositories/bank-account.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  BANK_ACCOUNT_QUERY_REPOSITORY,
+  IBankAccountQueryRepository,
+} from '@modules/finance/bank/domain/repositories/bank-account/bank-account.query.repository';
 
 @QueryHandler(GetBankAccountsQuery)
-export class GetBankAccountsHandler implements IQueryHandler<
-  GetBankAccountsQuery,
-  GetBankAccountsResponse
-> {
+export class GetBankAccountsHandler
+  implements IQueryHandler<GetBankAccountsQuery, GetBankAccountsResponse>
+{
   constructor(
     @Inject(BANK_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IBankAccountQueryRepository,
+    private readonly bankAccountRepo: IBankAccountQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -33,7 +32,7 @@ export class GetBankAccountsHandler implements IQueryHandler<
       .evaluator.check((p) => p.canAccessClinicFinances(clinicId))
       .orThrow('bank-account.list');
 
-    const result = await this.accountQueryRepo.findByClinic({
+    const result = await this.bankAccountRepo.findByClinic({
       clinicId,
       status: filter.status,
       pagination,

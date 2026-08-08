@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PaymentGatewayController } from './controllers/payment-gateway.controller';
-import { PaymentGatewayApplicationModule } from '@modules/finance/payment-gateway/application/application.module';
+import { ClinicPaymentGatewayController } from '@modules/finance/payment-gateway/presentation/http/controllers/payment-gateway.controller';
 
-@Module({
-  imports: [PaymentGatewayApplicationModule],
-  controllers: [PaymentGatewayController],
-})
-export class PaymentGatewayPresentationModule {}
+@Module({ controllers: [ClinicPaymentGatewayController] })
+export class ClinicPaymentGatewayPresentationModule {}

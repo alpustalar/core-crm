@@ -3,12 +3,12 @@ import { CreatePaymentPlanCommand } from './create-payment-plan.command';
 import { CreatePaymentPlanCommandResponse } from './create-payment-plan.response';
 
 import { Inject } from '@nestjs/common';
+import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { Money } from '@src/domain/value-objects/money.vo';
 import {
   IPaymentCommandRepository,
   PAYMENT_COMMAND_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
-import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
-import { Money } from '@src/domain/value-objects/money.vo';
+} from '@modules/finance/payment/domain/repositories/payment/payment.command.repository';
 
 @CommandHandler(CreatePaymentPlanCommand)
 export class CreatePaymentPlanHandler
@@ -17,7 +17,7 @@ export class CreatePaymentPlanHandler
 {
   constructor(
     @Inject(PAYMENT_COMMAND_REPOSITORY)
-    private readonly paymentCommandRepo: IPaymentCommandRepository
+    private readonly paymentRepo: IPaymentCommandRepository
   ) {}
 
   async execute(
@@ -51,7 +51,7 @@ export class CreatePaymentPlanHandler
       installments: installmentsData,
     });
 
-    const savedPayment = await this.paymentCommandRepo.create(payment);
+    const savedPayment = await this.paymentRepo.create(payment);
     return savedPayment.id;
   }
 }

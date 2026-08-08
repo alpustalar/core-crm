@@ -14,13 +14,16 @@ import {
 import {
   CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY,
   IClinicAppointmentSettingsQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.query.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.query.repository';
 
 @QueryHandler(GetClinicAppointmentSettingsQuery)
-export class GetClinicAppointmentSettingsHandler implements IQueryHandler<
-  GetClinicAppointmentSettingsQuery,
-  GetClinicAppointmentSettingsResponse
-> {
+export class GetClinicAppointmentSettingsHandler
+  implements
+    IQueryHandler<
+      GetClinicAppointmentSettingsQuery,
+      GetClinicAppointmentSettingsResponse
+    >
+{
   constructor(
     @Inject(CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY)
     private readonly clinicAppointmentSettingsRepo: IClinicAppointmentSettingsQueryRepository,

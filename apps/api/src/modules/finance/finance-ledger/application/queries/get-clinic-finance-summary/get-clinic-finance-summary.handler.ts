@@ -3,15 +3,15 @@ import { Inject } from '@nestjs/common';
 import { GetClinicFinanceSummaryQuery } from './get-clinic-finance-summary.query';
 import { GetClinicFinanceSummaryQueryResponse } from './get-clinic-finance-summary.response';
 import {
-  FINANCE_LEDGER_QUERY_REPOSITORY,
-  IFinanceLedgerQueryRepository,
-} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
+import {
+  FINANCE_LEDGER_QUERY_REPOSITORY,
+  IFinanceLedgerQueryRepository,
+} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
 
 @QueryHandler(GetClinicFinanceSummaryQuery)
 export class GetClinicFinanceSummaryHandler

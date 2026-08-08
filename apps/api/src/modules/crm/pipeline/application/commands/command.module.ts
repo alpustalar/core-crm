@@ -5,7 +5,7 @@ import { UpdatePipelineStageHandler } from './update-pipeline-stage/update-pipel
 import { DeletePipelineStageHandler } from './delete-pipeline-stage/delete-pipeline-stage.handler';
 import { PipelineInfrastructureModule } from '@modules/crm/pipeline/infrastructure/infrastructure.module';
 
-export const PIPELINE_COMMAND_HANDLERS = [
+const PIPELINE_COMMAND_HANDLERS = [
   CreatePipelineHandler,
   AddPipelineStageHandler,
   UpdatePipelineStageHandler,

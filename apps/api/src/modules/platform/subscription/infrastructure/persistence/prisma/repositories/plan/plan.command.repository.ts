@@ -3,8 +3,8 @@ import { randomUUID } from 'crypto';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity';
-import { IPlanCommandRepository } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
 import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
+import { IPlanCommandRepository } from '@modules/platform/subscription/domain/repositories/plan/plan.command.repository';
 
 @Injectable()
 export class PlanCommandRepository

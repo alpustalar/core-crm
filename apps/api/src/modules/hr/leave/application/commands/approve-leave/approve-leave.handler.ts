@@ -5,10 +5,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ApproveLeaveCommand } from './approve-leave.command';
 import {
-  ILeaveCommandRepository,
-  LEAVE_COMMAND_REPOSITORY,
-} from '@modules/hr/leave/domain/repositories/leave.repository';
-import {
   LeaveInsufficientBalanceException,
   LeaveNotFoundException,
 } from '@modules/hr/leave/domain/exceptions/leave.exceptions';
@@ -23,16 +19,19 @@ import { IGetContext } from '@common/decorators/get-context.decorator';
 import { LeaveBalance } from '@modules/hr/leave/domain/value-objects/leave-balance.vo';
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  ILeaveCommandRepository,
+  LEAVE_COMMAND_REPOSITORY,
+} from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
 
 @CommandHandler(ApproveLeaveCommand)
-export class ApproveLeaveHandler implements ICommandHandler<
-  ApproveLeaveCommand,
-  void
-> {
+export class ApproveLeaveHandler
+  implements ICommandHandler<ApproveLeaveCommand, void>
+{
   public internalCtx: IGetContext;
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
-    private readonly leaveCommandRepo: ILeaveCommandRepository,
+    private readonly leaveRepo: ILeaveCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -44,7 +43,7 @@ export class ApproveLeaveHandler implements ICommandHandler<
     this.internalCtx = ExecutionContextFactory.createInternal(ctx);
 
     await this.txManager.run(async () => {
-      const leave = await this.leaveCommandRepo.findById(leaveId);
+      const leave = await this.leaveRepo.findById(leaveId);
       if (!leave) throw new LeaveNotFoundException(leaveId);
 
       this.policyFactory
@@ -65,7 +64,7 @@ export class ApproveLeaveHandler implements ICommandHandler<
 
       leave.approve(ctx.actor.userId, data.note);
 
-      await this.leaveCommandRepo.update(leave);
+      await this.leaveRepo.update(leave);
     });
   }
 
@@ -80,7 +79,7 @@ export class ApproveLeaveHandler implements ICommandHandler<
     // İzin yılı + bakiye aritmetiği domain'de (LeaveBalance) — bakiye sorgusuyla
     // birebir aynı hesap; iki yerde ayrı ayrı yazılmaz.
     const { from, to } = LeaveBalance.periodOf();
-    const usedDays = await this.leaveCommandRepo.sumApprovedAnnualDays(
+    const usedDays = await this.leaveRepo.sumApprovedAnnualDays(
       employeeId,
       from,
       to

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IProductCategoryCommandRepository } from '@modules/supply/inventory/domain/repositories/product-category.repository.interface';
 import { ProductCategory } from '@modules/supply/inventory/domain/entities/product-category.entity';
+import { IProductCategoryCommandRepository } from '@modules/supply/inventory/domain/repositories/product-category/product-category.command.repository';
 
 @Injectable()
 export class ProductCategoryCommandRepository

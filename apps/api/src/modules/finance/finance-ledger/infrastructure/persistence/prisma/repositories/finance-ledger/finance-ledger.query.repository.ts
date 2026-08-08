@@ -6,20 +6,20 @@ import {
   PaymentStatus,
   Prisma,
 } from '@prisma/client';
-import { Pagination } from '@shared';
+import { FinanceLedger as IFinanceLedger, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
   GetSummaryFilter,
-  IFinanceLedgerQueryRepository,
   LedgerSummary,
   PatientFinanceSummary,
   PatientLedgerItem,
   PatientRevenue,
   SumIncomeByPatientsFilter,
-} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
-import { FinanceLedger as IFinanceLedger } from '@shared';
+} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger.contracts';
+import { IFinanceLedgerQueryRepository } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
+import { Paginated } from '@common/interfaces/paginated.type';
 
 @Injectable()
 export class FinanceLedgerQueryRepository
@@ -33,7 +33,7 @@ export class FinanceLedgerQueryRepository
   findManyByClinicId(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: IFinanceLedger[]; total: number }> {
+  ): Promise<Paginated<IFinanceLedger>> {
     return paginate({
       delegate: this.db.financeLedger,
       pagination,
@@ -44,7 +44,7 @@ export class FinanceLedgerQueryRepository
   async findManyByPatientIdWithDetails(
     patientId: string,
     pagination: Pagination
-  ): Promise<{ items: PatientLedgerItem[]; total: number }> {
+  ): Promise<Paginated<PatientLedgerItem>> {
     type RawRow = {
       id: string;
       amount: Prisma.Decimal;

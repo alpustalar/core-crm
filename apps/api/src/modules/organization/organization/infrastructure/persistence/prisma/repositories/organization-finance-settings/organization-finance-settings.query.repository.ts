@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { OrganizationFinanceSettings as IOrganizationFinanceSettings } from '@shared';
-import { IOrganizationFinanceSettingsQueryRepository } from '@modules/organization/organization/domain/repositories/organization-finance-settings.repository.interface';
+import { IOrganizationFinanceSettingsQueryRepository } from '@modules/organization/organization/domain/repositories/organization-finance-settings/organization-finance-settings.query.repository';
 
 @Injectable()
 export class OrganizationFinanceSettingsQueryRepository

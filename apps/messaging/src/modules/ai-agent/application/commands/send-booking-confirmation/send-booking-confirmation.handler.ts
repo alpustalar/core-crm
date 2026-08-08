@@ -48,16 +48,16 @@ export class SendBookingConfirmationHandler implements ICommandHandler<
     // Yazışma okuması gönderim yolunu (şablon mu serbest metin mi) belirliyor →
     // 24 saatlik servis penceresi bayat okunmamalı, Command Context'ten gelir.
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository,
+    private readonly messageRepo: IMessageQueryRepository,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(command: SendBookingConfirmationCommand): Promise<void> {
     const { input } = command;
-    const conversation = await this.conversationCommandRepo.findById(
+    const conversation = await this.conversationRepo.findById(
       input.conversationId
     );
     if (!conversation) {
@@ -126,7 +126,7 @@ export class SendBookingConfirmationHandler implements ICommandHandler<
     });
     // Salt okunur bağlam (AI prompt geçmişi): hiçbir mutasyona karar vermiyor,
     // Query Repo burada meşru.
-    const { items } = await this.messageQueryRepo.findManyByConversation(
+    const { items } = await this.messageRepo.findManyByConversation(
       conversation.id,
       pagination
     );

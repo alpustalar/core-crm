@@ -3,6 +3,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { TenantEntitlements } from '@common/interfaces';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { ISubscriptionCacheService } from '@modules/platform/subscription/domain/interfaces/subscription-cache.service.interface';
 
 const KEYS = {
   // Kiracı (org/klinik) entitlement cache'i — abonelik event'lerinde bust edilir.
@@ -14,7 +15,7 @@ const KEYS = {
 };
 
 @Injectable()
-export class SubscriptionCacheService {
+export class SubscriptionCacheService implements ISubscriptionCacheService {
   private readonly entitlementsTtl = DateTimeManager.toSeconds({
     minutes: 6,
   });

@@ -31,10 +31,10 @@ import { Currency, UUID } from '@src/domain/value-objects';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(RefundPaymentCommand)
-export class RefundPaymentHandler implements ICommandHandler<
-  RefundPaymentCommand,
-  RefundPaymentCommandResponse
-> {
+export class RefundPaymentHandler
+  implements
+    ICommandHandler<RefundPaymentCommand, RefundPaymentCommandResponse>
+{
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
@@ -100,9 +100,10 @@ export class RefundPaymentHandler implements ICommandHandler<
     await this.txManager.outboxRun(async () => {
       // SDK çağrısı sürerken callback/webhook aynı kaydı güncellemiş olabilir;
       // yukarıdaki kopyayı geri yazmak onu ezerdi. Kilitli ve taze okunur.
-      const lockedTx = await this.iyzicoCommandRepo.findByInstallmentIdForUpdate(
-        completedInstallment.id
-      );
+      const lockedTx =
+        await this.iyzicoCommandRepo.findByInstallmentIdForUpdate(
+          completedInstallment.id
+        );
       if (!lockedTx) {
         throw new IyzicoPaymentRecordNotFoundException(
           'Bu ödeme için iyzico işlem transaction kaydı bulunamadı.'
@@ -119,7 +120,7 @@ export class RefundPaymentHandler implements ICommandHandler<
         })
       );
 
-      // TODO: entity oluşturulacak. event entity içinde addDomainEvent ile pushlanacak save ile flush edilecek
+      // TODO: event entity içinde addDomainEvent ile pushlanacak save ile flush edilecek. payment event publisherı çağrılmayacak. buraya başka bir listener ve duruma göre producer ve processor yazılacak ve işlem öyle tamamlanacak
       this.paymentEventPublisher.paymentRefund({
         installmentId: completedInstallment?.id,
         paymentId: payment.id,

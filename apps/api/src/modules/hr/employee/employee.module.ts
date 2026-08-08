@@ -1,14 +1,5 @@
 import { Module } from '@nestjs/common';
-import { EmployeePresentationModule } from './presentation/employee.presentation.module';
-import { EmployeeCommandModule } from './application/commands/command.module';
-import { EmployeeQueryModule } from './application/queries/query.module';
+import { EmployeePresentationModule } from './presentation/presentation.module';
 
-@Module({
-  imports: [
-    EmployeePresentationModule,
-    EmployeeCommandModule,
-    EmployeeQueryModule,
-  ],
-  exports: [EmployeeCommandModule, EmployeeQueryModule],
-})
+@Module({ imports: [EmployeePresentationModule] })
 export class EmployeeModule {}

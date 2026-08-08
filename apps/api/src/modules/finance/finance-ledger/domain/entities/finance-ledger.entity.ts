@@ -9,7 +9,7 @@ import { LedgerStatusType as LedgerStatus } from '@shared/generated-zod/inputTyp
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { TaxSpecification } from '@modules/finance/shared/domain/value-objects/tax-specification.vo';
-import { CreateFinanceLedgerProps } from '@modules/finance/finance-ledger/domain/finance-ledger.contracts';
+import { CreateFinanceLedgerProps } from '@modules/finance/finance-ledger/domain/contracts/finance-ledger.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

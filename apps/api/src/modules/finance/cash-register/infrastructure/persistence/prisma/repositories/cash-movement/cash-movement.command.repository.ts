@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ICashMovementCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-movement.repository';
+import { ICashMovementCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-movement/cash-movement.command.repository';
 import { CashMovement } from '@modules/finance/cash-register/domain/entities/cash-movement.entity';
 
 @Injectable()

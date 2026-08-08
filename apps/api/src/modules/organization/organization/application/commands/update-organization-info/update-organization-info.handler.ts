@@ -2,25 +2,28 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateOrganizationInfoCommand } from './update-organization-info.command';
 import { UpdateOrganizationInfoCommandResponse } from './update-organization-info.response';
 import { Inject } from '@nestjs/common';
-import {
-  IOrganizationCommandRepository,
-  ORGANIZATION_COMMAND_REPOSITORY,
-} from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { OrganizationNotFoundException } from '@modules/organization/organization/domain/exceptions/organization.exceptions';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ORGANIZATION_EVENTS } from '@src/domain/constants/events';
+import {
+  IOrganizationCommandRepository,
+  ORGANIZATION_COMMAND_REPOSITORY,
+} from '@modules/organization/organization/domain/repositories/organization/organization.command.repository';
 
 @CommandHandler(UpdateOrganizationInfoCommand)
-export class UpdateOrganizationInfoHandler implements ICommandHandler<
-  UpdateOrganizationInfoCommand,
-  UpdateOrganizationInfoCommandResponse
-> {
+export class UpdateOrganizationInfoHandler
+  implements
+    ICommandHandler<
+      UpdateOrganizationInfoCommand,
+      UpdateOrganizationInfoCommandResponse
+    >
+{
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
-    private readonly orgCommandRepo: IOrganizationCommandRepository,
+    private readonly organizationRepo: IOrganizationCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -30,7 +33,7 @@ export class UpdateOrganizationInfoHandler implements ICommandHandler<
   ): Promise<UpdateOrganizationInfoCommandResponse> {
     const { data, organizationId, ctx } = command.payload;
 
-    const organization = await this.orgCommandRepo.findById(organizationId);
+    const organization = await this.organizationRepo.findById(organizationId);
 
     if (!organization) throw new OrganizationNotFoundException(organizationId);
 
@@ -43,7 +46,7 @@ export class UpdateOrganizationInfoHandler implements ICommandHandler<
 
     organization.updateInfo(data);
 
-    const saved = await this.orgCommandRepo.update(organization);
+    const saved = await this.organizationRepo.update(organization);
 
     return saved.id.value;
   }

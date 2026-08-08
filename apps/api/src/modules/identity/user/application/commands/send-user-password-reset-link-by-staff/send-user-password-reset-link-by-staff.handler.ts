@@ -2,10 +2,6 @@ import { SendUserPasswordResetLinkByStaffCommand } from '@modules/identity/user/
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
-  IUserQueryRepository,
-  USER_QUERY_REPOSITORY,
-} from '@modules/identity/user/domain/repositories/user.repository';
-import {
   FIREBASE_SERVICE,
   IFirebaseService,
 } from '@src/infrastructure/firebase/firebase.service.interface';
@@ -16,6 +12,10 @@ import {
 import { SendUserPasswordResetLinkByStaffResponse } from '@modules/identity/user/application/commands/send-user-password-reset-link-by-staff/send-user-password-reset-link-by-staff.response';
 import { USER_EVENTS } from '@src/domain/constants/events';
 import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
+import {
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
+} from '@modules/identity/user/domain/repositories/user/user.query.repository';
 
 @CommandHandler(SendUserPasswordResetLinkByStaffCommand)
 export class SendUserPasswordResetLinkByStaffHandler

@@ -13,7 +13,7 @@ import { ClinicCacheService } from '@modules/organization/clinic/infrastructure/
 import {
   CLINIC_APPOINTMENT_SETTINGS_COMMAND_REPOSITORY,
   IClinicAppointmentSettingsCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.command.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.command.repository';
 
 /**
  * Randevu ayarlarını günceller. Yükle (yoksa default'tan üret) → domain metodu
@@ -21,10 +21,9 @@ import {
  * bust. Cache bust DB commit'inden SONRA yapılır ki bir sonraki okuma taze veriyi çeksin.
  */
 @CommandHandler(UpdateClinicAppointmentSettingsCommand)
-export class UpdateClinicAppointmentSettingsHandler implements ICommandHandler<
-  UpdateClinicAppointmentSettingsCommand,
-  void
-> {
+export class UpdateClinicAppointmentSettingsHandler
+  implements ICommandHandler<UpdateClinicAppointmentSettingsCommand, void>
+{
   constructor(
     @Inject(CLINIC_APPOINTMENT_SETTINGS_COMMAND_REPOSITORY)
     private readonly clinicAppointmentSettingsRepo: IClinicAppointmentSettingsCommandRepository,

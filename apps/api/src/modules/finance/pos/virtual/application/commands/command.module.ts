@@ -21,6 +21,5 @@ const CommandHandlers = [
     IyzicoTransactionRepositoryModule,
   ],
   providers: CommandHandlers,
-  exports: CommandHandlers,
 })
 export class VirtualPosCommandModule {}

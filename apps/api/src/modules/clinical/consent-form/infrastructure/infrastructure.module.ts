@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConsentFormEventModule } from '@modules/clinical/consent-form/infrastructure/events/consent-form-event.module';
+import { ConsentFormEventModule } from '@modules/clinical/consent-form/infrastructure/messaging/events/consent-form-event.module';
 import { ConsentFormRepositoriesModule } from '@modules/clinical/consent-form/infrastructure/persistence/prisma/repositories/repositories.module';
 
 const InfrastructureModules = [

@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  PRODUCT_COMMAND_REPOSITORY,
-  PRODUCT_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import { ProductCommandRepository } from './product.command.repository';
 import { ProductQueryRepository } from './product.query.repository';
+import { PRODUCT_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
+import { PRODUCT_QUERY_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product/product.query.repository';
 
 @Module({
   providers: [

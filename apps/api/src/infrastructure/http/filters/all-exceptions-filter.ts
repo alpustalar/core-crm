@@ -34,6 +34,23 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
       };
     }
 
+    if (exception instanceof Prisma.PrismaClientUnknownRequestError) {
+      return {
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+        message: 'Veritabanı servisine şu anda ulaşılamıyor.',
+        errorCode: ERROR_CODES.DATABASE.CONNECTION_ERROR,
+      };
+    }
+
+    // 4. Prisma Şema / Doğrulama Hataları (İstek parametre tiplerinin uyuşmaması)
+    if (exception instanceof Prisma.PrismaClientValidationError) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Geçersiz veritabanı sorgu parametresi.',
+        errorCode: ERROR_CODES.DATABASE.VALIDATION_ERROR,
+      };
+    }
+
     return null;
   }
 }

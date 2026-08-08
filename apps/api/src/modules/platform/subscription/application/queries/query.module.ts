@@ -15,6 +15,5 @@ const QueryHandlers = [
 @Module({
   imports: [SubscriptionRepositoriesModule],
   providers: [...QueryHandlers],
-  exports: [...QueryHandlers],
 })
 export class SubscriptionQueryModule {}

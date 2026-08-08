@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { SubStatusSchema } from '@shared';
+import { Module as IModule, SubStatusSchema } from '@shared';
 import { Decimal } from 'decimal.js';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
+import { RenewalChargeModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
 import type {
   ISubscriptionCommandRepository,
   SubscriptionOwnerRef,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
-import { Module as IModule } from '@shared';
-import { RenewalChargeModel } from '@modules/platform/subscription/domain/subscription.contracts';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
-import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
 
 /** Zamanlanmış tarama başına üst sınır — bir turda işlenecek aday sayısı. */
 const SCAN_BATCH_SIZE = 500;

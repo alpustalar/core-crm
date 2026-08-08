@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { ClinicAvailability } from '@modules/organization/clinic/domain/entities/clinic-availability.entity';
-import { IClinicAvailabilityCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.command.repository.interface';
+import { IClinicAvailabilityCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.command.repository';
 
 @Injectable()
 export class ClinicAvailabilityCommandRepository

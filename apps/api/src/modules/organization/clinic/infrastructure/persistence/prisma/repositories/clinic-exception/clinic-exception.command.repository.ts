@@ -4,7 +4,7 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { ClinicException } from '@modules/organization/clinic/domain/entities/clinic-exception.entity';
 
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { IClinicExceptionCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.command.repository.interface';
+import { IClinicExceptionCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.command.repository';
 
 @Injectable()
 export class ClinicExceptionCommandRepository

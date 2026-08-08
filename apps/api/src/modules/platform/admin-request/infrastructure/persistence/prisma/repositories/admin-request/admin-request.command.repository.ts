@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IAdminRequestCommandRepository } from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
 import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
 import { Prisma } from '@prisma/client';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { IAdminRequestCommandRepository } from '@modules/platform/admin-request/domain/repositories/admin-request/admin-request.command.repository';
 
 @Injectable()
 export class AdminRequestCommandRepository

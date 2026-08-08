@@ -1,8 +1,8 @@
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
-import { IStockMovementCommandRepository } from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { IStockMovementCommandRepository } from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.command.repository';
 
 @Injectable()
 export class StockMovementCommandRepository

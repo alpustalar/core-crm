@@ -2,10 +2,6 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetLeaveBalanceQuery } from './get-leave-balance.query';
 import { GetLeaveBalanceResponse } from './get-leave-balance.response';
-import {
-  ILeaveQueryRepository,
-  LEAVE_QUERY_REPOSITORY,
-} from '@modules/hr/leave/domain/repositories/leave.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetEmployeeByIdQuery } from '@modules/hr/employee/application/queries/get-employee-by-id/get-employee-by-id.query';
 import { LeaveBalance } from '@modules/hr/leave/domain/value-objects/leave-balance.vo';
@@ -13,6 +9,10 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ILeaveQueryRepository,
+  LEAVE_QUERY_REPOSITORY,
+} from '@modules/hr/leave/domain/repositories/leave/leave.query.repository';
 
 @QueryHandler(GetLeaveBalanceQuery)
 export class GetLeaveBalanceHandler
@@ -20,15 +20,13 @@ export class GetLeaveBalanceHandler
 {
   constructor(
     @Inject(LEAVE_QUERY_REPOSITORY)
-    private readonly leaveQueryRepo: ILeaveQueryRepository,
+    private readonly leaveRepo: ILeaveQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus
   ) {}
 
-  async execute(
-    query: GetLeaveBalanceQuery
-  ): Promise<GetLeaveBalanceResponse> {
+  async execute(query: GetLeaveBalanceQuery): Promise<GetLeaveBalanceResponse> {
     const { employeeId, ctx } = query;
 
     this.policyFactory
@@ -44,7 +42,7 @@ export class GetLeaveBalanceHandler
     // İzin yılı tanımı ve bakiye aritmetiği domain'de (LeaveBalance) — handler
     // yalnız veriyi toplayıp hesabı domain'e devreder.
     const { from, to } = LeaveBalance.periodOf();
-    const usedDays = await this.leaveQueryRepo.sumApprovedAnnualDays(
+    const usedDays = await this.leaveRepo.sumApprovedAnnualDays(
       employeeId,
       from,
       to

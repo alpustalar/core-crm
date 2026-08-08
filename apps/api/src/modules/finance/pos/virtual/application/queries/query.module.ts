@@ -15,6 +15,5 @@ const QueryHandlers = [GetInstallmentInfoHandler];
     },
     IyzicoClient,
   ],
-  exports: [...QueryHandlers],
 })
 export class VirtualPosQueryModule {}

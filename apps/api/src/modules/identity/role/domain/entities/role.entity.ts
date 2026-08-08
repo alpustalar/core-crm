@@ -4,7 +4,7 @@ import { Name } from '@src/domain/value-objects/name.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Slug } from '@src/domain/value-objects/slug.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { CreateRoleProps } from '@modules/identity/role/domain/role.contracts';
+import { CreateRoleProps } from '@modules/identity/role/domain/contracts/role.contracts';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 import { Guard } from '@common/domain/guards';
 

@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RequestLeaveCommand } from './request-leave.command';
-import {
-  ILeaveCommandRepository,
-  LEAVE_COMMAND_REPOSITORY,
-} from '@modules/hr/leave/domain/repositories/leave.repository';
 import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -14,6 +10,10 @@ import {
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ILeaveCommandRepository,
+  LEAVE_COMMAND_REPOSITORY,
+} from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
 
 @CommandHandler(RequestLeaveCommand)
 export class RequestLeaveHandler
@@ -21,7 +21,7 @@ export class RequestLeaveHandler
 {
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
-    private readonly leaveCommandRepo: ILeaveCommandRepository,
+    private readonly leaveRepo: ILeaveCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
@@ -51,7 +51,7 @@ export class RequestLeaveHandler
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.leaveCommandRepo.create(leave);
+      const saved = await this.leaveRepo.create(leave);
       return saved.id.value;
     });
   }

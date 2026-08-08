@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PRODUCT_BATCH_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
+import { PRODUCT_BATCH_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product-batch/product-batch.command.repository';
 import { ProductBatchCommandRepository } from './product-batch.command.repository';
 
 @Module({

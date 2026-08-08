@@ -1,9 +1,9 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
-import { LedgerCategoryType as LedgerCategory } from '@shared/generated-zod/inputTypeSchemas/LedgerCategorySchema';
-import { LedgerTypeType as LedgerType } from '@shared/generated-zod/inputTypeSchemas/LedgerTypeSchema';
-import { LedgerSourceType as LedgerSource } from '@shared/generated-zod/inputTypeSchemas/LedgerSourceSchema';
-import { LedgerStatusType as LedgerStatus } from '@shared/generated-zod/inputTypeSchemas/LedgerStatusSchema';
+import { LedgerCategoryType as LedgerCategory } from '@input-type-schemas/LedgerCategorySchema';
+import { LedgerTypeType as LedgerType } from '@input-type-schemas/LedgerTypeSchema';
+import { LedgerSourceType as LedgerSource } from '@input-type-schemas/LedgerSourceSchema';
+import { LedgerStatusType as LedgerStatus } from '@input-type-schemas/LedgerStatusSchema';
 
 const { INTERNAL, MANAGEMENT, FINANCIAL, ADMIN } = ResponseGroups;
 

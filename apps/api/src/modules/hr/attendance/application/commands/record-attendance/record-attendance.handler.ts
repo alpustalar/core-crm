@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RecordAttendanceCommand } from './record-attendance.command';
-import {
-  ATTENDANCE_COMMAND_REPOSITORY,
-  IAttendanceCommandRepository,
-} from '@modules/hr/attendance/domain/repositories/attendance.repository';
 import { AttendanceRecord } from '@modules/hr/attendance/domain/entities/attendance-record.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -12,6 +8,10 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ATTENDANCE_EVENTS } from '@src/domain/constants/events/attendance.constant';
+import {
+  ATTENDANCE_COMMAND_REPOSITORY,
+  IAttendanceCommandRepository,
+} from '@modules/hr/attendance/domain/repositories/attendance/attendance.command.repository';
 
 @CommandHandler(RecordAttendanceCommand)
 export class RecordAttendanceHandler
@@ -19,7 +19,7 @@ export class RecordAttendanceHandler
 {
   constructor(
     @Inject(ATTENDANCE_COMMAND_REPOSITORY)
-    private readonly attendanceCommandRepo: IAttendanceCommandRepository,
+    private readonly attendanceRepo: IAttendanceCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -49,7 +49,7 @@ export class RecordAttendanceHandler
     });
 
     await this.txManager.run(async () => {
-      await this.attendanceCommandRepo.upsertByEmployeeAndDate(record);
+      await this.attendanceRepo.upsertByEmployeeAndDate(record);
     });
   }
 }

@@ -4,13 +4,9 @@ import { Decimal } from 'decimal.js';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import {
-  BANK_STATEMENT_LINE_QUERY_REPOSITORY,
-  IBankStatementLineQueryRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement-line.repository';
-import {
   BANK_STATEMENT_LINE_COMMAND_REPOSITORY,
   IBankStatementLineCommandRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement-line.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement-line/bank-statement-line.repository';
 import { BankStatementLineNotFoundException } from '@modules/finance/bank/domain/exceptions/bank.exceptions';
 import { LineMatchSuggestion } from '@modules/finance/bank/domain/contracts/bank.contracts';
 import {
@@ -29,22 +25,23 @@ import { GetLineMatchSuggestionsResponse } from './get-line-match-suggestions.re
  * görür ve seçimi kendisi yapar.
  */
 @QueryHandler(GetLineMatchSuggestionsQuery)
-export class GetLineMatchSuggestionsHandler implements IQueryHandler<
-  GetLineMatchSuggestionsQuery,
-  GetLineMatchSuggestionsResponse
-> {
+export class GetLineMatchSuggestionsHandler
+  implements
+    IQueryHandler<
+      GetLineMatchSuggestionsQuery,
+      GetLineMatchSuggestionsResponse
+    >
+{
   constructor(
-    @Inject(BANK_STATEMENT_LINE_QUERY_REPOSITORY)
-    private readonly lineQueryRepo: IBankStatementLineQueryRepository,
     @Inject(BANK_STATEMENT_LINE_COMMAND_REPOSITORY)
-    private readonly lineCommandRepo: IBankStatementLineCommandRepository,
+    private readonly bankStatementLineRepo: IBankStatementLineCommandRepository,
     private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
     query: GetLineMatchSuggestionsQuery
   ): Promise<GetLineMatchSuggestionsResponse> {
-    const line = await this.lineQueryRepo.findById(query.lineId);
+    const line = await this.bankStatementLineRepo.findById(query.lineId);
     if (!line) {
       throw new BankStatementLineNotFoundException(query.lineId);
     }
@@ -53,7 +50,7 @@ export class GetLineMatchSuggestionsHandler implements IQueryHandler<
 
     const { data: rows } = await this.queryBus.execute(
       new GetBankLedgerLinesQuery({
-        clinicId: line.clinicId,
+        clinicId: line.clinicId.value,
         dateFrom: DateTimeManager.addDays(line.transactionDate, -tolerance),
         dateTo: DateTimeManager.addDays(line.transactionDate, tolerance),
         ctx: query.ctx,
@@ -72,7 +69,14 @@ export class GetLineMatchSuggestionsHandler implements IQueryHandler<
     const scored = rows
       .map((row) =>
         scoreCandidate(
-          matchable,
+          {
+            amount: matchable.amount,
+            counterpartyName: matchable.counterpartyName,
+            description: matchable.description,
+            reference: matchable.reference,
+            id: matchable.id.value,
+            transactionDate: matchable.transactionDate,
+          },
           {
             lineId: row.lineId,
             entryId: row.entryId,
@@ -87,19 +91,19 @@ export class GetLineMatchSuggestionsHandler implements IQueryHandler<
         )
       )
       .filter((s) => s !== null)
-      .sort((a, b) => b!.score - a!.score);
+      .sort((a, b) => b.score - a.score);
 
     // Zaten başka bir ekstre satırına bağlı adaylar listeden çıkarılmaz;
     // işaretlenir — personel neden seçemediğini görsün.
     const usedRefs = new Set(
-      await this.lineCommandRepo.findUsedMatchRefs(
-        line.clinicId,
-        scored.map((s) => s!.candidate.lineId)
+      await this.bankStatementLineRepo.findUsedMatchRefs(
+        line.clinicId.value,
+        scored.map((s) => s.candidate.lineId)
       )
     );
 
     const suggestions: LineMatchSuggestion[] = scored.map((s) => {
-      const { candidate, score, dayDifference } = s!;
+      const { candidate, score, dayDifference } = s;
       const amount = candidate.debit.isZero()
         ? candidate.credit
         : candidate.debit;
@@ -113,7 +117,7 @@ export class GetLineMatchSuggestionsHandler implements IQueryHandler<
         amount: amount.toFixed(2),
         score,
         dayDifference,
-        reason: describeMatch(s!),
+        reason: describeMatch(s),
         alreadyUsed: usedRefs.has(candidate.lineId),
       };
     });

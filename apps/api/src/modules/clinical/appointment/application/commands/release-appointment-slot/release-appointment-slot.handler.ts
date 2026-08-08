@@ -5,7 +5,7 @@ import { Inject } from '@nestjs/common';
 import {
   APPOINTMENT_CACHE_SERVICE,
   IAppointmentCacheService,
-} from '@modules/clinical/appointment/infrastructure/cache/appointment-cache.service.interface';
+} from '@modules/clinical/appointment/domain/interfaces/appointment-cache.service.interface';
 
 /**
  * Slot geçici kilidini serbest bırakır (yalnız kilidi tutan aktör). Kilit yoksa ya da

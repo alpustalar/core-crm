@@ -2,19 +2,10 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { AddModuleCommand } from './add-module.command';
 import {
-  ISubscriptionCommandRepository,
-  SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import {
   BILLING_ADAPTER,
   IBillingAdapter,
 } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
 import { Money } from '@src/domain/value-objects/money.vo';
-
-import {
-  ISubscriptionItemCommandRepository,
-  SUBSCRIPTION_ITEM_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription-item.repository.interface';
 import { SubscriptionItem } from '@modules/platform/subscription/domain/entities/subscription-item.entity';
 import {
   SubscriptionBuyerRequiredException,
@@ -22,6 +13,14 @@ import {
   SubscriptionModuleNotFoundException,
   SubscriptionNotFoundException,
 } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
+import {
+  ISubscriptionItemCommandRepository,
+  SUBSCRIPTION_ITEM_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription-item/subscription-item.command.repository';
+import {
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
 
 export interface AddModuleResult {
   checkoutUrl: string;
@@ -33,9 +32,9 @@ export class AddModuleHandler
 {
   constructor(
     @Inject(SUBSCRIPTION_ITEM_COMMAND_REPOSITORY)
-    private readonly subscriptionItemCommandRepo: ISubscriptionItemCommandRepository,
+    private readonly subscriptionItemRepo: ISubscriptionItemCommandRepository,
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter
   ) {}
@@ -49,12 +48,12 @@ export class AddModuleHandler
     }
 
     const subscription =
-      await this.subscriptionCommandRepo.findByOrganizationId(organizationId);
+      await this.subscriptionRepo.findByOrganizationId(organizationId);
     if (!subscription) {
       throw new SubscriptionNotFoundException();
     }
 
-    const module = await this.subscriptionCommandRepo.findModuleByKey(moduleKey);
+    const module = await this.subscriptionRepo.findModuleByKey(moduleKey);
 
     if (!module) {
       throw new SubscriptionModuleNotFoundException(moduleKey);
@@ -80,7 +79,7 @@ export class AddModuleHandler
       externalPriceId: externalPriceId ?? conversationId,
     });
 
-    await this.subscriptionItemCommandRepo.create(subscriptionItem);
+    await this.subscriptionItemRepo.create(subscriptionItem);
 
     return { checkoutUrl };
   }

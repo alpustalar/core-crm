@@ -7,7 +7,7 @@ import {
   PaymentResult,
 } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { SavedCardChargeModel } from '@modules/platform/subscription/domain/subscription.contracts';
+import { SavedCardChargeModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 import { randomUUID } from 'crypto';
 import { DateTimeManager } from '@common/utils';
 import { Decimal } from 'decimal.js';
@@ -49,8 +49,8 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
       findDueForRenewal: jest.fn().mockResolvedValue(opts.due),
       findByIdForUpdate: jest
         .fn()
-        .mockImplementation(async (id: string) =>
-          opts.due.find((s) => s.id.value === id) ?? null
+        .mockImplementation(
+          async (id: string) => opts.due.find((s) => s.id.value === id) ?? null
         ),
       findRenewalCharge: jest
         .fn()

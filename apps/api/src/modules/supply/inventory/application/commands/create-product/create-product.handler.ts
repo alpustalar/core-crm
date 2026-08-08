@@ -1,8 +1,4 @@
 import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
-import {
-  IProductCommandRepository,
-  PRODUCT_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -11,6 +7,10 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IProductCommandRepository,
+  PRODUCT_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
 
 @CommandHandler(CreateProductCommand)
 export class CreateProductHandler
@@ -18,7 +18,7 @@ export class CreateProductHandler
 {
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
-    private readonly productCommandRepo: IProductCommandRepository,
+    private readonly productRepo: IProductCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -45,7 +45,7 @@ export class CreateProductHandler
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.productCommandRepo.create(product);
+      const saved = await this.productRepo.create(product);
       return saved.id.value;
     });
   }

@@ -11,11 +11,11 @@ import {
 import {
   CLINIC_EXCEPTION_COMMAND_REPOSITORY,
   IClinicExceptionCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.command.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.command.repository';
 import {
   CLINIC_AVAILABILITY_COMMAND_REPOSITORY,
   IClinicAvailabilityCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.command.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.command.repository';
 
 @Injectable()
 export class ClinicBookingService implements IClinicBookingService {

@@ -4,7 +4,7 @@ import { ReconcilePosTransactionsCommand } from './reconcile-pos-transactions.co
 import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
@@ -20,10 +20,9 @@ const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
 
 @CommandHandler(ReconcilePosTransactionsCommand)
-export class ReconcilePosTransactionsHandler implements ICommandHandler<
-  ReconcilePosTransactionsCommand,
-  void
-> {
+export class ReconcilePosTransactionsHandler
+  implements ICommandHandler<ReconcilePosTransactionsCommand, void>
+{
   private readonly logger = new Logger(ReconcilePosTransactionsHandler.name);
 
   constructor(

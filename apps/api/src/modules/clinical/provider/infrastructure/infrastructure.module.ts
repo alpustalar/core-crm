@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ProviderEventModule } from '@modules/clinical/provider/infrastructure/events/provider-event.module';
+import { ProviderEventModule } from '@modules/clinical/provider/infrastructure/messaging/events/provider-event.module';
 import { ProviderRepositoriesModule } from '@modules/clinical/provider/infrastructure/persistence/prisma/repositories/repositories.module';
 
 const InfrastructureModules = [ProviderEventModule, ProviderRepositoriesModule];

@@ -2,14 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { Pagination } from '@shared';
-import { IProductQueryRepository } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
-import { Product as IProduct } from '@shared';
+import { Pagination, Product as IProduct } from '@shared';
 
 import { Decimal } from 'decimal.js';
 import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { IProductQueryRepository } from '@modules/supply/inventory/domain/repositories/product/product.query.repository';
 
-/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class ProductQueryRepository
   extends BaseRepository

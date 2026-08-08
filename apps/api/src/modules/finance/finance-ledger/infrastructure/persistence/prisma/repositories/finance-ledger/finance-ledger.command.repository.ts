@@ -3,8 +3,8 @@ import { LedgerStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/transaction/als-storage';
-import { IFinanceLedgerCommandRepository } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
+import { IFinanceLedgerCommandRepository } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.command.repository';
 
 @Injectable()
 export class FinanceLedgerCommandRepository

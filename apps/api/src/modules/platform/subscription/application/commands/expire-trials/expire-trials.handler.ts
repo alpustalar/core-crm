@@ -1,28 +1,27 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ExpireTrialsCommand } from './expire-trials.command';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import {
   ISubscriptionCommandRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
 
 @CommandHandler(ExpireTrialsCommand)
-export class ExpireTrialsHandler implements ICommandHandler<
-  ExpireTrialsCommand,
-  void
-> {
+export class ExpireTrialsHandler
+  implements ICommandHandler<ExpireTrialsCommand, void>
+{
   private readonly logger = new Logger(ExpireTrialsHandler.name);
 
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<void> {
-    const trials = await this.subscriptionCommandRepo.findExpiredTrials(
+    const trials = await this.subscriptionRepo.findExpiredTrials(
       DateTimeManager.create()
     );
     if (trials.length === 0) return;
@@ -51,7 +50,7 @@ export class ExpireTrialsHandler implements ICommandHandler<
    */
   private async expireOne(subscriptionId: string): Promise<void> {
     const subscription =
-      await this.subscriptionCommandRepo.findByIdForUpdate(subscriptionId);
+      await this.subscriptionRepo.findByIdForUpdate(subscriptionId);
     if (!subscription) return;
 
     if (!subscription.isTrialOver(DateTimeManager.create())) {
@@ -62,6 +61,6 @@ export class ExpireTrialsHandler implements ICommandHandler<
     }
 
     subscription.expire();
-    await this.subscriptionCommandRepo.update(subscription);
+    await this.subscriptionRepo.update(subscription);
   }
 }

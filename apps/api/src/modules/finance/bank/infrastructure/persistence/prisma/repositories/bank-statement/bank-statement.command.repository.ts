@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IBankStatementCommandRepository } from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+import { IBankStatementCommandRepository } from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import { BankStatement } from '@modules/finance/bank/domain/entities/bank-statement.entity';
 import { BankStatementLine } from '@modules/finance/bank/domain/entities/bank-statement-line.entity';
 import { BankStatement as IBankStatement } from '@model-schema/BankStatementSchema';

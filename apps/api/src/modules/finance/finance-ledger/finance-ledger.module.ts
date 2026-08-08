@@ -2,13 +2,13 @@ import { FinanceLedgerQueryModule } from '@modules/finance/finance-ledger/applic
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUES } from '@common/constants';
-import { FinanceLedgerPresentationModule } from './presentation/finance-ledger-presentation.module';
-import { FinanceLedgerProducer } from './infrastructure/queue/producers/finance-ledger.producer';
-import { FinanceLedgerProcessor } from './infrastructure/queue/processors/finance-ledger.proccessor';
+import { FinanceLedgerPresentationModule } from './presentation/presentation.module';
+import { FinanceLedgerProducer } from '@modules/finance/finance-ledger/infrastructure/messaging/queue/producers/finance-ledger.producer';
+import { FinanceLedgerProcessor } from '@modules/finance/finance-ledger/infrastructure/messaging/queue/processors/finance-ledger.proccessor';
 import {
   PaymentCompletedListener,
   PaymentRefundedListener,
-} from './infrastructure/events/listeners';
+} from '@modules/finance/finance-ledger/infrastructure/messaging/events/listeners';
 import { FinanceLedgerCommandModule } from '@modules/finance/finance-ledger/application/commands/command.module';
 
 const Listeners = [PaymentCompletedListener, PaymentRefundedListener];

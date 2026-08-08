@@ -1,22 +1,20 @@
 import { Module } from '@nestjs/common';
 import {
-  BANK_ACCOUNT_COMMAND_REPOSITORY,
-  BANK_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/finance/bank/domain/repositories/bank-account.repository';
-import {
   BANK_STATEMENT_COMMAND_REPOSITORY,
   BANK_STATEMENT_QUERY_REPOSITORY,
-} from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import {
   BANK_STATEMENT_LINE_COMMAND_REPOSITORY,
   BANK_STATEMENT_LINE_QUERY_REPOSITORY,
-} from '@modules/finance/bank/domain/repositories/bank-statement-line.repository';
-import { BankAccountCommandRepository } from './bank-account.command.repository';
-import { BankAccountQueryRepository } from './bank-account.query.repository';
-import { BankStatementCommandRepository } from './bank-statement.command.repository';
-import { BankStatementQueryRepository } from './bank-statement.query.repository';
-import { BankStatementLineCommandRepository } from './bank-statement-line.command.repository';
-import { BankStatementLineQueryRepository } from './bank-statement-line.query.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement-line/bank-statement-line.repository';
+import { BankAccountCommandRepository } from './bank-account/bank-account.command.repository';
+import { BankAccountQueryRepository } from './bank-account/bank-account.query.repository';
+import { BankStatementCommandRepository } from './bank-statement/bank-statement.command.repository';
+import { BankStatementQueryRepository } from './bank-statement/bank-statement.query.repository';
+import { BankStatementLineCommandRepository } from './bank-statement-line/bank-statement-line.command.repository';
+import { BankStatementLineQueryRepository } from './bank-statement-line/bank-statement-line.query.repository';
+import { BANK_ACCOUNT_COMMAND_REPOSITORY } from '@modules/finance/bank/domain/repositories/bank-account/bank-account.command.repository';
+import { BANK_ACCOUNT_QUERY_REPOSITORY } from '@modules/finance/bank/domain/repositories/bank-account/bank-account.query.repository';
 
 @Module({
   providers: [
@@ -54,4 +52,4 @@ import { BankStatementLineQueryRepository } from './bank-statement-line.query.re
     BANK_STATEMENT_LINE_QUERY_REPOSITORY,
   ],
 })
-export class BankRepositoryModule {}
+export class BankRepositoriesModule {}

@@ -29,7 +29,7 @@ export function MixinTransformInterceptor<TEntity, TDto>(
 
           const {
             data,
-            meta: { serializationOptions },
+            meta: { serializationOptions, ...restMeta },
           } = response;
 
           const options: ClassTransformOptions = {
@@ -45,8 +45,17 @@ export function MixinTransformInterceptor<TEntity, TDto>(
             ? data.map((item) => plainToInstance(dto, item, options))
             : plainToInstance(dto, data, options);
 
+          // `meta`'nın geri kalanı (özellikle `pagination`) korunur. Yalnız
+          // `serializationOptions` ayıklanır; o zaten `serialization` altında
+          // sadeleştirilmiş hâliyle dönüyor. Aksi hâlde serileştirme uygulanan
+          // her liste endpoint'i sayfalama bilgisini sessizce kaybeder —
+          // `users/all` handler'ı `pagination` üretiyordu ama istemciye hiç
+          // ulaşmıyordu.
+          const hasRestMeta = Object.keys(restMeta).length > 0;
+
           return {
             data: transformedData,
+            ...(hasRestMeta ? { meta: restMeta } : {}),
             serialization: {
               groups: serializationOptions.groups,
             },

@@ -3,8 +3,8 @@ import { TaxParameterKeyType as TaxParameterKey } from '@input-type-schemas/TaxP
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
-import { ITaxParameterCommandRepository } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
+import { ITaxParameterCommandRepository } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter/tax-parameter.command.repository';
 
 @Injectable()
 export class TaxParameterCommandRepository

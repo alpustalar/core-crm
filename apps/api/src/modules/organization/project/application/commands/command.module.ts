@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
-import { ProjectRepositoryModule } from '@modules/organization/project/infrastructure/persistence/prisma/repositories/project.repository.module';
 import { CreateProjectHandler } from './create-project/create-project.handler';
 import { UpdateProjectHandler } from './update-project/update-project.handler';
 import { ChangeProjectStatusHandler } from './change-project-status/change-project-status.handler';
@@ -13,6 +11,7 @@ import { AssignProjectTaskHandler } from './assign-project-task/assign-project-t
 import { RecordProjectCostHandler } from './record-project-cost/record-project-cost.handler';
 import { AllocateProjectResourceHandler } from './allocate-project-resource/allocate-project-resource.handler';
 import { ReleaseProjectResourceHandler } from './release-project-resource/release-project-resource.handler';
+import { ProjectInfrastructureModule } from '@modules/organization/project/infrastructure/infrastructure.module';
 
 export const PROJECT_COMMAND_HANDLERS = [
   CreateProjectHandler,
@@ -30,7 +29,7 @@ export const PROJECT_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, ProjectRepositoryModule],
+  imports: [ProjectInfrastructureModule],
   providers: PROJECT_COMMAND_HANDLERS,
   exports: PROJECT_COMMAND_HANDLERS,
 })

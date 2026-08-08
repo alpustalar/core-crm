@@ -9,13 +9,9 @@ import {
 import { PaxVoidCommand } from './pax-void.command';
 import type { PaxVoidResponse } from './pax-void.response';
 import {
-  IPosDeviceCommandRepository,
-  POS_DEVICE_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
   PaxConnectionError,
@@ -25,17 +21,20 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler implements ICommandHandler<
-  PaxVoidCommand,
-  PaxVoidResponse
-> {
+export class PaxVoidHandler
+  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
+{
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
-    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
@@ -63,9 +62,7 @@ export class PaxVoidHandler implements ICommandHandler<
       .externalRef(new PosTransactionMissingExternalRefException())
       .orThrow();
 
-    const device = await this.posDeviceCommandRepo.findById(
-      originalTx.posDeviceId
-    );
+    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }

@@ -43,7 +43,10 @@ export const setupApp = (
     origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    // `x-source-type` listede olmazsa tarayıcı preflight'ı reddeder ve istek
+    // hiç ulaşmaz. AuthGuard bu başlığı okuyup `actor.source`'a yazıyor; başlık
+    // düşerse her web isteği audit log'a SYSTEM olarak geçer.
+    allowedHeaders: 'Content-Type, Accept, Authorization, x-source-type',
   });
 
   app.useGlobalFilters(options.exceptionFilter);

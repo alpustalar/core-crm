@@ -5,10 +5,6 @@ import { FinancialEventTypeSchema } from '@shared';
 import { IGetContext } from '@common/decorators/get-context.decorator';
 import { CloseCashSessionCommand } from './close-cash-session.command';
 import { CloseCashSessionResponse } from './close-cash-session.response';
-import {
-  CASH_SESSION_COMMAND_REPOSITORY,
-  ICashSessionCommandRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-session.repository';
 import { CashSession } from '@modules/finance/cash-register/domain/entities/cash-session.entity';
 import { CashSessionNotFoundException } from '@modules/finance/cash-register/domain/exceptions/cash-register.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -21,15 +17,18 @@ import {
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { CASH_REGISTER_EVENTS } from '@src/domain/constants/events/cash-register.constant';
+import {
+  CASH_SESSION_COMMAND_REPOSITORY,
+  ICashSessionCommandRepository,
+} from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.command.repository';
 
 @CommandHandler(CloseCashSessionCommand)
-export class CloseCashSessionHandler implements ICommandHandler<
-  CloseCashSessionCommand,
-  CloseCashSessionResponse
-> {
+export class CloseCashSessionHandler
+  implements ICommandHandler<CloseCashSessionCommand, CloseCashSessionResponse>
+{
   constructor(
     @Inject(CASH_SESSION_COMMAND_REPOSITORY)
-    private readonly sessionCommandRepo: ICashSessionCommandRepository,
+    private readonly cashSessionRepo: ICashSessionCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly commandBus: TSCommandBus,
@@ -46,8 +45,7 @@ export class CloseCashSessionHandler implements ICommandHandler<
     // kapanış-sırasında-hareket) ilk tx commit olana kadar bloklanır, sonra CLOSED
     // okuyup close()→assertOpen()'da patlar (mükerrer kapanış/posting engellenir).
     return this.txManager.outboxRun(async () => {
-      const session =
-        await this.sessionCommandRepo.findByIdForUpdate(sessionId);
+      const session = await this.cashSessionRepo.findByIdForUpdate(sessionId);
       if (!session) throw new CashSessionNotFoundException(sessionId);
 
       this.policyFactory
@@ -57,7 +55,7 @@ export class CloseCashSessionHandler implements ICommandHandler<
         )
         .orThrow(CASH_REGISTER_EVENTS.CLOSED);
 
-      const { totalIn, totalOut } = await this.sessionCommandRepo.sumMovements(
+      const { totalIn, totalOut } = await this.cashSessionRepo.sumMovements(
         session.id.value
       );
 
@@ -69,7 +67,7 @@ export class CloseCashSessionHandler implements ICommandHandler<
       });
 
       await this.postClosingToAccounting(session, ctx);
-      await this.sessionCommandRepo.update(session);
+      await this.cashSessionRepo.update(session);
 
       return {
         sessionId: session.id.value,
@@ -94,7 +92,7 @@ export class CloseCashSessionHandler implements ICommandHandler<
     if (session.isPostedToAccounting()) return;
 
     const { bankDepositTotal, expenseTotal } =
-      await this.sessionCommandRepo.sumBridgeMovements(session.id.value);
+      await this.cashSessionRepo.sumBridgeMovements(session.id.value);
     const difference = session.difference ?? new Decimal(0);
 
     const hasPostable =

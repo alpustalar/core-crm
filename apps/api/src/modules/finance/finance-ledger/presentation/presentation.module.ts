@@ -1,10 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FinanceLedgerController } from './controllers/finance-ledger.controller';
-import { FinanceLedgerCommandModule } from '@modules/finance/finance-ledger/application/commands/command.module';
-import { FinanceLedgerQueryModule } from '@modules/finance/finance-ledger/application/queries/query.module';
+import { FinanceLedgerController } from '@modules/finance/finance-ledger/presentation/http/controllers/finance-ledger.controller';
 
-@Module({
-  imports: [FinanceLedgerCommandModule, FinanceLedgerQueryModule],
-  controllers: [FinanceLedgerController],
-})
+@Module({ controllers: [FinanceLedgerController] })
 export class FinanceLedgerPresentationModule {}

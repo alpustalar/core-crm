@@ -3,14 +3,6 @@ import { Inject } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
 import { StartTrialCommand } from './start-trial.command';
-import {
-  ISubscriptionCommandRepository,
-  SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import {
-  ISubscriptionItemCommandRepository,
-  SUBSCRIPTION_ITEM_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription-item.repository.interface';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
 import { SubscriptionItem } from '@modules/platform/subscription/domain/entities/subscription-item.entity';
 import { Money } from '@src/domain/value-objects/money.vo';
@@ -22,6 +14,14 @@ import { PlanIdSchema } from '@input-type-schemas/PlanIdSchema';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { DateTimeManager } from '@common/utils';
 import { SUBSCRIPTION_TRIAL_DAYS } from '@common/constants';
+import {
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  ISubscriptionItemCommandRepository,
+  SUBSCRIPTION_ITEM_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription-item/subscription-item.command.repository';
 
 @CommandHandler(StartTrialCommand)
 export class StartTrialHandler
@@ -29,9 +29,9 @@ export class StartTrialHandler
 {
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     @Inject(SUBSCRIPTION_ITEM_COMMAND_REPOSITORY)
-    private readonly subscriptionItemCommandRepo: ISubscriptionItemCommandRepository,
+    private readonly subscriptionItemRepo: ISubscriptionItemCommandRepository,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -72,14 +72,14 @@ export class StartTrialHandler
       // Mükerrer abonelik guard'ı yazmayla aynı transaction içinde: kayıt akışı
       // (org oluşturma) tekrar tetiklenirse aynı sahibe ikinci bir deneme aboneliği
       // açılmamalı. Okuma command repo'dan — replica gecikmesi guard'ı boşa çıkarırdı.
-      const exists = await this.subscriptionCommandRepo.existsByOwner({
+      const exists = await this.subscriptionRepo.existsByOwner({
         organizationId,
         clinicId: ownerClinicId,
       });
       if (exists) return; // idempotent
 
-      await this.subscriptionCommandRepo.create(subscription);
-      await this.subscriptionItemCommandRepo.create(item);
+      await this.subscriptionRepo.create(subscription);
+      await this.subscriptionItemRepo.create(item);
     });
   }
 }

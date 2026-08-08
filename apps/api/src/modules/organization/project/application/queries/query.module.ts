@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
-import { ProjectRepositoryModule } from '@modules/organization/project/infrastructure/persistence/prisma/repositories/project.repository.module';
+import { ProjectRepositoriesModule } from '@modules/organization/project/infrastructure/persistence/prisma/repositories/repositories.module';
 import { GetProjectsHandler } from './get-projects/get-projects.handler';
 import { GetProjectByIdHandler } from './get-project-by-id/get-project-by-id.handler';
 import { GetProjectBoardHandler } from './get-project-board/get-project-board.handler';
@@ -18,7 +17,7 @@ export const PROJECT_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, ProjectRepositoryModule],
+  imports: [ProjectRepositoriesModule],
   providers: PROJECT_QUERY_HANDLERS,
   exports: PROJECT_QUERY_HANDLERS,
 })

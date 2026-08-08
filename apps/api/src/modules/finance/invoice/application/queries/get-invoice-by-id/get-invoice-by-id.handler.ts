@@ -2,16 +2,16 @@ import { Decimal } from 'decimal.js';
 import { taxSpecificationOf } from '@modules/finance/invoice/domain/rules/invoice-tax';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import {
-  IInvoiceQueryRepository,
-  INVOICE_QUERY_REPOSITORY,
-} from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { GetInvoiceByIdQuery } from './get-invoice-by-id.query';
 import { GetInvoiceByIdResponse } from './get-invoice-by-id.response';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IInvoiceQueryRepository,
+  INVOICE_QUERY_REPOSITORY,
+} from '@modules/finance/invoice/domain/repositories/invoice/invoice.query.repository';
 
 @QueryHandler(GetInvoiceByIdQuery)
 export class GetInvoiceByIdHandler
@@ -19,14 +19,14 @@ export class GetInvoiceByIdHandler
 {
   constructor(
     @Inject(INVOICE_QUERY_REPOSITORY)
-    private readonly invoiceQueryRepo: IInvoiceQueryRepository,
+    private readonly invoiceRepo: IInvoiceQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetInvoiceByIdQuery): Promise<GetInvoiceByIdResponse> {
     const { ctx } = query;
-    const invoice = await this.invoiceQueryRepo.findById(query.invoiceId);
+    const invoice = await this.invoiceRepo.findById(query.invoiceId);
     if (!invoice) return { data: null };
 
     // TODO: policy

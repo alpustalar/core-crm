@@ -2,16 +2,16 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetEmployeesQuery } from './get-employees.query';
 import { GetEmployeesResponse } from './get-employees.response';
-import {
-  EMPLOYEE_QUERY_REPOSITORY,
-  IEmployeeQueryRepository,
-} from '@modules/hr/employee/domain/repositories/employee.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
+import {
+  EMPLOYEE_QUERY_REPOSITORY,
+  IEmployeeQueryRepository,
+} from '@modules/hr/employee/domain/repositories/employee/employee.query.repository';
 
 @QueryHandler(GetEmployeesQuery)
 export class GetEmployeesHandler
@@ -19,7 +19,7 @@ export class GetEmployeesHandler
 {
   constructor(
     @Inject(EMPLOYEE_QUERY_REPOSITORY)
-    private readonly employeeQueryRepo: IEmployeeQueryRepository,
+    private readonly employeeRepo: IEmployeeQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -37,7 +37,7 @@ export class GetEmployeesHandler
       .check((p) => p.canAccessClinicHr(clinicId))
       .orThrow(EMPLOYEE_EVENTS.LIST);
 
-    const result = await this.employeeQueryRepo.findByClinic({
+    const result = await this.employeeRepo.findByClinic({
       clinicId,
       status: filter.status,
       pagination,

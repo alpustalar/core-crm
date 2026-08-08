@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ICashRegisterCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-register.repository';
 import { CashRegister } from '@modules/finance/cash-register/domain/entities/cash-register.entity';
+import { ICashRegisterCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-register/cash-register.command.repository';
 
 @Injectable()
 export class CashRegisterCommandRepository

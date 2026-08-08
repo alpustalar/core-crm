@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { Invoice as IInvoice, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IInvoiceQueryRepository } from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindInvoicesFilter } from '@modules/finance/invoice/domain/invoice.contracts';
+import { FindInvoicesFilter } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { IInvoiceQueryRepository } from '@modules/finance/invoice/domain/repositories/invoice/invoice.query.repository';
 
 /**
  * Okuma tarafı: entity hidrate edilmez. Mükerrer fatura kontrolü ve e-Belge sonucu

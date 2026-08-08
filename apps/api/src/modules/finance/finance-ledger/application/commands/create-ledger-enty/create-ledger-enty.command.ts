@@ -4,6 +4,7 @@ import { LedgerSourceType as LedgerSource } from '@input-type-schemas/LedgerSour
 import { LedgerCategoryType as LedgerCategory } from '@input-type-schemas/LedgerCategorySchema';
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 
+// TODO: sharede eklenecek
 export interface CreateLedgerEntryDto {
   organizationId: string;
   clinicId: string;
@@ -24,7 +25,7 @@ export interface CreateLedgerEntryDto {
 
 export class CreateLedgerEntyCommand {
   constructor(
-    public readonly dto: CreateLedgerEntryDto,
+    public readonly data: CreateLedgerEntryDto,
     public readonly ctx: IGetContext
   ) {}
 }

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ILeaveCommandRepository } from '@modules/hr/leave/domain/repositories/leave.repository';
 import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.entity';
 import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
 import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';
+import { ILeaveCommandRepository } from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
 
 @Injectable()
 export class LeaveRequestCommandRepository

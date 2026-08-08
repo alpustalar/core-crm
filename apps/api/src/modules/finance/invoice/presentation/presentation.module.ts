@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { InvoiceController } from './controllers/invoice.controller';
-import { InvoiceQueryModule } from '@modules/finance/invoice/application/queries/query.module';
+import { InvoiceController } from '@modules/finance/invoice/presentation/http/controllers/invoice.controller';
 
-@Module({
-  imports: [InvoiceQueryModule],
-  controllers: [InvoiceController],
-})
+@Module({ controllers: [InvoiceController] })
 export class InvoicePresentationModule {}

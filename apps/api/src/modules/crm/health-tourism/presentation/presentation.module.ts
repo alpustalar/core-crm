@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { HealthTourismController } from './controllers/health-tourism.controller';
+import { HealthTourismController } from '@modules/crm/health-tourism/presentation/http/controllers/health-tourism.controller';
 import { HotelModule } from '../hotel/hotel.module';
 import { TransferModule } from '../transfer/transfer.module';
 

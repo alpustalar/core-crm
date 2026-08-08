@@ -5,13 +5,12 @@ import { GetClinicTimezoneResponse } from './get-clinic-timezone.response';
 import {
   CLINIC_QUERY_REPOSITORY,
   IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 
 @QueryHandler(GetClinicTimezoneQuery)
-export class GetClinicTimezoneHandler implements IQueryHandler<
-  GetClinicTimezoneQuery,
-  GetClinicTimezoneResponse
-> {
+export class GetClinicTimezoneHandler
+  implements IQueryHandler<GetClinicTimezoneQuery, GetClinicTimezoneResponse>
+{
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
     private readonly clinicRepo: IClinicQueryRepository

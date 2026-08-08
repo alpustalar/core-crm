@@ -1,19 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Module as IModule, SubStatusSchema } from '@shared';
+import { Module as IModule } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import {
-  ISubscriptionQueryRepository,
-  SubscriptionOwnerRef,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
-import {
   ActiveSubscriptionReadModel,
   EntitlementSource,
-  RenewalChargeModel,
-} from '@modules/platform/subscription/domain/subscription.contracts';
-import { Decimal } from 'decimal.js';
+} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { ISubscriptionQueryRepository } from '@modules/platform/subscription/domain/repositories/subscription/subscription.query.repository';
 
 /** Read-model'i besleyen include (items + her item'ın modülü). */
 const activeInclude = {

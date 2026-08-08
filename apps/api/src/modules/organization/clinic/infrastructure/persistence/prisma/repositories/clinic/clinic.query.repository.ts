@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
-import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
+import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 import { Clinic } from '@shared';
 
 @Injectable()

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IInvoiceCommandRepository } from '@modules/finance/invoice/domain/repositories/invoice.repository';
-import { CreateInvoiceProps } from '@modules/finance/invoice/domain/invoice.contracts';
+import { CreateInvoiceProps } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
 import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
+import { IInvoiceCommandRepository } from '@modules/finance/invoice/domain/repositories/invoice/invoice.command.repository';
 
 @Injectable()
 export class InvoiceCommandRepository

@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { Pagination } from '@shared';
-import { IStockMovementQueryRepository } from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
-import { StockMovement as IStockMovement } from '@shared';
+import { Pagination, StockMovement as IStockMovement } from '@shared';
+import { IStockMovementQueryRepository } from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.query.repository';
 
 /** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()

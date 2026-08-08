@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPosDeviceQueryRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import { PosDevice as IPosDevice } from '@shared';
+import { PosDevice } from '@shared';
+import { IPosDeviceQueryRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.query.repository';
 
 @Injectable()
 export class PosDeviceQueryRepository
@@ -13,7 +13,7 @@ export class PosDeviceQueryRepository
     super(prisma);
   }
 
-  findByClinicId(clinicId: string): Promise<IPosDevice[]> {
+  findByClinicId(clinicId: string): Promise<PosDevice[]> {
     return this.db.posDevice.findMany({
       where: { clinicId, isDeleted: false },
     });

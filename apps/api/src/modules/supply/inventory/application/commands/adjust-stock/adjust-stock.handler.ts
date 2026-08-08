@@ -2,18 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { AdjustStockCommand } from './adjust-stock.command';
 import {
-  IProductCommandRepository,
-  PRODUCT_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product.repository.interface';
-import {
-  IProductBatchCommandRepository,
-  PRODUCT_BATCH_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
-import {
-  IStockMovementCommandRepository,
-  STOCK_MOVEMENT_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
@@ -21,19 +9,30 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 import { INVENTORY_EVENTS } from '@src/domain/constants/events';
+import {
+  IProductCommandRepository,
+  PRODUCT_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
+import {
+  IProductBatchCommandRepository,
+  PRODUCT_BATCH_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product-batch/product-batch.command.repository';
+import {
+  IStockMovementCommandRepository,
+  STOCK_MOVEMENT_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.command.repository';
 
 @CommandHandler(AdjustStockCommand)
-export class AdjustStockHandler implements ICommandHandler<
-  AdjustStockCommand,
-  void
-> {
+export class AdjustStockHandler
+  implements ICommandHandler<AdjustStockCommand, void>
+{
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
-    private readonly productCommandRepo: IProductCommandRepository,
+    private readonly productRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
-    private readonly productBatchCommandRepo: IProductBatchCommandRepository,
+    private readonly productBatchRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
-    private readonly stockMovementCommandRepo: IStockMovementCommandRepository,
+    private readonly stockMovementRepo: IStockMovementCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -43,7 +42,7 @@ export class AdjustStockHandler implements ICommandHandler<
     const { clinicId, data, ctx } = command.payload;
     const { actor, source } = ctx;
 
-    const product = await this.productCommandRepo.findById(data.productId);
+    const product = await this.productRepo.findById(data.productId);
     if (!product) throw new ProductNotFoundException();
 
     this.policyFactory
@@ -58,13 +57,13 @@ export class AdjustStockHandler implements ICommandHandler<
     // eşzamanlı stok değişimlerini serialize eder. Aksi halde iki istek aynı batch
     // quantity'sini okuyup ayrı ayrı düşer → lost update (mevcut bakiyeyi bozar).
     await this.txManager.run(async () => {
-      const lockedProduct = await this.productCommandRepo.findByIdForUpdate(
+      const lockedProduct = await this.productRepo.findByIdForUpdate(
         product.id.value
       );
       if (!lockedProduct) throw new ProductNotFoundException();
 
       const availableBatches =
-        await this.productBatchCommandRepo.findAvailableByProduct(
+        await this.productBatchRepo.findAvailableByProduct(
           lockedProduct.id.value,
           clinicId
         );
@@ -81,9 +80,9 @@ export class AdjustStockHandler implements ICommandHandler<
 
       const stockMovement = StockMovement.create(stockMovementProps);
       if (updatedBatch) {
-        await this.productBatchCommandRepo.update(updatedBatch);
+        await this.productBatchRepo.update(updatedBatch);
       }
-      await this.stockMovementCommandRepo.create(stockMovement);
+      await this.stockMovementRepo.create(stockMovement);
     });
   }
 }

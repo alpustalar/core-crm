@@ -1,12 +1,4 @@
 import {
-  ISubscriptionCommandRepository,
-  SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import {
-  ISubscriptionPaymentMethodCommandRepository,
-  SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
-import {
   BILLING_ADAPTER,
   CapturedSavedCard,
   IBillingAdapter,
@@ -22,21 +14,28 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { DateTimeManager } from '@common/utils';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
 import { HandleSubscriptionCallbackCommand } from './handle-subscription-callback.command';
+import {
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  ISubscriptionPaymentMethodCommandRepository,
+  SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 
 const BILLING_PERIOD_MONTHS = 1;
 
 @CommandHandler(HandleSubscriptionCallbackCommand)
-export class HandleSubscriptionCallbackHandler implements ICommandHandler<
-  HandleSubscriptionCallbackCommand,
-  void
-> {
+export class HandleSubscriptionCallbackHandler
+  implements ICommandHandler<HandleSubscriptionCallbackCommand, void>
+{
   private readonly logger = new Logger(HandleSubscriptionCallbackHandler.name);
 
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     @Inject(SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY)
-    private readonly paymentMethodCommandRepo: ISubscriptionPaymentMethodCommandRepository,
+    private readonly paymentMethodRepo: ISubscriptionPaymentMethodCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter,
     private readonly txManager: TransactionManager
@@ -55,9 +54,7 @@ export class HandleSubscriptionCallbackHandler implements ICommandHandler<
       // Kilitsizken ikisi de aynı aboneliği okuyup dönemi iki kez başlatabilir,
       // kartı iki kez saklayabilir ve iki aktivasyon event'i üretebilirdi.
       const subscription =
-        await this.subscriptionCommandRepo.findByExternalIdForUpdate(
-          conversationId
-        );
+        await this.subscriptionRepo.findByExternalIdForUpdate(conversationId);
 
       if (!subscription) {
         this.logger.warn(
@@ -76,7 +73,7 @@ export class HandleSubscriptionCallbackHandler implements ICommandHandler<
         });
         // İlk başarılı ödeme fatura dönemini başlatır → yenileme günü bu tarihten hesaplanır.
         this.startInitialPeriod(subscription);
-        await this.subscriptionCommandRepo.update(subscription);
+        await this.subscriptionRepo.update(subscription);
 
         // Müşteri kartını sakladıysa sonraki dönemler için otomatik tahsilat yöntemini kaydet.
         if (result.savedCard) {
@@ -89,7 +86,7 @@ export class HandleSubscriptionCallbackHandler implements ICommandHandler<
           source: LogSource.SYSTEM,
           errorMessage: result.errorMessage,
         });
-        await this.subscriptionCommandRepo.update(subscription);
+        await this.subscriptionRepo.update(subscription);
       }
     });
   }
@@ -104,7 +101,7 @@ export class HandleSubscriptionCallbackHandler implements ICommandHandler<
     subscriptionId: string,
     savedCard: CapturedSavedCard
   ): Promise<void> {
-    await this.paymentMethodCommandRepo.upsertBySubscriptionId({
+    await this.paymentMethodRepo.upsertBySubscriptionId({
       subscriptionId,
       cardUserKey: savedCard.cardUserKey,
       cardToken: savedCard.cardToken,

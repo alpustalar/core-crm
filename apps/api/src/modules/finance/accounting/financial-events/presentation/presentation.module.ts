@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FinancialEventController } from './controllers/financial-event.controller';
-import { FinancialEventApplicationModule } from '@modules/finance/accounting/financial-events/application/application.module';
+import { FinancialEventController } from '@modules/finance/accounting/financial-events/presentation/http/controllers/financial-event.controller';
 
-@Module({
-  imports: [FinancialEventApplicationModule],
-  controllers: [FinancialEventController],
-})
+@Module({ controllers: [FinancialEventController] })
 export class FinancialEventPresentationModule {}

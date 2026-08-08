@@ -16,7 +16,7 @@ export class ConfigureClinicAiAgentHandler implements ICommandHandler<
 > {
   constructor(
     @Inject(CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY)
-    private readonly configCommandRepo: IClinicAiAgentConfigCommandRepository,
+    private readonly clinicAiAgentConfigRepo: IClinicAiAgentConfigCommandRepository,
     private readonly cipher: TokenCipherService,
     private readonly txManager: MongoTransactionManager
   ) {}
@@ -29,7 +29,7 @@ export class ConfigureClinicAiAgentHandler implements ICommandHandler<
       ? this.cipher.encrypt(input.apiKey)
       : undefined;
 
-    const existing = await this.configCommandRepo.findByClinicId(clinicId);
+    const existing = await this.clinicAiAgentConfigRepo.findByClinicId(clinicId);
 
     const config =
       existing ??
@@ -49,7 +49,7 @@ export class ConfigureClinicAiAgentHandler implements ICommandHandler<
     });
 
     const saved = await this.txManager.run(() =>
-      this.configCommandRepo.upsertByClinicId(config)
+      this.clinicAiAgentConfigRepo.upsertByClinicId(config)
     );
     return saved.id.value;
   }

@@ -3,13 +3,9 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BankAccountStatusSchema } from '@input-type-schemas/BankAccountStatusSchema';
 import { ImportBankStatementCommand } from './import-bank-statement.command';
 import {
-  BANK_ACCOUNT_COMMAND_REPOSITORY,
-  IBankAccountCommandRepository,
-} from '@modules/finance/bank/domain/repositories/bank-account.repository';
-import {
   BANK_STATEMENT_COMMAND_REPOSITORY,
   IBankStatementCommandRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import { BankStatement } from '@modules/finance/bank/domain/entities/bank-statement.entity';
 import {
   BankAccountArchivedException,
@@ -20,19 +16,22 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  BANK_ACCOUNT_COMMAND_REPOSITORY,
+  IBankAccountCommandRepository,
+} from '@modules/finance/bank/domain/repositories/bank-account/bank-account.command.repository';
 
 @CommandHandler(ImportBankStatementCommand)
-export class ImportBankStatementHandler implements ICommandHandler<
-  ImportBankStatementCommand,
-  string
-> {
+export class ImportBankStatementHandler
+  implements ICommandHandler<ImportBankStatementCommand, string>
+{
   constructor(
     // Hesabın varlığı/arşiv durumu ekstre yazılıp yazılmayacağını belirliyor →
     // Command Context.
     @Inject(BANK_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly accountCommandRepo: IBankAccountCommandRepository,
+    private readonly bankAccountRepo: IBankAccountCommandRepository,
     @Inject(BANK_STATEMENT_COMMAND_REPOSITORY)
-    private readonly statementCommandRepo: IBankStatementCommandRepository,
+    private readonly bankStatementRepo: IBankStatementCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -41,7 +40,7 @@ export class ImportBankStatementHandler implements ICommandHandler<
   async execute(command: ImportBankStatementCommand): Promise<string> {
     const { data, ctx } = command;
 
-    const account = await this.accountCommandRepo.findById(data.bankAccountId);
+    const account = await this.bankAccountRepo.findById(data.bankAccountId);
     if (!account) {
       throw new BankAccountNotFoundException(data.bankAccountId);
     }
@@ -69,7 +68,7 @@ export class ImportBankStatementHandler implements ICommandHandler<
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.statementCommandRepo.create(statement);
+      const saved = await this.bankStatementRepo.create(statement);
       return saved.id.value;
     });
   }

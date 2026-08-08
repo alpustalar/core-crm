@@ -6,7 +6,7 @@ import PosProviderSchema, {
 import {
   CreatePosDeviceProps,
   PaxConnection,
-} from '@modules/finance/pos/physical/domain/pos-physical.contracts';
+} from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
 import {
   PosDeviceMissingDeviceUniqueIdException,
   PosDeviceProviderMismatchException,

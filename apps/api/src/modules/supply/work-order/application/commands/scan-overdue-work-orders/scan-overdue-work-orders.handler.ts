@@ -4,7 +4,7 @@ import { ScanOverdueWorkOrdersCommand } from './scan-overdue-work-orders.command
 import {
   EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY,
   IExternalWorkOrderCommandRepository,
-} from '@modules/supply/work-order/domain/repositories/external-work-order.repository';
+} from '@modules/supply/work-order/domain/repositories/external-work/external-work-order.command.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
@@ -18,10 +18,9 @@ const OVERDUE_SCAN_BATCH_LIMIT = 500;
  * Sonuç mutasyona beslendiği için okuma Command repo'dan yapılır (CQRS).
  */
 @CommandHandler(ScanOverdueWorkOrdersCommand)
-export class ScanOverdueWorkOrdersHandler implements ICommandHandler<
-  ScanOverdueWorkOrdersCommand,
-  void
-> {
+export class ScanOverdueWorkOrdersHandler
+  implements ICommandHandler<ScanOverdueWorkOrdersCommand, void>
+{
   private readonly logger = new Logger(ScanOverdueWorkOrdersHandler.name);
 
   constructor(
@@ -54,6 +53,8 @@ export class ScanOverdueWorkOrdersHandler implements ICommandHandler<
       }
     }
 
-    this.logger.log(`${overdue.length} gecikmiş iş emri için bildirim üretildi`);
+    this.logger.log(
+      `${overdue.length} gecikmiş iş emri için bildirim üretildi`
+    );
   }
 }

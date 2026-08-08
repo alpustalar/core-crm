@@ -65,6 +65,7 @@ export * from './modules/treatment-package/schemas';
 export * from './modules/treatment-package/interfaces';
 export * from './modules/user/schemas';
 export * from './modules/user/interfaces';
+export * from './modules/user/contracts';
 export * from './modules/work-order/schemas';
 export * from './modules/work-order/interfaces';
 
@@ -99,6 +100,10 @@ export type * from './modules/work-order/types';
 
 // ── Ortak ─────────────────────────────────────────────────────────────────
 export * from './common/response/response.interface';
+// Endpoint sözleşme katmanı (`defineEndpoint`) — yalnız zod'a bağlı, çerçeveden
+// bağımsız. Endpoint kayıtları burada yaşar ki URL/metod bilgisi de tek kaynakta
+// dursun (bkz. frontend-architecture.md §4).
+export * from './common/contracts';
 // DİKKAT: `./common/pagination` barrel'ı DEĞİL — o barrel `pagination.dto`'yu da
 // yeniden dışa açıyor ve nestjs-zod'un runtime kodunu tarayıcıya sokuyor
 // (ölçüldü: bundle'da `createZodDto`/`isZodDto` çıktı). Şema ve tip doğrudan

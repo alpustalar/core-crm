@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { PRODUCT_CATEGORY_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product-category.repository.interface';
 import { ProductCategoryCommandRepository } from './product-category.command.repository';
+import { PRODUCT_CATEGORY_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product-category/product-category.command.repository';
 
 @Module({
   providers: [

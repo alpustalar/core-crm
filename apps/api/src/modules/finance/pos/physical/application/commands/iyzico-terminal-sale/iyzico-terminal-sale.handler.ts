@@ -4,13 +4,9 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { IyzicoTerminalSaleCommand } from './iyzico-terminal-sale.command';
 import type { IyzicoTerminalSaleResponse } from './iyzico-terminal-sale.response';
 import {
-  IPosDeviceCommandRepository,
-  POS_DEVICE_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
@@ -36,19 +32,23 @@ import {
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(IyzicoTerminalSaleCommand)
-export class IyzicoTerminalSaleHandler implements ICommandHandler<
-  IyzicoTerminalSaleCommand,
-  IyzicoTerminalSaleResponse
-> {
+export class IyzicoTerminalSaleHandler
+  implements
+    ICommandHandler<IyzicoTerminalSaleCommand, IyzicoTerminalSaleResponse>
+{
   private readonly logger = new Logger(IyzicoTerminalSaleHandler.name);
 
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
-    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
-    private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
+    private readonly posTransactionRepo: IPosTransactionCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
     private readonly iyzicoTerminalService: IyzicoTerminalService,
     private readonly commandBus: TSCommandBus,
@@ -61,7 +61,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
   ): Promise<IyzicoTerminalSaleResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceCommandRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
@@ -108,7 +108,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
           currency: input.currency,
         });
 
-        const tx = await this.posTransactionCommandRepo.create(posTransaction);
+        const tx = await this.posTransactionRepo.create(posTransaction);
         return {
           posTransactionId: posTransaction.id.value,
           transaction: tx,
@@ -137,7 +137,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
       await this.txManager.outboxRun(async () => {
         if (approved) {
           transaction.markSuccess(iyzicoPaymentId, result);
-          await this.posTransactionCommandRepo.update(transaction);
+          await this.posTransactionRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markPaid({
               paymentId,
@@ -155,7 +155,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
           }
         } else {
           transaction.markFailed(result);
-          await this.posTransactionCommandRepo.update(transaction);
+          await this.posTransactionRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,
@@ -209,7 +209,7 @@ export class IyzicoTerminalSaleHandler implements ICommandHandler<
       ) {
         await this.txManager.outboxRun(async () => {
           transaction.markFailed();
-          await this.posTransactionCommandRepo.update(transaction);
+          await this.posTransactionRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,

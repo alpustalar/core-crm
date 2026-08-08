@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { ClinicFinanceSettingsCommandRepository } from '@modules/organization/clinic/infrastructure/persistence/prisma/repositories/clinic-finance-settings/clinic-finance-settings.command.repository';
 import { ClinicFinanceSettingsQueryRepository } from '@modules/organization/clinic/infrastructure/persistence/prisma/repositories/clinic-finance-settings/clinic-finance-settings.query.repository';
-import { CLINIC_FINANCE_SETTINGS_COMMAND_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.command.repository.interface';
-import { CLINIC_FINANCE_SETTINGS_QUERY_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.query.repository.interface';
+import { CLINIC_FINANCE_SETTINGS_COMMAND_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.command.repository';
+import { CLINIC_FINANCE_SETTINGS_QUERY_REPOSITORY } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.query.repository';
 
 @Module({
   providers: [

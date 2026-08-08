@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConsentFormController } from './controllers/consent-form.controller';
-import { ConsentFormApplicationModule } from '@modules/clinical/consent-form/application/application.module';
+import { ConsentFormController } from '@modules/clinical/consent-form/presentation/http/controllers/consent-form.controller';
 
-@Module({
-  imports: [ConsentFormApplicationModule],
-  controllers: [ConsentFormController],
-})
+@Module({ controllers: [ConsentFormController] })
 export class ConsentFormPresentationModule {}

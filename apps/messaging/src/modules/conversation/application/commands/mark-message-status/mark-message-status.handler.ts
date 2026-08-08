@@ -19,9 +19,9 @@ export class MarkMessageStatusHandler implements ICommandHandler<
 > {
   constructor(
     @Inject(MESSAGE_COMMAND_REPOSITORY)
-    private readonly messageCommandRepo: IMessageCommandRepository,
+    private readonly messageRepo: IMessageCommandRepository,
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     private readonly txManager: MongoTransactionManager
   ) {}
 
@@ -32,7 +32,7 @@ export class MarkMessageStatusHandler implements ICommandHandler<
     // sırasız gelir; `transitionStatus` yalnız ileri yönde ilerlediği için okumanın
     // güncel durumu görmesi şart. Bu yüzden okuma transaction içinde ve kilitli.
     await this.txManager.run(async () => {
-      const message = await this.messageCommandRepo.findByExternalIdForUpdate(
+      const message = await this.messageRepo.findByExternalIdForUpdate(
         payload.externalId
       );
       // bilinmeyen mesaj - bizim göndermediğimiz olay ise --->>> yoksay
@@ -44,17 +44,17 @@ export class MarkMessageStatusHandler implements ICommandHandler<
         payload.pricing?.billable
       );
 
-      await this.messageCommandRepo.update(message);
+      await this.messageRepo.update(message);
 
       // Konuşma penceresi bitişi geldiyse yazışmaya yaz (yalnız pencere açıldığında gelir).
       if (payload.pricing?.windowExpiresAt) {
         const conversation =
-          await this.conversationCommandRepo.findByIdForUpdate(
+          await this.conversationRepo.findByIdForUpdate(
             message.conversationId
           );
         if (conversation) {
           conversation.setWindowExpiry(payload.pricing.windowExpiresAt);
-          await this.conversationCommandRepo.update(conversation);
+          await this.conversationRepo.update(conversation);
         }
       }
     });

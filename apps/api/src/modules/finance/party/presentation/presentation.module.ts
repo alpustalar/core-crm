@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PartyController } from './controllers/party.controller';
-import { PartyApplicationModule } from '@modules/finance/party/application/application.module';
+import { PartyController } from '@modules/finance/party/presentation/http/controllers/party.controller';
 
-@Module({
-  imports: [PartyApplicationModule],
-  controllers: [PartyController],
-})
+@Module({ controllers: [PartyController] })
 export class PartyPresentationModule {}

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ISupplierCommandRepository } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
+import { ISupplierCommandRepository } from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
 
 @Injectable()
 export class SupplierCommandRepository

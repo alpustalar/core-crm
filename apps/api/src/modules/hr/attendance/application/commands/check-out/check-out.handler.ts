@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CheckOutCommand } from './check-out.command';
-import {
-  ATTENDANCE_COMMAND_REPOSITORY,
-  IAttendanceCommandRepository,
-} from '@modules/hr/attendance/domain/repositories/attendance.repository';
 import { AttendanceNotCheckedInException } from '@modules/hr/attendance/domain/exceptions/attendance.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -13,12 +9,16 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { ATTENDANCE_EVENTS } from '@src/domain/constants/events/attendance.constant';
+import {
+  ATTENDANCE_COMMAND_REPOSITORY,
+  IAttendanceCommandRepository,
+} from '@modules/hr/attendance/domain/repositories/attendance/attendance.command.repository';
 
 @CommandHandler(CheckOutCommand)
 export class CheckOutHandler implements ICommandHandler<CheckOutCommand, void> {
   constructor(
     @Inject(ATTENDANCE_COMMAND_REPOSITORY)
-    private readonly attendanceCommandRepo: IAttendanceCommandRepository,
+    private readonly attendanceRepo: IAttendanceCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -34,7 +34,7 @@ export class CheckOutHandler implements ICommandHandler<CheckOutCommand, void> {
 
     await this.txManager.run(async () => {
       const workDate = DateTimeManager.startOfDay(DateTimeManager.create());
-      const existing = await this.attendanceCommandRepo.findByEmployeeAndDate(
+      const existing = await this.attendanceRepo.findByEmployeeAndDate(
         employeeId,
         workDate
       );
@@ -43,7 +43,7 @@ export class CheckOutHandler implements ICommandHandler<CheckOutCommand, void> {
       }
 
       existing.checkOut();
-      await this.attendanceCommandRepo.update(existing);
+      await this.attendanceRepo.update(existing);
     });
   }
 }

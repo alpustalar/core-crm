@@ -1,6 +1,5 @@
 import { PurchaseInvoice as IPurchaseInvoice } from '@model-schema/PurchaseInvoiceSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreatePurchaseInvoiceProps } from '../types/create-purchase-invoice.props';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
@@ -9,6 +8,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { PurchaseInvoiceStatusSchema } from '@shared';
 import { PurchaseInvoiceStatusType } from '@input-type-schemas/PurchaseInvoiceStatusSchema';
+import { CreatePurchaseInvoiceProps } from '@modules/finance/purchase-invoice/domain/contracts/purchase-invoice.contracts';
 
 /**
  * Tedarikçiden alınan alış faturası. Satış faturasının kardeşi; dış belge

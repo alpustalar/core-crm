@@ -18,7 +18,7 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import { shouldValidate } from '@common/domain/utils/should-validate';
-import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/subscription.contracts';
+import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
 
 /** `Subscription.renew` girişi — yeni dönem + son ödeme referansı + audit event gövdesi. */

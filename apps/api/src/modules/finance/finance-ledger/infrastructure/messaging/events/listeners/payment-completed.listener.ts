@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PAYMENT_EVENTS } from '@src/domain/constants/events';
 import { PaymentPaidEvent } from '@modules/finance/payment/domain/events/payment-paid.event';
-import { FinanceLedgerProducer } from '@modules/finance/finance-ledger/infrastructure/queue/producers/finance-ledger.producer';
+import { FinanceLedgerProducer } from '@modules/finance/finance-ledger/infrastructure/messaging/queue/producers/finance-ledger.producer';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 
 @Injectable()

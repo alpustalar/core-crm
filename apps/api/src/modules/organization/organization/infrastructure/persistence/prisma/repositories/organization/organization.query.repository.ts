@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Organization as IOrganization } from '@shared';
-import { IOrganizationQueryRepository } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { IOrganizationQueryRepository } from '@modules/organization/organization/domain/repositories/organization/organization.query.repository';
 
-/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class OrganizationQueryRepository
   extends BaseRepository
@@ -40,6 +39,14 @@ export class OrganizationQueryRepository
       },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  findById(id: string): Promise<IOrganization | null> {
+    return this.db.organization.findUnique({ where: { id } });
+  }
+
+  findBySlug(slug: string): Promise<IOrganization | null> {
+    return this.db.organization.findUnique({ where: { slug } });
   }
 
   private ownerWhere(ownerId: string) {

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IClinicPaymentGatewayCommandRepository } from '@modules/finance/payment-gateway/domain/repositories/clinic-payment-gateway.repository';
 import { ClinicPaymentGateway } from '@modules/finance/payment-gateway/domain/entities/clinic-payment-gateway.entity';
+import { IClinicPaymentGatewayCommandRepository } from '@modules/finance/payment-gateway/domain/repositories/clinic-payment-gateway/clinic-payment-gateway.command.repository';
 
 @Injectable()
 export class ClinicPaymentGatewayCommandRepository

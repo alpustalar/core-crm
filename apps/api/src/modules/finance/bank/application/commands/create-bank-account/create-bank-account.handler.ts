@@ -1,25 +1,24 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateBankAccountCommand } from './create-bank-account.command';
-import {
-  BANK_ACCOUNT_COMMAND_REPOSITORY,
-  IBankAccountCommandRepository,
-} from '@modules/finance/bank/domain/repositories/bank-account.repository';
 import { BankAccount } from '@modules/finance/bank/domain/entities/bank-account.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  BANK_ACCOUNT_COMMAND_REPOSITORY,
+  IBankAccountCommandRepository,
+} from '@modules/finance/bank/domain/repositories/bank-account/bank-account.command.repository';
 
 @CommandHandler(CreateBankAccountCommand)
-export class CreateBankAccountHandler implements ICommandHandler<
-  CreateBankAccountCommand,
-  string
-> {
+export class CreateBankAccountHandler
+  implements ICommandHandler<CreateBankAccountCommand, string>
+{
   constructor(
     @Inject(BANK_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly accountCommandRepo: IBankAccountCommandRepository,
+    private readonly bankAccountRepo: IBankAccountCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -50,7 +49,7 @@ export class CreateBankAccountHandler implements ICommandHandler<
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.accountCommandRepo.create(account);
+      const saved = await this.bankAccountRepo.create(account);
       return saved.id.value;
     });
   }

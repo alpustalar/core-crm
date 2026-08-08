@@ -4,7 +4,7 @@ import { OpenRemakeWorkOrderCommand } from './open-remake-work-order.command';
 import {
   EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY,
   IExternalWorkOrderCommandRepository,
-} from '@modules/supply/work-order/domain/repositories/external-work-order.repository';
+} from '@modules/supply/work-order/domain/repositories/external-work/external-work-order.command.repository';
 import { ExternalWorkOrder } from '@modules/supply/work-order/domain/entities/external-work-order.entity';
 import { WorkOrderNotFoundException } from '@modules/supply/work-order/domain/exceptions/work-order.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -18,10 +18,9 @@ import {
  * ona bağlı yeni bir DRAFT açılır. Yeni iş emrinin id'si döner.
  */
 @CommandHandler(OpenRemakeWorkOrderCommand)
-export class OpenRemakeWorkOrderHandler implements ICommandHandler<
-  OpenRemakeWorkOrderCommand,
-  string
-> {
+export class OpenRemakeWorkOrderHandler
+  implements ICommandHandler<OpenRemakeWorkOrderCommand, string>
+{
   constructor(
     @Inject(EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY)
     private readonly workOrderRepo: IExternalWorkOrderCommandRepository,

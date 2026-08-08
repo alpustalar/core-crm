@@ -6,13 +6,16 @@ import { FindManyByOrganizationIdQueryResponse } from '@modules/organization/cli
 import {
   CLINIC_QUERY_REPOSITORY,
   IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 
 @QueryHandler(FindManyByOrganizationIdQuery)
-export class FindManyByOrganizationIdHandler implements IQueryHandler<
-  FindManyByOrganizationIdQuery,
-  FindManyByOrganizationIdQueryResponse
-> {
+export class FindManyByOrganizationIdHandler
+  implements
+    IQueryHandler<
+      FindManyByOrganizationIdQuery,
+      FindManyByOrganizationIdQueryResponse
+    >
+{
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
     private readonly clinicRepo: IClinicQueryRepository

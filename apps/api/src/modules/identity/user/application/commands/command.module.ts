@@ -1,11 +1,6 @@
 import { UpdateLastLoginHandler } from './update-last-login/update-last-login.handler';
 import { Module } from '@nestjs/common';
-import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
-import { PolicyModule } from '@modules/platform/policy/policy.module';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
-import { USER_EVENT_PUBLISHER } from '@modules/identity/user/domain/interfaces/user-event-publisher.interface';
-import { UserEventPublisher } from '@modules/identity/user/infrastructure/events/user-event-publisher.service';
-import { UserRepositoryModule } from '@modules/identity/user/infrastructure/persistence/prisma/repositories/user.repository.module';
 
 // Command Handlers
 import { ChangePasswordHandler } from './change-password/change-password.handler';
@@ -21,6 +16,7 @@ import { UpdateUserByStaffHandler } from './update-user-by-staff/update-user-by-
 import { UpdateUserBySelfHandler } from './update-user-by-self/update-user-by-self.handler';
 import { SoftDeleteManyUsersByClinicIdHandler } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-users-by-clinic-id.handler';
 import { MailModule } from '@src/infrastructure/mail/mail.module';
+import { UserInfrastructureModule } from '@modules/identity/user/infrastructure/infrastructure.module';
 
 const CommandHandlers = [
   UpdateLastLoginHandler,
@@ -38,17 +34,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [
-    FirebaseModule,
-    PolicyModule,
-    MailModule,
-    ProviderModule,
-    UserRepositoryModule,
-  ],
-  providers: [
-    ...CommandHandlers,
-    { provide: USER_EVENT_PUBLISHER, useClass: UserEventPublisher },
-  ],
-  exports: [...CommandHandlers],
+  imports: [MailModule, ProviderModule, UserInfrastructureModule],
+  providers: [...CommandHandlers],
 })
 export class UserCommandModule {}

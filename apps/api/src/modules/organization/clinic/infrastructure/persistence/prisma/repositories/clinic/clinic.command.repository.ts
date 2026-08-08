@@ -6,7 +6,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { IClinicCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
+import { IClinicCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository';
 
 @Injectable()
 export class ClinicCommandRepository

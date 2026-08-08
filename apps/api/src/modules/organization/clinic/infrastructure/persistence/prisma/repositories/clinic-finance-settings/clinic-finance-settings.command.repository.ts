@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ClinicFinanceSettings } from '@modules/organization/clinic/domain/entities/clinic-finance-settings.entity';
-import { IClinicFinanceSettingsCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.command.repository.interface';
+import { IClinicFinanceSettingsCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.command.repository';
 
 @Injectable()
 export class ClinicFinanceSettingsCommandRepository

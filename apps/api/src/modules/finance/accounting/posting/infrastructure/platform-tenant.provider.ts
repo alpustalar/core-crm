@@ -43,7 +43,6 @@ export class PlatformTenantProvider implements IPlatformTenantProvider {
     });
     return this.inflight;
   }
-
   private async load(): Promise<PlatformLedgerTarget> {
     const clinic = await this.prisma.clinic.findFirst({
       where: { isPlatform: true },

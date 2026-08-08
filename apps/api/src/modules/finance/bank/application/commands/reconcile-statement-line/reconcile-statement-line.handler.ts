@@ -4,7 +4,7 @@ import { ReconcileStatementLineCommand } from './reconcile-statement-line.comman
 import {
   BANK_STATEMENT_LINE_COMMAND_REPOSITORY,
   IBankStatementLineCommandRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement-line.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement-line/bank-statement-line.repository';
 import { BankStatementLineNotFoundException } from '@modules/finance/bank/domain/exceptions/bank.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -13,13 +13,12 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ReconcileStatementLineCommand)
-export class ReconcileStatementLineHandler implements ICommandHandler<
-  ReconcileStatementLineCommand,
-  void
-> {
+export class ReconcileStatementLineHandler
+  implements ICommandHandler<ReconcileStatementLineCommand, void>
+{
   constructor(
     @Inject(BANK_STATEMENT_LINE_COMMAND_REPOSITORY)
-    private readonly lineCommandRepo: IBankStatementLineCommandRepository,
+    private readonly bankStatementLineRepo: IBankStatementLineCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -28,7 +27,7 @@ export class ReconcileStatementLineHandler implements ICommandHandler<
   async execute(command: ReconcileStatementLineCommand): Promise<void> {
     const { lineId, data, ctx } = command.payload;
 
-    const line = await this.lineCommandRepo.findById(lineId);
+    const line = await this.bankStatementLineRepo.findById(lineId);
     if (!line) {
       throw new BankStatementLineNotFoundException(lineId);
     }
@@ -46,7 +45,7 @@ export class ReconcileStatementLineHandler implements ICommandHandler<
     });
 
     await this.txManager.run(async () => {
-      await this.lineCommandRepo.update(line);
+      await this.bankStatementLineRepo.update(line);
     });
   }
 }

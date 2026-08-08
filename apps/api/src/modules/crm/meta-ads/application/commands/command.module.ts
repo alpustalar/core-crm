@@ -6,12 +6,6 @@ import { MatchLeadToPatientHandler } from './match-lead-to-patient/match-lead-to
 import { HandleMetaOAuthCallbackHandler } from './handle-meta-oauth-callback/handle-meta-oauth-callback.handler';
 import { RefreshMetaTokensHandler } from './refresh-meta-tokens/refresh-meta-tokens.handler';
 import { InitiateMetaOAuthHandler } from './initiate-meta-oauth/initiate-meta-oauth.handler';
-import { MetaAdAccountRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-ad-account/meta-ad-account.repository.module';
-import { MetaLeadRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-lead/meta-lead.repository.module';
-import { MetaCampaignMetricRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-campaign-metric/meta-campaign-metric.repository.module';
-import { MetaAdsEventModule } from '@modules/crm/meta-ads/infrastructure/events/meta-ads-event.module';
-import { MetaMarketingApiModule } from '@modules/crm/meta-ads/infrastructure/http/meta-marketing-api.module';
-import { PatientQueryModule } from '@modules/crm/patient/application/queries/query.module';
 import { MetaAdsCacheService } from '@modules/crm/meta-ads/infrastructure/cache/meta-ads-cache.service';
 import {
   IMetaAdsConfig,
@@ -19,6 +13,7 @@ import {
 } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-config.interface';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from '@common/constants';
+import { MetaAdsInfrastructureModule } from '@modules/crm/meta-ads/infrastructure/infrastructure.module';
 
 export const META_ADS_COMMAND_HANDLERS = [
   ConnectMetaAccountHandler,
@@ -31,14 +26,7 @@ export const META_ADS_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [
-    MetaAdAccountRepositoryModule,
-    MetaLeadRepositoryModule,
-    MetaCampaignMetricRepositoryModule,
-    MetaAdsEventModule,
-    MetaMarketingApiModule,
-    PatientQueryModule,
-  ],
+  imports: [MetaAdsInfrastructureModule],
   providers: [
     ...META_ADS_COMMAND_HANDLERS,
     MetaAdsCacheService,

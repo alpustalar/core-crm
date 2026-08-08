@@ -17,10 +17,9 @@ import {
 import { UpdateProjectCommand } from './update-project.command';
 
 @CommandHandler(UpdateProjectCommand)
-export class UpdateProjectHandler implements ICommandHandler<
-  UpdateProjectCommand,
-  void
-> {
+export class UpdateProjectHandler
+  implements ICommandHandler<UpdateProjectCommand, void>
+{
   constructor(
     @Inject(PROJECT_COMMAND_REPOSITORY)
     private readonly projectCommandRepo: IProjectCommandRepository,
@@ -48,7 +47,7 @@ export class UpdateProjectHandler implements ICommandHandler<
           project.clinicId.value,
           data.code
         );
-        if (owner && owner.id.value !== projectId) {
+        if (owner && owner.id.isNotEqualTo(projectId)) {
           throw new ProjectCodeTakenException(data.code);
         }
       }

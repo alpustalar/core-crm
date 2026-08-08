@@ -5,7 +5,7 @@ import { GetPaymentByAppointmentIdResponse } from './get-payment-by-appointment-
 import {
   IPaymentQueryRepository,
   PAYMENT_QUERY_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
+} from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
 
 @QueryHandler(GetPaymentByAppointmentIdQuery)
 export class GetPaymentByAppointmentIdHandler
@@ -17,13 +17,13 @@ export class GetPaymentByAppointmentIdHandler
 {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
-    private readonly paymentQueryRepo: IPaymentQueryRepository
+    private readonly paymentRepo: IPaymentQueryRepository
   ) {}
 
   async execute(
     query: GetPaymentByAppointmentIdQuery
   ): Promise<GetPaymentByAppointmentIdResponse> {
-    const payment = await this.paymentQueryRepo.findByAppointmentId(
+    const payment = await this.paymentRepo.findByAppointmentId(
       query.appointmentId
     );
 

@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common';
-import { JournalController } from './controllers/journal.controller';
-import { AccountingReportsController } from './controllers/accounting-reports.controller';
-import { PostingApplicationModule } from '@modules/finance/accounting/posting/application/application.module';
+import { JournalController } from '@modules/finance/accounting/posting/presentation/http/controllers/journal.controller';
+import { AccountingReportsController } from '@modules/finance/accounting/posting/presentation/http/controllers/accounting-reports.controller';
 
-@Module({
-  imports: [PostingApplicationModule],
-  controllers: [JournalController, AccountingReportsController],
-})
+@Module({ controllers: [JournalController, AccountingReportsController] })
 export class PostingPresentationModule {}

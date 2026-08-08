@@ -3,7 +3,7 @@ import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/ba
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { SubscriptionItem } from '@modules/platform/subscription/domain/entities/subscription-item.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
-import { ISubscriptionItemCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-item.repository.interface';
+import { ISubscriptionItemCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-item/subscription-item.command.repository';
 
 @Injectable()
 export class SubscriptionItemCommandRepository

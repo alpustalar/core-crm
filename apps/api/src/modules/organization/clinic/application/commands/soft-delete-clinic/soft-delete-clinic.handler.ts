@@ -15,10 +15,12 @@ import {
 import {
   CLINIC_COMMAND_REPOSITORY,
   IClinicCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository';
 
 @CommandHandler(SoftDeleteClinicCommand)
-export class SoftDeleteClinicHandler implements ICommandHandler<SoftDeleteClinicCommand> {
+export class SoftDeleteClinicHandler
+  implements ICommandHandler<SoftDeleteClinicCommand>
+{
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicRepo: IClinicCommandRepository,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IClinicAvailabilityQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.query.repository.interface';
+import { IClinicAvailabilityQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-availability/clinic-availability.query.repository';
 import { ClinicAvailability } from '@shared';
 
 @Injectable()

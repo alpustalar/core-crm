@@ -10,13 +10,16 @@ import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exc
 import {
   CLINIC_QUERY_REPOSITORY,
   IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 
 @QueryHandler(FindClinicIdByProviderIdQuery)
-export class FindClinicIdByProviderIdHandler implements IQueryHandler<
-  FindClinicIdByProviderIdQuery,
-  FindClinicIdByProviderIdQueryResponse
-> {
+export class FindClinicIdByProviderIdHandler
+  implements
+    IQueryHandler<
+      FindClinicIdByProviderIdQuery,
+      FindClinicIdByProviderIdQueryResponse
+    >
+{
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
     private readonly clinicRepo: IClinicQueryRepository,

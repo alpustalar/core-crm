@@ -2,7 +2,7 @@ import { GetTenantEntitlementsHandler } from './get-tenant-entitlements.handler'
 import { GetTenantEntitlementsQuery } from './get-tenant-entitlements.query';
 import { ISubscriptionQueryRepository } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { IPlanQueryRepository } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
-import { EntitlementSource } from '@modules/platform/subscription/domain/subscription.contracts';
+import { EntitlementSource } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 import { randomUUID } from 'crypto';
 
 describe('GetTenantEntitlementsHandler', () => {

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IClinicExceptionQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.query.repository.interface';
+import { IClinicExceptionQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.query.repository';
 import { ClinicException } from '@shared';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

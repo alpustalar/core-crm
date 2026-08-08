@@ -3,14 +3,14 @@ import { Inject } from '@nestjs/common';
 import { FindSuppliersQuery } from './find-suppliers.query';
 import { FindSuppliersResponse } from './find-suppliers.response';
 import {
-  ISupplierQueryRepository,
-  SUPPLIER_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  ISupplierQueryRepository,
+  SUPPLIER_QUERY_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/supplier/supplier.query.repository';
 
 @QueryHandler(FindSuppliersQuery)
 export class FindSuppliersHandler
@@ -18,7 +18,7 @@ export class FindSuppliersHandler
 {
   constructor(
     @Inject(SUPPLIER_QUERY_REPOSITORY)
-    private readonly supplierQueryRepo: ISupplierQueryRepository,
+    private readonly supplierRepo: ISupplierQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -27,10 +27,7 @@ export class FindSuppliersHandler
     const { payload } = query;
     const { pagination, ctx, organizationId } = payload;
 
-    const result = await this.supplierQueryRepo.findMany(
-      organizationId,
-      pagination
-    );
+    const result = await this.supplierRepo.findMany(organizationId, pagination);
 
     return {
       data: result.items,

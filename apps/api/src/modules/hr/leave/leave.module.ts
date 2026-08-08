@@ -1,10 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LeavePresentationModule } from './presentation/leave.presentation.module';
-import { LeaveCommandModule } from './application/commands/command.module';
-import { LeaveQueryModule } from './application/queries/query.module';
+import { LeavePresentationModule } from './presentation/presentation.module';
 
-@Module({
-  imports: [LeavePresentationModule, LeaveCommandModule, LeaveQueryModule],
-  exports: [LeaveCommandModule, LeaveQueryModule],
-})
+@Module({ imports: [LeavePresentationModule] })
 export class LeaveModule {}

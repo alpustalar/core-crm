@@ -2,15 +2,15 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetLeavesByEmployeeQuery } from './get-leaves-by-employee.query';
 import { GetLeavesByEmployeeResponse } from './get-leaves-by-employee.response';
-import {
-  ILeaveQueryRepository,
-  LEAVE_QUERY_REPOSITORY,
-} from '@modules/hr/leave/domain/repositories/leave.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ILeaveQueryRepository,
+  LEAVE_QUERY_REPOSITORY,
+} from '@modules/hr/leave/domain/repositories/leave/leave.query.repository';
 
 @QueryHandler(GetLeavesByEmployeeQuery)
 export class GetLeavesByEmployeeHandler
@@ -19,7 +19,7 @@ export class GetLeavesByEmployeeHandler
 {
   constructor(
     @Inject(LEAVE_QUERY_REPOSITORY)
-    private readonly leaveQueryRepo: ILeaveQueryRepository,
+    private readonly leaveRepo: ILeaveQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -34,7 +34,7 @@ export class GetLeavesByEmployeeHandler
       .evaluator.check((p) => p.canAccessClinicHr(ctx.actor.clinicId))
       .orThrow('leave.list');
 
-    const result = await this.leaveQueryRepo.findByEmployee({
+    const result = await this.leaveRepo.findByEmployee({
       employeeId,
       status: filter.status,
       pagination,

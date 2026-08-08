@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ProviderController } from '@modules/clinical/provider/presentation/controllers';
-import { ProviderApplicationModule } from '@modules/clinical/provider/application/application.module';
+import { ProviderController } from '@modules/clinical/provider/presentation/http/controllers';
 
-@Module({
-  imports: [ProviderApplicationModule],
-  controllers: [ProviderController],
-})
+@Module({ controllers: [ProviderController] })
 export class ProviderPresentationModule {}

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { ScanOverdueWorkOrdersHandler } from './scan-overdue-work-orders.handler';
 import { ExternalWorkOrder } from '@modules/supply/work-order/domain/entities/external-work-order.entity';
-import { IExternalWorkOrderCommandRepository } from '@modules/supply/work-order/domain/repositories/external-work-order.repository';
+import { IExternalWorkOrderCommandRepository } from '@modules/supply/work-order/domain/repositories/external-work/external-work-order.command.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { WorkOrderOverdueEvent } from '@modules/supply/work-order/domain/events/work-order-overdue.event';
@@ -39,7 +39,7 @@ describe('ScanOverdueWorkOrdersHandler', () => {
     };
   };
 
-  it('gecikmiş iş emri için damga atar ve gecikme event\'i fırlatır', async () => {
+  it("gecikmiş iş emri için damga atar ve gecikme event'i fırlatır", async () => {
     const workOrder = buildOverdueWorkOrder();
     const { handler, repo } = buildHandler([workOrder]);
 
@@ -50,7 +50,9 @@ describe('ScanOverdueWorkOrdersHandler', () => {
 
     const event = workOrder
       .getDomainEvents()
-      .find((e): e is WorkOrderOverdueEvent => e instanceof WorkOrderOverdueEvent);
+      .find(
+        (e): e is WorkOrderOverdueEvent => e instanceof WorkOrderOverdueEvent
+      );
     expect(event?.daysOverdue).toBe(2);
   });
 

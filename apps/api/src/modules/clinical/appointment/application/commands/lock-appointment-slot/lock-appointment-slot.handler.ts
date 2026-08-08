@@ -7,7 +7,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import {
   APPOINTMENT_CACHE_SERVICE,
   IAppointmentCacheService,
-} from '@modules/clinical/appointment/infrastructure/cache/appointment-cache.service.interface';
+} from '@modules/clinical/appointment/domain/interfaces/appointment-cache.service.interface';
 import { Inject } from '@nestjs/common';
 
 /**

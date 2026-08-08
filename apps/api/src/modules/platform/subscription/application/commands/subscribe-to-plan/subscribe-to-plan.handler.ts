@@ -4,18 +4,6 @@ import { randomUUID } from 'crypto';
 
 import { SubscribeToPlanCommand } from './subscribe-to-plan.command';
 import {
-  ISubscriptionCommandRepository,
-  SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import {
-  ISubscriptionItemCommandRepository,
-  SUBSCRIPTION_ITEM_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription-item.repository.interface';
-import {
-  IPlanCommandRepository,
-  PLAN_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
-import {
   BILLING_ADAPTER,
   IBillingAdapter,
 } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
@@ -32,6 +20,18 @@ import {
   SubscriptionBuyerRequiredException,
   SubscriptionClinicRequiredException,
 } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
+import {
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  ISubscriptionItemCommandRepository,
+  SUBSCRIPTION_ITEM_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription-item/subscription-item.command.repository';
+import {
+  IPlanCommandRepository,
+  PLAN_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/plan/plan.command.repository';
 
 export interface SubscribeToPlanResult {
   subscriptionId: string;
@@ -44,11 +44,11 @@ export class SubscribeToPlanHandler
 {
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     @Inject(SUBSCRIPTION_ITEM_COMMAND_REPOSITORY)
-    private readonly subscriptionItemCommandRepo: ISubscriptionItemCommandRepository,
+    private readonly subscriptionItemRepo: ISubscriptionItemCommandRepository,
     @Inject(PLAN_COMMAND_REPOSITORY)
-    private readonly planCommandRepo: IPlanCommandRepository,
+    private readonly planRepo: IPlanCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter,
     private readonly queryBus: TSQueryBus,
@@ -81,7 +81,7 @@ export class SubscribeToPlanHandler
 
     // Erken çıkış: ödeme sağlayıcısında boşuna checkout açmamak için. Bağlayıcı
     // kontrol aşağıda, yazmayla aynı transaction içinde tekrar yapılır.
-    const alreadyExists = await this.subscriptionCommandRepo.existsByOwner({
+    const alreadyExists = await this.subscriptionRepo.existsByOwner({
       organizationId,
       clinicId: ownerClinicId,
     });
@@ -96,7 +96,7 @@ export class SubscribeToPlanHandler
     }
 
     // Fiyat Plan tablosundan (admin tanımı) çözülür; tanım yoksa command değerine düşülür.
-    const plan = await this.planCommandRepo.findByPlanId(planId);
+    const plan = await this.planRepo.findByPlanId(planId);
     const price = plan
       ? plan.monthlyMoney
       : Money.create(priceAtPurchase, currency).orThrow();
@@ -136,7 +136,7 @@ export class SubscribeToPlanHandler
       // arasında ödeme sağlayıcısına gidilip gelindi; o sırada aynı sahibe ikinci bir
       // abonelik açılmış olabilir (çift faturalama). Yarışı kaybeden taraf burada
       // düşer — sağlayıcıda sahipsiz bir checkout linki kalır, tamamlanmazsa zararsız.
-      const raced = await this.subscriptionCommandRepo.existsByOwner({
+      const raced = await this.subscriptionRepo.existsByOwner({
         organizationId,
         clinicId: ownerClinicId,
       });
@@ -144,8 +144,8 @@ export class SubscribeToPlanHandler
         throw new SubscriptionAlreadyExistsException();
       }
 
-      await this.subscriptionCommandRepo.create(subscription);
-      await this.subscriptionItemCommandRepo.create(item);
+      await this.subscriptionRepo.create(subscription);
+      await this.subscriptionItemRepo.create(item);
     });
 
     return { subscriptionId, checkoutUrl };

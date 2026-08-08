@@ -4,7 +4,7 @@ import { UpdateWorkOrderProgressCommand } from './update-work-order-progress.com
 import {
   EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY,
   IExternalWorkOrderCommandRepository,
-} from '@modules/supply/work-order/domain/repositories/external-work-order.repository';
+} from '@modules/supply/work-order/domain/repositories/external-work/external-work-order.command.repository';
 import { ExternalWorkOrder } from '@modules/supply/work-order/domain/entities/external-work-order.entity';
 import { WorkOrderNotFoundException } from '@modules/supply/work-order/domain/exceptions/work-order.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -19,10 +19,9 @@ import type { WorkOrderProgressStage } from '@shared/modules/work-order/schemas'
  * olduğunu entity doğrular; handler yalnız hedef adımı ilgili domain metoduna çevirir.
  */
 @CommandHandler(UpdateWorkOrderProgressCommand)
-export class UpdateWorkOrderProgressHandler implements ICommandHandler<
-  UpdateWorkOrderProgressCommand,
-  void
-> {
+export class UpdateWorkOrderProgressHandler
+  implements ICommandHandler<UpdateWorkOrderProgressCommand, void>
+{
   private readonly transitions: Record<
     WorkOrderProgressStage,
     (workOrder: ExternalWorkOrder) => void

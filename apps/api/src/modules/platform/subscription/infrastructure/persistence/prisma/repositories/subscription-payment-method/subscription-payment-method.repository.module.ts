@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
+
 import { SubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/infrastructure/persistence/prisma/repositories/subscription-payment-method/subscription-payment-method.command.repository';
+import { SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY } from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 
 @Module({
   providers: [

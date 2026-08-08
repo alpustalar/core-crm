@@ -15,13 +15,12 @@ import { CreateClinicCommand } from './create-clinic.command';
 import {
   CLINIC_COMMAND_REPOSITORY,
   IClinicCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository';
 
 @CommandHandler(CreateClinicCommand)
-export class CreateClinicHandler implements ICommandHandler<
-  CreateClinicCommand,
-  string
-> {
+export class CreateClinicHandler
+  implements ICommandHandler<CreateClinicCommand, string>
+{
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,

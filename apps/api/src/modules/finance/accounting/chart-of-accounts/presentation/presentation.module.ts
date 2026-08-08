@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ChartOfAccountsController } from './controllers/chart-of-accounts.controller';
-import { ChartOfAccountsApplicationModule } from '@modules/finance/accounting/chart-of-accounts/application/application.module';
+import { ChartOfAccountsController } from '@modules/finance/accounting/chart-of-accounts/presentation/http/controllers/chart-of-accounts.controller';
 
-@Module({
-  imports: [ChartOfAccountsApplicationModule],
-  controllers: [ChartOfAccountsController],
-})
+@Module({ controllers: [ChartOfAccountsController] })
 export class ChartOfAccountsPresentationModule {}

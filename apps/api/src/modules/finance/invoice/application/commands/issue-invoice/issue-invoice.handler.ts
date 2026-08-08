@@ -3,10 +3,6 @@ import { Inject, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { IssueInvoiceCommand } from './issue-invoice.command';
 import { IssueInvoiceResponse } from './issue-invoice.response';
-import {
-  IInvoiceCommandRepository,
-  INVOICE_COMMAND_REPOSITORY,
-} from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -32,6 +28,10 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import {
+  IInvoiceCommandRepository,
+  INVOICE_COMMAND_REPOSITORY,
+} from '@modules/finance/invoice/domain/repositories/invoice/invoice.command.repository';
 
 @CommandHandler(IssueInvoiceCommand)
 export class IssueInvoiceHandler
@@ -41,7 +41,7 @@ export class IssueInvoiceHandler
 
   constructor(
     @Inject(INVOICE_COMMAND_REPOSITORY)
-    private readonly invoiceCommandRepo: IInvoiceCommandRepository,
+    private readonly invoiceRepo: IInvoiceCommandRepository,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
@@ -76,7 +76,7 @@ export class IssueInvoiceHandler
     // Fatura PENDING oluşturulur ve ekonomik olay (SALES_INVOICE_ISSUED) HER ZAMAN
     // yazılır — e-belge gönderiminden bağımsız. İkisi atomik (outboxRun).
     await this.txManager.outboxRun(async () => {
-      await this.invoiceCommandRepo.create({
+      await this.invoiceRepo.create({
         id: invoiceId,
         organizationId,
         clinicId: input.clinicId,
@@ -149,10 +149,10 @@ export class IssueInvoiceHandler
 
   private async resolveExisting(input: IssueInvoiceCommand['input']) {
     if (input.appointmentId) {
-      return this.invoiceCommandRepo.findByAppointmentId(input.appointmentId);
+      return this.invoiceRepo.findByAppointmentId(input.appointmentId);
     }
     if (input.paymentId) {
-      return this.invoiceCommandRepo.findByPaymentId(input.paymentId);
+      return this.invoiceRepo.findByPaymentId(input.paymentId);
     }
     return null;
   }

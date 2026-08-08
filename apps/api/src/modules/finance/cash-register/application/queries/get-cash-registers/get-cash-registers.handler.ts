@@ -2,24 +2,23 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetCashRegistersQuery } from './get-cash-registers.query';
 import { GetCashRegistersResponse } from './get-cash-registers.response';
-import {
-  CASH_REGISTER_QUERY_REPOSITORY,
-  ICashRegisterQueryRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-register.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  CASH_REGISTER_QUERY_REPOSITORY,
+  ICashRegisterQueryRepository,
+} from '@modules/finance/cash-register/domain/repositories/cash-register/cash-register.query.repository';
 
 @QueryHandler(GetCashRegistersQuery)
-export class GetCashRegistersHandler implements IQueryHandler<
-  GetCashRegistersQuery,
-  GetCashRegistersResponse
-> {
+export class GetCashRegistersHandler
+  implements IQueryHandler<GetCashRegistersQuery, GetCashRegistersResponse>
+{
   constructor(
     @Inject(CASH_REGISTER_QUERY_REPOSITORY)
-    private readonly registerQueryRepo: ICashRegisterQueryRepository,
+    private readonly cashRegisterRepo: ICashRegisterQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -35,7 +34,7 @@ export class GetCashRegistersHandler implements IQueryHandler<
       .evaluator.check((p) => p.canAccessClinicFinances(clinicId))
       .orThrow('cash-register.list');
 
-    const result = await this.registerQueryRepo.findByClinic({
+    const result = await this.cashRegisterRepo.findByClinic({
       clinicId,
       status: filter.status,
       pagination,

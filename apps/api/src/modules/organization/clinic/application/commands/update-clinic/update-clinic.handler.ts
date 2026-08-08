@@ -11,14 +11,13 @@ import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import {
   CLINIC_COMMAND_REPOSITORY,
   IClinicCommandRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository';
 import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
 
 @CommandHandler(UpdateClinicCommand)
-export class UpdateClinicHandler implements ICommandHandler<
-  UpdateClinicCommand,
-  void
-> {
+export class UpdateClinicHandler
+  implements ICommandHandler<UpdateClinicCommand, void>
+{
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicRepo: IClinicCommandRepository,

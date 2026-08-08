@@ -4,8 +4,8 @@ import { Pagination, Party as IParty } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IPartyQueryRepository } from '@modules/finance/party/domain/repositories/party.repository';
 import { FindPartiesFilter } from '@modules/finance/party/domain/contracts/party.contracts';
+import { IPartyQueryRepository } from '@modules/finance/party/domain/repositories/party/party.query.repository';
 
 /**
  * Okuma tarafı: entity hidrate edilmez. Cari "ensure" akışının doğal-anahtar

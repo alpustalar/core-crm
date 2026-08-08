@@ -3,14 +3,14 @@ import { Inject } from '@nestjs/common';
 import { GetStockMovementsQuery } from './get-stock-movements.query';
 import { GetStockMovementsResponse } from './get-stock-movements.response';
 import {
-  IStockMovementQueryRepository,
-  STOCK_MOVEMENT_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  IStockMovementQueryRepository,
+  STOCK_MOVEMENT_QUERY_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.query.repository';
 
 @QueryHandler(GetStockMovementsQuery)
 export class GetStockMovementsHandler
@@ -18,7 +18,7 @@ export class GetStockMovementsHandler
 {
   constructor(
     @Inject(STOCK_MOVEMENT_QUERY_REPOSITORY)
-    private readonly stockMovementQueryRepo: IStockMovementQueryRepository,
+    private readonly stockMovementRepo: IStockMovementQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -39,15 +39,12 @@ export class GetStockMovementsHandler
       .orThrow();
 
     const result = data.productId
-      ? await this.stockMovementQueryRepo.findManyByProduct(
+      ? await this.stockMovementRepo.findManyByProduct(
           data.productId,
           clinicId,
           pagination
         )
-      : await this.stockMovementQueryRepo.findManyByClinic(
-          clinicId,
-          pagination
-        );
+      : await this.stockMovementRepo.findManyByClinic(clinicId, pagination);
 
     return {
       data: result.items,

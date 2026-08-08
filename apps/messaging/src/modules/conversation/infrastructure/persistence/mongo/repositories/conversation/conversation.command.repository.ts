@@ -95,7 +95,7 @@ export class ConversationCommandRepository
             updatedAt: data.updatedAt,
           },
         },
-        { new: true }
+        { returnDocument: 'after'  }
       )
       .session(this.session)
       .lean()

@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PartyOriginType } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { PartyOriginType, Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPartyCommandRepository } from '@modules/finance/party/domain/repositories/party.repository';
 import { Party } from '@modules/finance/party/domain/entities/party.entity';
 import { PartyAlreadyExistsError } from '@modules/finance/party/domain/exceptions/party.exceptions';
+import { IPartyCommandRepository } from '@modules/finance/party/domain/repositories/party/party.command.repository';
 
 @Injectable()
 export class PartyCommandRepository

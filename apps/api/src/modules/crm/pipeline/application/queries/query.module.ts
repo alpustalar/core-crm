@@ -6,7 +6,7 @@ import { GetPipelineStageByIdHandler } from './get-pipeline-stage-by-id/get-pipe
 import { GetDefaultPipelineHandler } from './get-default-pipeline/get-default-pipeline.handler';
 import { PipelineRepositoriesModule } from '@modules/crm/pipeline/infrastructure/persistence/prisma/repositories/repositories.module';
 
-export const PIPELINE_QUERY_HANDLERS = [
+const PIPELINE_QUERY_HANDLERS = [
   GetPipelinesHandler,
   GetPipelineByIdHandler,
   GetPipelineStageByIdHandler,

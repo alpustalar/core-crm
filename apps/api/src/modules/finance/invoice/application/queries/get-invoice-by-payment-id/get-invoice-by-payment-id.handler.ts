@@ -2,16 +2,16 @@ import { Decimal } from 'decimal.js';
 import { taxSpecificationOf } from '@modules/finance/invoice/domain/rules/invoice-tax';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import {
-  IInvoiceQueryRepository,
-  INVOICE_QUERY_REPOSITORY,
-} from '@modules/finance/invoice/domain/repositories/invoice.repository';
 import { GetInvoiceByPaymentIdQuery } from './get-invoice-by-payment-id.query';
 import { GetInvoiceByPaymentIdResponse } from './get-invoice-by-payment-id.response';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IInvoiceQueryRepository,
+  INVOICE_QUERY_REPOSITORY,
+} from '@modules/finance/invoice/domain/repositories/invoice/invoice.query.repository';
 
 @QueryHandler(GetInvoiceByPaymentIdQuery)
 export class GetInvoiceByPaymentIdHandler
@@ -20,7 +20,7 @@ export class GetInvoiceByPaymentIdHandler
 {
   constructor(
     @Inject(INVOICE_QUERY_REPOSITORY)
-    private readonly invoiceQueryRepo: IInvoiceQueryRepository,
+    private readonly invoiceRepo: IInvoiceQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -29,9 +29,7 @@ export class GetInvoiceByPaymentIdHandler
     query: GetInvoiceByPaymentIdQuery
   ): Promise<GetInvoiceByPaymentIdResponse> {
     const { ctx } = query;
-    const invoice = await this.invoiceQueryRepo.findByPaymentId(
-      query.paymentId
-    );
+    const invoice = await this.invoiceRepo.findByPaymentId(query.paymentId);
     if (!invoice) return { data: null };
 
     // TODO: policy

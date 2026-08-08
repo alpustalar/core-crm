@@ -4,7 +4,7 @@ import { CreateExternalWorkOrderCommand } from './create-external-work-order.com
 import {
   EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY,
   IExternalWorkOrderCommandRepository,
-} from '@modules/supply/work-order/domain/repositories/external-work-order.repository';
+} from '@modules/supply/work-order/domain/repositories/external-work/external-work-order.command.repository';
 import { ExternalWorkOrder } from '@modules/supply/work-order/domain/entities/external-work-order.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -13,10 +13,9 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateExternalWorkOrderCommand)
-export class CreateExternalWorkOrderHandler implements ICommandHandler<
-  CreateExternalWorkOrderCommand,
-  string
-> {
+export class CreateExternalWorkOrderHandler
+  implements ICommandHandler<CreateExternalWorkOrderCommand, string>
+{
   constructor(
     @Inject(EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY)
     private readonly workOrderRepo: IExternalWorkOrderCommandRepository,

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
-import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/pos-physical.contracts';
-import { Prisma, PosProvider, PosTransactionStatus } from '@prisma/client';
+import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+import { PosProvider, PosTransactionStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PosTransactionCommandRepository

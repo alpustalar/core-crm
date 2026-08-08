@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ICashSessionCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-session.repository';
 import { CashSession } from '@modules/finance/cash-register/domain/entities/cash-session.entity';
 import { CashSession as ICashSession } from '@model-schema/CashSessionSchema';
 import { CashSessionStatusSchema } from '@input-type-schemas/CashSessionStatusSchema';
@@ -10,6 +9,7 @@ import {
   CashBridgeTotals,
   CashMovementTotals,
 } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+import { ICashSessionCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.command.repository';
 
 @Injectable()
 export class CashSessionCommandRepository

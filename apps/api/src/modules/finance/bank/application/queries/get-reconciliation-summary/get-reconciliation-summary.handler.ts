@@ -5,17 +5,20 @@ import { GetReconciliationSummaryResponse } from './get-reconciliation-summary.r
 import {
   BANK_STATEMENT_QUERY_REPOSITORY,
   IBankStatementQueryRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetReconciliationSummaryQuery)
-export class GetReconciliationSummaryHandler implements IQueryHandler<
-  GetReconciliationSummaryQuery,
-  GetReconciliationSummaryResponse
-> {
+export class GetReconciliationSummaryHandler
+  implements
+    IQueryHandler<
+      GetReconciliationSummaryQuery,
+      GetReconciliationSummaryResponse
+    >
+{
   constructor(
     @Inject(BANK_STATEMENT_QUERY_REPOSITORY)
     private readonly statementQueryRepo: IBankStatementQueryRepository,

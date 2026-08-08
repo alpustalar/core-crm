@@ -1,29 +1,28 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ExpirePastDueSubscriptionsCommand } from './expire-past-due-subscriptions.command';
-import {
-  ISubscriptionCommandRepository,
-  SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { DateTimeManager } from '@common/utils';
 import { SUBSCRIPTION_GRACE_DAYS } from '@common/constants';
+import {
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
 
 @CommandHandler(ExpirePastDueSubscriptionsCommand)
-export class ExpirePastDueSubscriptionsHandler implements ICommandHandler<
-  ExpirePastDueSubscriptionsCommand,
-  void
-> {
+export class ExpirePastDueSubscriptionsHandler
+  implements ICommandHandler<ExpirePastDueSubscriptionsCommand, void>
+{
   private readonly logger = new Logger(ExpirePastDueSubscriptionsHandler.name);
 
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<void> {
-    const pastDue = await this.subscriptionCommandRepo.findPastDue();
+    const pastDue = await this.subscriptionRepo.findPastDue();
     const now = DateTimeManager.create();
 
     for (const candidate of pastDue) {
@@ -48,7 +47,7 @@ export class ExpirePastDueSubscriptionsHandler implements ICommandHandler<
    */
   private async expireOne(subscriptionId: string): Promise<void> {
     const subscription =
-      await this.subscriptionCommandRepo.findByIdForUpdate(subscriptionId);
+      await this.subscriptionRepo.findByIdForUpdate(subscriptionId);
     if (!subscription) return;
 
     if (
@@ -64,6 +63,6 @@ export class ExpirePastDueSubscriptionsHandler implements ICommandHandler<
     }
 
     subscription.expire();
-    await this.subscriptionCommandRepo.update(subscription);
+    await this.subscriptionRepo.update(subscription);
   }
 }

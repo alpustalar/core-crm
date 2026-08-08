@@ -3,9 +3,7 @@ import { GetMetaReportHandler } from './get-meta-report/get-meta-report.handler'
 import { GetMetaLeadsHandler } from './get-meta-leads/get-meta-leads.handler';
 import { GetMetaAccountsHandler } from './get-meta-accounts/get-meta-accounts.handler';
 import { GetAgencyRoiReportHandler } from './get-agency-roi-report/get-agency-roi-report.handler';
-import { MetaAdAccountRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-ad-account/meta-ad-account.repository.module';
-import { MetaLeadRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-lead/meta-lead.repository.module';
-import { MetaCampaignMetricRepositoryModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/meta-campaign-metric/meta-campaign-metric.repository.module';
+import { MetaAdsRepositoriesModule } from '@modules/crm/meta-ads/infrastructure/persistence/prisma/repositories/repositories.module';
 
 export const META_ADS_QUERY_HANDLERS = [
   GetMetaReportHandler,
@@ -15,11 +13,7 @@ export const META_ADS_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [
-    MetaAdAccountRepositoryModule,
-    MetaLeadRepositoryModule,
-    MetaCampaignMetricRepositoryModule,
-  ],
+  imports: [MetaAdsRepositoriesModule],
   providers: META_ADS_QUERY_HANDLERS,
   exports: META_ADS_QUERY_HANDLERS,
 })

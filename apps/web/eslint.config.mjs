@@ -22,12 +22,22 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": [
         "error",
         {
-          patterns: [
+          // Kök barrel `paths` ile yasaklanır, `patterns` ile DEĞİL: `patterns`
+          // gitignore semantiği kullanıyor ve "@core-crm/shared" bir dizin gibi
+          // davranıp izin verilen "@core-crm/shared/client" alt yolunu da
+          // yakalıyor. `paths` tam ad eşleşmesi yapar.
+          paths: [
             {
-              group: ["@core-crm/shared", "@core-crm/shared/index"],
+              name: "@core-crm/shared",
               message:
                 "@core-crm/shared/client kullan — kök barrel dto/ üzerinden nestjs-zod çeker.",
             },
+            {
+              name: "@core-crm/shared/index",
+              message: "@core-crm/shared/client kullan.",
+            },
+          ],
+          patterns: [
             {
               group: ["@core-crm/shared/modules/*/dto", "**/dto/**"],
               message: "DTO'lar backend-only (nestjs-zod).",

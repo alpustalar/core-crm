@@ -62,7 +62,7 @@ export class ClinicInstagramChannelCommandRepository
             createdAt: data.createdAt,
           },
         },
-        { new: true, upsert: true }
+        { returnDocument: 'after' , upsert: true }
       )
       .session(this.session)
       .lean()

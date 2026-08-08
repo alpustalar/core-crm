@@ -14,7 +14,7 @@ export class CloseConversationHandler implements ICommandHandler<
 > {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     private readonly txManager: MongoTransactionManager
   ) {}
 
@@ -22,7 +22,7 @@ export class CloseConversationHandler implements ICommandHandler<
     // Kapatma kararı kilit altında okunan güncel duruma dayanır: eşzamanlı gelen
     // mesaj yazışmayı OPEN'a çektiyse kapanış onun üstüne yazmaz, sıraya girer.
     await this.txManager.run(async () => {
-      const conversation = await this.conversationCommandRepo.findByIdForUpdate(
+      const conversation = await this.conversationRepo.findByIdForUpdate(
         command.payload.conversationId
       );
       if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
@@ -31,7 +31,7 @@ export class CloseConversationHandler implements ICommandHandler<
       }
 
       conversation.close();
-      await this.conversationCommandRepo.update(conversation);
+      await this.conversationRepo.update(conversation);
     });
   }
 }

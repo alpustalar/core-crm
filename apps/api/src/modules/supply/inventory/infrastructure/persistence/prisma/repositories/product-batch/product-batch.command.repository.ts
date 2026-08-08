@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IProductBatchCommandRepository } from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
+import { IProductBatchCommandRepository } from '@modules/supply/inventory/domain/repositories/product-batch/product-batch.command.repository';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

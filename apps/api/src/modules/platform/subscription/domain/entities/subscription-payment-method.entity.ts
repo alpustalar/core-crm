@@ -2,7 +2,7 @@ import { SubscriptionPaymentMethod as ISubscriptionPaymentMethod } from '@shared
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/utils';
-import { CreateSubscriptionPaymentMethodProps } from '@modules/platform/subscription/domain/subscription.contracts';
+import { CreateSubscriptionPaymentMethodProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 
 const DEFAULT_PROVIDER = 'IYZICO';
 

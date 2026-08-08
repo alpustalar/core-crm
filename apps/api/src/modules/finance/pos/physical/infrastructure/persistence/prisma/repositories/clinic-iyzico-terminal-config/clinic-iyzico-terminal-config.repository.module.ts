@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY } from '@modules/finance/pos/physical/domain/repositories/clinic-iyzico-terminal-config.repository';
+import { CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY } from '@modules/finance/pos/physical/domain/repositories/clinic-iyzico-terminal-config/clinic-iyzico-terminal-config.command.repository';
 import { ClinicIyzicoTerminalConfigCommandRepository } from './clinic-iyzico-terminal-config.command.repository';
 
 @Module({

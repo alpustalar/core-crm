@@ -5,7 +5,7 @@ import { ListPlansResponse } from './list-plans.response';
 import {
   IPlanQueryRepository,
   PLAN_QUERY_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
+} from '@modules/platform/subscription/domain/repositories/plan/plan.query.repository';
 
 @QueryHandler(ListPlansQuery)
 export class ListPlansHandler
@@ -13,11 +13,11 @@ export class ListPlansHandler
 {
   constructor(
     @Inject(PLAN_QUERY_REPOSITORY)
-    private readonly planQueryRepo: IPlanQueryRepository
+    private readonly planRepo: IPlanQueryRepository
   ) {}
 
   async execute(): Promise<ListPlansResponse> {
-    const plans = await this.planQueryRepo.findAllActiveWithModules();
+    const plans = await this.planRepo.findAllActiveWithModules();
     return { data: plans };
   }
 }

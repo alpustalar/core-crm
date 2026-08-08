@@ -91,7 +91,7 @@ export class MongoOutboxRelay implements OnModuleInit, OnModuleDestroy {
           ...(skipIds.size > 0 ? { _id: { $nin: [...skipIds] } } : {}),
         },
         { $set: { processedAt: new Date() }, $inc: { attempts: 1 } },
-        { sort: { createdAt: 1 }, new: true }
+        { sort: { createdAt: 1 }, returnDocument: 'after' }
       )
       .exec();
   }

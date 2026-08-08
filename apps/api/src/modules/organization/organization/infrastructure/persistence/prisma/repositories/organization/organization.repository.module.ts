@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  ORGANIZATION_COMMAND_REPOSITORY,
-  ORGANIZATION_QUERY_REPOSITORY,
-} from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { OrganizationCommandRepository } from './organization.command.repository';
 import { OrganizationQueryRepository } from './organization.query.repository';
+import { ORGANIZATION_QUERY_REPOSITORY } from '@modules/organization/organization/domain/repositories/organization/organization.query.repository';
+import { ORGANIZATION_COMMAND_REPOSITORY } from '@modules/organization/organization/domain/repositories/organization/organization.command.repository';
 
 @Module({
   providers: [

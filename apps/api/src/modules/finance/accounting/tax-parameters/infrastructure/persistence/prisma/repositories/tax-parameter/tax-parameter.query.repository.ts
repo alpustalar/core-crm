@@ -3,7 +3,7 @@ import { TaxParameter as ITaxParameter } from '@shared';
 import { TaxParameterKeyType as TaxParameterKey } from '@input-type-schemas/TaxParameterKeySchema';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ITaxParameterQueryRepository } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
+import { ITaxParameterQueryRepository } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter/tax-parameter.query.repository';
 
 /**
  * Okuma tarafı: entity hidrate edilmez. Oranı kapatma/versiyonlama gibi iş kuralı

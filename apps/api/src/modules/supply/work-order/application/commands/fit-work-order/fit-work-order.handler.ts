@@ -4,7 +4,7 @@ import { FitWorkOrderCommand } from './fit-work-order.command';
 import {
   EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY,
   IExternalWorkOrderCommandRepository,
-} from '@modules/supply/work-order/domain/repositories/external-work-order.repository';
+} from '@modules/supply/work-order/domain/repositories/external-work/external-work-order.command.repository';
 import { WorkOrderNotFoundException } from '@modules/supply/work-order/domain/exceptions/work-order.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -13,10 +13,9 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(FitWorkOrderCommand)
-export class FitWorkOrderHandler implements ICommandHandler<
-  FitWorkOrderCommand,
-  void
-> {
+export class FitWorkOrderHandler
+  implements ICommandHandler<FitWorkOrderCommand, void>
+{
   constructor(
     @Inject(EXTERNAL_WORK_ORDER_COMMAND_REPOSITORY)
     private readonly workOrderRepo: IExternalWorkOrderCommandRepository,

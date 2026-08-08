@@ -6,7 +6,7 @@ import { HandlePosCallbackResponse } from './handle-pos-callback.response';
 import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import {
   IPhysicalPosProvider,
   PHYSICAL_POS_PROVIDER,
@@ -16,15 +16,15 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 
 @CommandHandler(HandlePosCallbackCommand)
-export class HandlePosCallbackHandler implements ICommandHandler<
-  HandlePosCallbackCommand,
-  HandlePosCallbackResponse
-> {
+export class HandlePosCallbackHandler
+  implements
+    ICommandHandler<HandlePosCallbackCommand, HandlePosCallbackResponse>
+{
   private readonly logger = new Logger(HandlePosCallbackHandler.name);
 
   constructor(
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
-    private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
+    private readonly posTransactionRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
     private readonly posProvider: IPhysicalPosProvider,
     private readonly txManager: TransactionManager,
@@ -47,7 +47,7 @@ export class HandlePosCallbackHandler implements ICommandHandler<
         // aynı işlemi eşzamanlı sonuçlandırabilir. Kilitsizken ikisi de aynı PENDING
         // kaydı okuyup ödemeyi iki kez "ödendi" işaretleyebilirdi.
         const transaction =
-          await this.posTransactionCommandRepo.findByExternalRefForUpdate(
+          await this.posTransactionRepo.findByExternalRefForUpdate(
             input.externalRef
           );
 
@@ -69,7 +69,7 @@ export class HandlePosCallbackHandler implements ICommandHandler<
             transaction.markFailed(posCallbackResult.rawResponse);
         }
 
-        await this.posTransactionCommandRepo.update(transaction);
+        await this.posTransactionRepo.update(transaction);
 
         if (transaction.paymentId) {
           if (posCallbackResult.status === PosCallbackStatuses.SUCCESS) {

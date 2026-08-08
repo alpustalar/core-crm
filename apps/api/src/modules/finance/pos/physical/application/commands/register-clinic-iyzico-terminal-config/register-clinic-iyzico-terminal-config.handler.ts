@@ -4,7 +4,7 @@ import { RegisterClinicIyzicoTerminalConfigCommand } from './register-clinic-iyz
 import {
   CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY,
   IClinicIyzicoTerminalConfigCommandRepository,
-} from '@modules/finance/pos/physical/domain/repositories/clinic-iyzico-terminal-config.repository';
+} from '@modules/finance/pos/physical/domain/repositories/clinic-iyzico-terminal-config/clinic-iyzico-terminal-config.command.repository';
 import { ClinicIyzicoTerminalConfig } from '@modules/finance/pos/physical/domain/entities/clinic-iyzico-terminal-config.entity';
 import {
   IPolicyFactory,
@@ -14,10 +14,9 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(RegisterClinicIyzicoTerminalConfigCommand)
-export class RegisterClinicIyzicoTerminalConfigHandler implements ICommandHandler<
-  RegisterClinicIyzicoTerminalConfigCommand,
-  string
-> {
+export class RegisterClinicIyzicoTerminalConfigHandler
+  implements ICommandHandler<RegisterClinicIyzicoTerminalConfigCommand, string>
+{
   constructor(
     @Inject(CLINIC_IYZICO_TERMINAL_CONFIG_COMMAND_REPOSITORY)
     private readonly configCommandRepo: IClinicIyzicoTerminalConfigCommandRepository,

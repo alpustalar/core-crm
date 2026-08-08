@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { ILeaveQueryRepository } from '@modules/hr/leave/domain/repositories/leave.repository';
 import { LeaveRequest as ILeaveRequest } from '@shared';
 import {
   FindLeavesByEmployeeFilter,
@@ -11,6 +10,7 @@ import {
 import { Paginated } from '@common/interfaces/paginated.type';
 import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
 import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';
+import { ILeaveQueryRepository } from '@modules/hr/leave/domain/repositories/leave/leave.query.repository';
 
 /** Okuma tarafı: entity hidrate edilmez; bakiye okuması Command Repo'da. */
 @Injectable()

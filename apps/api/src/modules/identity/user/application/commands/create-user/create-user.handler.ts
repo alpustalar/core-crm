@@ -1,13 +1,13 @@
 import { CreateUserCommand } from '@modules/identity/user/application/commands/create-user/create-user.command';
 import { CreateUserResponse } from '@modules/identity/user/application/commands/create-user/create-user.response';
-import {
-  IUserCommandRepository,
-  USER_COMMAND_REPOSITORY,
-} from '@modules/identity/user/domain/repositories/user.repository';
 import { User } from '@modules/identity/user/domain/entities/user.entity';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InternalOnly } from '@common/decorators';
+import {
+  IUserCommandRepository,
+  USER_COMMAND_REPOSITORY,
+} from '@modules/identity/user/domain/repositories/user/user.command.repository';
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler
@@ -15,7 +15,7 @@ export class CreateUserHandler
 {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
-    private readonly userCommandRepo: IUserCommandRepository
+    private readonly userRepo: IUserCommandRepository
   ) {}
 
   // Register işlemi registration modülünde yapılır
@@ -33,7 +33,7 @@ export class CreateUserHandler
       managedClinicIds: data?.managedClinicIds,
     });
 
-    const saved = await this.userCommandRepo.create(user);
+    const saved = await this.userRepo.create(user);
     return saved.id.value;
   }
 }

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { CashRegisterRepositoriesModule } from '@modules/finance/cash-register/infrastructure/persistence/prisma/repositories/repositories.module';
 import { GetCashRegistersHandler } from './get-cash-registers/get-cash-registers.handler';
 import { GetCashRegisterByIdHandler } from './get-cash-register-by-id/get-cash-register-by-id.handler';
@@ -16,7 +15,7 @@ export const CASH_REGISTER_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, CashRegisterRepositoriesModule],
+  imports: [CashRegisterRepositoriesModule],
   providers: CASH_REGISTER_QUERY_HANDLERS,
   exports: CASH_REGISTER_QUERY_HANDLERS,
 })

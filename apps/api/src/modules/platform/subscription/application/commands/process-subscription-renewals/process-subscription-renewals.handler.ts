@@ -2,14 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ProcessSubscriptionRenewalsCommand } from './process-subscription-renewals.command';
 import {
-  ISubscriptionCommandRepository,
-  SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import {
-  ISubscriptionPaymentMethodCommandRepository,
-  SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
-import {
   BILLING_ADAPTER,
   IBillingAdapter,
 } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
@@ -23,29 +15,36 @@ import { Subscription } from '@modules/platform/subscription/domain/entities/sub
 import { Money } from '@src/domain/value-objects/money.vo';
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import { DateTimeManager } from '@common/utils';
+import {
+  ISubscriptionCommandRepository,
+  SUBSCRIPTION_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  ISubscriptionPaymentMethodCommandRepository,
+  SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 
 const RENEWAL_LABEL = 'Abonelik yenileme';
 const BILLING_PERIOD_MONTHS = 1;
 
 @CommandHandler(ProcessSubscriptionRenewalsCommand)
-export class ProcessSubscriptionRenewalsHandler implements ICommandHandler<
-  ProcessSubscriptionRenewalsCommand,
-  void
-> {
+export class ProcessSubscriptionRenewalsHandler
+  implements ICommandHandler<ProcessSubscriptionRenewalsCommand, void>
+{
   private readonly logger = new Logger(ProcessSubscriptionRenewalsHandler.name);
 
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     @Inject(SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY)
-    private readonly paymentMethodCommandRepo: ISubscriptionPaymentMethodCommandRepository,
+    private readonly paymentMethodRepo: ISubscriptionPaymentMethodCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<void> {
-    const due = await this.subscriptionCommandRepo.findDueForRenewal(
+    const due = await this.subscriptionRepo.findDueForRenewal(
       DateTimeManager.create()
     );
     if (due.length === 0) return;
@@ -77,7 +76,7 @@ export class ProcessSubscriptionRenewalsHandler implements ICommandHandler<
    */
   private async processOne(subscriptionId: string): Promise<void> {
     const subscription =
-      await this.subscriptionCommandRepo.findByIdForUpdate(subscriptionId);
+      await this.subscriptionRepo.findByIdForUpdate(subscriptionId);
     if (!subscription) return;
 
     if (!subscription.isDueForRenewal(DateTimeManager.create())) {
@@ -89,21 +88,21 @@ export class ProcessSubscriptionRenewalsHandler implements ICommandHandler<
 
     if (subscription.cancelAtPeriodEnd) {
       subscription.cancel();
-      await this.subscriptionCommandRepo.update(subscription);
+      await this.subscriptionRepo.update(subscription);
       return;
     }
 
     // Çekilecek tutar ve kullanılacak kart doğrudan para hareketini belirliyor →
     // ikisi de command repo'dan (ana bağlantı, aynı transaction).
     const [savedCard, charge] = await Promise.all([
-      this.paymentMethodCommandRepo.findBySubscriptionId(subscriptionId),
-      this.subscriptionCommandRepo.findRenewalCharge(subscriptionId),
+      this.paymentMethodRepo.findBySubscriptionId(subscriptionId),
+      this.subscriptionRepo.findRenewalCharge(subscriptionId),
     ]);
 
     // Kayıtlı kart veya tahsil edilecek tutar yoksa otomatik çekim yapılamaz → PAST_DUE.
     if (!savedCard || !charge) {
       this.failRenewal(subscription);
-      await this.subscriptionCommandRepo.update(subscription);
+      await this.subscriptionRepo.update(subscription);
       return;
     }
 
@@ -153,7 +152,7 @@ export class ProcessSubscriptionRenewalsHandler implements ICommandHandler<
       this.failRenewal(subscription, result.errorMessage);
     }
 
-    await this.subscriptionCommandRepo.update(subscription);
+    await this.subscriptionRepo.update(subscription);
   }
 
   private failRenewal(subscription: Subscription, errorMessage?: string): void {

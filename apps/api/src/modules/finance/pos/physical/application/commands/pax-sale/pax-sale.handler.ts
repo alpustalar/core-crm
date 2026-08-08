@@ -4,13 +4,9 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { PaxSaleCommand } from './pax-sale.command';
 import type { PaxSaleResponse } from './pax-sale.response';
 import {
-  IPosDeviceCommandRepository,
-  POS_DEVICE_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
   PaxConnectionError,
@@ -29,19 +25,22 @@ import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(PaxSaleCommand)
-export class PaxSaleHandler implements ICommandHandler<
-  PaxSaleCommand,
-  PaxSaleResponse
-> {
+export class PaxSaleHandler
+  implements ICommandHandler<PaxSaleCommand, PaxSaleResponse>
+{
   private readonly logger = new Logger(PaxSaleHandler.name);
 
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
-    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository,
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
-    private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
+    private readonly posTransactionRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
     private readonly commandBus: TSCommandBus,
     private readonly txManager: TransactionManager,
@@ -51,7 +50,7 @@ export class PaxSaleHandler implements ICommandHandler<
   async execute(command: PaxSaleCommand): Promise<PaxSaleResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceCommandRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
@@ -91,7 +90,7 @@ export class PaxSaleHandler implements ICommandHandler<
           currency: input.currency,
         });
 
-        const tx = await this.posTransactionCommandRepo.create(posTransaction);
+        const tx = await this.posTransactionRepo.create(posTransaction);
         return {
           posTransactionId: tx.id.value,
           transaction: tx,
@@ -111,7 +110,7 @@ export class PaxSaleHandler implements ICommandHandler<
       await this.txManager.outboxRun(async () => {
         if (result.approved) {
           transaction.markSuccess(result.externalRef, result.rawResponse);
-          await this.posTransactionCommandRepo.update(transaction);
+          await this.posTransactionRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markPaid({
               paymentId,
@@ -129,7 +128,7 @@ export class PaxSaleHandler implements ICommandHandler<
           }
         } else {
           transaction.markFailed(result.rawResponse);
-          await this.posTransactionCommandRepo.update(transaction);
+          await this.posTransactionRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,
@@ -172,7 +171,7 @@ export class PaxSaleHandler implements ICommandHandler<
       if (err instanceof PaxConnectionError) {
         await this.txManager.outboxRun(async () => {
           transaction.markFailed();
-          await this.posTransactionCommandRepo.update(transaction);
+          await this.posTransactionRepo.update(transaction);
           if (paymentId) {
             await this.posPaymentSync.markFailed({
               paymentId,
@@ -202,7 +201,7 @@ export class PaxSaleHandler implements ICommandHandler<
     const ctx = ExecutionContextFactory.createInternal();
 
     try {
-      const { partyId, organizationId } = await this.commandBus.execute(
+      const { partyId } = await this.commandBus.execute(
         new EnsurePartyForPatientCommand(
           input.patientId,
           input.clinicId,

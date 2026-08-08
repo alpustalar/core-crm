@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import { INotificationCacheService } from '@modules/platform/notification/domain/interfaces/notification-cache.service.interface';
 
 const SSE_TICKET_TTL_SECONDS = 30;
 
@@ -9,7 +10,7 @@ const KEYS = {
 };
 
 @Injectable()
-export class NotificationCacheService {
+export class NotificationCacheService implements INotificationCacheService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
   get sseTicket() {
