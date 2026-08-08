@@ -10,7 +10,7 @@ import {
   AI_TOOL_EXECUTOR,
   AiToolContext,
   IAiToolExecutor,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
+} from '@common/ai-tools';
 import {
   buildSystemPrompt,
   DEFAULT_MAX_TOKENS,
@@ -171,7 +171,8 @@ export class GeminiChatAdapter implements IAiChatPort {
   /** request.model bir Gemini modeli değilse güvenli varsayılana düşer. */
   private resolveModel(requestModel: string): string {
     const fallback =
-      this.config.get<string>(ENV.GEMINI_DEFAULT_MODEL) ?? GEMINI_FALLBACK_MODEL;
+      this.config.get<string>(ENV.GEMINI_DEFAULT_MODEL) ??
+      GEMINI_FALLBACK_MODEL;
     return requestModel && requestModel.toLowerCase().includes('gemini')
       ? requestModel
       : fallback;
@@ -241,8 +242,7 @@ export class GeminiChatAdapter implements IAiChatPort {
     const converted = this.toGeminiSchema(schema);
     if (
       converted.type === 'OBJECT' &&
-      (!converted.properties ||
-        Object.keys(converted.properties).length === 0)
+      (!converted.properties || Object.keys(converted.properties).length === 0)
     ) {
       return undefined;
     }
@@ -273,9 +273,7 @@ export class GeminiChatAdapter implements IAiChatPort {
       }
     }
     if (schema.items && typeof schema.items === 'object') {
-      out.items = this.toGeminiSchema(
-        schema.items as Record<string, unknown>
-      );
+      out.items = this.toGeminiSchema(schema.items as Record<string, unknown>);
     }
     return out;
   }

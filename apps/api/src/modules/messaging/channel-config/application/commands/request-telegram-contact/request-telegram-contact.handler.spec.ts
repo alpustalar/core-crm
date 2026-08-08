@@ -44,9 +44,7 @@ describe('RequestTelegramContactHandler', () => {
   it('aktif kanal → decrypt token ile request_contact istemi gönderir', async () => {
     const { handler, botApi } = build(activeChannel());
 
-    await handler.execute(
-      new RequestTelegramContactCommand('clinic-1', '555')
-    );
+    await handler.execute(new RequestTelegramContactCommand('clinic-1', '555'));
 
     expect(botApi.sendContactRequest).toHaveBeenCalledWith(
       'tok',
@@ -58,9 +56,7 @@ describe('RequestTelegramContactHandler', () => {
 
   it('kanal yok → no-op (istem gönderilmez)', async () => {
     const { handler, botApi } = build(null);
-    await handler.execute(
-      new RequestTelegramContactCommand('clinic-1', '555')
-    );
+    await handler.execute(new RequestTelegramContactCommand('clinic-1', '555'));
     expect(botApi.sendContactRequest).not.toHaveBeenCalled();
   });
 
@@ -68,9 +64,7 @@ describe('RequestTelegramContactHandler', () => {
     const channel = activeChannel();
     channel.revoke();
     const { handler, botApi } = build(channel);
-    await handler.execute(
-      new RequestTelegramContactCommand('clinic-1', '555')
-    );
+    await handler.execute(new RequestTelegramContactCommand('clinic-1', '555'));
     expect(botApi.sendContactRequest).not.toHaveBeenCalled();
   });
 

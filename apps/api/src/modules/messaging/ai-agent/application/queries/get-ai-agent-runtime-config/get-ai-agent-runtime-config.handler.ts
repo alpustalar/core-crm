@@ -9,13 +9,10 @@ import { GetAiAgentRuntimeConfigQuery } from './get-ai-agent-runtime-config.quer
 import { GetAiAgentRuntimeConfigResponse } from './get-ai-agent-runtime-config.response';
 
 @QueryHandler(GetAiAgentRuntimeConfigQuery)
-export class GetAiAgentRuntimeConfigHandler
-  implements
-    IQueryHandler<
-      GetAiAgentRuntimeConfigQuery,
-      GetAiAgentRuntimeConfigResponse
-    >
-{
+export class GetAiAgentRuntimeConfigHandler implements IQueryHandler<
+  GetAiAgentRuntimeConfigQuery,
+  GetAiAgentRuntimeConfigResponse
+> {
   constructor(
     @Inject(CLINIC_AI_AGENT_CONFIG_QUERY_REPOSITORY)
     private readonly configQueryRepo: IClinicAiAgentConfigQueryRepository,

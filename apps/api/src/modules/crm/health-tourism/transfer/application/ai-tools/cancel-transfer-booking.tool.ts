@@ -5,13 +5,10 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { CancelTransferBookingCommand } from '@modules/crm/health-tourism/transfer/application/commands/cancel-transfer-booking/cancel-transfer-booking.command';
 import { CancelTransferBookingDto } from '@shared/modules/health-tourism/dto/commands';
 

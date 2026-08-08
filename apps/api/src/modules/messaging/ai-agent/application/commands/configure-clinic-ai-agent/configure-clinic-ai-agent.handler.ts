@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY,
@@ -10,14 +10,15 @@ import { ClinicAiAgentConfig } from '@modules/messaging/ai-agent/domain/entities
 import { ConfigureClinicAiAgentCommand } from './configure-clinic-ai-agent.command';
 
 @CommandHandler(ConfigureClinicAiAgentCommand)
-export class ConfigureClinicAiAgentHandler
-  implements ICommandHandler<ConfigureClinicAiAgentCommand, string>
-{
+export class ConfigureClinicAiAgentHandler implements ICommandHandler<
+  ConfigureClinicAiAgentCommand,
+  string
+> {
   constructor(
     @Inject(CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY)
     private readonly configCommandRepo: IClinicAiAgentConfigCommandRepository,
     private readonly cipher: TokenCipherService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: ConfigureClinicAiAgentCommand): Promise<string> {

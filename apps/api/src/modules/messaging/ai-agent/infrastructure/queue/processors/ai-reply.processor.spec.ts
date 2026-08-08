@@ -11,6 +11,9 @@ import { SendMessageCommand } from '@modules/messaging/conversation/application/
 import { RequestConversationHandoffCommand } from '@modules/messaging/conversation/application/commands/request-conversation-handoff/request-conversation-handoff.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { AI_MEMORY_WINDOW_SIZE } from '@common/constants';
+import { AiChatMessage } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
+import { IAiMemoryCacheService } from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -26,6 +29,8 @@ interface BuildParams {
     apiKey: string | null;
   } | null;
   messages?: Message[];
+  /** Verilirse pencere SICAK sayılır ve DB okuması yapılmaz. */
+  cachedHistory?: AiChatMessage[];
   reply?: { text: string | null; handoff: boolean; toolsUsed: string[] };
 }
 
@@ -68,14 +73,24 @@ describe('AiReplyProcessor (AI otomatik yanıt worker)', () => {
       }),
     } as unknown as TSQueryBus;
 
+    // Varsayılan: pencere soğuk (read → null) → geçmiş DB'den yüklenip ısıtılır.
+    const aiMemoryCache = {
+      windowSize: AI_MEMORY_WINDOW_SIZE,
+      read: jest.fn().mockResolvedValue(params.cachedHistory ?? null),
+      warm: jest.fn().mockResolvedValue(undefined),
+      append: jest.fn().mockResolvedValue(undefined),
+      clear: jest.fn().mockResolvedValue(undefined),
+    } as unknown as IAiMemoryCacheService;
+
     const processor = new AiReplyProcessor(
       chatPort,
       conversationCommandRepo,
       messageQueryRepo,
+      aiMemoryCache,
       commandBus,
       queryBus
     );
-    return { processor, chatPort, commandBus };
+    return { processor, chatPort, commandBus, aiMemoryCache, messageQueryRepo };
   };
 
   const job = (data: AiReplyJobData): Job<AiReplyJobData> =>
@@ -210,5 +225,80 @@ describe('AiReplyProcessor (AI otomatik yanıt worker)', () => {
 
     await processor.process(job(data));
     expect(chatPort.generateReply).not.toHaveBeenCalled();
+  });
+  it("pencere SICAK: geçmiş Redis'ten okunur, mesaj tablosuna gidilmez", async () => {
+    const { processor, chatPort, messageQueryRepo, aiMemoryCache } = build({
+      conversation: openConversation(),
+      cachedHistory: [{ role: 'user', content: 'merhaba' }],
+    });
+
+    await processor.process(job(data));
+
+    expect(messageQueryRepo.findManyByConversation).not.toHaveBeenCalled();
+    expect(aiMemoryCache.warm).not.toHaveBeenCalled();
+    expect(chatPort.generateReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        history: [{ role: 'user', content: 'merhaba' }],
+      })
+    );
+  });
+
+  it("pencere SOĞUK: DB'den yüklenir ve cache ısıtılır", async () => {
+    const { processor, messageQueryRepo, aiMemoryCache } = build({
+      conversation: openConversation(),
+      messages: [inboundMsg()],
+    });
+
+    await processor.process(job(data));
+
+    expect(messageQueryRepo.findManyByConversation).toHaveBeenCalledTimes(1);
+    expect(aiMemoryCache.warm).toHaveBeenCalledWith({
+      conversationId: 'conv-1',
+      history: [{ role: 'user', content: 'merhaba' }],
+    });
+  });
+
+  it('pencere boyutu aşılırsa son N tur alınır ve ilk tur user olur', async () => {
+    // 2N tur: user/assistant dönüşümlü. Kırpma sonrası baştaki assistant atılmalı.
+    const long: AiChatMessage[] = Array.from(
+      { length: AI_MEMORY_WINDOW_SIZE * 2 },
+      (_, i) => ({
+        role: i % 2 === 0 ? 'user' : 'assistant',
+        content: `t${i}`,
+      })
+    );
+    const { processor, chatPort } = build({
+      conversation: openConversation(),
+      cachedHistory: long,
+    });
+
+    await processor.process(job(data));
+
+    const { history } = (chatPort.generateReply as jest.Mock).mock.calls[0][0];
+    expect(history).toHaveLength(AI_MEMORY_WINDOW_SIZE);
+    expect(history[0].role).toBe('user');
+    expect(history[history.length - 1].content).toBe(
+      `t${AI_MEMORY_WINDOW_SIZE * 2 - 1}`
+    );
+  });
+
+  it('cache ardışık aynı-rol tur taşırsa birleştirilir (Anthropic kuralı)', async () => {
+    const { processor, chatPort } = build({
+      conversation: openConversation(),
+      cachedHistory: [
+        { role: 'user', content: 'merhaba' },
+        { role: 'user', content: 'randevu almak istiyorum' },
+      ],
+    });
+
+    await processor.process(job(data));
+
+    expect(chatPort.generateReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        history: [
+          { role: 'user', content: 'merhaba\nrandevu almak istiyorum' },
+        ],
+      })
+    );
   });
 });

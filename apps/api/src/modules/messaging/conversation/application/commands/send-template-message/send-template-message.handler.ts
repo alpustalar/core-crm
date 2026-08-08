@@ -15,18 +15,25 @@ import {
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
+import {
+  AI_MEMORY_CACHE_SERVICE,
+  IAiMemoryCacheService,
+} from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 import { SendTemplateMessageCommand } from './send-template-message.command';
-import { MessageTypeSchema } from '@shared/generated-zod';
+import { MessageTypeSchema } from '@shared';
 
 @CommandHandler(SendTemplateMessageCommand)
-export class SendTemplateMessageHandler
-  implements ICommandHandler<SendTemplateMessageCommand, string>
-{
+export class SendTemplateMessageHandler implements ICommandHandler<
+  SendTemplateMessageCommand,
+  string
+> {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
+    @Inject(AI_MEMORY_CACHE_SERVICE)
+    private readonly aiMemoryCache: IAiMemoryCacheService,
     private readonly sendMessageProducer: SendMessageProducer
   ) {}
 
@@ -74,6 +81,14 @@ export class SendTemplateMessageHandler
       },
     });
     const saved = await this.messageCommandRepo.create(message);
+
+    // Cache, DB'den yeniden kurulacak pencerenin birebir aynısını taşımalı; aksi halde
+    // AI'ın gördüğü geçmiş cache'in sıcak/soğuk olmasına göre değişirdi. DB yolu
+    // `message.body`'yi (şablon adı) kullandığı için burada da o yazılır.
+    await this.aiMemoryCache.append({
+      conversationId: conversation.id,
+      message: { role: 'assistant', content: input.templateName },
+    });
 
     await this.sendMessageProducer.enqueueSend(saved.id);
 

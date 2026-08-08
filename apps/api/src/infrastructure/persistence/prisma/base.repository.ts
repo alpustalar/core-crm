@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { mapperArray } from '@common/utils';
 import { Paginated } from '@common/interfaces/paginated.type';
 
@@ -8,7 +8,10 @@ export abstract class BaseRepository {
   protected constructor(protected readonly prisma: PrismaService) {}
 
   protected get db() {
-    return txStorage.getStore()?.tx ?? this.prisma;
+    // ALS bağlamı veritabanı-bağımsızdır (`tx?: unknown`); Prisma'ya özgü daraltma
+    // burada, sürücüyü zaten bilen tek yerde yapılır. Bu handle'ı yalnız Prisma'nın
+    // `$transaction` geri çağrısı yazar, dolayısıyla tip güvenlidir.
+    return (txStorage.getStore()?.tx as Prisma.TransactionClient) ?? this.prisma;
   }
 
   /**

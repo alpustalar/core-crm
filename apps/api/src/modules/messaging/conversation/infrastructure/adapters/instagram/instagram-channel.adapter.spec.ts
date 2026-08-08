@@ -1,4 +1,4 @@
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { InstagramChannelAdapter } from './instagram-channel.adapter';
 import { SendMessageRequest } from '@modules/messaging/conversation/domain/ports/message-channel.port';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -28,7 +28,7 @@ describe('InstagramChannelAdapter', () => {
     return { adapter: new InstagramChannelAdapter(queryBus), fetchMock };
   };
 
-  it('TEXT: /{igUserId}/messages endpoint\'ine recipient+text POST atar', async () => {
+  it("TEXT: /{igUserId}/messages endpoint'ine recipient+text POST atar", async () => {
     const { adapter, fetchMock } = build(credentials);
 
     const result = await adapter.send(baseRequest);

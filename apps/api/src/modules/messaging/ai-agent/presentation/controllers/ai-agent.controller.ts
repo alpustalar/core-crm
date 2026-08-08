@@ -10,7 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { TokenAuthGuard } from '@src/auth';
 import { GetContext, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -19,7 +19,7 @@ import { ConfigureClinicAiAgentCommand } from '@modules/messaging/ai-agent/appli
 import { SetClinicAiAgentEnabledCommand } from '@modules/messaging/ai-agent/application/commands/set-clinic-ai-agent-enabled/set-clinic-ai-agent-enabled.command';
 import { GetClinicAiAgentConfigQuery } from '@modules/messaging/ai-agent/application/queries/get-clinic-ai-agent-config/get-clinic-ai-agent-config.query';
 
-@UseGuards(AuthGuard)
+@UseGuards(TokenAuthGuard)
 @Controller('clinics/:clinicId/ai-agent')
 export class AiAgentController {
   constructor(

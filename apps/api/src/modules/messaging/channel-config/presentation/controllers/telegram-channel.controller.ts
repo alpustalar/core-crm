@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { TokenAuthGuard } from '@src/auth';
 import { GetContext, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -18,7 +18,7 @@ import { ConnectClinicTelegramBotChannelCommand } from '@modules/messaging/chann
 import { DisconnectClinicTelegramChannelCommand } from '@modules/messaging/channel-config/application/commands/disconnect-clinic-telegram-channel/disconnect-clinic-telegram-channel.command';
 import { GetClinicTelegramChannelQuery } from '@modules/messaging/channel-config/application/queries/get-clinic-telegram-channel/get-clinic-telegram-channel.query';
 
-@UseGuards(AuthGuard)
+@UseGuards(TokenAuthGuard)
 @Controller('clinics/:clinicId/telegram-channel')
 export class TelegramChannelController {
   constructor(

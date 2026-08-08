@@ -5,14 +5,11 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
-import { createPatientActorContext } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.util';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
+import { createPatientActorContext } from '@modules/platform/ai-tools/application/ai-tool.util';
 import { PatientCancelAppointmentCommand } from '@modules/clinical/appointment/application/commands/patient-cancel-appointment/patient-cancel-appointment.command';
 import { CancelAppointment } from '@shared/modules/appointment/types/commands/cancel-appointment.type';
 

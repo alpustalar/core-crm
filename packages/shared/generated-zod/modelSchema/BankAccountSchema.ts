@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 import { BankAccountStatusSchema } from '../inputTypeSchemas/BankAccountStatusSchema'
 
@@ -17,7 +17,7 @@ export const BankAccountSchema = z.object({
   bankName: z.string(),
   iban: z.string().nullable(),
   accountNo: z.string().nullable(),
-  openingBalance: z.instanceof(Prisma.Decimal, { message: "Field 'openingBalance' must be a Decimal. Location: ['Models', 'BankAccount']"}),
+  openingBalance: decimalSchema("Field 'openingBalance' must be a Decimal. Location: ['Models', 'BankAccount']"),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

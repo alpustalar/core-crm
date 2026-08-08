@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
-import { ConversationStatus, MessageChannel } from '@prisma/client';
+import { ConversationStatus, MessageChannel } from '@shared';
 
 const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 

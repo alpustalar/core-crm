@@ -1,18 +1,23 @@
-import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { ActorContext } from '@common/interfaces';
-import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import {
+  ACTOR_CONTEXT_CACHE_TTL_SECONDS,
+  AUTH_CACHE_KEYS,
+  hashAuthToken,
+} from '@src/auth';
 
+// Anahtarlar ve TTL çekirdekten gelir — bu cache'i `apps/messaging` de okuyacak.
+// Burada yeniden tanımlansalardı iki süreç sessizce ayrışabilirdi (bkz. auth-cache.keys.ts).
 const KEYS = {
-  ACTOR_CACHE: (userId: string) => `auth:actor-cache:${userId}`,
-  TOKEN_BLOCKLIST: (tokenHash: string) => `auth:token-blocklist:${tokenHash}`,
+  ACTOR_CACHE: AUTH_CACHE_KEYS.actorContext,
+  TOKEN_BLOCKLIST: AUTH_CACHE_KEYS.tokenBlocklist,
 };
 
 @Injectable()
 export class AuthCacheService {
-  private readonly actorCacheTtl = DateTimeManager.toSeconds({ minutes: 5 });
+  private readonly actorCacheTtl = ACTOR_CONTEXT_CACHE_TTL_SECONDS;
 
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
@@ -72,6 +77,6 @@ export class AuthCacheService {
   }
 
   private hashToken(rawToken: string): string {
-    return createHash('sha256').update(rawToken).digest('hex');
+    return hashAuthToken(rawToken);
   }
 }

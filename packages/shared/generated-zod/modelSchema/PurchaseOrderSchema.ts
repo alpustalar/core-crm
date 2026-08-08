@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { PurchaseOrderStatusSchema } from '../inputTypeSchemas/PurchaseOrderStatusSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
@@ -17,9 +17,9 @@ export const PurchaseOrderSchema = z.object({
   purchaseRequestId: z.string().nullable(),
   orderDate: z.coerce.date(),
   expectedDate: z.coerce.date().nullable(),
-  netTotal: z.instanceof(Prisma.Decimal, { message: "Field 'netTotal' must be a Decimal. Location: ['Models', 'PurchaseOrder']"}),
-  vatTotal: z.instanceof(Prisma.Decimal, { message: "Field 'vatTotal' must be a Decimal. Location: ['Models', 'PurchaseOrder']"}),
-  grandTotal: z.instanceof(Prisma.Decimal, { message: "Field 'grandTotal' must be a Decimal. Location: ['Models', 'PurchaseOrder']"}),
+  netTotal: decimalSchema("Field 'netTotal' must be a Decimal. Location: ['Models', 'PurchaseOrder']"),
+  vatTotal: decimalSchema("Field 'vatTotal' must be a Decimal. Location: ['Models', 'PurchaseOrder']"),
+  grandTotal: decimalSchema("Field 'grandTotal' must be a Decimal. Location: ['Models', 'PurchaseOrder']"),
   note: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

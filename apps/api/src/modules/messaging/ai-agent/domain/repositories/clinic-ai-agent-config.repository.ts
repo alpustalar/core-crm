@@ -10,9 +10,7 @@ export const CLINIC_AI_AGENT_CONFIG_QUERY_REPOSITORY = Symbol(
 
 export interface IClinicAiAgentConfigCommandRepository {
   /** clinicId unique → get-or-create (upsert). */
-  upsertByClinicId(
-    entity: ClinicAiAgentConfig
-  ): Promise<ClinicAiAgentConfig>;
+  upsertByClinicId(entity: ClinicAiAgentConfig): Promise<ClinicAiAgentConfig>;
 
   /**
    * Ayar satırını yazma tarafı için yükler (yoksa varsayılandan üretilip yazılır).

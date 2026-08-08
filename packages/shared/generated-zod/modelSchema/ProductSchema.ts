@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { ProductUnitSchema } from '../inputTypeSchemas/ProductUnitSchema'
 import { ProductConditionSchema } from '../inputTypeSchemas/ProductConditionSchema'
 
@@ -21,9 +21,9 @@ export const ProductSchema = z.object({
   brand: z.string().nullable(),
   description: z.string().nullable(),
   imageUrl: z.string().nullable(),
-  vatRate: z.instanceof(Prisma.Decimal, { message: "Field 'vatRate' must be a Decimal. Location: ['Models', 'Product']"}),
-  criticalStockQty: z.instanceof(Prisma.Decimal, { message: "Field 'criticalStockQty' must be a Decimal. Location: ['Models', 'Product']"}),
-  reorderQty: z.instanceof(Prisma.Decimal, { message: "Field 'reorderQty' must be a Decimal. Location: ['Models', 'Product']"}),
+  vatRate: decimalSchema("Field 'vatRate' must be a Decimal. Location: ['Models', 'Product']"),
+  criticalStockQty: decimalSchema("Field 'criticalStockQty' must be a Decimal. Location: ['Models', 'Product']"),
+  reorderQty: decimalSchema("Field 'reorderQty' must be a Decimal. Location: ['Models', 'Product']"),
   isActive: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

@@ -1,10 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { GeminiChatAdapter } from './gemini-chat.adapter';
 import { AiReplyRequest } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
-import {
-  AiToolDefinition,
-  IAiToolExecutor,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
+import { AiToolDefinition, IAiToolExecutor } from '@common/ai-tools';
 
 describe('GeminiChatAdapter (REST function-calling döngüsü)', () => {
   const request = (over: Partial<AiReplyRequest> = {}): AiReplyRequest => ({
@@ -58,7 +55,9 @@ describe('GeminiChatAdapter (REST function-calling döngüsü)', () => {
     ok: true,
     json: async () => ({
       candidates: [
-        { content: { role: 'model', parts: [{ functionCall: { name, args } }] } },
+        {
+          content: { role: 'model', parts: [{ functionCall: { name, args } }] },
+        },
       ],
     }),
   });
@@ -105,7 +104,9 @@ describe('GeminiChatAdapter (REST function-calling döngüsü)', () => {
       execute,
     });
     fetchMock
-      .mockResolvedValueOnce(geminiFunctionCall('handoff_to_human', { reason: 'x' }))
+      .mockResolvedValueOnce(
+        geminiFunctionCall('handoff_to_human', { reason: 'x' })
+      )
       .mockResolvedValueOnce(geminiText('Sizi aktarıyorum.'));
 
     const result = await adapter.generateReply(request());
@@ -123,13 +124,17 @@ describe('GeminiChatAdapter (REST function-calling döngüsü)', () => {
     expect(decl.parameters).not.toHaveProperty('additionalProperties');
   });
 
-  it('parametresiz araç (boş properties) → declaration parameters\'sız yazılır', async () => {
+  it("parametresiz araç (boş properties) → declaration parameters'sız yazılır", async () => {
     const { adapter, fetchMock } = build({
       toolDefs: [
         {
           name: 'list_providers',
           description: 'doktorlar',
-          inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
         },
       ],
     });
@@ -161,6 +166,8 @@ describe('GeminiChatAdapter (REST function-calling döngüsü)', () => {
       json: async () => ({ error: { message: 'rate limit' } }),
     });
 
-    await expect(adapter.generateReply(request())).rejects.toThrow(/rate limit/);
+    await expect(adapter.generateReply(request())).rejects.toThrow(
+      /rate limit/
+    );
   });
 });

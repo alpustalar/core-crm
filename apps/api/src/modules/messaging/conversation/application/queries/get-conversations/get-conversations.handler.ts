@@ -11,9 +11,10 @@ import { GetConversationsQuery } from './get-conversations.query';
 import { GetConversationsResponse } from './get-conversations.response';
 
 @QueryHandler(GetConversationsQuery)
-export class GetConversationsHandler
-  implements IQueryHandler<GetConversationsQuery, GetConversationsResponse>
-{
+export class GetConversationsHandler implements IQueryHandler<
+  GetConversationsQuery,
+  GetConversationsResponse
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationRepo: IConversationQueryRepository

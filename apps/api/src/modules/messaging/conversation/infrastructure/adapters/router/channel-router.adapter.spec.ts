@@ -1,4 +1,4 @@
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { ChannelRouterAdapter } from './channel-router.adapter';
 import { MetaWhatsappChannelAdapter } from '@modules/messaging/conversation/infrastructure/adapters/meta/meta-whatsapp-channel.adapter';
 import { TelegramBotChannelAdapter } from '@modules/messaging/conversation/infrastructure/adapters/telegram/telegram-bot-channel.adapter';

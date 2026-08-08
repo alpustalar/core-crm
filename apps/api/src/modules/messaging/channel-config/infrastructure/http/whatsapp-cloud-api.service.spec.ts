@@ -42,7 +42,9 @@ describe('WhatsappCloudApiService.fetchMedia (proxy indirme)', () => {
   });
 
   it('media meta alınamazsa null döner (dosya indirilmez)', async () => {
-    const fetchMock = jest.fn().mockResolvedValueOnce({ ok: false, status: 404 });
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 404 });
     global.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await service.fetchMedia('mid-x', 'tok-abc');
@@ -92,7 +94,13 @@ describe('WhatsappCloudApiService.listMessageTemplates', () => {
       ok: true,
       json: async () => ({
         data: [
-          { name: 't1', language: 'tr', status: 'APPROVED', category: 'UTILITY', components: [] },
+          {
+            name: 't1',
+            language: 'tr',
+            status: 'APPROVED',
+            category: 'UTILITY',
+            components: [],
+          },
         ],
       }),
     });

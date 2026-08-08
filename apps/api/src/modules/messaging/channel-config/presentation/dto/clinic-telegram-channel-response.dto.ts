@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
-import { TelegramProviderType as TelegramProvider } from '@input-type-schemas/TelegramProviderSchema';
-import { TelegramChannelStatusType as TelegramChannelStatus } from '@input-type-schemas/TelegramChannelStatusSchema';
+import { TelegramProviderType as TelegramProvider } from '@shared';
+import { TelegramChannelStatusType as TelegramChannelStatus } from '@shared';
 
 const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 

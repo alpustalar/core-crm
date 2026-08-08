@@ -5,7 +5,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import {
   TransactionContext,
   txStorage,
-} from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+} from '@src/infrastructure/transaction/als-storage';
 import { OutboxRepository } from '@src/infrastructure/persistence/prisma/outbox/outbox.repository';
 
 @Injectable()

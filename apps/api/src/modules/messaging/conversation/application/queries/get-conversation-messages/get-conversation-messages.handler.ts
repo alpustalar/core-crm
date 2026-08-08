@@ -15,13 +15,10 @@ import { GetConversationMessagesQuery } from './get-conversation-messages.query'
 import { GetConversationMessagesResponse } from './get-conversation-messages.response';
 
 @QueryHandler(GetConversationMessagesQuery)
-export class GetConversationMessagesHandler
-  implements
-    IQueryHandler<
-      GetConversationMessagesQuery,
-      GetConversationMessagesResponse
-    >
-{
+export class GetConversationMessagesHandler implements IQueryHandler<
+  GetConversationMessagesQuery,
+  GetConversationMessagesResponse
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationQueryRepo: IConversationQueryRepository,

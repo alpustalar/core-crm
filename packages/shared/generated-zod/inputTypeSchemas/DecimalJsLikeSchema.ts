@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import type { Prisma } from '@prisma/client';
+import type { DecimalJsLike } from '../../common/decimal';
 
-export const DecimalJsLikeSchema: z.ZodType<Prisma.DecimalJsLike> = z.object({
+export const DecimalJsLikeSchema: z.ZodType<DecimalJsLike> = z.object({
   d: z.array(z.number()),
   e: z.number(),
   s: z.number(),

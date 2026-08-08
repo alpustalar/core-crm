@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PipelineController } from './controllers/pipeline.controller';
-import { PipelineCommandModule } from '@modules/crm/pipeline/application/commands/command.module';
-import { PipelineQueryModule } from '@modules/crm/pipeline/application/queries/query.module';
+import { PipelineApplicationModule } from '@modules/crm/pipeline/application/application.module';
 
 @Module({
-  imports: [PipelineCommandModule, PipelineQueryModule],
+  imports: [PipelineApplicationModule],
   controllers: [PipelineController],
 })
 export class PipelinePresentationModule {}

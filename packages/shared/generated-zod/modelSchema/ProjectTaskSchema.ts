@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { ProjectTaskStatusSchema } from '../inputTypeSchemas/ProjectTaskStatusSchema'
 import { ProjectTaskPrioritySchema } from '../inputTypeSchemas/ProjectTaskPrioritySchema'
 
@@ -30,8 +30,8 @@ export const ProjectTaskSchema = z.object({
    * Kanban kolonu içi sıra.
    */
   boardOrder: z.number().int(),
-  estimatedHours: z.instanceof(Prisma.Decimal, { message: "Field 'estimatedHours' must be a Decimal. Location: ['Models', 'ProjectTask']"}).nullable(),
-  actualHours: z.instanceof(Prisma.Decimal, { message: "Field 'actualHours' must be a Decimal. Location: ['Models', 'ProjectTask']"}).nullable(),
+  estimatedHours: decimalSchema("Field 'estimatedHours' must be a Decimal. Location: ['Models', 'ProjectTask']").nullable(),
+  actualHours: decimalSchema("Field 'actualHours' must be a Decimal. Location: ['Models', 'ProjectTask']").nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

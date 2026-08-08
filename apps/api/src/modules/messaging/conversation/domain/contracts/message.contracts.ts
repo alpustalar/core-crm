@@ -1,4 +1,4 @@
-import { MessageType } from '@prisma/client';
+import { MessageType } from '@shared';
 
 /** Zengin gelen mesaj tiplerinin yapısal gövdesi (Message.payload Json kolonuna yazılır). */
 export type InboundMessagePayload =

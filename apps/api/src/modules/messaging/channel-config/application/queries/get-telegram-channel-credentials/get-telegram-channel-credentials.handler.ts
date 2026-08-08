@@ -10,13 +10,10 @@ import { GetTelegramChannelCredentialsQuery } from './get-telegram-channel-crede
 import { GetTelegramChannelCredentialsResponse } from './get-telegram-channel-credentials.response';
 
 @QueryHandler(GetTelegramChannelCredentialsQuery)
-export class GetTelegramChannelCredentialsHandler
-  implements
-    IQueryHandler<
-      GetTelegramChannelCredentialsQuery,
-      GetTelegramChannelCredentialsResponse
-    >
-{
+export class GetTelegramChannelCredentialsHandler implements IQueryHandler<
+  GetTelegramChannelCredentialsQuery,
+  GetTelegramChannelCredentialsResponse
+> {
   constructor(
     @Inject(CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicTelegramChannelQueryRepository,

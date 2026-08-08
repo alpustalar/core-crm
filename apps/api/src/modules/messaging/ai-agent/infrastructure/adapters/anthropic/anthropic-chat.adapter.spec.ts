@@ -1,9 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { AnthropicChatAdapter } from './anthropic-chat.adapter';
-import {
-  AiReplyRequest,
-} from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
-import { IAiToolExecutor } from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
+import { AiReplyRequest } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
+import { IAiToolExecutor } from '@common/ai-tools';
 
 const mockCreate = jest.fn();
 

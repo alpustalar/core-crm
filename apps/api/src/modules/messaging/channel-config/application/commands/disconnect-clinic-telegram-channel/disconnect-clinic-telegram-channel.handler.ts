@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   ITelegramBotApi,
@@ -13,16 +13,17 @@ import {
 import { DisconnectClinicTelegramChannelCommand } from './disconnect-clinic-telegram-channel.command';
 
 @CommandHandler(DisconnectClinicTelegramChannelCommand)
-export class DisconnectClinicTelegramChannelHandler
-  implements ICommandHandler<DisconnectClinicTelegramChannelCommand, void>
-{
+export class DisconnectClinicTelegramChannelHandler implements ICommandHandler<
+  DisconnectClinicTelegramChannelCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_TELEGRAM_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicTelegramChannelCommandRepository,
     @Inject(TELEGRAM_BOT_API)
     private readonly botApi: ITelegramBotApi,
     private readonly cipher: TokenCipherService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(

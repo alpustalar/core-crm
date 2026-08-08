@@ -72,7 +72,9 @@ export class TelegramBotApiService implements ITelegramBotApi {
 
   async deleteWebhook(botToken: string): Promise<void> {
     try {
-      await this.call(botToken, 'deleteWebhook', { drop_pending_updates: false });
+      await this.call(botToken, 'deleteWebhook', {
+        drop_pending_updates: false,
+      });
     } catch (err) {
       // Disconnect best-effort: webhook silme hatası bağlantı kesmeyi bloklamamalı.
       this.logger.warn(
@@ -162,7 +164,8 @@ export class TelegramBotApiService implements ITelegramBotApi {
 
     if (!res.ok || !json.ok || json.result === undefined) {
       const reason =
-        json.description ?? `HTTP ${res.status}${json.error_code ? ` (${json.error_code})` : ''}`;
+        json.description ??
+        `HTTP ${res.status}${json.error_code ? ` (${json.error_code})` : ''}`;
       throw new Error(`Telegram ${method} hatası: ${reason}`);
     }
 

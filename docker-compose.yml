@@ -22,15 +22,39 @@ services:
   mongodb:
     image: mongo:7
     restart: unless-stopped
+    # Messaging çok-dokümanlı transaction kullanır; bu da replica set zorunlu kılar
+    # (tek düğüm yeterli). Standalone kalırsa messaging'in HER yazması hata verir.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    # Healthcheck aynı zamanda replica set'i başlatır: rs.status() hata verirse
+    # (henüz initiate edilmemişse) initiate eder. Servis ancak rs ayağa kalkınca
+    # "healthy" olur, böylece api ondan önce başlamaz.
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet --eval "try { rs.status().ok } catch (e) {
+          rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}).ok }"
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+
+  # Servisler arası mesajlaşma (apps/api ↔ apps/messaging).
+  nats:
+    image: nats:2-alpine
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8222/healthz"]
+      interval: 10s
       timeout: 5s
       retries: 10
+    command: ["--http_port", "8222"]
 
   redis:
     image: redis:7-alpine
@@ -60,7 +84,9 @@ services:
       - apps/api/.env
     environment:
       DATABASE_URL: postgresql://postgres:mysecretpassword@postgres:5432/core-crm?schema=public
-      MONGODB_URI: mongodb://mongodb:27017/core-crm-audit
+      MONGODB_URI: mongodb://mongodb:27017/core-crm-audit?replicaSet=rs0
+      # Messaging kendi veritabanı — Faz 3'te ayrı servise taşınacak.
+      MESSAGING_MONGODB_URI: mongodb://mongodb:27017/core-crm-messaging?replicaSet=rs0
       REDIS_URL: redis://redis:6379
       ALLOWED_ORIGINS: http://localhost:3000
       ORIGIN: http://localhost:8080

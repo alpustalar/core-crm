@@ -1,4 +1,4 @@
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 
 export const MESSAGE_CHANNEL_PORT = Symbol('MessageChannelPort');
 

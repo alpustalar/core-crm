@@ -1,6 +1,6 @@
 import { Pagination } from '@shared';
-import { ConversationStatusType } from '@input-type-schemas/ConversationStatusSchema';
-import { MessageChannelType } from '@input-type-schemas/MessageChannelSchema';
+import { ConversationStatusType } from '@shared';
+import { MessageChannelType } from '@shared';
 
 export interface StartConversationProps {
   id?: string;

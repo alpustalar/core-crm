@@ -21,10 +21,10 @@
 
       "@prisma/client": ["node_modules/@prisma/client"],
 
-      "@common/*": ["src/common/*"],
+      "@common/*": ["src/common/*", "../../packages/nest-kernel/src/common/*"],
       "@modules/*": ["src/modules/*"],
       "@firebase": ["src/firebase"],
-      "@src/*": ["src/*"],
+      "@src/*": ["src/*", "../../packages/nest-kernel/src/*"],
 
       "@shared/*": ["../../packages/shared/*"],
       "@shared": ["../../packages/shared/index"],

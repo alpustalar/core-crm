@@ -3,7 +3,7 @@ import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.enti
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { IClinicCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository.interface';

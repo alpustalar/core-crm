@@ -39,7 +39,7 @@ describe('AiChatRouterAdapter (provider yönlendirme)', () => {
     };
   };
 
-  it('GEMINI → Gemini adapter\'a yönlendirir', async () => {
+  it("GEMINI → Gemini adapter'a yönlendirir", async () => {
     const { router, anthropic, gemini } = build();
     const result = await router.generateReply(request('GEMINI'));
 
@@ -48,7 +48,7 @@ describe('AiChatRouterAdapter (provider yönlendirme)', () => {
     expect(result.text).toBe('G');
   });
 
-  it('ANTHROPIC → Anthropic adapter\'a yönlendirir', async () => {
+  it("ANTHROPIC → Anthropic adapter'a yönlendirir", async () => {
     const { router, anthropic, gemini } = build();
     const result = await router.generateReply(request('ANTHROPIC'));
 

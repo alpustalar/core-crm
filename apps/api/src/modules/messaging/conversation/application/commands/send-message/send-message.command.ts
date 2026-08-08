@@ -1,4 +1,4 @@
-import { MessageType } from '@prisma/client';
+import { MessageType } from '@shared';
 import { IGetContext } from '@common/decorators';
 import { OutboundMediaType } from '@modules/messaging/conversation/domain/contracts/message.contracts';
 

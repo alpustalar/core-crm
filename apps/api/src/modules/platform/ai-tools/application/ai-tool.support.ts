@@ -1,0 +1,176 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { IGetContext } from '@common/decorators';
+import { ActorContext } from '@common/interfaces';
+import { SYSTEM_ACTOR } from '@common/constants/system-actor.constant';
+import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
+import { TimeZoneType } from '@input-type-schemas/TimeZoneSchema';
+import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
+import { GetClinicHealthTourismConfigQuery } from '@modules/crm/health-tourism/config/application/queries/get-clinic-health-tourism-config/get-clinic-health-tourism-config.query';
+import { GetAppointmentDetailQuery } from '@modules/clinical/appointment/application/queries/get-appointment-detail/get-appointment-detail.query';
+import { GetHotelBookingsQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-bookings/get-hotel-bookings.query';
+import { GetTransferBookingsQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-bookings/get-transfer-bookings.query';
+import { RefundBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/refund-booking-payment/refund-booking-payment.command';
+import { InitiateBookingPaymentResponse } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.response';
+import {
+  GetHotelBookingsDto,
+  GetTransferBookingsDto,
+} from '@shared/modules/health-tourism/dto/queries';
+import { AiToolContext, AiToolResult } from '@common/ai-tools';
+import { Currency } from '@src/domain/value-objects/currency.vo';
+
+/**
+ * AI araçlarının paylaştığı bus-orkestrasyon yardımcıları (context kurulumu, klinik
+ * timezone/config çözümü, sahiplik doğrulama sorguları, iade tetikleme, ödeme linki
+ * render). Her araç yalnız ihtiyacı kadarını çağırır; tüm dağıtımlar CommandBus/QueryBus
+ * üzerinden yapılır (cross-module kural: yalnız bus).
+ */
+@Injectable()
+export class AiToolSupport {
+  private readonly logger = new Logger(AiToolSupport.name);
+
+  constructor(
+    private readonly commandBus: TSCommandBus,
+    private readonly queryBus: TSQueryBus
+  ) {}
+
+  /** Kontak bilgisinden klinik-kapsamlı sistem context'i kurar (yalnız bus dağıtımı için). */
+  buildClinicContext(context: AiToolContext): IGetContext {
+    const actor: ActorContext = {
+      ...SYSTEM_ACTOR,
+      clinicId: context.clinicId,
+      organizationId: context.organizationId,
+      managedClinics: [{ id: context.clinicId }],
+    };
+    return {
+      actor,
+      source: ExecutionSources.INTERNAL_CASCADE,
+      ip: '127.0.0.1',
+      userAgent: 'AI_AGENT',
+    };
+  }
+
+  /** Kliniğin IANA zaman dilimini bus üzerinden çözer (yerel saat → UTC çevirimi için). */
+  async getClinicTimezone(context: AiToolContext): Promise<TimeZoneType> {
+    const { data } = await this.queryBus.execute(
+      new GetClinicTimezoneQuery(context.clinicId)
+    );
+    return data;
+  }
+
+  /** Klinik sağlık-turizmi config'ini bus üzerinden çözer; yoksa null. */
+  async getHealthTourismConfig(context: AiToolContext) {
+    const ctx = this.buildClinicContext(context);
+    const { data } = await this.queryBus.execute(
+      new GetClinicHealthTourismConfigQuery(context.clinicId, ctx)
+    );
+    return data;
+  }
+
+  /**
+   * Randevunun yazışmadaki hastaya ait olduğunu doğrular. Misafir (patientId yok) veya
+   * başka hastaya ait randevularda null döner; çağıran işlemi reddeder.
+   */
+  async loadOwnedAppointment(appointmentId: string, context: AiToolContext) {
+    if (!context.patientId) return null;
+    const ctx = this.buildClinicContext(context);
+    try {
+      const { data: detail } = await this.queryBus.execute(
+        new GetAppointmentDetailQuery(appointmentId, ctx)
+      );
+      if (!detail || detail.patientId !== context.patientId) return null;
+      return detail;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Yazışmaya bağlı kişinin (patientId öncelikli, yoksa leadId) otel rezervasyonlarını çeker. */
+  async loadOwnedHotelBookings(context: AiToolContext) {
+    const ctx = this.buildClinicContext(context);
+    const dto: GetHotelBookingsDto = {
+      pagination: { page: 1, limit: 50 },
+      patientId: context.patientId ?? undefined,
+      leadId: context.patientId ? undefined : (context.leadId ?? undefined),
+    } as GetHotelBookingsDto;
+    const { data } = await this.queryBus.execute(
+      new GetHotelBookingsQuery(dto, ctx)
+    );
+    return { data };
+  }
+
+  /** Yazışmaya bağlı kişinin (patientId öncelikli, yoksa leadId) transfer rezervasyonları. */
+  async loadOwnedTransferBookings(context: AiToolContext) {
+    const ctx = this.buildClinicContext(context);
+    const dto: GetTransferBookingsDto = {
+      clinicId: context.clinicId,
+      pagination: { page: 1, limit: 50 },
+      patientId: context.patientId ?? undefined,
+      leadId: context.patientId ? undefined : (context.leadId ?? undefined),
+    } as GetTransferBookingsDto;
+    const { data } = await this.queryBus.execute(
+      new GetTransferBookingsQuery(dto, ctx)
+    );
+    return data;
+  }
+
+  /**
+   * İptal edilen rezervasyon için ödeme iadesini (varsa) tetikler. Ödeme kaydı yoksa (B7
+   * öncesi/ödemesiz rezervasyon) veya iade başarısızsa false döner — iptal mesajı yine de döner.
+   */
+  async refundForCancelledBooking(bookingId: string): Promise<boolean> {
+    try {
+      await this.commandBus.execute(
+        new RefundBookingPaymentCommand(bookingId, 'Rezervasyon iptal edildi.')
+      );
+      return true;
+    } catch (err) {
+      this.logger.warn(
+        `İptal sonrası iade tetiklenemedi (bookingId=${bookingId}): ${
+          err instanceof Error ? err.message : err
+        }`
+      );
+      return false;
+    }
+  }
+
+  /**
+   * İki ödeme linkini (iyzico TRY / Stripe EUR-USD) AI'a sunulacak biçimde döner. AI hastaya
+   * her iki linki de iletir: Türkiye'den ödeyecekse iyzico (TRY), yurt dışından ödeyecekse Stripe.
+   * Ödeme onaylandığında rezervasyon otomatik oluşur.
+   */
+  renderPaymentLinks(
+    payment: InitiateBookingPaymentResponse,
+    summary: string
+  ): AiToolResult {
+    const tryLink = payment.iyzico
+      ? {
+          url: payment.iyzico.url,
+          amount: payment.iyzico.amount,
+          currency: Currency.enum.TRY,
+          label: "Türkiye'den ödeme (iyzico)",
+        }
+      : null;
+    const fxLink = payment.stripe
+      ? {
+          url: payment.stripe.url,
+          amount: payment.stripe.amount,
+          currency: payment.stripe.currency,
+          label: 'Yurt dışından ödeme (kredi kartı / Stripe)',
+        }
+      : null;
+
+    return {
+      content: JSON.stringify({
+        paymentRequired: true,
+        summary,
+        tryLink,
+        fxLink,
+        message:
+          'Rezervasyonu kesinleştirmek için ödeme gerekli. TRY için (iyzico) linkini, EUR/USD için (Stripe) linkini kullanabilirsiniz.',
+        note: 'Ödemeniz onaylandığında rezervasyonunuz otomatik oluşturulacaktır.',
+      }),
+    };
+  }
+}

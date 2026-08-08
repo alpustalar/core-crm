@@ -3,7 +3,7 @@ import { DisconnectClinicWhatsappChannelHandler } from './disconnect-clinic-what
 import { DisconnectClinicWhatsappChannelCommand } from './disconnect-clinic-whatsapp-channel.command';
 import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/entities/clinic-whatsapp-channel.entity';
 import { IClinicWhatsappChannelCommandRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 
 describe('DisconnectClinicWhatsappChannelHandler', () => {
   const ctx = { actor: { userId: 'u1', organizationId: 'org-1' } } as never;
@@ -22,7 +22,7 @@ describe('DisconnectClinicWhatsappChannelHandler', () => {
 
     const txManager = {
       run: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
 
     const handler = new DisconnectClinicWhatsappChannelHandler(
       channelCommandRepo,

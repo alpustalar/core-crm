@@ -8,7 +8,7 @@ import { toWhatsappMediaRef } from '@modules/messaging/conversation/domain/media
 import { IConversationQueryRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { MessageType } from '@prisma/client';
+import { MessageType } from '@shared';
 
 describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
   const ctx = { actor: { userId: 'u1' } } as never;
@@ -61,7 +61,10 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
 
   it('medya mesajı: FetchWhatsappMediaQuery dispatch eder ve içeriği döner', async () => {
     const conv = conversation();
-    const fetched = { content: Buffer.from('jpegbytes'), mimeType: 'image/jpeg' };
+    const fetched = {
+      content: Buffer.from('jpegbytes'),
+      mimeType: 'image/jpeg',
+    };
     const { handler, queryBus } = build({
       message: mediaMessage(conv.id),
       conversation: conv,
@@ -87,12 +90,14 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
   it('mesaj bulunamazsa NotFoundException', async () => {
     const { handler } = build({ message: null });
     await expect(
-      handler.execute(new GetInboundMediaQuery({
-        clinicId: 'clinic-1',
-        conversationId: 'c-1',
-        messageId: 'm-x',
-        ctx,
-      }))
+      handler.execute(
+        new GetInboundMediaQuery({
+          clinicId: 'clinic-1',
+          conversationId: 'c-1',
+          messageId: 'm-x',
+          ctx,
+        })
+      )
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -103,12 +108,14 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
       conversation: conv,
     });
     await expect(
-      handler.execute(new GetInboundMediaQuery({
-        clinicId: 'clinic-OTHER',
-        conversationId: conv.id,
-        messageId: 'm-1',
-        ctx,
-      }))
+      handler.execute(
+        new GetInboundMediaQuery({
+          clinicId: 'clinic-OTHER',
+          conversationId: conv.id,
+          messageId: 'm-1',
+          ctx,
+        })
+      )
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

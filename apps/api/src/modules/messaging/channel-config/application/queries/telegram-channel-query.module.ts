@@ -3,7 +3,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { GetClinicTelegramChannelHandler } from './get-clinic-telegram-channel/get-clinic-telegram-channel.handler';
 import { GetTelegramChannelCredentialsHandler } from './get-telegram-channel-credentials/get-telegram-channel-credentials.handler';
 import { GetTelegramInboundRoutingHandler } from './get-telegram-inbound-routing/get-telegram-inbound-routing.handler';
-import { ClinicTelegramChannelRepositoryModule } from '@modules/messaging/channel-config/infrastructure/persistence/prisma/repositories/clinic-telegram-channel/clinic-telegram-channel.repository.module';
+import { ClinicTelegramChannelRepositoryModule } from '@modules/messaging/channel-config/infrastructure/persistence/mongo/repositories/clinic-telegram-channel/clinic-telegram-channel.repository.module';
 
 const QueryHandlers = [
   GetClinicTelegramChannelHandler,

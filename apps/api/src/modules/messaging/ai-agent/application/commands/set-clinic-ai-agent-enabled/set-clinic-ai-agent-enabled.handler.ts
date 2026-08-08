@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY,
   IClinicAiAgentConfigCommandRepository,
@@ -8,18 +8,21 @@ import {
 import { SetClinicAiAgentEnabledCommand } from './set-clinic-ai-agent-enabled.command';
 
 @CommandHandler(SetClinicAiAgentEnabledCommand)
-export class SetClinicAiAgentEnabledHandler
-  implements ICommandHandler<SetClinicAiAgentEnabledCommand, void>
-{
+export class SetClinicAiAgentEnabledHandler implements ICommandHandler<
+  SetClinicAiAgentEnabledCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY)
     private readonly configCommandRepo: IClinicAiAgentConfigCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: SetClinicAiAgentEnabledCommand): Promise<void> {
     const { payload } = command;
-    const config = await this.configCommandRepo.findByClinicId(payload.clinicId);
+    const config = await this.configCommandRepo.findByClinicId(
+      payload.clinicId
+    );
     if (!config) {
       throw new NotFoundException(
         'AI asistan config bulunamadı; önce yapılandırın.'

@@ -1,5 +1,5 @@
 import { IQuery } from '@nestjs/cqrs';
-import { MessageChannel } from '@prisma/client';
+import { MessageChannel } from '@shared';
 import { GetConversationContactStateResponse } from './get-conversation-contact-state.response';
 
 /**

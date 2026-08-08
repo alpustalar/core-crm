@@ -11,7 +11,7 @@ import {
   AI_TOOL_EXECUTOR,
   AiToolContext,
   IAiToolExecutor,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
+} from '@common/ai-tools';
 import {
   buildSystemPrompt,
   DEFAULT_MAX_TOKENS,

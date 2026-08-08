@@ -1,8 +1,4 @@
-import {
-  MessageChannel,
-  MessageDirection,
-  MessageStatus,
-} from '@prisma/client';
+import { MessageChannel, MessageDirection, MessageStatus } from '@shared';
 import { ReceiveInboundMessageHandler } from './receive-inbound-message.handler';
 import { ReceiveInboundMessageCommand } from './receive-inbound-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
@@ -10,10 +6,13 @@ import { Message } from '@modules/messaging/conversation/domain/entities/message
 import { MessageReceivedEvent } from '@modules/messaging/conversation/domain/events/message-received.event';
 import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { IContactResolverPort } from '@modules/messaging/conversation/domain/ports/contact-resolver.port';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
+import {
+  InboundLockResult,
+  IMessagingCacheService,
+} from '@modules/messaging/conversation/domain/interfaces/messaging-cache.service.interface';
+import { IAiMemoryCacheService } from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 
 describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () => {
   const baseInput = {
@@ -29,6 +28,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     existingConversation?: Conversation | null;
     existingMessage?: Message | null;
     patient?: { id: string } | null;
+    inboundLock?: InboundLockResult;
   }) => {
     let savedConversation: Conversation | undefined;
     let savedMessage: Message | undefined;
@@ -65,30 +65,45 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       }),
     } as unknown as IMessageCommandRepository;
 
-    const queryBus = {
-      execute: jest.fn().mockResolvedValue({ data: params.patient ?? null }),
-    } as unknown as TSQueryBus;
-
-    const commandBus = {
-      execute: jest.fn().mockResolvedValue('lead-generated-1'),
-    } as unknown as TSCommandBus;
+    // Kontak çözümü artık port'un ardında; kanal-farkındalı telefon seçimi ve
+    // best-effort hata yutma adapter'ın sorumluluğu (kendi spec'inde sınanır).
+    const contactResolver = {
+      findPatientId: jest.fn().mockResolvedValue(params.patient?.id ?? null),
+      registerAdReferralLead: jest.fn().mockResolvedValue('lead-generated-1'),
+    } as unknown as IContactResolverPort;
 
     const txManager = {
       outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
+
+    // Varsayılan: kilit alınır (mükerrer değil). Dedup senaryosu bunu override eder.
+    const messagingCache = {
+      inboundDedup: {
+        acquire: jest
+          .fn()
+          .mockResolvedValue(params.inboundLock ?? { status: 'acquired' }),
+        release: jest.fn().mockResolvedValue(undefined),
+      },
+    } as unknown as IMessagingCacheService;
+
+    const aiMemoryCache = {
+      append: jest.fn().mockResolvedValue(undefined),
+    } as unknown as IAiMemoryCacheService;
 
     const handler = new ReceiveInboundMessageHandler(
       conversationCommandRepo,
       messageCommandRepo,
-      queryBus,
-      commandBus,
+      messagingCache,
+      aiMemoryCache,
+      contactResolver,
       txManager
     );
 
     return {
       handler,
-      queryBus,
-      commandBus,
+      contactResolver,
+      messagingCache,
+      aiMemoryCache,
       messageCommandRepo,
       conversationCommandRepo,
       getSavedConversation: () => savedConversation,
@@ -132,23 +147,30 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     await t.handler.execute(new ReceiveInboundMessageCommand(baseInput));
 
     // Hasta eşlemesi her gelen mesajda çözülür (AI/CRM bağlamı için).
-    expect(t.queryBus.execute).toHaveBeenCalledTimes(1);
+    expect(t.contactResolver.findPatientId).toHaveBeenCalledTimes(1);
     expect(t.getSavedConversation()).toBe(existing);
   });
 
-  it('Telegram (chatId): matchPhone yoksa hasta sorgusu yapılmaz, misafir kalır', async () => {
-    const t = build({ existingConversation: null, patient: { id: 'p-1' } });
+  it("Telegram: kanal ve matchPhone port'a olduğu gibi geçirilir", async () => {
+    // Telefon seçimi (chatId mi matchPhone mu) adapter'ın kararı; handler yalnız
+    // ham kontak bilgisini eksiksiz aktarmakla yükümlü.
+    const t = build({ existingConversation: null, patient: null });
 
     await t.handler.execute(
       new ReceiveInboundMessageCommand({
         ...baseInput,
         channel: MessageChannel.TELEGRAM,
         contactPhone: '987654321', // chatId — telefon değil
+        matchPhone: '905550001122',
       })
     );
 
-    // chatId telefon olmadığı için eşleme denenmez (yanlış eşleşmeyi önler).
-    expect(t.queryBus.execute).not.toHaveBeenCalled();
+    expect(t.contactResolver.findPatientId).toHaveBeenCalledWith({
+      clinicId: baseInput.clinicId,
+      channel: MessageChannel.TELEGRAM,
+      contactPhone: '987654321',
+      matchPhone: '905550001122',
+    });
     expect(t.getSavedConversation()!.patientId).toBeNull();
   });
 
@@ -171,7 +193,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       })
     );
 
-    expect(t.queryBus.execute).toHaveBeenCalledTimes(1);
+    expect(t.contactResolver.findPatientId).toHaveBeenCalledTimes(1);
     expect(t.getSavedConversation()!.patientId).toBe('p-7');
   });
 
@@ -191,17 +213,19 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
     );
 
-    // CreateLeadCommand dispatch edildi (kanal WHATSAPP, medium AD, attribution dolu).
-    expect(t.commandBus.execute).toHaveBeenCalledTimes(1);
-    const cmd = (t.commandBus.execute as jest.Mock).mock
-      .calls[0][0] as CreateLeadCommand;
-    expect(cmd).toBeInstanceOf(CreateLeadCommand);
-    expect(cmd.payload.clinicId).toBe(baseInput.clinicId);
-    expect(cmd.payload.data.source).toBe('WHATSAPP');
-    expect(cmd.payload.data.medium).toBe('AD');
-    expect(cmd.payload.data.adId).toBe('ad-123');
-    expect(cmd.payload.data.ctwaClid).toBe('ctwa-xyz');
-    expect(cmd.payload.data.phone).toBe(baseInput.contactPhone);
+    // Attribution port'a eksiksiz geçirildi (lead sözleşmesine çevrim adapter'da).
+    expect(t.contactResolver.registerAdReferralLead).toHaveBeenCalledWith({
+      clinicId: baseInput.clinicId,
+      organizationId: baseInput.organizationId,
+      channel: MessageChannel.WHATSAPP,
+      contactPhone: baseInput.contactPhone,
+      contactName: baseInput.contactName,
+      referral: {
+        adId: 'ad-123',
+        ctwaClid: 'ctwa-xyz',
+        sourceUrl: 'https://fb.me/x',
+      },
+    });
 
     // Dönen leadId yazışmaya bağlandı.
     expect(t.getSavedConversation()!.leadId).toBe('lead-generated-1');
@@ -217,7 +241,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
     );
 
-    expect(t.commandBus.execute).not.toHaveBeenCalled();
+    expect(t.contactResolver.registerAdReferralLead).not.toHaveBeenCalled();
     expect(t.getSavedConversation()!.leadId).toBeNull();
   });
 
@@ -226,7 +250,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
 
     await t.handler.execute(new ReceiveInboundMessageCommand(baseInput));
 
-    expect(t.commandBus.execute).not.toHaveBeenCalled();
+    expect(t.contactResolver.registerAdReferralLead).not.toHaveBeenCalled();
   });
 
   it('reklam referral ama var olan yazışma: Lead üretilmez (yalnız yeni yazışmada)', async () => {
@@ -241,7 +265,7 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
       new ReceiveInboundMessageCommand({ ...baseInput, referral: adReferral })
     );
 
-    expect(t.commandBus.execute).not.toHaveBeenCalled();
+    expect(t.contactResolver.registerAdReferralLead).not.toHaveBeenCalled();
   });
 
   it('idempotency: aynı externalId tekrar gelirse yeni mesaj oluşturulmaz', async () => {
@@ -259,5 +283,70 @@ describe('ReceiveInboundMessageHandler (gelen mesaj çekirdeğe işlenir)', () =
     expect(id).toBe(already.id);
     expect(t.messageCommandRepo.update).not.toHaveBeenCalled();
     expect(t.conversationCommandRepo.update).not.toHaveBeenCalled();
+  });
+  it('eşzamanlı mükerrer teslim: dedup kilidi alınamazsa hiçbir yazma yapılmaz', async () => {
+    // Ön-kontrol (findByExternalId) yalnız SIRAYLA gelen tekrarı eler; paralel teslimde
+    // iki istek de kontrolü geçer. İkinci istek kilide takılıp çekilmelidir.
+    const t = build({ inboundLock: { status: 'duplicate' } });
+
+    const id = await t.handler.execute(
+      new ReceiveInboundMessageCommand(baseInput)
+    );
+
+    expect(id).toBe('');
+    expect(t.messageCommandRepo.create).not.toHaveBeenCalled();
+    expect(t.conversationCommandRepo.create).not.toHaveBeenCalled();
+    expect(t.aiMemoryCache.append).not.toHaveBeenCalled();
+  });
+
+  it('mükerrer teslimde kazanan commit etmişse gerçek mesaj id dönülür', async () => {
+    const winner = Message.createInbound({
+      conversationId: 'c-1',
+      body: 'merhaba',
+      externalId: baseInput.externalId,
+    });
+    const t = build({ inboundLock: { status: 'duplicate' } });
+    // İlk çağrı (ön-kontrol) boş, kilit sonrası ikinci çağrı kazananı bulur.
+    (t.messageCommandRepo.findByExternalId as jest.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(winner);
+
+    const id = await t.handler.execute(
+      new ReceiveInboundMessageCommand(baseInput)
+    );
+
+    expect(id).toBe(winner.id);
+  });
+
+  it('işleme patlarsa kilit bırakılır (Meta yeniden teslimi işlenebilsin)', async () => {
+    const t = build({});
+    (t.messageCommandRepo.create as jest.Mock).mockRejectedValueOnce(
+      new Error('db düştü')
+    );
+
+    await expect(
+      t.handler.execute(new ReceiveInboundMessageCommand(baseInput))
+    ).rejects.toThrow('db düştü');
+
+    expect(t.messagingCache.inboundDedup.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('başarılı işlemede kilit BIRAKILMAZ (TTL boyunca dedup işareti kalır)', async () => {
+    const t = build({});
+
+    await t.handler.execute(new ReceiveInboundMessageCommand(baseInput));
+
+    expect(t.messagingCache.inboundDedup.release).not.toHaveBeenCalled();
+  });
+
+  it('gelen metin AI bağlam penceresine user turu olarak eklenir', async () => {
+    const t = build({});
+
+    await t.handler.execute(new ReceiveInboundMessageCommand(baseInput));
+
+    expect(t.aiMemoryCache.append).toHaveBeenCalledWith({
+      conversationId: t.getSavedConversation()!.id,
+      message: { role: 'user', content: 'merhaba' },
+    });
   });
 });

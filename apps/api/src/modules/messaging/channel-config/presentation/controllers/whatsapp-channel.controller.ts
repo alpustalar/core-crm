@@ -10,7 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { TokenAuthGuard } from '@src/auth';
 import { GetContext, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -28,7 +28,7 @@ import { GetWhatsappTemplatesQuery } from '@modules/messaging/channel-config/app
 import { GetWhatsappChannelHealthQuery } from '@modules/messaging/channel-config/application/queries/get-whatsapp-channel-health/get-whatsapp-channel-health.query';
 import { GetWhatsappBusinessProfileQuery } from '@modules/messaging/channel-config/application/queries/get-whatsapp-business-profile/get-whatsapp-business-profile.query';
 
-@UseGuards(AuthGuard)
+@UseGuards(TokenAuthGuard)
 @Controller('clinics/:clinicId/whatsapp-channel')
 export class WhatsappChannelController {
   constructor(
@@ -103,9 +103,7 @@ export class WhatsappChannelController {
     @Param('clinicId', ParseUUIDPipe) clinicId: string,
     @GetContext() ctx: IGetContext
   ) {
-    return this.queryBus.execute(
-      new GetWhatsappTemplatesQuery(clinicId, ctx)
-    );
+    return this.queryBus.execute(new GetWhatsappTemplatesQuery(clinicId, ctx));
   }
 
   @Get('health')

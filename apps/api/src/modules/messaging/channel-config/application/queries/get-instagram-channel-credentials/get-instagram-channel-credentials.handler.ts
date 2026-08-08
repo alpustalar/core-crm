@@ -9,13 +9,10 @@ import { GetInstagramChannelCredentialsQuery } from './get-instagram-channel-cre
 import { GetInstagramChannelCredentialsResponse } from './get-instagram-channel-credentials.response';
 
 @QueryHandler(GetInstagramChannelCredentialsQuery)
-export class GetInstagramChannelCredentialsHandler
-  implements
-    IQueryHandler<
-      GetInstagramChannelCredentialsQuery,
-      GetInstagramChannelCredentialsResponse
-    >
-{
+export class GetInstagramChannelCredentialsHandler implements IQueryHandler<
+  GetInstagramChannelCredentialsQuery,
+  GetInstagramChannelCredentialsResponse
+> {
   constructor(
     @Inject(CLINIC_INSTAGRAM_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicInstagramChannelQueryRepository,

@@ -1,4 +1,4 @@
-import { MessageStatus, MessageType } from '@prisma/client';
+import { MessageStatus, MessageType } from '@shared';
 import { SendTemplateMessageHandler } from './send-template-message.handler';
 import { SendTemplateMessageCommand } from './send-template-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
@@ -6,6 +6,7 @@ import { Message } from '@modules/messaging/conversation/domain/entities/message
 import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
+import { IAiMemoryCacheService } from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 
 describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () => {
   const ctx = { actor: { userId: 'user-1' } } as never;
@@ -29,14 +30,20 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
       enqueueSend: jest.fn().mockResolvedValue(undefined),
     } as unknown as SendMessageProducer;
 
+    const aiMemoryCache = {
+      append: jest.fn().mockResolvedValue(undefined),
+    } as unknown as IAiMemoryCacheService;
+
     const handler = new SendTemplateMessageHandler(
       conversationCommandRepo,
       messageCommandRepo,
+      aiMemoryCache,
       sendMessageProducer
     );
     return {
       handler,
       sendMessageProducer,
+      aiMemoryCache,
       getSavedMessage: () => savedMessage,
     };
   };

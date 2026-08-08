@@ -14,9 +14,7 @@ import {
  */
 @Injectable()
 export class SendMessageProducer {
-  constructor(
-    @InjectQueue(QUEUES.MESSAGING) private readonly queue: Queue
-  ) {}
+  constructor(@InjectQueue(QUEUES.MESSAGING) private readonly queue: Queue) {}
 
   async enqueueSend(messageId: string): Promise<void> {
     await this.queue.add(

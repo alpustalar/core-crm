@@ -2,18 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { MessageChannelType } from '@input-type-schemas/MessageChannelSchema';
+import { MessageChannelType } from '@shared';
 import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
 import { CreateLeadDto } from '@shared/modules/lead/dto/commands';
 import { FindPatientByContactQuery } from '@modules/crm/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';

@@ -8,13 +8,10 @@ import { GetConversationContactStateQuery } from './get-conversation-contact-sta
 import { GetConversationContactStateResponse } from './get-conversation-contact-state.response';
 
 @QueryHandler(GetConversationContactStateQuery)
-export class GetConversationContactStateHandler
-  implements
-    IQueryHandler<
-      GetConversationContactStateQuery,
-      GetConversationContactStateResponse
-    >
-{
+export class GetConversationContactStateHandler implements IQueryHandler<
+  GetConversationContactStateQuery,
+  GetConversationContactStateResponse
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationQueryRepo: IConversationQueryRepository

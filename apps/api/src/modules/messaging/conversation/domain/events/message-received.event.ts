@@ -1,5 +1,5 @@
 import { BaseEvent } from '@common/interfaces/base-event.interface';
-import { MESSAGING_EVENTS } from '@src/domain/constants/events';
+import { MESSAGING_EVENTS } from '@src/domain/constants/events/messaging.constant';
 
 export interface MessageReceivedEventPayload {
   messageId: string;

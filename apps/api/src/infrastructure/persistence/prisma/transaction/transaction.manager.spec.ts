@@ -1,5 +1,5 @@
 import { TransactionManager } from './transaction.manager';
-import { txStorage } from './als-storage';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OutboxRepository } from '@src/infrastructure/persistence/prisma/outbox/outbox.repository';

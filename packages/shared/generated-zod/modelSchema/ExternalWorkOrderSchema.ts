@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { ExternalWorkOrderStatusSchema } from '../inputTypeSchemas/ExternalWorkOrderStatusSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
@@ -24,8 +24,8 @@ export const ExternalWorkOrderSchema = z.object({
   fittedAt: z.coerce.date().nullable(),
   cancelledAt: z.coerce.date().nullable(),
   cancelReason: z.string().nullable(),
-  agreedCost: z.instanceof(Prisma.Decimal, { message: "Field 'agreedCost' must be a Decimal. Location: ['Models', 'ExternalWorkOrder']"}).nullable(),
-  actualCost: z.instanceof(Prisma.Decimal, { message: "Field 'actualCost' must be a Decimal. Location: ['Models', 'ExternalWorkOrder']"}).nullable(),
+  agreedCost: decimalSchema("Field 'agreedCost' must be a Decimal. Location: ['Models', 'ExternalWorkOrder']").nullable(),
+  actualCost: decimalSchema("Field 'actualCost' must be a Decimal. Location: ['Models', 'ExternalWorkOrder']").nullable(),
   remakeOfId: z.string().nullable(),
   remakeReason: z.string().nullable(),
   overdueNotifiedAt: z.coerce.date().nullable(),

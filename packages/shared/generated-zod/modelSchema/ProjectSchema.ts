@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { ProjectStatusSchema } from '../inputTypeSchemas/ProjectStatusSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
@@ -25,7 +25,7 @@ export const ProjectSchema = z.object({
   /**
    * Onaylı bütçe. Null = bütçesiz proje (takip yalnız görev/aşama üzerinden).
    */
-  budget: z.instanceof(Prisma.Decimal, { message: "Field 'budget' must be a Decimal. Location: ['Models', 'Project']"}).nullable(),
+  budget: decimalSchema("Field 'budget' must be a Decimal. Location: ['Models', 'Project']").nullable(),
   completedAt: z.coerce.date().nullable(),
   cancelledAt: z.coerce.date().nullable(),
   cancelReason: z.string().nullable(),

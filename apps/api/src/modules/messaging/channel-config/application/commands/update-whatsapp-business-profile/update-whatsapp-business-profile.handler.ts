@@ -12,9 +12,10 @@ import {
 import { UpdateWhatsappBusinessProfileCommand } from './update-whatsapp-business-profile.command';
 
 @CommandHandler(UpdateWhatsappBusinessProfileCommand)
-export class UpdateWhatsappBusinessProfileHandler
-  implements ICommandHandler<UpdateWhatsappBusinessProfileCommand, void>
-{
+export class UpdateWhatsappBusinessProfileHandler implements ICommandHandler<
+  UpdateWhatsappBusinessProfileCommand,
+  void
+> {
   constructor(
     // Token dış API çağrısını besliyor → Command Context (bkz. repo arayüzü notu).
     @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)

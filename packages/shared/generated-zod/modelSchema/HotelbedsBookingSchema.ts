@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { HotelbedsBookingStatusSchema } from '../inputTypeSchemas/HotelbedsBookingStatusSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
@@ -21,12 +21,12 @@ export const HotelbedsBookingSchema = z.object({
   leadId: z.string().nullable(),
   checkIn: z.coerce.date(),
   checkOut: z.coerce.date(),
-  totalNet: z.instanceof(Prisma.Decimal, { message: "Field 'totalNet' must be a Decimal. Location: ['Models', 'HotelbedsBooking']"}),
+  totalNet: decimalSchema("Field 'totalNet' must be a Decimal. Location: ['Models', 'HotelbedsBooking']"),
   holderName: z.string(),
   holderSurname: z.string(),
   rooms: JsonValueSchema,
   remarks: z.string().nullable(),
-  serviceFee: z.instanceof(Prisma.Decimal, { message: "Field 'serviceFee' must be a Decimal. Location: ['Models', 'HotelbedsBooking']"}).nullable(),
+  serviceFee: decimalSchema("Field 'serviceFee' must be a Decimal. Location: ['Models', 'HotelbedsBooking']").nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

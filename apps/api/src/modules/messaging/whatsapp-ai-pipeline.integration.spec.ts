@@ -3,16 +3,16 @@ import { Test } from '@nestjs/testing';
 import { CqrsModule, QueryHandler } from '@nestjs/cqrs';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { getQueueToken } from '@nestjs/bullmq';
-import { MessageDirection, MessageStatus } from '@prisma/client';
+import { MessageDirection, MessageStatus } from '@shared';
 
-import { QUEUES } from '@common/constants';
+import { AI_MEMORY_WINDOW_SIZE, QUEUES } from '@common/constants';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   TransactionContext,
   txStorage,
-} from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+} from '@src/infrastructure/transaction/als-storage';
 
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
@@ -25,7 +25,20 @@ import {
   MESSAGE_QUERY_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { MESSAGE_CHANNEL_PORT } from '@modules/messaging/conversation/domain/ports/message-channel.port';
-import { AI_CHAT_PORT } from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
+import {
+  AI_CHAT_PORT,
+  AiChatMessage,
+} from '@modules/messaging/ai-agent/domain/ports/ai-chat.port';
+import {
+  IMessagingCacheService,
+  MESSAGING_CACHE_SERVICE,
+} from '@modules/messaging/conversation/domain/interfaces/messaging-cache.service.interface';
+import {
+  AI_MEMORY_CACHE_SERVICE,
+  IAiMemoryCacheService,
+} from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
+import { CONTACT_RESOLVER_PORT } from '@modules/messaging/conversation/domain/ports/contact-resolver.port';
+import { LocalContactResolverAdapter } from '@modules/messaging/conversation/infrastructure/adapters/contact/local-contact-resolver.adapter';
 
 import { ReceiveInboundMessageCommand } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.command';
 import { ReceiveInboundMessageHandler } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.handler';
@@ -49,7 +62,7 @@ import { FindPatientByContactQuery } from '@modules/crm/patient/application/quer
  * MessageDeliveryProcessor → kanal portu.
  *
  * DB/Redis olmadan çalışsın diye yalnız ŞU sınırlar taklit edilir:
- *  - TransactionManager: gerçek ALS (txStorage) + gerçek EventEmitter2 ile event yayar
+ *  - MongoTransactionManager: gerçek ALS (txStorage) + gerçek EventEmitter2 ile event yayar
  *    (prod'daki outbox→relay hop'u test içinde doğrudan emit'e indirgenir).
  *  - BullMQ kuyrukları: `.add()` ilgili processor'ı satır içi (inline) çalıştırır.
  *  - Anthropic (IAiChatPort) ve Meta (MessageChannelPort): mock'lanır.
@@ -89,7 +102,7 @@ class FakePatientHandler {
   }
 }
 
-/** Gerçek TransactionManager'ın DB'siz ikizi: ALS context açar, sonunda event'leri yayar. */
+/** Gerçek MongoTransactionManager'ın DB'siz ikizi: ALS context açar, sonunda event'leri yayar. */
 class InMemoryTransactionManager {
   constructor(private readonly emitter: EventEmitter2) {}
 
@@ -126,6 +139,75 @@ const inlineQueue = (processor: {
     await processor.process({ name, data, attemptsMade: 0 });
   },
 });
+
+/**
+ * Redis yerine süreç-içi messaging cache'i. Dedup kilidi gerçek semantiğiyle taklit
+ * edilir (kazanan tutar, başarısızlıkta bırakılır) — pipeline'ın mükerrer webhook
+ * davranışı böylece gerçekten sınanır.
+ */
+const inMemoryMessagingCache = (): IMessagingCacheService => {
+  const inboundLocks = new Map<string, string>();
+  const deliveryLocks = new Map<string, string>();
+
+  return {
+    inboundDedupTtlSeconds: 900,
+    deliveryLockTtlSeconds: 60,
+    inboundDedup: {
+      acquire: async ({ channel, externalId, holderId }) => {
+        const key = `${channel}:${externalId}`;
+        if (inboundLocks.has(key)) return { status: 'duplicate' };
+        inboundLocks.set(key, holderId);
+        return { status: 'acquired' };
+      },
+      release: async ({ channel, externalId, holderId }) => {
+        const key = `${channel}:${externalId}`;
+        if (inboundLocks.get(key) === holderId) inboundLocks.delete(key);
+      },
+    },
+    sendQuota: { consume: async () => ({ status: 'allowed' }) },
+    deliveryLock: {
+      acquire: async ({ conversationId, holderId }) => {
+        if (deliveryLocks.has(conversationId)) {
+          return { status: 'busy', retryAfterMs: 10 };
+        }
+        deliveryLocks.set(conversationId, holderId);
+        return { status: 'acquired' };
+      },
+      release: async ({ conversationId, holderId }) => {
+        if (deliveryLocks.get(conversationId) === holderId) {
+          deliveryLocks.delete(conversationId);
+        }
+      },
+    },
+  };
+};
+
+/**
+ * Redis yerine süreç-içi AI bağlam penceresi. `append`'in soğuk pencerede no-op olması
+ * (kısmi geçmiş üretmeme kuralı) Lua tarafıyla birebir aynı tutulur.
+ */
+const inMemoryAiMemoryCache = (): IAiMemoryCacheService => {
+  const windows = new Map<string, AiChatMessage[]>();
+
+  return {
+    windowSize: AI_MEMORY_WINDOW_SIZE,
+    read: async (conversationId) => windows.get(conversationId) ?? null,
+    warm: async ({ conversationId, history }) => {
+      windows.set(conversationId, history.slice(-AI_MEMORY_WINDOW_SIZE));
+    },
+    append: async ({ conversationId, message }) => {
+      const window = windows.get(conversationId);
+      if (!window) return;
+      windows.set(
+        conversationId,
+        [...window, message].slice(-AI_MEMORY_WINDOW_SIZE)
+      );
+    },
+    clear: async (conversationId) => {
+      windows.delete(conversationId);
+    },
+  };
+};
 
 /** Olay→kuyruk zinciri async olduğundan, beklenen etki gerçekleşene dek kısa aralıkla yoklar. */
 const waitFor = async (
@@ -219,6 +301,14 @@ const buildApp = async (): Promise<INestApplication> => {
       FakePatientHandler,
       // Sınır taklitleri
       { provide: AI_CHAT_PORT, useValue: chatPort },
+      // Kontak sınırı gerçek adapter'la kurulur: FakePatientHandler'a bus üzerinden gider.
+      LocalContactResolverAdapter,
+      {
+        provide: CONTACT_RESOLVER_PORT,
+        useExisting: LocalContactResolverAdapter,
+      },
+      { provide: MESSAGING_CACHE_SERVICE, useValue: inMemoryMessagingCache() },
+      { provide: AI_MEMORY_CACHE_SERVICE, useValue: inMemoryAiMemoryCache() },
       { provide: MESSAGE_CHANNEL_PORT, useValue: channelPort },
       { provide: MESSAGE_COMMAND_REPOSITORY, useValue: messageCommandRepo },
       { provide: MESSAGE_QUERY_REPOSITORY, useValue: messageQueryRepo },
@@ -231,7 +321,7 @@ const buildApp = async (): Promise<INestApplication> => {
         useValue: conversationQueryRepo,
       },
       {
-        provide: TransactionManager,
+        provide: MongoTransactionManager,
         useFactory: (emitter: EventEmitter2) =>
           new InMemoryTransactionManager(emitter),
         inject: [EventEmitter2],
@@ -363,5 +453,39 @@ describe('WhatsApp AI pipeline (inbound → AI → outbound) [integration]', () 
 
     expect(aiGenerate).toHaveBeenCalledTimes(1);
     expect(metaSend).not.toHaveBeenCalled();
+  });
+  it('mükerrer webhook teslimi: aynı wamid iki kez gelirse tek mesaj + tek AI yanıtı', async () => {
+    // Meta aynı webhook'u tekrar iletebiliyor. İkinci teslim dedup kilidine takılıp
+    // çekilmeli: ne ikinci bir INBOUND kayıt, ne de ikinci bir AI turu oluşmalı.
+    await commandBus.execute(inbound('Merhaba', 'wamid.DUP-1'));
+    await waitFor(() => metaSend.mock.calls.length > 0);
+
+    await commandBus.execute(inbound('Merhaba', 'wamid.DUP-1'));
+
+    const inboundMessages = [...messageStore.values()].filter(
+      (m) => m.direction === MessageDirection.INBOUND
+    );
+    expect(inboundMessages).toHaveLength(1);
+    expect(aiGenerate).toHaveBeenCalledTimes(1);
+    expect(metaSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('AI bağlam penceresi cache üzerinden büyür: ikinci tur DB okuması yapmadan geçmişi taşır', async () => {
+    await commandBus.execute(inbound('Merhaba', 'wamid.IN-A'));
+    await waitFor(() => metaSend.mock.calls.length > 0);
+
+    await commandBus.execute(inbound('Randevu almak istiyorum', 'wamid.IN-B'));
+    await waitFor(() => metaSend.mock.calls.length > 1);
+
+    // İkinci AI turu: ilk soru + AI yanıtı + yeni soru penceredeki sırayla görülmeli.
+    const secondTurn = aiGenerate.mock.calls[1][0];
+    expect(secondTurn.history).toEqual([
+      { role: 'user', content: 'Merhaba' },
+      {
+        role: 'assistant',
+        content: 'Merhaba! Size nasıl yardımcı olabilirim?',
+      },
+      { role: 'user', content: 'Randevu almak istiyorum' },
+    ]);
   });
 });

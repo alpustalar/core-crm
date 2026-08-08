@@ -1,4 +1,4 @@
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { InboundMessagePayload } from '@modules/messaging/conversation/domain/contracts/message.contracts';
 import { InboundReferral } from '@modules/messaging/conversation/domain/contracts/meta-webhook.contracts';
 

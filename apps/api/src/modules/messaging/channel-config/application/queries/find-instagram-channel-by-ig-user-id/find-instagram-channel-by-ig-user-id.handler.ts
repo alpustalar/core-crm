@@ -8,13 +8,10 @@ import { FindInstagramChannelByIgUserIdQuery } from './find-instagram-channel-by
 import { FindInstagramChannelByIgUserIdResponse } from './find-instagram-channel-by-ig-user-id.response';
 
 @QueryHandler(FindInstagramChannelByIgUserIdQuery)
-export class FindInstagramChannelByIgUserIdHandler
-  implements
-    IQueryHandler<
-      FindInstagramChannelByIgUserIdQuery,
-      FindInstagramChannelByIgUserIdResponse
-    >
-{
+export class FindInstagramChannelByIgUserIdHandler implements IQueryHandler<
+  FindInstagramChannelByIgUserIdQuery,
+  FindInstagramChannelByIgUserIdResponse
+> {
   constructor(
     @Inject(CLINIC_INSTAGRAM_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicInstagramChannelQueryRepository

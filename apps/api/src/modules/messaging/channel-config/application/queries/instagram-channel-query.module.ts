@@ -3,7 +3,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { GetClinicInstagramChannelHandler } from './get-clinic-instagram-channel/get-clinic-instagram-channel.handler';
 import { GetInstagramChannelCredentialsHandler } from './get-instagram-channel-credentials/get-instagram-channel-credentials.handler';
 import { FindInstagramChannelByIgUserIdHandler } from './find-instagram-channel-by-ig-user-id/find-instagram-channel-by-ig-user-id.handler';
-import { ClinicInstagramChannelRepositoryModule } from '@modules/messaging/channel-config/infrastructure/persistence/prisma/repositories/clinic-instagram-channel/clinic-instagram-channel.repository.module';
+import { ClinicInstagramChannelRepositoryModule } from '@modules/messaging/channel-config/infrastructure/persistence/mongo/repositories/clinic-instagram-channel/clinic-instagram-channel.repository.module';
 
 const QueryHandlers = [
   GetClinicInstagramChannelHandler,

@@ -8,7 +8,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetTelegramInboundRoutingQuery } from '@modules/messaging/channel-config/application/queries/get-telegram-inbound-routing/get-telegram-inbound-routing.query';

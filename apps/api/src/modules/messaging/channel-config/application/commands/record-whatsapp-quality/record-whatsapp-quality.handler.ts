@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY,
   IClinicWhatsappChannelCommandRepository,
@@ -8,13 +8,14 @@ import {
 import { RecordWhatsappQualityCommand } from './record-whatsapp-quality.command';
 
 @CommandHandler(RecordWhatsappQualityCommand)
-export class RecordWhatsappQualityHandler
-  implements ICommandHandler<RecordWhatsappQualityCommand, void>
-{
+export class RecordWhatsappQualityHandler implements ICommandHandler<
+  RecordWhatsappQualityCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicWhatsappChannelCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: RecordWhatsappQualityCommand): Promise<void> {

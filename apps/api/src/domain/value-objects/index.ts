@@ -19,6 +19,6 @@ export * from './stock-code.vo';
 export * from './tck-no.vo';
 export * from './timezone.vo';
 export * from './url.vo';
-export * from './uuid.vo';
+export * from '@src/domain/value-objects/uuid.vo';
 export * from './vat-rate.vo';
 export * from './vkn.vo';

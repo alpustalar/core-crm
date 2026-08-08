@@ -1,4 +1,4 @@
-import { MessageStatus } from '@prisma/client';
+import { MessageStatus } from '@shared';
 
 /**
  * Giden bir mesajın kanal teslim durumunu günceller (webhook status olayı). externalId

@@ -4,7 +4,7 @@ import { ClinicTelegramChannel } from '@modules/messaging/channel-config/domain/
 import { IClinicTelegramChannelCommandRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-telegram-channel.repository';
 import { ITelegramBotApi } from '@modules/messaging/channel-config/domain/interfaces/telegram-bot-api.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { ConfigService } from '@nestjs/config';
 
 describe('ConnectClinicTelegramBotChannelHandler (self-service Bot API)', () => {
@@ -42,7 +42,7 @@ describe('ConnectClinicTelegramBotChannelHandler (self-service Bot API)', () => 
 
     const txManager = {
       run: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
 
     const handler = new ConnectClinicTelegramBotChannelHandler(
       botApi,

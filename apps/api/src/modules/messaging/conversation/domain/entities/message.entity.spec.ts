@@ -1,4 +1,4 @@
-import { MessageDirection, MessageStatus } from '@prisma/client';
+import { MessageDirection, MessageStatus } from '@shared';
 import { Message } from './message.entity';
 import { MessageStatusChangedEvent } from '../events/message-status-changed.event';
 

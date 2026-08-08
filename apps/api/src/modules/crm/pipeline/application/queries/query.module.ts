@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 
 import { GetPipelinesHandler } from './get-pipelines/get-pipelines.handler';
 import { GetPipelineByIdHandler } from './get-pipeline-by-id/get-pipeline-by-id.handler';
@@ -15,7 +14,7 @@ export const PIPELINE_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, PipelineRepositoriesModule],
+  imports: [PipelineRepositoriesModule],
   providers: PIPELINE_QUERY_HANDLERS,
   exports: PIPELINE_QUERY_HANDLERS,
 })

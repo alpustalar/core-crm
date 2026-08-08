@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   IMessageCommandRepository,
   MESSAGE_COMMAND_REPOSITORY,
@@ -22,7 +22,7 @@ export class MarkMessageStatusHandler implements ICommandHandler<
     private readonly messageCommandRepo: IMessageCommandRepository,
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: MarkMessageStatusCommand): Promise<void> {

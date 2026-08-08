@@ -13,7 +13,14 @@ const APP_SECRET = 'test-app-secret';
 const VERIFY_TOKEN = 'test-verify-token';
 
 describe('WhatsappWebhookController (public webhook)', () => {
-  const build = (channel: { clinicId: string; organizationId: string; id: string; isActive: boolean } | null) => {
+  const build = (
+    channel: {
+      clinicId: string;
+      organizationId: string;
+      id: string;
+      isActive: boolean;
+    } | null
+  ) => {
     const configService = {
       getOrThrow: jest.fn((key: string) =>
         key === 'WHATSAPP_APP_SECRET' ? APP_SECRET : VERIFY_TOKEN
@@ -72,7 +79,7 @@ describe('WhatsappWebhookController (public webhook)', () => {
   };
 
   describe('GET verify', () => {
-    it('doğru token → challenge string\'ini birebir döner', () => {
+    it("doğru token → challenge string'ini birebir döner", () => {
       const { controller } = build(null);
       expect(controller.verify('subscribe', '12345', VERIFY_TOKEN)).toBe(
         '12345'
@@ -297,7 +304,10 @@ describe('WhatsappWebhookController (public webhook)', () => {
           changes: [
             {
               field: 'messages',
-              value: { metadata: { phone_number_id: 'pn-1' }, statuses: [status] },
+              value: {
+                metadata: { phone_number_id: 'pn-1' },
+                statuses: [status],
+              },
             },
           ],
         },

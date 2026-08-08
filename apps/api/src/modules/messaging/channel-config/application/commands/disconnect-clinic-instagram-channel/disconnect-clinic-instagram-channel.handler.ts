@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CLINIC_INSTAGRAM_CHANNEL_COMMAND_REPOSITORY,
   IClinicInstagramChannelCommandRepository,
@@ -8,13 +8,14 @@ import {
 import { DisconnectClinicInstagramChannelCommand } from './disconnect-clinic-instagram-channel.command';
 
 @CommandHandler(DisconnectClinicInstagramChannelCommand)
-export class DisconnectClinicInstagramChannelHandler
-  implements ICommandHandler<DisconnectClinicInstagramChannelCommand, void>
-{
+export class DisconnectClinicInstagramChannelHandler implements ICommandHandler<
+  DisconnectClinicInstagramChannelCommand,
+  void
+> {
   constructor(
     @Inject(CLINIC_INSTAGRAM_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicInstagramChannelCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(

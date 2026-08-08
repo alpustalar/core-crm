@@ -8,13 +8,10 @@ import { GetClinicInstagramChannelQuery } from './get-clinic-instagram-channel.q
 import { GetClinicInstagramChannelResponse } from './get-clinic-instagram-channel.response';
 
 @QueryHandler(GetClinicInstagramChannelQuery)
-export class GetClinicInstagramChannelHandler
-  implements
-    IQueryHandler<
-      GetClinicInstagramChannelQuery,
-      GetClinicInstagramChannelResponse
-    >
-{
+export class GetClinicInstagramChannelHandler implements IQueryHandler<
+  GetClinicInstagramChannelQuery,
+  GetClinicInstagramChannelResponse
+> {
   constructor(
     @Inject(CLINIC_INSTAGRAM_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicInstagramChannelQueryRepository

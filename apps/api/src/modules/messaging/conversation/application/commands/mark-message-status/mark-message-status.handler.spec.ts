@@ -1,10 +1,10 @@
-import { MessageStatus } from '@prisma/client';
+import { MessageStatus } from '@shared';
 import { MarkMessageStatusHandler } from './mark-message-status.handler';
 import { MarkMessageStatusCommand } from './mark-message-status.command';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 
 describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
   const build = (message: Message | null) => {
@@ -22,7 +22,7 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
 
     const txManager = {
       run: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
 
     const handler = new MarkMessageStatusHandler(
       messageCommandRepo,
@@ -61,9 +61,9 @@ describe('MarkMessageStatusHandler (webhook teslim durumu)', () => {
     );
 
     expect(txManager.run).toHaveBeenCalledTimes(1);
-    expect(
-      messageCommandRepo.findByExternalIdForUpdate
-    ).toHaveBeenCalledWith('wamid.out.1');
+    expect(messageCommandRepo.findByExternalIdForUpdate).toHaveBeenCalledWith(
+      'wamid.out.1'
+    );
   });
 
   it('SENT mesaj DELIVERED olur', async () => {

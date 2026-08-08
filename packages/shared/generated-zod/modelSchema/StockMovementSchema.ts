@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { StockMovementTypeSchema } from '../inputTypeSchemas/StockMovementTypeSchema'
 import { StockMovementDirectionSchema } from '../inputTypeSchemas/StockMovementDirectionSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
@@ -16,11 +16,11 @@ export const StockMovementSchema = z.object({
   productId: z.string(),
   clinicId: z.string(),
   batchId: z.string().nullable(),
-  quantity: z.instanceof(Prisma.Decimal, { message: "Field 'quantity' must be a Decimal. Location: ['Models', 'StockMovement']"}),
-  unitPrice: z.instanceof(Prisma.Decimal, { message: "Field 'unitPrice' must be a Decimal. Location: ['Models', 'StockMovement']"}).nullable(),
-  vatRate: z.instanceof(Prisma.Decimal, { message: "Field 'vatRate' must be a Decimal. Location: ['Models', 'StockMovement']"}).nullable(),
-  vatAmount: z.instanceof(Prisma.Decimal, { message: "Field 'vatAmount' must be a Decimal. Location: ['Models', 'StockMovement']"}).nullable(),
-  totalAmount: z.instanceof(Prisma.Decimal, { message: "Field 'totalAmount' must be a Decimal. Location: ['Models', 'StockMovement']"}).nullable(),
+  quantity: decimalSchema("Field 'quantity' must be a Decimal. Location: ['Models', 'StockMovement']"),
+  unitPrice: decimalSchema("Field 'unitPrice' must be a Decimal. Location: ['Models', 'StockMovement']").nullable(),
+  vatRate: decimalSchema("Field 'vatRate' must be a Decimal. Location: ['Models', 'StockMovement']").nullable(),
+  vatAmount: decimalSchema("Field 'vatAmount' must be a Decimal. Location: ['Models', 'StockMovement']").nullable(),
+  totalAmount: decimalSchema("Field 'totalAmount' must be a Decimal. Location: ['Models', 'StockMovement']").nullable(),
   financeLedgerId: z.string().nullable(),
   performedById: z.string().nullable(),
   notes: z.string().nullable(),

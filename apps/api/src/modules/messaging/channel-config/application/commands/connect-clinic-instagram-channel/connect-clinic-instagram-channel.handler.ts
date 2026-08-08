@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   IInstagramGraphApi,
@@ -15,9 +15,10 @@ import { ClinicInstagramChannel } from '@modules/messaging/channel-config/domain
 import { ConnectClinicInstagramChannelCommand } from './connect-clinic-instagram-channel.command';
 
 @CommandHandler(ConnectClinicInstagramChannelCommand)
-export class ConnectClinicInstagramChannelHandler
-  implements ICommandHandler<ConnectClinicInstagramChannelCommand, string>
-{
+export class ConnectClinicInstagramChannelHandler implements ICommandHandler<
+  ConnectClinicInstagramChannelCommand,
+  string
+> {
   private readonly logger = new Logger(
     ConnectClinicInstagramChannelHandler.name
   );
@@ -28,7 +29,7 @@ export class ConnectClinicInstagramChannelHandler
     @Inject(CLINIC_INSTAGRAM_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicInstagramChannelCommandRepository,
     private readonly cipher: TokenCipherService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(

@@ -8,9 +8,10 @@ import { GetWhatsappUsageQuery } from './get-whatsapp-usage.query';
 import { GetWhatsappUsageResponse } from './get-whatsapp-usage.response';
 
 @QueryHandler(GetWhatsappUsageQuery)
-export class GetWhatsappUsageHandler
-  implements IQueryHandler<GetWhatsappUsageQuery, GetWhatsappUsageResponse>
-{
+export class GetWhatsappUsageHandler implements IQueryHandler<
+  GetWhatsappUsageQuery,
+  GetWhatsappUsageResponse
+> {
   constructor(
     @Inject(MESSAGE_QUERY_REPOSITORY)
     private readonly messageQueryRepo: IMessageQueryRepository

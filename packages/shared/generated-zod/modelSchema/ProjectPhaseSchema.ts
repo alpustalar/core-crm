@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { ProjectPhaseStatusSchema } from '../inputTypeSchemas/ProjectPhaseStatusSchema'
 
 /////////////////////////////////////////
@@ -22,7 +22,7 @@ export const ProjectPhaseSchema = z.object({
   /**
    * Aşama bütçesi (opsiyonel). Toplamı proje bütçesini aşabilir — engellenmez, raporda gösterilir.
    */
-  budget: z.instanceof(Prisma.Decimal, { message: "Field 'budget' must be a Decimal. Location: ['Models', 'ProjectPhase']"}).nullable(),
+  budget: decimalSchema("Field 'budget' must be a Decimal. Location: ['Models', 'ProjectPhase']").nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
@@ -13,11 +13,11 @@ export const JournalLineSchema = z.object({
   entryId: z.string(),
   accountId: z.string(),
   partyId: z.string().nullable(),
-  debit: z.instanceof(Prisma.Decimal, { message: "Field 'debit' must be a Decimal. Location: ['Models', 'JournalLine']"}),
-  credit: z.instanceof(Prisma.Decimal, { message: "Field 'credit' must be a Decimal. Location: ['Models', 'JournalLine']"}),
-  originalDebit: z.instanceof(Prisma.Decimal, { message: "Field 'originalDebit' must be a Decimal. Location: ['Models', 'JournalLine']"}).nullable(),
-  originalCredit: z.instanceof(Prisma.Decimal, { message: "Field 'originalCredit' must be a Decimal. Location: ['Models', 'JournalLine']"}).nullable(),
-  fxRate: z.instanceof(Prisma.Decimal, { message: "Field 'fxRate' must be a Decimal. Location: ['Models', 'JournalLine']"}).nullable(),
+  debit: decimalSchema("Field 'debit' must be a Decimal. Location: ['Models', 'JournalLine']"),
+  credit: decimalSchema("Field 'credit' must be a Decimal. Location: ['Models', 'JournalLine']"),
+  originalDebit: decimalSchema("Field 'originalDebit' must be a Decimal. Location: ['Models', 'JournalLine']").nullable(),
+  originalCredit: decimalSchema("Field 'originalCredit' must be a Decimal. Location: ['Models', 'JournalLine']").nullable(),
+  fxRate: decimalSchema("Field 'fxRate' must be a Decimal. Location: ['Models', 'JournalLine']").nullable(),
   lineDesc: z.string().nullable(),
 })
 

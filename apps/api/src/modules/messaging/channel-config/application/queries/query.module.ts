@@ -7,7 +7,7 @@ import { FetchWhatsappMediaHandler } from './fetch-whatsapp-media/fetch-whatsapp
 import { GetWhatsappTemplatesHandler } from './get-whatsapp-templates/get-whatsapp-templates.handler';
 import { GetWhatsappChannelHealthHandler } from './get-whatsapp-channel-health/get-whatsapp-channel-health.handler';
 import { GetWhatsappBusinessProfileHandler } from './get-whatsapp-business-profile/get-whatsapp-business-profile.handler';
-import { ClinicWhatsappChannelRepositoryModule } from '@modules/messaging/channel-config/infrastructure/persistence/prisma/repositories/clinic-whatsapp-channel/clinic-whatsapp-channel.repository.module';
+import { ClinicWhatsappChannelRepositoryModule } from '@modules/messaging/channel-config/infrastructure/persistence/mongo/repositories/clinic-whatsapp-channel/clinic-whatsapp-channel.repository.module';
 import { WhatsappCloudApiModule } from '@modules/messaging/channel-config/infrastructure/http/whatsapp-cloud-api.module';
 
 const QueryHandlers = [

@@ -11,6 +11,7 @@ import { ThrottleMonitorGuard } from '@common/guards/throttle-monitor.guard';
 import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listener';
 import { UserModule } from '@modules/identity/user/user.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
+import { MongoPersistenceModule } from '@src/infrastructure/persistence/mongo/mongo-persistence.module';
 import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
 import { AuditLogModule } from '@modules/platform/audit-log/audit-log.module';
 import { AppointmentModule } from '@modules/clinical/appointment/appointment.module';
@@ -73,6 +74,7 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     RouterModule.register(APP_ROUTES),
     FirebaseModule,
     PrismaModule,
+    MongoPersistenceModule,
     AuthModule,
     TSCqrsModule,
     UserModule,

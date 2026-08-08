@@ -8,6 +8,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Module } from '@nestjs/common';
 import path from 'node:path';
+import { MESSAGING_MONGO_CONNECTION } from '@src/infrastructure/persistence/mongo/mongo.connection';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import path from 'node:path';
         // Databases & Infrastructures
         [ENV.DATABASE_URL]: Joi.string().required(),
         [ENV.MONGODB_URI]: Joi.string().required(),
+        [ENV.MESSAGING_MONGODB_URI]: Joi.string().required(),
         [ENV.REDIS_URL]: Joi.string().required(),
 
         // Observability / Logging
@@ -90,6 +92,17 @@ import path from 'node:path';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri: config.get(ENV.MONGODB_URI),
+        autoIndex: true,
+        serverSelectionTimeoutMS: 5000,
+      }),
+    }),
+    // Messaging'in kendi veritabanı — audit log'un varsayılan bağlantısından ayrıdır.
+    // Transaction gerektirdiği için URI replica set'e işaret etmelidir (?replicaSet=rs0).
+    MongooseModule.forRootAsync({
+      connectionName: MESSAGING_MONGO_CONNECTION,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: config.get(ENV.MESSAGING_MONGODB_URI),
         autoIndex: true,
         serverSelectionTimeoutMS: 5000,
       }),

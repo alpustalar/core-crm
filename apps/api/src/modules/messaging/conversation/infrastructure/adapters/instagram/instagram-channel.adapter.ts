@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetInstagramChannelCredentialsQuery } from '@modules/messaging/channel-config/application/queries/get-instagram-channel-credentials/get-instagram-channel-credentials.query';
 import { InstagramChannelCredentials } from '@modules/messaging/channel-config/application/queries/get-instagram-channel-credentials/get-instagram-channel-credentials.response';
@@ -75,7 +75,8 @@ export class InstagramChannelAdapter implements MessageChannelPort {
         if (!request.mediaUrl) {
           throw new Error('Instagram MEDIA gönderimi için mediaUrl zorunlu.');
         }
-        const type = ATTACHMENT_TYPE_MAP[request.mediaType ?? 'image'] ?? 'image';
+        const type =
+          ATTACHMENT_TYPE_MAP[request.mediaType ?? 'image'] ?? 'image';
         return {
           attachment: {
             type,

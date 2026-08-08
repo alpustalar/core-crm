@@ -12,7 +12,7 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { TokenAuthGuard } from '@src/auth';
 import { GetContext, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -36,7 +36,7 @@ import { MarkConversationReadCommand } from '@modules/messaging/conversation/app
 import { CloseConversationCommand } from '@modules/messaging/conversation/application/commands/close-conversation/close-conversation.command';
 import { AssignConversationCommand } from '@modules/messaging/conversation/application/commands/assign-conversation/assign-conversation.command';
 
-@UseGuards(AuthGuard)
+@UseGuards(TokenAuthGuard)
 @Controller()
 export class ConversationController {
   constructor(

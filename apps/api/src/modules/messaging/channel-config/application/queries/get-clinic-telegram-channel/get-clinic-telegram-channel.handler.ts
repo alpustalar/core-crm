@@ -9,13 +9,10 @@ import { GetClinicTelegramChannelQuery } from './get-clinic-telegram-channel.que
 import { GetClinicTelegramChannelResponse } from './get-clinic-telegram-channel.response';
 
 @QueryHandler(GetClinicTelegramChannelQuery)
-export class GetClinicTelegramChannelHandler
-  implements
-    IQueryHandler<
-      GetClinicTelegramChannelQuery,
-      GetClinicTelegramChannelResponse
-    >
-{
+export class GetClinicTelegramChannelHandler implements IQueryHandler<
+  GetClinicTelegramChannelQuery,
+  GetClinicTelegramChannelResponse
+> {
   constructor(
     @Inject(CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicTelegramChannelQueryRepository

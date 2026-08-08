@@ -1,4 +1,4 @@
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { StubMessageChannelAdapter } from './stub-message-channel.adapter';
 import {
   MessageChannelPort,

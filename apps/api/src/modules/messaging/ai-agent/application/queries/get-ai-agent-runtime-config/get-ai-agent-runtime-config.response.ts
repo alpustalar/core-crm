@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { AiProviderType } from '@input-type-schemas/AiProviderSchema';
+import { AiProviderType } from '@shared';
 
 /**
  * AI yanıt akışı için çözülmüş (decrypted) runtime config. SADECE internal

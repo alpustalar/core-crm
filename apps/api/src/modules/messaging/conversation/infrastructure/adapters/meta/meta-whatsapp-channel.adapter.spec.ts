@@ -1,4 +1,4 @@
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { MetaWhatsappChannelAdapter } from './meta-whatsapp-channel.adapter';
 import { SendMessageRequest } from '@modules/messaging/conversation/domain/ports/message-channel.port';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';

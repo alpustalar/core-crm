@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { randomInt } from 'crypto';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   IWhatsappCloudApi,
@@ -16,9 +16,10 @@ import { ConnectClinicWhatsappChannelCommand } from './connect-clinic-whatsapp-c
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(ConnectClinicWhatsappChannelCommand)
-export class ConnectClinicWhatsappChannelHandler
-  implements ICommandHandler<ConnectClinicWhatsappChannelCommand, string>
-{
+export class ConnectClinicWhatsappChannelHandler implements ICommandHandler<
+  ConnectClinicWhatsappChannelCommand,
+  string
+> {
   private readonly logger = new Logger(
     ConnectClinicWhatsappChannelHandler.name
   );
@@ -29,7 +30,7 @@ export class ConnectClinicWhatsappChannelHandler
     @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicWhatsappChannelCommandRepository,
     private readonly cipher: TokenCipherService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: ConnectClinicWhatsappChannelCommand): Promise<string> {

@@ -13,10 +13,10 @@ import { GetWhatsappTemplatesQuery } from './get-whatsapp-templates.query';
 import { GetWhatsappTemplatesResponse } from './get-whatsapp-templates.response';
 
 @QueryHandler(GetWhatsappTemplatesQuery)
-export class GetWhatsappTemplatesHandler
-  implements
-    IQueryHandler<GetWhatsappTemplatesQuery, GetWhatsappTemplatesResponse>
-{
+export class GetWhatsappTemplatesHandler implements IQueryHandler<
+  GetWhatsappTemplatesQuery,
+  GetWhatsappTemplatesResponse
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,

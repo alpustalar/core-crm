@@ -1,14 +1,19 @@
 import { Job } from 'bullmq';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
-import { MessageDirection, MessageType } from '@prisma/client';
+import { MessageDirection, MessageType } from '@shared';
 import { PaginationSchema } from '@shared';
 import {
+  AI_MEMORY_FETCH_LIMIT,
   MESSAGING_AI_JOBS,
   MESSAGING_AI_RATE_DURATION_MS,
   MESSAGING_AI_RATE_MAX,
   QUEUES,
 } from '@common/constants';
+import {
+  AI_MEMORY_CACHE_SERVICE,
+  IAiMemoryCacheService,
+} from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
@@ -30,9 +35,6 @@ import { Message as IMessage } from '@shared';
 import { SendMessageCommand } from '@modules/messaging/conversation/application/commands/send-message/send-message.command';
 import { RequestConversationHandoffCommand } from '@modules/messaging/conversation/application/commands/request-conversation-handoff/request-conversation-handoff.command';
 import { AiReplyJobData } from '../producers/ai-reply.producer';
-
-/** AI bağlamına alınacak son mesaj sayısı (token maliyeti için sınırlı). */
-const AI_HISTORY_LIMIT = 20;
 
 /**
  * Gelen mesaja AI otomatik yanıt işleyicisi. Guard'lardan geçen (etkin config, OPEN +
@@ -59,6 +61,8 @@ export class AiReplyProcessor extends WorkerHost {
     private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
     private readonly messageQueryRepo: IMessageQueryRepository,
+    @Inject(AI_MEMORY_CACHE_SERVICE)
+    private readonly aiMemoryCache: IAiMemoryCacheService,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
   ) {
@@ -100,16 +104,7 @@ export class AiReplyProcessor extends WorkerHost {
       return;
     }
 
-    const pagination = PaginationSchema.parse({
-      page: 1,
-      limit: AI_HISTORY_LIMIT,
-    });
-    const { items } = await this.messageQueryRepo.findManyByConversation(
-      conversationId,
-      pagination
-    );
-    // findMany createdAt desc döner → kronolojik (eski→yeni) için ters çevir.
-    const history = this.buildHistory([...items].reverse());
+    const history = await this.resolveHistory(conversationId);
     if (history.length === 0) return;
 
     const result = await this.chatPort.generateReply({
@@ -157,12 +152,38 @@ export class AiReplyProcessor extends WorkerHost {
   }
 
   /**
-   * Mesajları geçerli bir Anthropic sohbet dizisine çevirir: yalnız metinli mesajlar,
-   * INBOUND→user / OUTBOUND→assistant; baştaki assistant mesajları atılır (ilk mesaj
-   * user olmalı) ve ardışık aynı-rol mesajlar birleştirilir.
+   * Bağlam penceresini önce Redis'ten okur; pencere soğuksa (hiç ısıtılmamış ya da
+   * TTL'i dolmuş) mesaj tablosundan yükleyip ısıtır. Sıcak yazışmalarda her AI turu
+   * tek bir Redis okumasına iner.
    */
-  private buildHistory(
-    messages: IMessage[]): AiChatMessage[] {
+  private async resolveHistory(
+    conversationId: string
+  ): Promise<AiChatMessage[]> {
+    const cached = await this.aiMemoryCache.read(conversationId);
+    if (cached) return this.normalizeWindow(cached);
+
+    const pagination = PaginationSchema.parse({
+      page: 1,
+      limit: AI_MEMORY_FETCH_LIMIT,
+    });
+    const { items } = await this.messageQueryRepo.findManyByConversation(
+      conversationId,
+      pagination
+    );
+    // findMany createdAt desc döner → kronolojik (eski→yeni) için ters çevir.
+    const history = this.normalizeWindow(
+      this.buildHistory([...items].reverse())
+    );
+
+    await this.aiMemoryCache.warm({ conversationId, history });
+    return history;
+  }
+
+  /**
+   * Mesajları sohbet turlarına çevirir: yalnız metinli mesajlar, INBOUND→user /
+   * OUTBOUND→assistant. Pencere kırpma ve rol düzeltmesi `normalizeWindow`'a aittir.
+   */
+  private buildHistory(messages: IMessage[]): AiChatMessage[] {
     const mapped: AiChatMessage[] = [];
     for (const m of messages) {
       const body = m.body?.trim();
@@ -171,22 +192,31 @@ export class AiReplyProcessor extends WorkerHost {
         m.direction === MessageDirection.INBOUND ? 'user' : 'assistant';
       mapped.push({ role, content: body });
     }
+    return mapped;
+  }
 
-    // İlk mesaj user olmalı (Anthropic kuralı).
-    while (mapped.length > 0 && mapped[0].role !== 'user') {
-      mapped.shift();
-    }
-
-    // Ardışık aynı-rol mesajları birleştir.
-    const normalized: AiChatMessage[] = [];
-    for (const msg of mapped) {
-      const last = normalized[normalized.length - 1];
+  /**
+   * Modele beslenebilir hale getirir: ardışık aynı-rol turlar birleştirilir, pencere
+   * boyutuna kırpılır ve baştaki assistant turları atılır (ilk tur user olmalı).
+   * Cache'ten gelen pencereye de uygulanır — `append` ardışık aynı-rol tur üretebilir.
+   */
+  private normalizeWindow(messages: AiChatMessage[]): AiChatMessage[] {
+    const merged: AiChatMessage[] = [];
+    for (const msg of messages) {
+      const last = merged[merged.length - 1];
       if (last && last.role === msg.role) {
         last.content = `${last.content}\n${msg.content}`;
       } else {
-        normalized.push({ ...msg });
+        merged.push({ ...msg });
       }
     }
-    return normalized;
+
+    const windowed = merged.slice(-this.aiMemoryCache.windowSize);
+
+    // İlk mesaj user olmalı (Anthropic kuralı).
+    while (windowed.length > 0 && windowed[0].role !== 'user') {
+      windowed.shift();
+    }
+    return windowed;
   }
 }

@@ -15,9 +15,10 @@ import { GetInboundMediaQuery } from './get-inbound-media.query';
 import { GetInboundMediaResponse } from './get-inbound-media.response';
 
 @QueryHandler(GetInboundMediaQuery)
-export class GetInboundMediaHandler
-  implements IQueryHandler<GetInboundMediaQuery, GetInboundMediaResponse>
-{
+export class GetInboundMediaHandler implements IQueryHandler<
+  GetInboundMediaQuery,
+  GetInboundMediaResponse
+> {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
     private readonly conversationQueryRepo: IConversationQueryRepository,

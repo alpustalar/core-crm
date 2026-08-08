@@ -65,7 +65,9 @@ export class ProviderShiftCommandRepository
 
     // ALS'de aktif transaction varsa onu kullan (iç içe tx açma); yoksa
     // delete + create'i atomik tutmak için yeni bir $transaction aç.
-    const activeTx = txStorage.getStore()?.tx;
+    // ALS bağlamı veritabanı-bağımsız (`tx?: unknown`); daraltma Prisma'yı bilen
+    // bu tarafta yapılır — handle'ı yalnız Prisma'nın `$transaction`'ı yazar.
+    const activeTx = txStorage.getStore()?.tx as Prisma.TransactionClient | undefined;
     if (activeTx) {
       await replace(activeTx);
     } else {

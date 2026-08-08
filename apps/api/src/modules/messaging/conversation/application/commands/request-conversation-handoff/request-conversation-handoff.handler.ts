@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
   IConversationCommandRepository,
@@ -15,7 +15,7 @@ export class RequestConversationHandoffHandler implements ICommandHandler<
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: RequestConversationHandoffCommand): Promise<void> {

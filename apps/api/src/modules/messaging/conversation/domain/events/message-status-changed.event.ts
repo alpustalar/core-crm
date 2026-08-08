@@ -1,6 +1,6 @@
-import { MessageStatus } from '@prisma/client';
+import { MessageStatus } from '@shared';
 import { BaseEvent } from '@common/interfaces/base-event.interface';
-import { MESSAGING_EVENTS } from '@src/domain/constants/events';
+import { MESSAGING_EVENTS } from '@src/domain/constants/events/messaging.constant';
 
 export interface MessageStatusChangedEventPayload {
   messageId: string;

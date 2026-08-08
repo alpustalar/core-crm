@@ -16,19 +16,26 @@ import {
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
+import {
+  AI_MEMORY_CACHE_SERVICE,
+  IAiMemoryCacheService,
+} from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 import { SendMessageCommand } from './send-message.command';
-import { MessageTypeSchema } from '@shared/generated-zod';
-import { MessageChannel } from '@prisma/client';
+import { MessageTypeSchema } from '@shared';
+import { MessageChannel } from '@shared';
 
 @CommandHandler(SendMessageCommand)
-export class SendMessageHandler
-  implements ICommandHandler<SendMessageCommand, string>
-{
+export class SendMessageHandler implements ICommandHandler<
+  SendMessageCommand,
+  string
+> {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
+    @Inject(AI_MEMORY_CACHE_SERVICE)
+    private readonly aiMemoryCache: IAiMemoryCacheService,
     private readonly sendMessageProducer: SendMessageProducer
   ) {}
 
@@ -72,6 +79,16 @@ export class SendMessageHandler
       sentByUserId: ctx.actor.userId,
     });
     const saved = await this.messageCommandRepo.create(message);
+
+    // Giden metin AI bağlam penceresine de yazılır — personelin araya girdiği mesajı
+    // AI bir sonraki turda görsün (aksi halde cache DB'den sapardı).
+    const body = input.body?.trim();
+    if (body) {
+      await this.aiMemoryCache.append({
+        conversationId: conversation.id,
+        message: { role: 'assistant', content: body },
+      });
+    }
 
     await this.sendMessageProducer.enqueueSend(saved.id);
 

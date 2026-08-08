@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { EmploymentTypeSchema } from '../inputTypeSchemas/EmploymentTypeSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
@@ -17,7 +17,7 @@ export const EmployeeContractSchema = z.object({
   employeeId: z.string(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().nullable(),
-  grossSalary: z.instanceof(Prisma.Decimal, { message: "Field 'grossSalary' must be a Decimal. Location: ['Models', 'EmployeeContract']"}),
+  grossSalary: decimalSchema("Field 'grossSalary' must be a Decimal. Location: ['Models', 'EmployeeContract']"),
   isActive: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY,
@@ -10,14 +10,15 @@ import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/
 import { RegisterClinicWhatsappChannelCommand } from './register-clinic-whatsapp-channel.command';
 
 @CommandHandler(RegisterClinicWhatsappChannelCommand)
-export class RegisterClinicWhatsappChannelHandler
-  implements ICommandHandler<RegisterClinicWhatsappChannelCommand, string>
-{
+export class RegisterClinicWhatsappChannelHandler implements ICommandHandler<
+  RegisterClinicWhatsappChannelCommand,
+  string
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY)
     private readonly channelCommandRepo: IClinicWhatsappChannelCommandRepository,
     private readonly cipher: TokenCipherService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(

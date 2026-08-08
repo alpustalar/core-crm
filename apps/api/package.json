@@ -23,7 +23,8 @@
     "migrate:dev": "prisma migrate dev && pnpm zod:clean",
     "zod:clean": "node scripts/clean-generated-zod.cjs",
     "gen:module": "node scripts/generate-module.mjs",
-    "gen:cqrs": "node scripts/generate-cqrs.cjs"
+    "gen:cqrs": "node scripts/generate-cqrs.cjs",
+    "migrate:messaging-mongo": "cross-env NODE_ENV=${NODE_ENV:-development} ts-node -r tsconfig-paths/register src/infrastructure/persistence/mongo/scripts/migrate-messaging-to-mongo.ts"
   },
   "prisma": {
     "seed": "ts-node -r tsconfig-paths/register src/infrastructure/persistence/prisma/seed.ts"
@@ -33,6 +34,7 @@
     "@bull-board/api": "^7.1.5",
     "@bull-board/express": "^7.1.5",
     "@bull-board/nestjs": "^7.1.5",
+    "@core-crm/nest-kernel": "workspace:*",
     "@core-crm/shared": "workspace:*",
     "@logtail/node": "^0.5.6",
     "@logtail/winston": "^0.5.6",
@@ -119,6 +121,10 @@
       "json"
     ],
     "rootDir": "src",
+    "roots": [
+      "<rootDir>",
+      "<rootDir>/../../../packages/nest-kernel/src"
+    ],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -129,9 +135,15 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^@common/(.*)$": "<rootDir>/common/$1",
+      "^@common/(.*)$": [
+        "<rootDir>/common/$1",
+        "<rootDir>/../../../packages/nest-kernel/src/common/$1"
+      ],
       "^@modules/(.*)$": "<rootDir>/modules/$1",
-      "^@src/(.*)$": "<rootDir>/$1",
+      "^@src/(.*)$": [
+        "<rootDir>/$1",
+        "<rootDir>/../../../packages/nest-kernel/src/$1"
+      ],
       "^@shared/modules/(.*)$": "<rootDir>/../../../packages/shared/modules/$1",
       "^@shared/common/(.*)$": "<rootDir>/../../../packages/shared/common/$1",
       "^@shared$": "<rootDir>/../../../packages/shared/index",

@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
-import { AiProviderType } from '@input-type-schemas/AiProviderSchema';
+import { AiProviderType } from '@shared';
 
 const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MessageChannel, MessageType } from '@prisma/client';
+import { MessageChannel, MessageType } from '@shared';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetTelegramChannelCredentialsQuery } from '@modules/messaging/channel-config/application/queries/get-telegram-channel-credentials/get-telegram-channel-credentials.query';
 import {
@@ -64,7 +64,8 @@ export class TelegramBotChannelAdapter implements MessageChannelPort {
         if (!request.mediaUrl) {
           throw new Error('Telegram MEDIA gönderimi için mediaUrl zorunlu.');
         }
-        const kind = MEDIA_KIND_MAP[request.mediaType ?? 'document'] ?? 'document';
+        const kind =
+          MEDIA_KIND_MAP[request.mediaType ?? 'document'] ?? 'document';
         const { messageId } = await this.botApi.sendMedia({
           botToken: credentials.botToken,
           chatId,

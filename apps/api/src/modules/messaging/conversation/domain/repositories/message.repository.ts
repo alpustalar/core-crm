@@ -6,8 +6,7 @@ import { IBaseCommandRepository } from '@common/domain/repositories/base-command
 export const MESSAGE_COMMAND_REPOSITORY = Symbol('IMessageCommandRepository');
 export const MESSAGE_QUERY_REPOSITORY = Symbol('IMessageQueryRepository');
 
-export interface IMessageCommandRepository
-  extends IBaseCommandRepository<Message> {
+export interface IMessageCommandRepository extends IBaseCommandRepository<Message> {
   /**
    * Dış id (wamid) ile yükler — kilitsiz. Mükerrer webhook tespiti gibi, kararı
    * `@@unique(externalId)` kısıtının nihai olarak koruduğu okumalar içindir.

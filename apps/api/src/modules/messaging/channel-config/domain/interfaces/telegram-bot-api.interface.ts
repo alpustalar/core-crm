@@ -19,11 +19,7 @@ export interface ITelegramBotApi {
   /** Token geçerliliğini doğrular ve bot kimliğini döner (geçersizse hata fırlatır). */
   getMe(botToken: string): Promise<TelegramBotIdentity>;
   /** Klinik bazlı webhook URL'ini secret_token ile kurar. */
-  setWebhook(
-    botToken: string,
-    url: string,
-    secretToken: string
-  ): Promise<void>;
+  setWebhook(botToken: string, url: string, secretToken: string): Promise<void>;
   /** Webhook'u kaldırır (disconnect). En iyi-çaba; hata yutulur. */
   deleteWebhook(botToken: string): Promise<void>;
   /** Düz metin mesaj gönderir; Telegram mesaj id'sini döner. */

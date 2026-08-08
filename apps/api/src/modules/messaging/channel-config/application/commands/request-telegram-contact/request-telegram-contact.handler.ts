@@ -16,9 +16,10 @@ const PROMPT_TEXT =
 const BUTTON_TEXT = '📱 Numaramı paylaş';
 
 @CommandHandler(RequestTelegramContactCommand)
-export class RequestTelegramContactHandler
-  implements ICommandHandler<RequestTelegramContactCommand, void>
-{
+export class RequestTelegramContactHandler implements ICommandHandler<
+  RequestTelegramContactCommand,
+  void
+> {
   private readonly logger = new Logger(RequestTelegramContactHandler.name);
 
   constructor(

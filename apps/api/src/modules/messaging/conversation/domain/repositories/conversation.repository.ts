@@ -13,8 +13,7 @@ export const CONVERSATION_QUERY_REPOSITORY = Symbol(
   'IConversationQueryRepository'
 );
 
-export interface IConversationCommandRepository
-  extends IBaseCommandRepository<Conversation> {
+export interface IConversationCommandRepository extends IBaseCommandRepository<Conversation> {
   /**
    * Yazışmayı `FOR UPDATE` ile kilitleyerek yükler — yalnız aktif transaction içinde.
    * `unreadCount` gibi oku-değiştir-yaz alanları olduğu için, yazışmayı mutasyona

@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CqrsModule } from '@nestjs/cqrs';
 import { QUEUES } from '@common/constants';
-import { ConversationRepositoryModule } from '@modules/messaging/conversation/infrastructure/persistence/prisma/repositories/conversation.repository.module';
+import { ConversationRepositoryModule } from '@modules/messaging/conversation/infrastructure/persistence/mongo/repositories/conversation.repository.module';
 import { AiAgentQueryModule } from '@modules/messaging/ai-agent/application/queries/query.module';
 import { SendBookingConfirmationHandler } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.handler';
 import { AiChatModule } from './adapters/ai-chat.module';
+import { AiMemoryCacheModule } from './cache/ai-memory-cache.module';
 import { AiReplyProducer } from './queue/producers/ai-reply.producer';
 import { AiReplyProcessor } from './queue/processors/ai-reply.processor';
 import { AiReplyListener } from './events/listeners/ai-reply.listener';
@@ -23,6 +24,7 @@ import { AiReplyListener } from './events/listeners/ai-reply.listener';
     ConversationRepositoryModule,
     AiAgentQueryModule,
     AiChatModule,
+    AiMemoryCacheModule,
   ],
   providers: [
     AiReplyListener,

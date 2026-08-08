@@ -9,13 +9,10 @@ import { GetTelegramInboundRoutingQuery } from './get-telegram-inbound-routing.q
 import { GetTelegramInboundRoutingResponse } from './get-telegram-inbound-routing.response';
 
 @QueryHandler(GetTelegramInboundRoutingQuery)
-export class GetTelegramInboundRoutingHandler
-  implements
-    IQueryHandler<
-      GetTelegramInboundRoutingQuery,
-      GetTelegramInboundRoutingResponse
-    >
-{
+export class GetTelegramInboundRoutingHandler implements IQueryHandler<
+  GetTelegramInboundRoutingQuery,
+  GetTelegramInboundRoutingResponse
+> {
   constructor(
     @Inject(CLINIC_TELEGRAM_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicTelegramChannelQueryRepository

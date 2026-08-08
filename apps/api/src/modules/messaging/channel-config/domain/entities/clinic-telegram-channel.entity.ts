@@ -1,13 +1,13 @@
 import { isTelegramChannelActive } from '@modules/messaging/channel-config/domain/rules/telegram-channel.rules';
-import { ClinicTelegramChannel as IClinicTelegramChannel } from '@shared/generated-zod';
+import { ClinicTelegramChannel as IClinicTelegramChannel } from '@shared';
 import {
   TelegramProviderSchema,
   TelegramProviderType as TelegramProvider,
-} from '@input-type-schemas/TelegramProviderSchema';
+} from '@shared';
 import {
   TelegramChannelStatusSchema,
   TelegramChannelStatusType as TelegramChannelStatus,
-} from '@input-type-schemas/TelegramChannelStatusSchema';
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicTelegramBotChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

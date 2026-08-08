@@ -1,5 +1,5 @@
-import { ConversationStatus, MessageChannel } from '@prisma/client';
-import { Conversation as IConversation } from '@shared/generated-zod';
+import { ConversationStatus, MessageChannel } from '@shared';
+import { Conversation as IConversation } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 import { MessageReceivedEvent } from '../events/message-received.event';

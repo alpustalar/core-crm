@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
   IConversationCommandRepository,
@@ -34,7 +34,7 @@ export class MarkConversationReadHandler implements ICommandHandler<
     private readonly messageQueryRepo: IMessageQueryRepository,
     @Inject(MESSAGE_CHANNEL_PORT)
     private readonly channel: MessageChannelPort,
-    private readonly txManager: TransactionManager
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: MarkConversationReadCommand): Promise<void> {

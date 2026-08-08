@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { lastValueFrom, Observable } from 'rxjs';
 import * as crypto from 'crypto';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { DomainEvent } from '@common/interfaces';
 import { Request } from 'express';
 

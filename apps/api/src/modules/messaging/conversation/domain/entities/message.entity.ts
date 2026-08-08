@@ -1,14 +1,9 @@
-import {
-  Message as IMessage,
-  MessageDirectionSchema,
-  MessageStatusSchema,
-  MessageTypeSchema,
-} from '@shared/generated-zod';
+import { Message as IMessage, MessageDirectionSchema, MessageStatusSchema, MessageTypeSchema } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { MessageStatusChangedEvent } from '../events/message-status-changed.event';
-import { MessageDirectionType as MessageDirection } from '@input-type-schemas/MessageDirectionSchema';
-import { MessageStatusType as MessageStatus } from '@input-type-schemas/MessageStatusSchema';
-import { MessageTypeType as MessageType } from '@input-type-schemas/MessageTypeSchema';
+import { MessageDirectionType as MessageDirection } from '@shared';
+import { MessageStatusType as MessageStatus } from '@shared';
+import { MessageTypeType as MessageType } from '@shared';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import {

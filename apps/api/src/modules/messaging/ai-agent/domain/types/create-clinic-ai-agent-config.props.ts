@@ -1,4 +1,4 @@
-import { AiProviderType } from '@input-type-schemas/AiProviderSchema';
+import { AiProviderType } from '@shared';
 
 export interface CreateClinicAiAgentConfigProps {
   id?: string;

@@ -1,4 +1,4 @@
-import { ClinicInstagramChannel as IClinicInstagramChannel } from '@shared/generated-zod';
+import { ClinicInstagramChannel as IClinicInstagramChannel } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicInstagramChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

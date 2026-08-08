@@ -1,8 +1,8 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
-import { MessageDirectionType as MessageDirection } from '@input-type-schemas/MessageDirectionSchema';
-import { MessageStatusType as MessageStatus } from '@input-type-schemas/MessageStatusSchema';
-import { MessageTypeType as MessageType } from '@input-type-schemas/MessageTypeSchema';
+import { MessageDirectionType as MessageDirection } from '@shared';
+import { MessageStatusType as MessageStatus } from '@shared';
+import { MessageTypeType as MessageType } from '@shared';
 
 const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 

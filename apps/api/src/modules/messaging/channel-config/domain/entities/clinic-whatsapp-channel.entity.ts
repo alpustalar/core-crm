@@ -1,4 +1,4 @@
-import { ClinicWhatsappChannel as IClinicWhatsappChannel } from '@shared/generated-zod';
+import { ClinicWhatsappChannel as IClinicWhatsappChannel } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { CreateClinicWhatsappChannelProps } from '@modules/messaging/channel-config/domain/channel-config.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
@@ -161,7 +161,10 @@ export class ClinicWhatsappChannel
   /** accessToken'ın geçerlilik süresi dolmuş mu? (reconnect gerekir) */
 
   public isTokenExpired(now: Date = DateTimeManager.create()): boolean {
-    return isWhatsappTokenExpired({ tokenExpiresAt: this._tokenExpiresAt }, now);
+    return isWhatsappTokenExpired(
+      { tokenExpiresAt: this._tokenExpiresAt },
+      now
+    );
   }
 
   /** Aktif ama token yok/expired → FE yeniden bağlama (reconnect) istemeli. */

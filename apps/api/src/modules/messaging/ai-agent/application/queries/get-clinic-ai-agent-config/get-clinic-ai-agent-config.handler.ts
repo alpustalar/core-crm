@@ -8,10 +8,10 @@ import { GetClinicAiAgentConfigQuery } from './get-clinic-ai-agent-config.query'
 import { GetClinicAiAgentConfigResponse } from './get-clinic-ai-agent-config.response';
 
 @QueryHandler(GetClinicAiAgentConfigQuery)
-export class GetClinicAiAgentConfigHandler
-  implements
-    IQueryHandler<GetClinicAiAgentConfigQuery, GetClinicAiAgentConfigResponse>
-{
+export class GetClinicAiAgentConfigHandler implements IQueryHandler<
+  GetClinicAiAgentConfigQuery,
+  GetClinicAiAgentConfigResponse
+> {
   constructor(
     @Inject(CLINIC_AI_AGENT_CONFIG_QUERY_REPOSITORY)
     private readonly configQueryRepo: IClinicAiAgentConfigQueryRepository

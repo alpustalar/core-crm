@@ -1,0 +1,53 @@
+{
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2021",
+    "rootDir": "../../",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      // ⚠️ TEK HEDEF — `apps/api`'deki gibi dizi DEĞİL.
+      //
+      // api'de `@common/*` önce kendi src'ine, bulamazsa çekirdeğe düşer; bu, 62 dosya
+      // taşınırken tek bir import satırının değişmemesi için konmuş bir geçiş kolaylığı.
+      // Burada öyle bir yedek YOK: çekirdekte olmayan bir şeye uzanmak derleme hatası
+      // verir. Aksi halde messaging sessizce `apps/api`'nin içine bağlanır ve ayrı
+      // süreçte çalıştığında çalışma zamanında patlardı.
+      "@common/*": ["../../packages/nest-kernel/src/common/*"],
+      "@src/*": ["../../packages/nest-kernel/src/*"],
+
+      // Messaging'in kendi modülleri.
+      "@messaging/*": ["src/*"],
+
+      "@shared": ["../../packages/shared/index"],
+      "@shared/*": ["../../packages/shared/*"],
+      "@shared/modules": ["../../packages/shared/modules/index"],
+      "@shared/modules/*": ["../../packages/shared/modules/*"],
+      "@shared/common": ["../../packages/shared/common/index"],
+      "@shared/common/*": ["../../packages/shared/common/*"],
+      "@generated/*": ["../../packages/shared/generated-zod/*"],
+      "@input-type-schemas/*": [
+        "../../packages/shared/generated-zod/inputTypeSchemas/*"
+      ],
+      "@model-schema/*": ["../../packages/shared/generated-zod/modelSchema/*"]
+    },
+    "esModuleInterop": true,
+    "declaration": true,
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}

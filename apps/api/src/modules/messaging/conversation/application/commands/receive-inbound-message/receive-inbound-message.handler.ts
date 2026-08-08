@@ -1,6 +1,6 @@
 import { ReceiveInboundMessageCommand } from '@modules/messaging/conversation/application/commands/receive-inbound-message/receive-inbound-message.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
   IConversationCommandRepository,
@@ -9,10 +9,7 @@ import {
   IMessageCommandRepository,
   MESSAGE_COMMAND_REPOSITORY,
 } from '@modules/messaging/conversation/domain/repositories/message.repository';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { FindPatientByContactQuery } from '@modules/crm/patient/application/queries/find-patient-by-contact/find-patient-by-contact.query';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import {
   detectOptIntent,
@@ -20,30 +17,45 @@ import {
 } from '@modules/messaging/conversation/domain/marketing-opt-out';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { MessageChannelSchema } from '@shared';
-import { MessageChannel } from '@prisma/client';
-import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
-import { CreateLeadDto } from '@shared/modules/lead/dto/commands';
-import { IGetContext } from '@common/decorators';
-import { ActorContext } from '@common/interfaces';
-import { SYSTEM_ACTOR } from '@common/constants/system-actor.constant';
-import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
+import { MessageChannel } from '@shared';
+import { UUID } from '@src/domain/value-objects/uuid.vo';
+import {
+  CONTACT_RESOLVER_PORT,
+  IContactResolverPort,
+} from '@modules/messaging/conversation/domain/ports/contact-resolver.port';
+import {
+  IMessagingCacheService,
+  MESSAGING_CACHE_SERVICE,
+} from '@modules/messaging/conversation/domain/interfaces/messaging-cache.service.interface';
+import {
+  AI_MEMORY_CACHE_SERVICE,
+  IAiMemoryCacheService,
+} from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 
 @CommandHandler(ReceiveInboundMessageCommand)
-export class ReceiveInboundMessageHandler
-  implements ICommandHandler<ReceiveInboundMessageCommand, string>
-{
+export class ReceiveInboundMessageHandler implements ICommandHandler<
+  ReceiveInboundMessageCommand,
+  string
+> {
+  private readonly logger = new Logger(ReceiveInboundMessageHandler.name);
+
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationCommandRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
     private readonly messageCommandRepo: IMessageCommandRepository,
-    private readonly queryBus: TSQueryBus,
-    private readonly commandBus: TSCommandBus,
-    private readonly txManager: TransactionManager
+    @Inject(MESSAGING_CACHE_SERVICE)
+    private readonly messagingCache: IMessagingCacheService,
+    @Inject(AI_MEMORY_CACHE_SERVICE)
+    private readonly aiMemoryCache: IAiMemoryCacheService,
+    @Inject(CONTACT_RESOLVER_PORT)
+    private readonly contactResolver: IContactResolverPort,
+    private readonly txManager: MongoTransactionManager
   ) {}
 
   async execute(command: ReceiveInboundMessageCommand): Promise<string> {
     const { input } = command;
+    const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
 
     // idempotemcy check meta aynı mesajı tekrar iletebiliyor. Bu okuma yazıp
     // yazmayacağımıza karar verdiği için command repo'dan (ana bağlantı) yapılır —
@@ -54,9 +66,57 @@ export class ReceiveInboundMessageHandler
     );
     if (existingMessage) return existingMessage.id;
 
-    const patientId = await this.resolvePatientId(input);
+    // Yukarıdaki ön-kontrol yalnız SIRAYLA gelen mükerrer teslimi eler. Meta aynı
+    // webhook'u paralel de gönderebiliyor; o durumda iki istek de kontrolü geçip
+    // biri unique ihlaliyle patlar (ve Meta'ya 500 döner → yeniden teslim). Redis
+    // kilidi bu yarış penceresini kapatır: kilidi alamayan sessizce çekilir.
+    const lockHolderId = UUID.generate().value;
+    const lock = await this.messagingCache.inboundDedup.acquire({
+      channel,
+      externalId: input.externalId,
+      holderId: lockHolderId,
+    });
+    if (lock.status === 'duplicate') {
+      this.logger.debug(
+        `Mükerrer webhook teslimi atlandı: ${channel}/${input.externalId}`
+      );
+      // Kilidi kazanan taraf bu arada commit etmiş olabilir; etmişse gerçek id'yi
+      // döndür. Hâlâ uçuştaysa döndürecek bir id yok — webhook zaten sonucu
+      // kullanmıyor, Meta'ya 200 dönmesi yeterli.
+      const winner = await this.messageCommandRepo.findByExternalId(
+        input.externalId
+      );
+      return winner?.id ?? '';
+    }
 
-    return this.txManager.outboxRun(async () => {
+    try {
+      return await this.persist(command);
+    } catch (err) {
+      // İşleme başarısız → kilidi bırak ki Meta'nın yeniden teslimi işlenebilsin.
+      // Başarıda kilit bilinçli olarak TTL boyunca dedup işareti şeklinde kalır.
+      await this.messagingCache.inboundDedup.release({
+        channel,
+        externalId: input.externalId,
+        holderId: lockHolderId,
+      });
+      throw err;
+    }
+  }
+
+  private async persist(
+    command: ReceiveInboundMessageCommand
+  ): Promise<string> {
+    const { input } = command;
+    const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
+
+    const patientId = await this.contactResolver.findPatientId({
+      clinicId: input.clinicId,
+      channel,
+      contactPhone: input.contactPhone,
+      matchPhone: input.matchPhone,
+    });
+
+    const saved = await this.txManager.outboxRun(async () => {
       // resolveConversation ctx içinde çalışıp mükerrerliği engellemeli
       const { conversation, isNew } = await this.resolveConversation(
         command,
@@ -71,7 +131,18 @@ export class ReceiveInboundMessageHandler
       // Reklamdan (Click-to-Chat) gelen YENİ misafir yazışması → attribution'lı Lead üret
       // ve yazışmaya bağla. recordInboundMessage'dan önce set edilir ki event leadId taşısın.
       if (isNew && !patientId && input.referral?.medium === 'AD') {
-        const leadId = await this.createAdReferralLead(input);
+        const leadId = await this.contactResolver.registerAdReferralLead({
+          clinicId: input.clinicId,
+          organizationId: input.organizationId,
+          channel,
+          contactPhone: input.contactPhone,
+          contactName: input.contactName,
+          referral: {
+            adId: input.referral.adId ?? null,
+            ctwaClid: input.referral.ctwaClid ?? null,
+            sourceUrl: input.referral.sourceUrl ?? null,
+          },
+        });
         if (leadId) conversation.linkContact({ leadId });
       }
 
@@ -107,35 +178,20 @@ export class ReceiveInboundMessageHandler
         await this.conversationCommandRepo.update(conversation);
       }
 
-      return savedMessage.id;
+      return { messageId: savedMessage.id, conversationId: conversation.id };
     });
-  }
 
-  /**
-   * Hasta eşlemesini kanal-farkındalı + güvenli çözer. WhatsApp'ta contactPhone telefondur;
-   * Telegram'da contactPhone chatId olduğundan yalnız contact paylaşımıyla gelen matchPhone
-   * kullanılır. Eşleşme bulunamazsa (query handler throw edebilir) misafir olarak null döner.
-   */
-  private async resolvePatientId(
-    input: ReceiveInboundMessageCommand['input']
-  ): Promise<string | null> {
-    const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
-    const phone =
-      input.matchPhone ??
-      (channel === MessageChannelSchema.enum.WHATSAPP
-        ? input.contactPhone
-        : null);
-    if (!phone) return null;
-
-    try {
-      const { data: patient } = await this.queryBus.execute(
-        new FindPatientByContactQuery({ clinicId: input.clinicId, phone })
-      );
-      return patient?.id ?? null;
-    } catch {
-      // Hasta bulunamadı → misafir olarak devam (eşleme bloklamaz).
-      return null;
+    // Bağlam penceresini tazele — AI turu bu mesajı DB'ye gitmeden görsün. Cache
+    // otoritatif değil; `append` pencere soğuksa no-op'tur ve okuma DB'den ısıtır.
+    const body = input.body?.trim();
+    if (body) {
+      await this.aiMemoryCache.append({
+        conversationId: saved.conversationId,
+        message: { role: 'user', content: body },
+      });
     }
+
+    return saved.messageId;
   }
 
   // var olan yazışmayı bul yoksa kilit altında yeni yazışma başlat
@@ -169,62 +225,6 @@ export class ReceiveInboundMessageHandler
         patientId: patientId,
       }),
       isNew: true,
-    };
-  }
-
-  /**
-   * Reklamdan gelen misafir yazışması için attribution'lı Lead oluşturur (cross-module,
-   * bus üzerinden). WhatsApp'ta contactPhone gerçek telefondur → lead'e phone yazılır;
-   * Instagram/Telegram'da contactPhone IGSID/chatId olduğundan phone boş bırakılır.
-   * Dönüş: oluşturulan lead id'si (hata olursa null — mesaj işleme bloklanmaz).
-   */
-  private async createAdReferralLead(
-    input: ReceiveInboundMessageCommand['input']
-  ): Promise<string | null> {
-    const channel = input.channel ?? MessageChannelSchema.enum.WHATSAPP;
-    const referral = input.referral!;
-
-    const dto: CreateLeadDto = {
-      source: channel, // WHATSAPP | INSTAGRAM | TELEGRAM — LeadSource ile örtüşür
-      name: input.contactName ?? undefined,
-      phone:
-        channel === MessageChannel.WHATSAPP ? input.contactPhone : undefined,
-      medium: 'AD',
-      adId: referral.adId ?? undefined,
-      ctwaClid: referral.ctwaClid ?? undefined,
-      sourceUrl: referral.sourceUrl ?? undefined,
-    } as CreateLeadDto;
-
-    try {
-      return await this.commandBus.execute(
-        new CreateLeadCommand({
-          data: dto,
-          clinicId: input.clinicId,
-          ctx: this.buildSystemContext(input.clinicId, input.organizationId),
-        })
-      );
-    } catch {
-      // Lead üretimi mesaj işlemeyi bloklamaz (attribution best-effort).
-      return null;
-    }
-  }
-
-  /** Webhook (actor'sız) akışı için sistem yürütme context'i. */
-  private buildSystemContext(
-    clinicId: string,
-    organizationId: string
-  ): IGetContext {
-    const actor: ActorContext = {
-      ...SYSTEM_ACTOR,
-      clinicId,
-      organizationId,
-      managedClinics: [{ id: clinicId }],
-    };
-    return {
-      actor,
-      source: ExecutionSources.INTERNAL_CASCADE,
-      ip: '127.0.0.1',
-      userAgent: 'WEBHOOK',
     };
   }
 }

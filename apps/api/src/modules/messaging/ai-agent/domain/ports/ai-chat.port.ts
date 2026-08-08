@@ -1,5 +1,5 @@
-import { AiProviderType } from '@input-type-schemas/AiProviderSchema';
-import { MessageChannelType } from '@input-type-schemas/MessageChannelSchema';
+import { AiProviderType } from '@shared';
+import { MessageChannelType } from '@shared';
 
 export const AI_CHAT_PORT = Symbol('AiChatPort');
 

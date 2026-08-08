@@ -8,13 +8,10 @@ import { FindWhatsappChannelByPhoneNumberIdQuery } from './find-whatsapp-channel
 import { FindWhatsappChannelByPhoneNumberIdResponse } from './find-whatsapp-channel-by-phone-number-id.response';
 
 @QueryHandler(FindWhatsappChannelByPhoneNumberIdQuery)
-export class FindWhatsappChannelByPhoneNumberIdHandler
-  implements
-    IQueryHandler<
-      FindWhatsappChannelByPhoneNumberIdQuery,
-      FindWhatsappChannelByPhoneNumberIdResponse
-    >
-{
+export class FindWhatsappChannelByPhoneNumberIdHandler implements IQueryHandler<
+  FindWhatsappChannelByPhoneNumberIdQuery,
+  FindWhatsappChannelByPhoneNumberIdResponse
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository

@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { MessageDirection, MessageStatus, MessageType } from '@prisma/client';
+import { MessageDirection, MessageStatus, MessageType } from '@shared';
 import { SendMessageHandler } from './send-message.handler';
 import { SendMessageCommand } from './send-message.command';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
@@ -11,6 +11,7 @@ import { Message } from '@modules/messaging/conversation/domain/entities/message
 import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { SendMessageProducer } from '@modules/messaging/conversation/infrastructure/queue/producers/send-message.producer';
+import { IAiMemoryCacheService } from '@modules/messaging/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 
 describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
   const ctx = { actor: { userId: 'user-1' } } as never;
@@ -34,15 +35,21 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
       enqueueSend: jest.fn().mockResolvedValue(undefined),
     } as unknown as SendMessageProducer;
 
+    const aiMemoryCache = {
+      append: jest.fn().mockResolvedValue(undefined),
+    } as unknown as IAiMemoryCacheService;
+
     const handler = new SendMessageHandler(
       conversationCommandRepo,
       messageCommandRepo,
+      aiMemoryCache,
       sendMessageProducer
     );
 
     return {
       handler,
       sendMessageProducer,
+      aiMemoryCache,
       getSavedMessage: () => savedMessage,
     };
   };
@@ -92,7 +99,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
     const id = await handler.execute(
       new SendMessageCommand({
         clinicId: 'clinic-1',
-        input: { conversationId: conv.id, type: MessageType.TEXT, body: 'yanıt' },
+        input: {
+          conversationId: conv.id,
+          type: MessageType.TEXT,
+          body: 'yanıt',
+        },
         ctx,
       })
     );
@@ -118,7 +129,11 @@ describe('SendMessageHandler (giden mesaj QUEUED + kuyruğa al)', () => {
       handler.execute(
         new SendMessageCommand({
           clinicId: 'clinic-1',
-          input: { conversationId: closed.id, type: MessageType.TEXT, body: 'selam' },
+          input: {
+            conversationId: closed.id,
+            type: MessageType.TEXT,
+            body: 'selam',
+          },
           ctx,
         })
       )

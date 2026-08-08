@@ -1,15 +1,18 @@
-import { Job } from 'bullmq';
-import { MessageStatus, MessageType } from '@prisma/client';
+import { DelayedError, Job } from 'bullmq';
+import { MessageStatus, MessageType } from '@shared';
 import { MESSAGING_JOBS, MESSAGING_SEND_MAX_ATTEMPTS } from '@common/constants';
 import { MessageDeliveryProcessor } from './message-delivery.processor';
 import { Conversation } from '@modules/messaging/conversation/domain/entities/conversation.entity';
 import { Message } from '@modules/messaging/conversation/domain/entities/message.entity';
 import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports/message-channel.port';
 import { IMessageCommandRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
+import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
-  IConversationCommandRepository,
-} from '@modules/messaging/conversation/domain/repositories/conversation.repository';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+  DeliveryLockResult,
+  IMessagingCacheService,
+  SendQuotaResult,
+} from '@modules/messaging/conversation/domain/interfaces/messaging-cache.service.interface';
 
 describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
   const build = (params: {
@@ -18,6 +21,8 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
     /** Kanal çağrısı sonrası kilitli okumada dönen taze yazışma (yarış senaryosu). */
     freshConversation?: Conversation | null;
     sendImpl?: jest.Mock;
+    deliveryLock?: DeliveryLockResult;
+    sendQuota?: SendQuotaResult;
   }) => {
     let savedConversation: Conversation | undefined;
 
@@ -49,18 +54,35 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
 
     const txManager = {
       run: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
+
+    // Varsayılan: mutex serbest + kota müsait → mevcut senaryolar gönderime devam eder.
+    const messagingCache = {
+      deliveryLock: {
+        acquire: jest
+          .fn()
+          .mockResolvedValue(params.deliveryLock ?? { status: 'acquired' }),
+        release: jest.fn().mockResolvedValue(undefined),
+      },
+      sendQuota: {
+        consume: jest
+          .fn()
+          .mockResolvedValue(params.sendQuota ?? { status: 'allowed' }),
+      },
+    } as unknown as IMessagingCacheService;
 
     const processor = new MessageDeliveryProcessor(
       channel,
       messageCommandRepo,
       conversationCommandRepo,
+      messagingCache,
       txManager
     );
     return {
       processor,
       channel,
       messageCommandRepo,
+      messagingCache,
       getSavedConversation: () => savedConversation,
     };
   };
@@ -70,6 +92,7 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
       name: MESSAGING_JOBS.SEND_MESSAGE,
       data: { messageId },
       attemptsMade,
+      moveToDelayed: jest.fn().mockResolvedValue(undefined),
     }) as unknown as Job;
 
   const queuedOutbound = () =>
@@ -160,5 +183,87 @@ describe('MessageDeliveryProcessor (outbound teslim worker)', () => {
       'geçici'
     );
     expect(message.status).toBe(MessageStatus.QUEUED);
+  });
+  it('klinik kotası dolu → gönderim YAPILMAZ, job ertelenir (deneme harcanmaz)', async () => {
+    const message = queuedOutbound();
+    const { processor, channel } = build({
+      message,
+      conversation: conversation(),
+      sendQuota: { status: 'throttled', retryAfterMs: 250 },
+    });
+    const j = job(message.id);
+
+    await expect(processor.process(j, 'tok')).rejects.toBeInstanceOf(
+      DelayedError
+    );
+
+    expect(channel.send).not.toHaveBeenCalled();
+    expect(message.status).toBe(MessageStatus.QUEUED);
+    expect(j.moveToDelayed).toHaveBeenCalledTimes(1);
+    // Erteleme anı, kotanın açılacağı ana güvenlik payı eklenerek kurulur.
+    const [resumeAt, token] = (j.moveToDelayed as jest.Mock).mock.calls[0];
+    expect(token).toBe('tok');
+    expect(resumeAt).toBeGreaterThan(Date.now());
+  });
+
+  it('aynı yazışmada başka gönderim uçuşta → job ertelenir (sıra korunur)', async () => {
+    const message = queuedOutbound();
+    const { processor, channel, messagingCache } = build({
+      message,
+      conversation: conversation(),
+      deliveryLock: { status: 'busy', retryAfterMs: 40 },
+    });
+    const j = job(message.id);
+
+    await expect(processor.process(j, 'tok')).rejects.toBeInstanceOf(
+      DelayedError
+    );
+
+    expect(channel.send).not.toHaveBeenCalled();
+    expect(j.moveToDelayed).toHaveBeenCalledTimes(1);
+    // Kilit alınamadı → serbest bırakacak bir şey yok (başkasının kilidi düşürülmez).
+    expect(messagingCache.deliveryLock.release).not.toHaveBeenCalled();
+  });
+
+  it("kota reddinde de yazışma mutex'i serbest bırakılır", async () => {
+    const message = queuedOutbound();
+    const { processor, messagingCache } = build({
+      message,
+      conversation: conversation(),
+      sendQuota: { status: 'throttled', retryAfterMs: 10 },
+    });
+
+    await expect(processor.process(job(message.id))).rejects.toBeInstanceOf(
+      DelayedError
+    );
+
+    expect(messagingCache.deliveryLock.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('gönderim hatasında da mutex serbest bırakılır (yazışma kilitli kalmaz)', async () => {
+    const message = queuedOutbound();
+    const { processor, messagingCache } = build({
+      message,
+      conversation: conversation(),
+      sendImpl: jest.fn().mockRejectedValue(new Error('Meta 500')),
+    });
+
+    await expect(processor.process(job(message.id))).rejects.toThrow(
+      'Meta 500'
+    );
+
+    expect(messagingCache.deliveryLock.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('başarılı gönderimde mutex serbest bırakılır', async () => {
+    const message = queuedOutbound();
+    const { processor, messagingCache } = build({
+      message,
+      conversation: conversation(),
+    });
+
+    await processor.process(job(message.id));
+
+    expect(messagingCache.deliveryLock.release).toHaveBeenCalledTimes(1);
   });
 });

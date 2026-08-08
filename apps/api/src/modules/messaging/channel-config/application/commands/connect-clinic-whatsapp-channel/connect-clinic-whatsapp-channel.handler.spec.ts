@@ -4,7 +4,7 @@ import { ClinicWhatsappChannel } from '@modules/messaging/channel-config/domain/
 import { IClinicWhatsappChannelCommandRepository } from '@modules/messaging/channel-config/domain/repositories/clinic-whatsapp-channel.repository';
 import { IWhatsappCloudApi } from '@modules/messaging/channel-config/domain/interfaces/whatsapp-cloud-api.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 
 describe('ConnectClinicWhatsappChannelHandler (Embedded Signup self-service)', () => {
   const ctx = { actor: { userId: 'u1', organizationId: 'org-1' } } as never;
@@ -39,7 +39,7 @@ describe('ConnectClinicWhatsappChannelHandler (Embedded Signup self-service)', (
 
     const txManager = {
       run: jest.fn((cb: () => Promise<unknown>) => cb()),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
 
     const handler = new ConnectClinicWhatsappChannelHandler(
       cloudApi,

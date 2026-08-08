@@ -1,4 +1,8 @@
-import { ClinicAiAgentConfig as IClinicAiAgentConfig } from '@shared/generated-zod';
+import {
+  AiProviderSchema,
+  AiProviderType,
+  ClinicAiAgentConfig as IClinicAiAgentConfig,
+} from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   CreateClinicAiAgentConfigProps,
@@ -7,9 +11,6 @@ import {
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { isDefined } from '@common/utils';
-import AiProviderSchema, {
-  AiProviderType,
-} from '@input-type-schemas/AiProviderSchema';
 
 /**
  * Kliniğin AI sohbet asistanı config'i (messaging bounded-context). Clinic'ten ayrıştırılmış

@@ -86,7 +86,7 @@ export * from './security.constant';
 export * from './finance-ledger.constant';
 export * from './financial-event.constant';
 export * from './governance.constant';
-export * from './messaging.constant';
+export * from '@src/domain/constants/events/messaging.constant';
 export * from './activity.constant';
 export * from './health-tourism.constant';
 export * from './leave.constant';

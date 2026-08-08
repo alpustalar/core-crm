@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { LedgerTypeSchema } from '../inputTypeSchemas/LedgerTypeSchema'
 import { LedgerSourceSchema } from '../inputTypeSchemas/LedgerSourceSchema'
 import { LedgerCategorySchema } from '../inputTypeSchemas/LedgerCategorySchema'
@@ -23,9 +23,9 @@ export const FinanceLedgerSchema = z.object({
   paymentId: z.string().nullable(),
   installmentId: z.string().nullable(),
   performedById: z.string().nullable(),
-  amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'FinanceLedger']"}),
+  amount: decimalSchema("Field 'amount' must be a Decimal. Location: ['Models', 'FinanceLedger']"),
   taxRate: z.number().int(),
-  taxAmount: z.instanceof(Prisma.Decimal, { message: "Field 'taxAmount' must be a Decimal. Location: ['Models', 'FinanceLedger']"}),
+  taxAmount: decimalSchema("Field 'taxAmount' must be a Decimal. Location: ['Models', 'FinanceLedger']"),
   description: z.string().nullable(),
   documentNo: z.string().nullable(),
   entryDate: z.coerce.date(),

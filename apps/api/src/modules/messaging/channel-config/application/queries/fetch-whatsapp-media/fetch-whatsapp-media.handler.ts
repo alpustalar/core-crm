@@ -13,9 +13,10 @@ import { FetchWhatsappMediaQuery } from './fetch-whatsapp-media.query';
 import { FetchWhatsappMediaResponse } from './fetch-whatsapp-media.response';
 
 @QueryHandler(FetchWhatsappMediaQuery)
-export class FetchWhatsappMediaHandler
-  implements IQueryHandler<FetchWhatsappMediaQuery, FetchWhatsappMediaResponse>
-{
+export class FetchWhatsappMediaHandler implements IQueryHandler<
+  FetchWhatsappMediaQuery,
+  FetchWhatsappMediaResponse
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,

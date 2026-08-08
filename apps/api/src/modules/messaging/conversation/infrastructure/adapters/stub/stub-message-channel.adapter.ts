@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageChannel } from '@prisma/client';
+import { MessageChannel } from '@shared';
 import {
   MessageChannelPort,
   SendMessageRequest,

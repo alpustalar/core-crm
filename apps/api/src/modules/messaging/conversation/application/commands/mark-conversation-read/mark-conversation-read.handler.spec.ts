@@ -5,8 +5,8 @@ import { Conversation } from '@modules/messaging/conversation/domain/entities/co
 import { IConversationCommandRepository } from '@modules/messaging/conversation/domain/repositories/conversation.repository';
 import { IMessageQueryRepository } from '@modules/messaging/conversation/domain/repositories/message.repository';
 import { MessageChannelPort } from '@modules/messaging/conversation/domain/ports/message-channel.port';
-import { MessageChannel } from '@prisma/client';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MessageChannel } from '@shared';
+import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 
 describe('MarkConversationReadHandler', () => {
   const ctx = { actor: { userId: 'u1' } } as never;
@@ -55,7 +55,7 @@ describe('MarkConversationReadHandler', () => {
         params.onTxEnd?.();
         return result;
       }),
-    } as unknown as TransactionManager;
+    } as unknown as MongoTransactionManager;
 
     const handler = new MarkConversationReadHandler(
       conversationCommandRepo,
@@ -73,7 +73,11 @@ describe('MarkConversationReadHandler', () => {
     });
 
     await handler.execute(
-      new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-1', ctx })
+      new MarkConversationReadCommand({
+        clinicId: 'clinic-1',
+        conversationId: 'conv-1',
+        ctx,
+      })
     );
 
     expect(channel.markRead).toHaveBeenCalledWith(
@@ -92,7 +96,11 @@ describe('MarkConversationReadHandler', () => {
     });
 
     await handler.execute(
-      new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-1', ctx })
+      new MarkConversationReadCommand({
+        clinicId: 'clinic-1',
+        conversationId: 'conv-1',
+        ctx,
+      })
     );
 
     expect(channel.markRead).not.toHaveBeenCalled();
@@ -107,7 +115,11 @@ describe('MarkConversationReadHandler', () => {
     });
 
     await handler.execute(
-      new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-1', ctx })
+      new MarkConversationReadCommand({
+        clinicId: 'clinic-1',
+        conversationId: 'conv-1',
+        ctx,
+      })
     );
 
     expect(getSaved()!.unreadCount).toBe(0);
@@ -139,7 +151,11 @@ describe('MarkConversationReadHandler', () => {
     const { handler } = build({ conversation: null });
     await expect(
       handler.execute(
-        new MarkConversationReadCommand({ clinicId: 'clinic-1', conversationId: 'conv-x', ctx })
+        new MarkConversationReadCommand({
+          clinicId: 'clinic-1',
+          conversationId: 'conv-x',
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(NotFoundException);
   });
@@ -148,7 +164,11 @@ describe('MarkConversationReadHandler', () => {
     const { handler } = build({ conversation: conversation() });
     await expect(
       handler.execute(
-        new MarkConversationReadCommand({ clinicId: 'clinic-OTHER', conversationId: 'conv-1', ctx })
+        new MarkConversationReadCommand({
+          clinicId: 'clinic-OTHER',
+          conversationId: 'conv-1',
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(ForbiddenException);
   });

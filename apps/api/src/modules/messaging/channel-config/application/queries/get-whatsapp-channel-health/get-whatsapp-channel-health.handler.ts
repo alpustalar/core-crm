@@ -13,13 +13,10 @@ import { GetWhatsappChannelHealthQuery } from './get-whatsapp-channel-health.que
 import { GetWhatsappChannelHealthResponse } from './get-whatsapp-channel-health.response';
 
 @QueryHandler(GetWhatsappChannelHealthQuery)
-export class GetWhatsappChannelHealthHandler
-  implements
-    IQueryHandler<
-      GetWhatsappChannelHealthQuery,
-      GetWhatsappChannelHealthResponse
-    >
-{
+export class GetWhatsappChannelHealthHandler implements IQueryHandler<
+  GetWhatsappChannelHealthQuery,
+  GetWhatsappChannelHealthResponse
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,

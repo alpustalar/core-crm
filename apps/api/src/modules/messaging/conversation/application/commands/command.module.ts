@@ -8,10 +8,12 @@ import { MarkConversationReadHandler } from './mark-conversation-read/mark-conve
 import { CloseConversationHandler } from './close-conversation/close-conversation.handler';
 import { AssignConversationHandler } from './assign-conversation/assign-conversation.handler';
 import { RequestConversationHandoffHandler } from './request-conversation-handoff/request-conversation-handoff.handler';
-import { ConversationRepositoryModule } from '@modules/messaging/conversation/infrastructure/persistence/prisma/repositories/conversation.repository.module';
+import { ConversationRepositoryModule } from '@modules/messaging/conversation/infrastructure/persistence/mongo/repositories/conversation.repository.module';
 import { MessagingQueueModule } from '@modules/messaging/conversation/infrastructure/queue/messaging-queue.module';
 import { ChannelRouterModule } from '@modules/messaging/conversation/infrastructure/adapters/router/channel-router.module';
-import { PatientQueryModule } from '@modules/crm/patient/application/queries/query.module';
+import { ContactResolverModule } from '@modules/messaging/conversation/infrastructure/adapters/contact/contact-resolver.module';
+import { MessagingCacheModule } from '@modules/messaging/conversation/infrastructure/cache/messaging-cache.module';
+import { AiMemoryCacheModule } from '@modules/messaging/ai-agent/infrastructure/cache/ai-memory-cache.module';
 
 const CommandHandlers = [
   ReceiveInboundMessageHandler,
@@ -30,7 +32,9 @@ const CommandHandlers = [
     ConversationRepositoryModule,
     MessagingQueueModule,
     ChannelRouterModule,
-    PatientQueryModule,
+    ContactResolverModule,
+    MessagingCacheModule,
+    AiMemoryCacheModule,
   ],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],

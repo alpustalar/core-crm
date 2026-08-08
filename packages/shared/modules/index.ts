@@ -11,3 +11,4 @@ export * from "./inventory";
 export * from "./lead";
 export * from "./admin-request";
 export * from "./governance";
+export * from "./messaging";

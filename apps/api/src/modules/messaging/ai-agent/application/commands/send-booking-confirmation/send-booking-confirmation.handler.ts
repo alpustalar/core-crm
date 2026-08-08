@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import { MessageChannel, MessageDirection, MessageType } from '@prisma/client';
+import { MessageChannel, MessageDirection, MessageType } from '@shared';
 import { PaginationSchema } from '@shared';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -36,9 +36,10 @@ import {
 const HISTORY_LIMIT = 20;
 
 @CommandHandler(SendBookingConfirmationCommand)
-export class SendBookingConfirmationHandler
-  implements ICommandHandler<SendBookingConfirmationCommand, void>
-{
+export class SendBookingConfirmationHandler implements ICommandHandler<
+  SendBookingConfirmationCommand,
+  void
+> {
   private readonly logger = new Logger(SendBookingConfirmationHandler.name);
 
   constructor(
@@ -188,8 +189,7 @@ export class SendBookingConfirmationHandler
   }
 
   /** Mesajları AI sohbet dizisine çevirir (processor ile aynı kural: ilk user, ardışık birleştir). */
-  private buildHistory(
-    messages: IMessage[]): AiChatMessage[] {
+  private buildHistory(messages: IMessage[]): AiChatMessage[] {
     const mapped: AiChatMessage[] = [];
     for (const m of messages) {
       const body = m.body?.trim();

@@ -13,13 +13,10 @@ import { GetWhatsappBusinessProfileQuery } from './get-whatsapp-business-profile
 import { GetWhatsappBusinessProfileResponse } from './get-whatsapp-business-profile.response';
 
 @QueryHandler(GetWhatsappBusinessProfileQuery)
-export class GetWhatsappBusinessProfileHandler
-  implements
-    IQueryHandler<
-      GetWhatsappBusinessProfileQuery,
-      GetWhatsappBusinessProfileResponse
-    >
-{
+export class GetWhatsappBusinessProfileHandler implements IQueryHandler<
+  GetWhatsappBusinessProfileQuery,
+  GetWhatsappBusinessProfileResponse
+> {
   constructor(
     @Inject(CLINIC_WHATSAPP_CHANNEL_QUERY_REPOSITORY)
     private readonly channelQueryRepo: IClinicWhatsappChannelQueryRepository,
