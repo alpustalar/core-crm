@@ -14,16 +14,15 @@ export class AppointmentReminderSchedulerProducer implements OnModuleInit {
     AppointmentReminderSchedulerProducer.name
   );
 
-  constructor(
-    @InjectQueue(QUEUES.APPOINTMENT) private readonly queue: Queue
-  ) {}
+  constructor(@InjectQueue(QUEUES.APPOINTMENT) private readonly queue: Queue) {}
 
   async onModuleInit(): Promise<void> {
     await this.queue.add(
       APPOINTMENT_JOBS.SCAN_DUE_REMINDERS,
       {},
       {
-        repeat: { pattern: '*/15 * * * *' }, // her 15 dakikada bir
+        jobId: 'appointment-reminder-cron-scan',
+        repeat: { pattern: '*/15 * * * *' }, // 15 dakikada bir
         removeOnComplete: true,
         removeOnFail: false,
       }

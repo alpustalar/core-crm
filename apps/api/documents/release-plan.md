@@ -2,7 +2,12 @@
 
 > Kaynak: kullanıcının ~2 ay önceki 9-gruplu release planı. Bu dosya **kod üzerinden doğrulanmış**
 > güncel durumu tutar. Durum: ✅ tamam · 🟡 kısmi · 🔴 eksik.
-> Son denetim: 2026-07-13.
+> Son denetim: 2026-08-08.
+>
+> **Mimari not (2026-08-08):** Grup 2 (mesajlaşma) artık ayrı bir servis —
+> `apps/messaging` (:8081, kendi MongoDB'si, NATS ile core'a bağlı). Ürün kapsamı
+> değişmedi; aşağıdaki 2.x durumları geçerliliğini koruyor.
+> Ayrıntı: `documents/messaging-microservice.md`.
 
 ## Özet Tablo
 
