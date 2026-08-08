@@ -1,16 +1,16 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CompleteActivityCommand } from './complete-activity.command';
-import {
-  ACTIVITY_COMMAND_REPOSITORY,
-  IActivityCommandRepository,
-} from '@modules/crm/activity/domain/repositories/activity.repository';
 import { ActivityNotFoundException } from '@modules/crm/activity/domain/exceptions/activity.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ACTIVITY_COMMAND_REPOSITORY,
+  IActivityCommandRepository,
+} from '@modules/crm/activity/domain/repositories/activity/activity.command.repository';
 
 @CommandHandler(CompleteActivityCommand)
 export class CompleteActivityHandler
@@ -18,7 +18,7 @@ export class CompleteActivityHandler
 {
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
-    private readonly activityCommandRepo: IActivityCommandRepository,
+    private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -28,7 +28,7 @@ export class CompleteActivityHandler
     const { activityId, ctx } = command;
 
     await this.txManager.run(async () => {
-      const activity = await this.activityCommandRepo.findById(activityId);
+      const activity = await this.activityRepo.findById(activityId);
       if (!activity) throw new ActivityNotFoundException(activityId);
 
       const validateOptions = this.policyFactory
@@ -39,7 +39,7 @@ export class CompleteActivityHandler
 
       activity.complete();
 
-      await this.activityCommandRepo.save(activity);
+      await this.activityRepo.update(activity);
     });
   }
 }

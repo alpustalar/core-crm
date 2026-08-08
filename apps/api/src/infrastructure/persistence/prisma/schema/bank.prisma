@@ -16,6 +16,13 @@ enum BankStatementLineMatchStatus {
   IGNORED // mutabakat dışı bırakıldı (bilinçli atlandı)
 }
 
+// Eşleşmeyi kim kurdu: personel mi, oto-eşleştirme taraması mı. Denetim izi —
+// makinenin kurduğu eşleşmeler toplu gözden geçirilebilsin/geri alınabilsin.
+enum BankStatementLineMatchSource {
+  MANUAL // personel elle eşleştirdi
+  AUTO // oto-eşleştirme taraması kurdu (tutar+yön kesin, tarih toleransı içinde, tek aday)
+}
+
 model BankAccount {
   id             String @id
   clinicId       String @map("clinic_id")
@@ -79,8 +86,9 @@ model BankStatementLine {
   counterpartyName String?  @map("counterparty_name")
 
   matchStatus    BankStatementLineMatchStatus @default(UNMATCHED) @map("match_status")
-  matchedRef     String?                      @map("matched_ref") // eşleşen içeri kayıt referansı (financialEventId / journalId / serbest)
+  matchedRef     String?                      @map("matched_ref") // eşleşen içeri kayıt referansı (oto-eşleştirmede JournalLine.id; elle: financialEventId / serbest)
   matchNote      String?                      @map("match_note")
+  matchSource    BankStatementLineMatchSource  @default(MANUAL) @map("match_source")
   reconciledById String?                      @map("reconciled_by_id")
   reconciledAt   DateTime?                    @map("reconciled_at")
 
@@ -91,5 +99,8 @@ model BankStatementLine {
   @@index([bankStatementId])
   @@index([bankAccountId, matchStatus])
   @@index([clinicId, transactionDate])
+  // Oto-eşleştirme "bu defter satırı başka bir ekstre satırına zaten bağlanmış mı"
+  // kontrolünü klinik kapsamında matchedRef üzerinden yapar.
+  @@index([clinicId, matchedRef])
   @@map("bank_statement_lines")
 }

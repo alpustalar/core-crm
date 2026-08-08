@@ -1,12 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TerminateEmployeeCommand } from './terminate-employee.command';
-import {
-  EMPLOYEE_COMMAND_REPOSITORY,
-  EMPLOYEE_CONTRACT_COMMAND_REPOSITORY,
-  IEmployeeCommandRepository,
-  IEmployeeContractCommandRepository,
-} from '@modules/hr/employee/domain/repositories/employee.repository';
 import { EmployeeNotFoundException } from '@modules/hr/employee/domain/exceptions/employee.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -24,17 +18,24 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import {
+  EMPLOYEE_COMMAND_REPOSITORY,
+  IEmployeeCommandRepository,
+} from '@modules/hr/employee/domain/repositories/employee/employee.command.repository';
+import {
+  EMPLOYEE_CONTRACT_COMMAND_REPOSITORY,
+  IEmployeeContractCommandRepository,
+} from '@modules/hr/employee/domain/repositories/employee-contract/employee-contract.command.repository';
 
 @CommandHandler(TerminateEmployeeCommand)
-export class TerminateEmployeeHandler implements ICommandHandler<
-  TerminateEmployeeCommand,
-  void
-> {
+export class TerminateEmployeeHandler
+  implements ICommandHandler<TerminateEmployeeCommand, void>
+{
   constructor(
     @Inject(EMPLOYEE_COMMAND_REPOSITORY)
-    private readonly employeeCommandRepo: IEmployeeCommandRepository,
+    private readonly employeeRepo: IEmployeeCommandRepository,
     @Inject(EMPLOYEE_CONTRACT_COMMAND_REPOSITORY)
-    private readonly contractCommandRepo: IEmployeeContractCommandRepository,
+    private readonly employeeContractRepo: IEmployeeContractCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(EMPLOYEE_EVENT_PUBLISHER)
@@ -47,7 +48,7 @@ export class TerminateEmployeeHandler implements ICommandHandler<
     const terminationDate = data.terminationDate ?? DateTimeManager.create();
 
     await this.txManager.run(async () => {
-      const employee = await this.employeeCommandRepo.findById(employeeId);
+      const employee = await this.employeeRepo.findById(employeeId);
       if (!employee) throw new EmployeeNotFoundException(employeeId);
 
       this.policyFactory
@@ -56,14 +57,14 @@ export class TerminateEmployeeHandler implements ICommandHandler<
         .orThrow(EMPLOYEE_EVENTS.TERMINATE);
 
       employee.terminate(terminationDate);
-      await this.employeeCommandRepo.save(employee);
+      await this.employeeRepo.update(employee);
 
       // Aktif sözleşmeyi de sonlandır.
       const active =
-        await this.contractCommandRepo.findActiveByEmployeeId(employeeId);
+        await this.employeeContractRepo.findActiveByEmployeeId(employeeId);
       if (active) {
         active.end(terminationDate);
-        await this.contractCommandRepo.save(active);
+        await this.employeeContractRepo.update(active);
       }
 
       this.eventPublisher.employeeTerminated({

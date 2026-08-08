@@ -1,29 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { JournalEntryStatus, Prisma } from '@prisma/client';
-import { Pagination } from '@shared';
+import { Pagination, JournalEntry as IJournalEntry } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import {
   AccountLedger,
   AccountLedgerFilter,
+  BankLedgerLineRow,
+  BankLedgerLinesFilter,
   CashFlow,
   CashFlowFilter,
   FindJournalEntriesFilter,
   IJournalQueryRepository,
   JournalReportFilter,
+  JournalReportRow,
   TrialBalanceFilter,
   TrialBalanceRow,
   VatDeclaration,
   VatDeclarationFilter,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
-import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
-import { JournalLine } from '@modules/finance/accounting/posting/domain/entities/journal-line.entity';
+import { queryTrialBalance } from './journal-trial-balance.query';
 
-type JournalEntryWithLines = Prisma.JournalEntryGetPayload<{
-  include: { lines: true };
-}>;
-
+/**
+ * Okuma tarafı: entity hidrate edilmez. Defter append-only olduğu için raporlarda
+ * domain davranışı gerekmez; storno/kapanış gibi yazma kararını besleyen okumalar
+ * Command Repo'dadır.
+ */
 @Injectable()
 export class JournalQueryRepository
   extends BaseRepository
@@ -33,67 +36,25 @@ export class JournalQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<JournalEntry | null> {
-    const raw = await this.db.journalEntry.findUnique({
-      where: { id },
-      include: { lines: true },
-    });
-    return raw ? this.toEntity(raw) : null;
-  }
-
-  async findByEventId(eventId: string): Promise<JournalEntry | null> {
-    const raw = await this.db.journalEntry.findUnique({
-      where: { eventId },
-      include: { lines: true },
-    });
-    return raw ? this.toEntity(raw) : null;
-  }
-
-  async findMany(
+  findMany(
     filter: FindJournalEntriesFilter,
     pagination: Pagination
-  ): Promise<{ items: JournalEntry[]; total: number }> {
+  ): Promise<{ items: IJournalEntry[]; total: number }> {
     const where: Prisma.JournalEntryWhereInput = {
       organizationId: filter.organizationId,
       ...(filter.status ? { status: filter.status } : {}),
       ...(filter.periodId ? { periodId: filter.periodId } : {}),
     };
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.journalEntry,
       pagination,
       where,
-      include: { lines: true },
     });
-
-    return {
-      items: result.items.map((raw) =>
-        this.toEntity(raw as JournalEntryWithLines)
-      ),
-      total: result.total,
-    };
   }
 
-  async trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]> {
-    const entryWhere: Prisma.JournalEntryWhereInput = {
-      clinicId: filter.clinicId,
-      status: JournalEntryStatus.POSTED,
-    };
-    if (filter.dateFrom || filter.dateTo) {
-      entryWhere.entryDate = { gte: filter.dateFrom, lte: filter.dateTo };
-    }
-
-    const grouped = await this.db.journalLine.groupBy({
-      by: ['accountId'],
-      where: { entry: entryWhere },
-      _sum: { debit: true, credit: true },
-    });
-
-    return grouped.map((row) => ({
-      accountId: row.accountId,
-      totalDebit: row._sum.debit ?? new Prisma.Decimal(0),
-      totalCredit: row._sum.credit ?? new Prisma.Decimal(0),
-    }));
+  trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]> {
+    return queryTrialBalance(this.db, filter);
   }
 
   async accountLedger(filter: AccountLedgerFilter): Promise<AccountLedger> {
@@ -134,10 +95,7 @@ export class JournalQueryRepository
           },
         },
       },
-      orderBy: [
-        { entry: { entryDate: 'asc' } },
-        { entry: { entryNo: 'asc' } },
-      ],
+      orderBy: [{ entry: { entryDate: 'asc' } }, { entry: { entryNo: 'asc' } }],
     });
 
     return {
@@ -157,7 +115,7 @@ export class JournalQueryRepository
   async journalReport(
     filter: JournalReportFilter,
     pagination: Pagination
-  ): Promise<{ items: JournalEntry[]; total: number }> {
+  ): Promise<{ items: JournalReportRow[]; total: number }> {
     const where: Prisma.JournalEntryWhereInput = {
       clinicId: filter.clinicId,
       status: JournalEntryStatus.POSTED,
@@ -171,7 +129,22 @@ export class JournalQueryRepository
     const [rows, total] = await Promise.all([
       this.db.journalEntry.findMany({
         where,
-        include: { lines: true },
+        select: {
+          id: true,
+          entryNo: true,
+          entryDate: true,
+          description: true,
+          status: true,
+          lines: {
+            select: {
+              accountId: true,
+              partyId: true,
+              debit: true,
+              credit: true,
+              lineDesc: true,
+            },
+          },
+        },
         orderBy: [{ entryDate: 'asc' }, { entryNo: 'asc' }],
         skip: pagination.skip,
         take: pagination.take,
@@ -179,10 +152,7 @@ export class JournalQueryRepository
       this.db.journalEntry.count({ where }),
     ]);
 
-    return {
-      items: rows.map((raw) => this.toEntity(raw as JournalEntryWithLines)),
-      total,
-    };
+    return { items: rows, total };
   }
 
   async cashFlow(filter: CashFlowFilter): Promise<CashFlow> {
@@ -231,9 +201,7 @@ export class JournalQueryRepository
     };
   }
 
-  async vatDeclaration(
-    filter: VatDeclarationFilter
-  ): Promise<VatDeclaration> {
+  async vatDeclaration(filter: VatDeclarationFilter): Promise<VatDeclaration> {
     const entryWhere: Prisma.JournalEntryWhereInput = {
       clinicId: filter.clinicId,
       status: JournalEntryStatus.POSTED,
@@ -245,7 +213,11 @@ export class JournalQueryRepository
     const fetch = (accountIds: string[]) =>
       accountIds.length === 0
         ? Promise.resolve(
-            [] as { entry: { entryDate: Date }; debit: Prisma.Decimal; credit: Prisma.Decimal }[]
+            [] as {
+              entry: { entryDate: Date };
+              debit: Prisma.Decimal;
+              credit: Prisma.Decimal;
+            }[]
           )
         : this.db.journalLine.findMany({
             where: { accountId: { in: accountIds }, entry: entryWhere },
@@ -263,7 +235,11 @@ export class JournalQueryRepository
     ]);
 
     const toRows = (
-      rows: { entry: { entryDate: Date }; debit: Prisma.Decimal; credit: Prisma.Decimal }[]
+      rows: {
+        entry: { entryDate: Date };
+        debit: Prisma.Decimal;
+        credit: Prisma.Decimal;
+      }[]
     ) =>
       rows.map((row) => ({
         entryDate: row.entry.entryDate,
@@ -274,8 +250,46 @@ export class JournalQueryRepository
     return { output: toRows(outputRows), input: toRows(inputRows) };
   }
 
-  private toEntity(raw: JournalEntryWithLines): JournalEntry {
-    const lines = raw.lines.map((line) => new JournalLine(line));
-    return new JournalEntry(raw, lines);
+  async bankLedgerLines(
+    filter: BankLedgerLinesFilter
+  ): Promise<BankLedgerLineRow[]> {
+    if (filter.accountIds.length === 0) return [];
+
+    const rows = await this.db.journalLine.findMany({
+      where: {
+        accountId: { in: filter.accountIds },
+        entry: {
+          clinicId: filter.clinicId,
+          status: JournalEntryStatus.POSTED,
+          entryDate: { gte: filter.dateFrom, lte: filter.dateTo },
+        },
+      },
+      select: {
+        id: true,
+        debit: true,
+        credit: true,
+        lineDesc: true,
+        entry: {
+          select: {
+            id: true,
+            entryNo: true,
+            entryDate: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: { entry: { entryDate: 'asc' } },
+    });
+
+    return rows.map((row) => ({
+      lineId: row.id,
+      entryId: row.entry.id,
+      entryNo: row.entry.entryNo,
+      entryDate: row.entry.entryDate,
+      entryDescription: row.entry.description,
+      lineDesc: row.lineDesc,
+      debit: row.debit,
+      credit: row.credit,
+    }));
   }
 }

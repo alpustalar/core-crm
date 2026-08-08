@@ -18,5 +18,6 @@ export const HOTEL_AI_TOOLS = [
 
 @Module({
   providers: HOTEL_AI_TOOLS,
+  exports: HOTEL_AI_TOOLS,
 })
 export class HotelAiToolsModule {}

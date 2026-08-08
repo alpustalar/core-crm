@@ -2,7 +2,7 @@ import { ICommand } from '@nestjs/cqrs';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
 import { IssueInvoiceResponse } from './issue-invoice.response';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { InvoiceTrigger } from '@modules/finance/invoice/domain/invoice.contracts';
+import { InvoiceTrigger } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
 
 export interface IssueInvoiceCommandInput extends IAuditLog {
   clinicId: string;

@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { TaxParameterKeyType as TaxParameterKey } from '@input-type-schemas/TaxParameterKeySchema';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
-import { ITaxParameterCommandRepository } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
+import { ITaxParameterCommandRepository } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter/tax-parameter.command.repository';
 
 @Injectable()
 export class TaxParameterCommandRepository
@@ -19,6 +20,30 @@ export class TaxParameterCommandRepository
     return raw ? new TaxParameter(raw) : null;
   }
 
+  async findOpenForUpdate(
+    clinicId: string,
+    key: TaxParameterKey
+  ): Promise<TaxParameter | null> {
+    const open = await this.db.taxParameter.findFirst({
+      where: { clinicId, key, validTo: null },
+      orderBy: { validFrom: 'desc' },
+      select: { id: true },
+    });
+    // Açık sürüm yoksa kilitlenecek satır da yok; ilk sürüm doğrudan açılır.
+    if (!open) return null;
+
+    await this.lockRowForUpdate('tax_parameters', open.id);
+    const raw = await this.db.taxParameter.findUnique({
+      where: { id: open.id },
+    });
+    return raw ? new TaxParameter(raw) : null;
+  }
+
+  async existsForClinic(clinicId: string): Promise<boolean> {
+    const count = await this.db.taxParameter.count({ where: { clinicId } });
+    return count > 0;
+  }
+
   async create(entity: TaxParameter): Promise<TaxParameter> {
     const data = entity.toPersistence();
     const raw = await this.db.taxParameter.create({ data });
@@ -26,7 +51,7 @@ export class TaxParameterCommandRepository
     return new TaxParameter(raw);
   }
 
-  async save(entity: TaxParameter) {
+  async update(entity: TaxParameter) {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.taxParameter.update({
@@ -37,15 +62,10 @@ export class TaxParameterCommandRepository
     return new TaxParameter(raw);
   }
 
-  async saveMany(entities: TaxParameter[]): Promise<void> {
-    const queries = entities.map((entity) => {
-      const data = entity.toPersistence();
-      return this.db.taxParameter.upsert({
-        where: { id: data.id },
-        create: data,
-        update: data,
-      });
-    });
+  async createMany(entities: TaxParameter[]): Promise<void> {
+    const queries = entities.map((entity) =>
+      this.db.taxParameter.create({ data: entity.toPersistence() })
+    );
 
     if (txStorage.getStore()?.tx) {
       await Promise.all(queries);

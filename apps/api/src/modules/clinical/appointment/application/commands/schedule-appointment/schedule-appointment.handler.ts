@@ -4,10 +4,6 @@ import { ScheduleAppointmentCommand } from './schedule-appointment.command';
 import { ScheduleAppointmentCommandResponse } from './schedule-appointment.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
@@ -15,12 +11,19 @@ import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/f
 import { CreatePatientCommand } from '@modules/crm/patient/application/commands/create-patient/create-patient.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TimeZoneSchema } from '@shared';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
+import {
+  APPOINTMENT_CHECKER_SERVICE,
+  IAppointmentCheckerService,
+} from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -39,7 +42,8 @@ export class ScheduleAppointmentHandler
     private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly appointmentCheckerService: AppointmentCheckerService,
+    @Inject(APPOINTMENT_CHECKER_SERVICE)
+    private readonly appointmentCheckerService: IAppointmentCheckerService,
     private readonly queryBus: TSQueryBus,
     private readonly commandBus: TSCommandBus,
     private readonly transactionManager: TransactionManager

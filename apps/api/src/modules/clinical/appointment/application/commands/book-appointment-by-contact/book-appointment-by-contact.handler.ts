@@ -1,20 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { BookAppointmentByContactCommand } from './book-appointment-by-contact.command';
-import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentCommandRepository,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TimeZoneSchema } from '@shared';
-import { AssertClinicCanBookQuery } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
-import { AssertProviderCanBookQuery } from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
+
 import { AppointmentSourceSchema } from '@input-type-schemas/AppointmentSourceSchema';
 import { AppointmentCreatorTypeSchema } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
@@ -26,6 +18,22 @@ import {
 } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { CreatePatientCommand } from '@modules/crm/patient/application/commands/create-patient/create-patient.command';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command.repository';
+import {
+  IProviderBookingService,
+  PROVIDER_BOOKING_SERVICE,
+} from '@modules/clinical/provider/domain/services/provider-booking/provider-booking.service.interface';
+import {
+  CLINIC_BOOKING_SERVICE,
+  IClinicBookingService,
+} from '@modules/organization/clinic/domain/services/clinic-booking/clinic-booking.service.interface';
+import {
+  APPOINTMENT_CHECKER_SERVICE,
+  IAppointmentCheckerService,
+} from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 /**
  * AI asistanı üzerinden randevu açar. Portal handler'ı ile aynı iş kurallarını uygular
@@ -40,10 +48,13 @@ export class BookAppointmentByContactHandler
 {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
-    @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentQueryRepo: IAppointmentQueryRepository,
-    private readonly appointmentCheckerService: AppointmentCheckerService,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
+    @Inject(APPOINTMENT_CHECKER_SERVICE)
+    private readonly appointmentCheckerService: IAppointmentCheckerService,
+    @Inject(PROVIDER_BOOKING_SERVICE)
+    private readonly providerBookingService: IProviderBookingService,
+    @Inject(CLINIC_BOOKING_SERVICE)
+    private readonly clinicBookingService: IClinicBookingService,
     private readonly queryBus: TSQueryBus,
     private readonly commandBus: TSCommandBus,
     private readonly transactionManager: TransactionManager
@@ -75,21 +86,18 @@ export class BookAppointmentByContactHandler
       throw new BookingWindowExceededException(settings.maxFutureBookingDays);
 
     await Promise.all([
-      this.queryBus.execute(
-        new AssertClinicCanBookQuery({
-          clinicId: data.clinicId,
-          startTime: data.startTime,
-          endTime,
-        })
-      ),
-      this.queryBus.execute(
-        new AssertProviderCanBookQuery({
-          providerId: data.providerId,
-          startTime: data.startTime,
-          endTime,
-          isConsultation,
-        })
-      ),
+      this.clinicBookingService.assertCanBook({
+        clinicId: data.clinicId,
+        startTime: data.startTime,
+        endTime,
+      }),
+
+      this.providerBookingService.assertCanBook({
+        providerId: data.providerId,
+        startTime: data.startTime,
+        endTime,
+        isConsultation,
+      }),
     ]);
 
     await this.appointmentCheckerService.assertNoConflict({
@@ -112,7 +120,7 @@ export class BookAppointmentByContactHandler
     // Hasta aynı anda kaç aktif randevu tutabilir (klinik ayarı) — aşımda reddet.
     // Yeni oluşan hasta için sayım 0'dır; mevcut hastada gerçek aktif sayı kontrol edilir.
     const activeCount =
-      await this.appointmentQueryRepo.countActiveByPatient(patientId);
+      await this.appointmentRepo.countActiveByPatient(patientId);
     if (activeCount >= settings.maxActivePatientBookings) {
       throw new MaxActiveBookingsExceededException(
         settings.maxActivePatientBookings
@@ -146,7 +154,7 @@ export class BookAppointmentByContactHandler
     });
 
     return this.transactionManager.run(async () => {
-      const saved = await this.appointmentCommandRepo.create(appointment);
+      const saved = await this.appointmentRepo.create(appointment);
       return saved.id.value;
     });
   }

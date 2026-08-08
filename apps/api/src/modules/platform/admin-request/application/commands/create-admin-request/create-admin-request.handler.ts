@@ -1,13 +1,13 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateAdminRequestCommand } from './create-admin-request.command';
-import {
-  ADMIN_REQUEST_COMMAND_REPOSITORY,
-  IAdminRequestCommandRepository,
-} from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
 import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
 import { AdminRequestType } from '@shared/modules/admin-request/types';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import {
+  ADMIN_REQUEST_COMMAND_REPOSITORY,
+  IAdminRequestCommandRepository,
+} from '@modules/platform/admin-request/domain/repositories/admin-request/admin-request.command.repository';
 
 @CommandHandler(CreateAdminRequestCommand)
 export class CreateAdminRequestHandler
@@ -15,7 +15,7 @@ export class CreateAdminRequestHandler
 {
   constructor(
     @Inject(ADMIN_REQUEST_COMMAND_REPOSITORY)
-    private readonly adminRequestCommandRepo: IAdminRequestCommandRepository,
+    private readonly adminRequestRepo: IAdminRequestCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -32,7 +32,7 @@ export class CreateAdminRequestHandler
         clinicId: actor.clinicId ?? undefined,
       });
 
-      const saved = await this.adminRequestCommandRepo.create(entity);
+      const saved = await this.adminRequestRepo.create(entity);
       return saved.id.value;
     });
   }

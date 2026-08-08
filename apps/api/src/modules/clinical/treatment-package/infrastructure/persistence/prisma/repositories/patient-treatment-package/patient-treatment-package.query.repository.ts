@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPatientTreatmentPackageQueryRepository } from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
 import { Pagination } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
+import { IPatientTreatmentPackageQueryRepository } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.query.repository';
 
 const providerInclude = {
   include: { user: { select: { displayName: true } } },
@@ -20,7 +19,7 @@ export class PatientTreatmentPackageQueryRepository
   }
 
   async findById(id: string) {
-    const result = await this.db.patientTreatmentPackage.findUnique({
+    return this.db.patientTreatmentPackage.findUnique({
       where: { id },
       include: {
         package: {
@@ -32,8 +31,6 @@ export class PatientTreatmentPackageQueryRepository
         payment: { select: { id: true, status: true } },
       },
     });
-
-    return result ? new PatientTreatmentPackage(result) : null;
   }
 
   async findManyByPatient(
@@ -41,7 +38,7 @@ export class PatientTreatmentPackageQueryRepository
     pagination: Pagination,
     status?: string
   ) {
-    const result = await paginate({
+    return await paginate({
       delegate: this.db.patientTreatmentPackage,
       pagination,
       where: {
@@ -54,7 +51,5 @@ export class PatientTreatmentPackageQueryRepository
         payment: { select: { id: true, status: true, expectedAmount: true } },
       },
     });
-
-    return this.mapPagination(result, (i) => new PatientTreatmentPackage(i));
   }
 }

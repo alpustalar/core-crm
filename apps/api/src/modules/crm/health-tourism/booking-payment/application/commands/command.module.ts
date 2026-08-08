@@ -7,6 +7,7 @@ import { InitiateBookingPaymentHandler } from './initiate-booking-payment/initia
 import { ConfirmBookingPaymentHandler } from './confirm-booking-payment/confirm-booking-payment.handler';
 import { HandleBookingPaymentIyzicoCallbackHandler } from './handle-iyzico-callback/handle-iyzico-callback.handler';
 import { RefundBookingPaymentHandler } from './refund-booking-payment/refund-booking-payment.handler';
+import { PostingCommandModule } from '@modules/finance/accounting/posting/application/commands/command.module';
 
 export const BOOKING_PAYMENT_COMMAND_HANDLERS = [
   InitiateBookingPaymentHandler,
@@ -21,6 +22,8 @@ export const BOOKING_PAYMENT_COMMAND_HANDLERS = [
     PaymentLinkModule,
     IyzicoModule,
     BookingPaymentRepositoryModule,
+    // Tahsilat platform defterine yazılır; PLATFORM_TENANT_PROVIDER buradan gelir.
+    PostingCommandModule,
   ],
   providers: BOOKING_PAYMENT_COMMAND_HANDLERS,
   exports: BOOKING_PAYMENT_COMMAND_HANDLERS,

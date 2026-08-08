@@ -1,9 +1,9 @@
 import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
-import { IOrganizationCommandRepository } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { IOrganizationCommandRepository } from '@modules/organization/organization/domain/repositories/organization/organization.command.repository';
 
 @Injectable()
 export class OrganizationCommandRepository
@@ -26,7 +26,7 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async save(entity: Organization): Promise<Organization> {
+  async update(entity: Organization): Promise<Organization> {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
 
@@ -39,7 +39,7 @@ export class OrganizationCommandRepository
     return new Organization(raw);
   }
 
-  async saveMany(entities: Organization[]): Promise<void> {
+  async updateMany(entities: Organization[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const persistenceData = entity.toPersistence();
       const { id, ...data } = persistenceData;

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
-import { ConsentFormRepositoryModule } from '@modules/clinical/consent-form/infrastructure/persistence/prisma/repositories/consent-form.repository.module';
+import { ConsentFormRepositoriesModule } from '@modules/clinical/consent-form/infrastructure/persistence/prisma/repositories/repositories.module';
 import { GetConsentTemplatesHandler } from './get-consent-templates/get-consent-templates.handler';
 import { GetConsentTemplateByIdHandler } from './get-consent-template-by-id/get-consent-template-by-id.handler';
 import { GetConsentSubmissionsByPatientHandler } from './get-consent-submissions-by-patient/get-consent-submissions-by-patient.handler';
@@ -14,7 +13,7 @@ export const CONSENT_FORM_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, ConsentFormRepositoryModule],
+  imports: [ConsentFormRepositoriesModule],
   providers: CONSENT_FORM_QUERY_HANDLERS,
   exports: CONSENT_FORM_QUERY_HANDLERS,
 })

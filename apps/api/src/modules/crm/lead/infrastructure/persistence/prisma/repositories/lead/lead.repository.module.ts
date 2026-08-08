@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import {
   LEAD_COMMAND_REPOSITORY,
   LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import { LeadCommandRepository } from './lead.command.repository';
 import { LeadQueryRepository } from './lead.query.repository';
 

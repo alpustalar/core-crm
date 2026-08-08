@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IProductCommandRepository } from '@modules/supply/inventory/domain/repositories/product.repository.interface';
 import { Product } from '@modules/supply/inventory/domain/entities/product.entity';
+import { IProductCommandRepository } from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
 
 @Injectable()
 export class ProductCommandRepository
@@ -31,7 +31,7 @@ export class ProductCommandRepository
     return new Product(raw);
   }
 
-  async save(product: Product): Promise<Product> {
+  async update(product: Product): Promise<Product> {
     const create = product.toPersistence();
     const { id, ...data } = create;
 

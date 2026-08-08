@@ -2,13 +2,9 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RecordCashMovementCommand } from './record-cash-movement.command';
 import {
-  CASH_SESSION_COMMAND_REPOSITORY,
-  ICashSessionCommandRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-session.repository';
-import {
   CASH_MOVEMENT_COMMAND_REPOSITORY,
   ICashMovementCommandRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-movement.repository';
+} from '@modules/finance/cash-register/domain/repositories/cash-movement/cash-movement.command.repository';
 import { CashMovement } from '@modules/finance/cash-register/domain/entities/cash-movement.entity';
 import { CashSessionNotFoundException } from '@modules/finance/cash-register/domain/exceptions/cash-register.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -17,15 +13,18 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { CASH_REGISTER_EVENTS } from '@src/domain/constants/events/cash-register.constant';
+import {
+  CASH_SESSION_COMMAND_REPOSITORY,
+  ICashSessionCommandRepository,
+} from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.command.repository';
 
 @CommandHandler(RecordCashMovementCommand)
-export class RecordCashMovementHandler implements ICommandHandler<
-  RecordCashMovementCommand,
-  void
-> {
+export class RecordCashMovementHandler
+  implements ICommandHandler<RecordCashMovementCommand, void>
+{
   constructor(
     @Inject(CASH_SESSION_COMMAND_REPOSITORY)
-    private readonly sessionCommandRepo: ICashSessionCommandRepository,
+    private readonly cashSessionRepo: ICashSessionCommandRepository,
     @Inject(CASH_MOVEMENT_COMMAND_REPOSITORY)
     private readonly movementCommandRepo: ICashMovementCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -39,8 +38,7 @@ export class RecordCashMovementHandler implements ICommandHandler<
     // Oturumu FOR UPDATE ile kilitle: hareket kaydı ile eşzamanlı kapanışı
     // serialize eder — kapanış-anında-hareket (kapanış sayımını bozan yarış) önlenir.
     await this.txManager.run(async () => {
-      const session =
-        await this.sessionCommandRepo.findByIdForUpdate(sessionId);
+      const session = await this.cashSessionRepo.findByIdForUpdate(sessionId);
       if (!session) throw new CashSessionNotFoundException(sessionId);
 
       this.policyFactory

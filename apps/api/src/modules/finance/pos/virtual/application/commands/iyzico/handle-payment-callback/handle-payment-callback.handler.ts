@@ -17,29 +17,22 @@ import { RecordFinancialEventCommand } from '@modules/finance/accounting/financi
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 import {
   IIyzicoTransactionCommandRepository,
-  IIyzicoTransactionQueryRepository,
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
-  IYZICO_TRANSACTION_QUERY_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 
 @CommandHandler(HandlePaymentCallbackCommand)
-export class HandlePaymentCallbackHandler
-  implements
-    ICommandHandler<
-      HandlePaymentCallbackCommand,
-      HandlePaymentCallbackCommandResponse
-    >
-{
+export class HandlePaymentCallbackHandler implements ICommandHandler<
+  HandlePaymentCallbackCommand,
+  HandlePaymentCallbackCommandResponse
+> {
   private readonly logger = new Logger(HandlePaymentCallbackHandler.name);
 
   constructor(
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
-    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
     @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     private readonly txManager: TransactionManager,
@@ -53,8 +46,11 @@ export class HandlePaymentCallbackHandler
     const sdkResult = await this.iyzicoProvider.retrieveCheckoutForm(token);
 
     await this.txManager.outboxRun(async () => {
+      // Kilitli okuma: iyzico aynı ödeme için hem tarayıcı callback'ini hem webhook'u
+      // gönderir. Kilitsizken ikisi de PENDING görüp aşağıdaki idempotency kontrolünden
+      // geçer → taksit iki kez COMPLETED olur ve muhasebeye iki tahsilat düşerdi.
       const iyzicoTx =
-        await this.iyzicoQueryRepo.findTransactionByConversationId(
+        await this.iyzicoCommandRepo.findByConversationIdForUpdate(
           conversationId
         );
 
@@ -81,7 +77,7 @@ export class HandlePaymentCallbackHandler
           iyzicoPaymentTransactionId: sdkResult.paymentTransactionId,
           rawResponse: sdkResult.rawResponse,
         });
-        await this.iyzicoCommandRepo.save(transaction);
+        await this.iyzicoCommandRepo.update(transaction);
 
         // Taksit COMPLETED + PaymentPaidEvent payment command handler'ında fırlatılır.
         await this.commandBus.execute(
@@ -102,7 +98,7 @@ export class HandlePaymentCallbackHandler
           errorMessage: sdkResult.errorMessage,
           rawResponse: sdkResult.rawResponse,
         });
-        await this.iyzicoCommandRepo.save(transaction);
+        await this.iyzicoCommandRepo.update(transaction);
 
         // Taksit PENDING'e döner + PaymentFailedEvent payment command handler'ında fırlatılır.
         await this.commandBus.execute(

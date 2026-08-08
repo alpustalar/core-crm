@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  SUPPLIER_COMMAND_REPOSITORY,
-  SUPPLIER_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { SupplierCommandRepository } from './supplier.command.repository';
 import { SupplierQueryRepository } from './supplier.query.repository';
+import { SUPPLIER_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
+import { SUPPLIER_QUERY_REPOSITORY } from '@modules/supply/inventory/domain/repositories/supplier/supplier.query.repository';
 
 @Module({
   providers: [

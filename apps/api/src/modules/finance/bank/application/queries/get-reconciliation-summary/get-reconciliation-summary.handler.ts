@@ -5,7 +5,7 @@ import { GetReconciliationSummaryResponse } from './get-reconciliation-summary.r
 import {
   BANK_STATEMENT_QUERY_REPOSITORY,
   IBankStatementQueryRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -39,9 +39,8 @@ export class GetReconciliationSummaryHandler
       .evaluator.check((p) => p.canAccessClinicFinances(statement.clinicId))
       .orThrow('bank-reconciliation.summary');
 
-    const data = await this.statementQueryRepo.reconciliationSummary(
-      statementId
-    );
+    const data =
+      await this.statementQueryRepo.reconciliationSummary(statementId);
 
     return { data };
   }

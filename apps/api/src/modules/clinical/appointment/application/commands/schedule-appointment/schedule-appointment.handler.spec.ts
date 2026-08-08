@@ -62,6 +62,9 @@ describe('ScheduleAppointmentHandler (walk-in + overbooking ayarı)', () => {
       appointment: () => ({
         evaluator: { check: () => ({ orThrow: () => undefined }) },
       }),
+      entity: () => ({
+        policy: { getValidateOptions: () => ({}) },
+      }),
     } as never;
 
     const appointmentCheckerService = { assertNoConflict } as never;
@@ -91,6 +94,8 @@ describe('ScheduleAppointmentHandler (walk-in + overbooking ayarı)', () => {
     startTime: futureStart,
     duration: 30,
     isConsultation: false,
+    clinicId: CLINIC,
+    organizationId: ORG,
   };
 
   it('walk-in (patientId yok): telefonla hasta kaydı açar', async () => {

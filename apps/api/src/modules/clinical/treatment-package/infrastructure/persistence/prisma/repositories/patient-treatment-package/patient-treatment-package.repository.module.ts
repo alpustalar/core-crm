@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
-  PATIENT_TREATMENT_PACKAGE_QUERY_REPO,
-} from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
 import { PatientTreatmentPackageCommandRepository } from './patient-treatment-package.command.repository';
 import { PatientTreatmentPackageQueryRepository } from './patient-treatment-package.query.repository';
+import { PATIENT_TREATMENT_PACKAGE_COMMAND_REPO } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.command.repository';
+import { PATIENT_TREATMENT_PACKAGE_QUERY_REPO } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.query.repository';
 
 @Module({
   providers: [

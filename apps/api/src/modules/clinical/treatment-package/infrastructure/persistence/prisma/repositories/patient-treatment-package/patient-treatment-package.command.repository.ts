@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPatientTreatmentPackageCommandRepository } from '../../../../../domain/repositories/patient-treatment-package.repository.interface';
 import { PatientTreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/patient-treatment-package.entity';
+import { IPatientTreatmentPackageCommandRepository } from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.command.repository';
 
 @Injectable()
 export class PatientTreatmentPackageCommandRepository
@@ -13,7 +13,7 @@ export class PatientTreatmentPackageCommandRepository
     super(prisma);
   }
 
-  async save(
+  async update(
     patientTreatmentPackage: PatientTreatmentPackage
   ): Promise<PatientTreatmentPackage> {
     const persistenceData = patientTreatmentPackage.toPersistence();

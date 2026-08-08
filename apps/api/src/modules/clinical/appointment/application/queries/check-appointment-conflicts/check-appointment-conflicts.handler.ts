@@ -3,16 +3,16 @@ import { Inject } from '@nestjs/common';
 import { CheckAppointmentConflictsQuery } from './check-appointment-conflicts.query';
 import { CheckAppointmentConflictsResponse } from './check-appointment-conflicts.response';
 import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 /**
  * Çakışma görünürlüğü handler'ı. endTime yoksa duration'dan hesaplanır; doktorun o
@@ -20,13 +20,10 @@ import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/appl
  * demektir; dolu olması personeli uyarır ama randevu eklemeyi ENGELLEMEZ.
  */
 @QueryHandler(CheckAppointmentConflictsQuery)
-export class CheckAppointmentConflictsHandler
-  implements
-    IQueryHandler<
-      CheckAppointmentConflictsQuery,
-      CheckAppointmentConflictsResponse
-    >
-{
+export class CheckAppointmentConflictsHandler implements IQueryHandler<
+  CheckAppointmentConflictsQuery,
+  CheckAppointmentConflictsResponse
+> {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,

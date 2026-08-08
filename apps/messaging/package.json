@@ -1,0 +1,82 @@
+{
+  "name": "@core-crm/messaging",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "cross-env NODE_ENV=production node dist/apps/messaging/src/main.js",
+    "start:dev": "cross-env NODE_ENV=development nest start --watch --entryFile apps/messaging/src/main.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
+    "@core-crm/nest-kernel": "workspace:*",
+    "@core-crm/shared": "workspace:*",
+    "@nestjs-modules/ioredis": "^2.0.2",
+    "@nestjs/bullmq": "^11.0.4",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/cqrs": "^11.0.3",
+    "@nestjs/event-emitter": "^3.0.1",
+    "@nestjs/microservices": "^11.1.28",
+    "@nestjs/mongoose": "^11.0.4",
+    "@nestjs/platform-express": "^11.0.1",
+    "axios": "^1.16.1",
+    "bullmq": "^5.63.0",
+    "class-transformer": "^0.5.1",
+    "dotenv": "^17.3.1",
+    "firebase-admin": "^13.6.1",
+    "ioredis": "^5.9.2",
+    "joi": "^18.0.1",
+    "mongoose": "^9.1.5",
+    "nats": "^2.29.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.1.14",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.7",
+    "cross-env": "^10.1.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "rootDir": "src",
+    "roots": [
+      "<rootDir>",
+      "<rootDir>/../../../packages/nest-kernel/src"
+    ],
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@common/(.*)$": "<rootDir>/../../../packages/nest-kernel/src/common/$1",
+      "^@src/(.*)$": "<rootDir>/../../../packages/nest-kernel/src/$1",
+      "^@messaging/(.*)$": "<rootDir>/$1",
+      "^@shared/modules/(.*)$": "<rootDir>/../../../packages/shared/modules/$1",
+      "^@shared/common/(.*)$": "<rootDir>/../../../packages/shared/common/$1",
+      "^@shared$": "<rootDir>/../../../packages/shared/index",
+      "^@shared/(.*)$": "<rootDir>/../../../packages/shared/$1",
+      "^@input-type-schemas/(.*)$": "<rootDir>/../../../packages/shared/generated-zod/inputTypeSchemas/$1",
+      "^@model-schema/(.*)$": "<rootDir>/../../../packages/shared/generated-zod/modelSchema/$1",
+      "^@modules/(.*)$": "<rootDir>/modules/$1"
+    }
+  }
+}

@@ -4,7 +4,7 @@ import { MarkLeadLostCommand } from './mark-lead-lost.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
@@ -22,7 +22,7 @@ export class MarkLeadLostHandler
 {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: ILeadCommandRepository,
+    private readonly leadRepo: ILeadCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -38,7 +38,7 @@ export class MarkLeadLostHandler
       .orThrow();
 
     await this.txManager.run(async () => {
-      const lead = await this.leadCommandRepo.findById(leadId);
+      const lead = await this.leadRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       const validateOptions = this.policyFactory
@@ -52,7 +52,7 @@ export class MarkLeadLostHandler
       // Kanban tutarlılığı: lead bir huniye bağlıysa LOST aşamasına taşı.
       await this.syncLostStage(lead, ctx);
 
-      await this.leadCommandRepo.save(lead);
+      await this.leadRepo.update(lead);
     });
   }
 

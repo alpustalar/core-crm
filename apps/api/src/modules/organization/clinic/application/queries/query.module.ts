@@ -8,12 +8,8 @@ import { FindClinicAvailabilityByDayHandler } from './find-clinic-availability-b
 import { GetClinicTimezoneHandler } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.handler';
 import { GetClinicCurrencyHandler } from '@modules/organization/clinic/application/queries/get-clinic-currency/get-clinic-currency.handler';
 import { GetClinicOrganizationIdHandler } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.handler';
-import { ClinicRepositoriesModule } from '@modules/organization/clinic/infrastructure/persistence/prisma/repositories/repositories.module';
-import { AssertClinicCanBookHandler } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.handler';
-import { AssertTimeWithinClinicHoursHandler } from '@modules/organization/clinic/application/queries/assert-time-within-clinic-hours/assert-time-within-clinic-hours.handler';
 import { GetClinicAppointmentSettingsHandler } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.handler';
-import { ClinicCacheService } from '@modules/organization/clinic/infrastructure/cache/clinic-cache.service';
-import { CLINIC_CACHE_SERVICE } from '@modules/organization/clinic/domain/interfaces/clinic-cache.service.interface';
+import { ClinicInfrastructureModule } from '@modules/organization/clinic/infrastructure/infrastructure.module';
 
 const QueryHandlers = [
   FindClinicIdByProviderIdHandler,
@@ -21,8 +17,6 @@ const QueryHandlers = [
   GetClinicScheduleHandler,
   FindManyByOrganizationIdHandler,
   FindClinicAvailabilityByDayHandler,
-  AssertClinicCanBookHandler,
-  AssertTimeWithinClinicHoursHandler,
   GetClinicTimezoneHandler,
   GetClinicCurrencyHandler,
   GetClinicOrganizationIdHandler,
@@ -30,11 +24,7 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [ClinicRepositoriesModule],
-  providers: [
-    ...QueryHandlers,
-    { provide: CLINIC_CACHE_SERVICE, useClass: ClinicCacheService },
-  ],
-  exports: [...QueryHandlers],
+  imports: [ClinicInfrastructureModule],
+  providers: [...QueryHandlers],
 })
 export class ClinicQueryModule {}

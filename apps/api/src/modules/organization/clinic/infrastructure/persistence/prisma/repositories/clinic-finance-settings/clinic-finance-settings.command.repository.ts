@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ClinicFinanceSettings } from '@modules/organization/clinic/domain/entities/clinic-finance-settings.entity';
-import { IClinicFinanceSettingsCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings.repository.interface';
+import { IClinicFinanceSettingsCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-finance-settings/clinic-finance-settings.command.repository';
 
 @Injectable()
 export class ClinicFinanceSettingsCommandRepository
@@ -20,15 +20,13 @@ export class ClinicFinanceSettingsCommandRepository
     return raw ? new ClinicFinanceSettings(raw) : null;
   }
 
-  async create(
-    entity: ClinicFinanceSettings
-  ): Promise<ClinicFinanceSettings> {
+  async create(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
     const data = entity.toPersistence();
     const raw = await this.db.clinicFinanceSettings.create({ data });
     return new ClinicFinanceSettings(raw);
   }
 
-  async save(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
+  async update(entity: ClinicFinanceSettings): Promise<ClinicFinanceSettings> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.clinicFinanceSettings.update({

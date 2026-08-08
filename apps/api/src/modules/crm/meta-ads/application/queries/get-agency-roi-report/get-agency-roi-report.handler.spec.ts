@@ -13,14 +13,19 @@ describe('GetAgencyRoiReportHandler', () => {
   function buildHandler(opts: {
     currentSpend: number;
     previousSpend: number;
-    currentLeads: { campaignId: string; campaignName: string; patientId: string }[];
+    currentLeads: {
+      campaignId: string;
+      campaignName: string;
+      patientId: string;
+    }[];
     revenueByPatient: Record<string, string>;
   }) {
     const metricRepo = {
       aggregateByAccount: jest.fn(async (p: { from: Date }) => {
-        const spend = p.from.getTime() === from.getTime()
-          ? opts.currentSpend
-          : opts.previousSpend;
+        const spend =
+          p.from.getTime() === from.getTime()
+            ? opts.currentSpend
+            : opts.previousSpend;
         return [
           {
             campaignId: 'c1',
@@ -30,13 +35,12 @@ describe('GetAgencyRoiReportHandler', () => {
           },
         ] as never;
       }),
-      findByAccountAndDateRange: jest.fn(),
     };
 
     const queryBus = {
       execute: jest.fn(async (q: unknown) => {
         if (q instanceof GetAdAttributedLeadsQuery) {
-          const isCurrent = q.from.getTime() === from.getTime();
+          const isCurrent = q.payload.from.getTime() === from.getTime();
           return { data: isCurrent ? opts.currentLeads : [] };
         }
         if (q instanceof GetRevenueByPatientsQuery) {
@@ -75,7 +79,7 @@ describe('GetAgencyRoiReportHandler', () => {
     });
 
     const { data } = await handler.execute(
-      new GetAgencyRoiReportQuery(clinicId, from, to, ctx)
+      new GetAgencyRoiReportQuery({ clinicId, from, to, ctx })
     );
 
     expect(data.current.spend).toBe(1000);
@@ -109,7 +113,7 @@ describe('GetAgencyRoiReportHandler', () => {
     });
 
     const { data } = await handler.execute(
-      new GetAgencyRoiReportQuery(clinicId, from, to, ctx)
+      new GetAgencyRoiReportQuery({ clinicId, from, to, ctx })
     );
 
     expect(data.previous.spend).toBe(500);
@@ -131,7 +135,7 @@ describe('GetAgencyRoiReportHandler', () => {
     });
 
     const { data } = await handler.execute(
-      new GetAgencyRoiReportQuery(clinicId, from, to, ctx)
+      new GetAgencyRoiReportQuery({ clinicId, from, to, ctx })
     );
 
     expect(data.current.attributedLeads).toBe(2); // lead sayısı 2

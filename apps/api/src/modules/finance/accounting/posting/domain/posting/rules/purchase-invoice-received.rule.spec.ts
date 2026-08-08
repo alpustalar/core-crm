@@ -39,8 +39,14 @@ describe('PurchaseInvoiceReceivedRule', () => {
     );
 
     expect(draft.lines).toHaveLength(3);
-    expect(draft.lines[0]).toMatchObject({ accountCode: '150', debit: '1000.00' });
-    expect(draft.lines[1]).toMatchObject({ accountCode: '191', debit: '100.00' });
+    expect(draft.lines[0]).toMatchObject({
+      accountCode: '150',
+      debit: '1000.00',
+    });
+    expect(draft.lines[1]).toMatchObject({
+      accountCode: '191',
+      debit: '100.00',
+    });
     expect(draft.lines[2]).toMatchObject({
       accountCode: '320',
       partyId: 'party-1',
@@ -63,8 +69,14 @@ describe('PurchaseInvoiceReceivedRule', () => {
 
     expect(draft.lines).toHaveLength(2);
     expect(draft.lines.find((l) => l.accountCode === '191')).toBeUndefined();
-    expect(draft.lines[0]).toMatchObject({ accountCode: '770', debit: '500.00' });
-    expect(draft.lines[1]).toMatchObject({ accountCode: '320', credit: '500.00' });
+    expect(draft.lines[0]).toMatchObject({
+      accountCode: '770',
+      debit: '500.00',
+    });
+    expect(draft.lines[1]).toMatchObject({
+      accountCode: '320',
+      credit: '500.00',
+    });
     expect(sumDebit(draft.lines)).toBe(sumCredit(draft.lines));
   });
 });

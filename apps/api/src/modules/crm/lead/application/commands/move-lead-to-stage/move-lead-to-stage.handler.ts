@@ -4,7 +4,7 @@ import { MoveLeadToStageCommand } from './move-lead-to-stage.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import {
   ILeadEventPublisher,
   LEAD_EVENT_PUBLISHER,
@@ -22,7 +22,7 @@ export class MoveLeadToStageHandler
 {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: ILeadCommandRepository,
+    private readonly leadRepo: ILeadCommandRepository,
     @Inject(LEAD_EVENT_PUBLISHER)
     private readonly eventPublisher: ILeadEventPublisher,
     private readonly queryBus: TSQueryBus,
@@ -40,7 +40,7 @@ export class MoveLeadToStageHandler
     if (!stage) throw new PipelineStageNotFoundException(data.stageId);
 
     await this.txManager.run(async () => {
-      const lead = await this.leadCommandRepo.findById(leadId);
+      const lead = await this.leadRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       const previousStatus = lead.status;
@@ -52,7 +52,7 @@ export class MoveLeadToStageHandler
         reason: data.reason,
       });
 
-      const saved = await this.leadCommandRepo.save(lead);
+      const saved = await this.leadRepo.update(lead);
 
       if (saved.status !== previousStatus) {
         this.eventPublisher.leadStatusChanged({

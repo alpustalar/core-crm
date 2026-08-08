@@ -6,7 +6,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { AdminRequestCreatedEvent } from '@modules/platform/admin-request/domain/events/admin-request-created.event';
 import { AdminRequestReviewedEvent } from '@modules/platform/admin-request/domain/events/admin-request-reviewed.event';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
-import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/admin-request.contracts';
+import { CreateAdminRequestProps } from '@modules/platform/admin-request/domain/contracts/admin-request.contracts';
 import { AdminRequestTypeType as AdminRequestType } from '@input-type-schemas/AdminRequestTypeSchema';
 import { AdminRequestStatusType as AdminRequestStatus } from '@input-type-schemas/AdminRequestStatusSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';

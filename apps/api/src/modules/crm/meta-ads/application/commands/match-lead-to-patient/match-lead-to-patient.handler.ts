@@ -5,7 +5,7 @@ import { MatchLeadToPatientResponse } from './match-lead-to-patient.response';
 import {
   IMetaLeadCommandRepository,
   META_LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import {
   IPolicyFactory,
@@ -13,13 +13,13 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(MatchLeadToPatientCommand)
-export class MatchLeadToPatientHandler
-  implements
-    ICommandHandler<MatchLeadToPatientCommand, MatchLeadToPatientResponse>
-{
+export class MatchLeadToPatientHandler implements ICommandHandler<
+  MatchLeadToPatientCommand,
+  MatchLeadToPatientResponse
+> {
   constructor(
     @Inject(META_LEAD_COMMAND_REPOSITORY)
-    private readonly metaLeadCommandRepository: IMetaLeadCommandRepository,
+    private readonly metaLeadRepo: IMetaLeadCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -29,14 +29,14 @@ export class MatchLeadToPatientHandler
   ): Promise<MatchLeadToPatientResponse> {
     const { leadId, patientId, ctx } = command.payload;
 
-    const lead = await this.metaLeadCommandRepository.findById(leadId);
+    const lead = await this.metaLeadRepo.findById(leadId);
     if (!lead) throw new LeadNotFoundException();
 
     // TODO: leadid ya da başka bi FK ile clinic id çekmek için handler oluşturulacak. clinic id çekilip policy uygulanacak
 
     lead.matchToPatient(patientId);
 
-    const saved = await this.metaLeadCommandRepository.save(lead);
+    const saved = await this.metaLeadRepo.update(lead);
 
     return { leadId: saved.id.value, status: saved.status };
   }

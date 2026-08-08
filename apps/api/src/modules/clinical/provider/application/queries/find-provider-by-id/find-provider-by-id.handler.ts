@@ -1,13 +1,13 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { PolicyFactory } from '@modules/platform/policy/staff/application/policy-factory';
-import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
 import { FindProviderByIdQuery } from './find-provider-by-id.query';
 import { FindProviderByIdQueryResponse } from '@modules/clinical/provider/application/queries/find-provider-by-id/find-provider-by-id.response';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+import {
+  IProviderQueryRepository,
+  PROVIDER_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
 
 @QueryHandler(FindProviderByIdQuery)
 export class FindProviderByIdHandler
@@ -16,7 +16,7 @@ export class FindProviderByIdHandler
 {
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    private readonly providerRepo: IProviderQueryRepository,
     private readonly policyFactory: PolicyFactory
   ) {}
 
@@ -25,19 +25,16 @@ export class FindProviderByIdHandler
   ): Promise<FindProviderByIdQueryResponse> {
     const { providerId, ctx } = query;
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
     const serializationOptions = this.policyFactory
       .provider(ctx.actor, ctx.source)
-      .policy.getSerializationOptions(
-        provider.clinicId.value,
-        provider.id.value
-      );
+      .policy.getSerializationOptions(provider.clinicId, provider.id);
 
     return {
-      data: provider.toPersistence(),
+      data: provider,
       meta: {
         serializationOptions,
       },

@@ -10,7 +10,8 @@ WORKDIR /app
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json            ./apps/api/package.json
-COPY packages/shared/package.json     ./packages/shared/package.json
+COPY packages/shared/package.json      ./packages/shared/package.json
+COPY packages/nest-kernel/package.json ./packages/nest-kernel/package.json
 
 RUN pnpm install --frozen-lockfile
 
@@ -19,12 +20,23 @@ FROM base AS builder
 WORKDIR /app
 
 
-COPY --from=installer /app/node_modules            ./node_modules
-COPY --from=installer /app/apps/api/node_modules   ./apps/api/node_modules
-
 # Copy source
-COPY packages/shared/ ./packages/shared/
+COPY packages/shared/      ./packages/shared/
+COPY packages/nest-kernel/ ./packages/nest-kernel/
 COPY apps/api/        ./apps/api/
+
+# node_modules kaynak kopyasından SONRA gelir (.dockerignore bağlamdan
+# **/node_modules'ü dışlıyor, üstüne yazacak bir şey yok).
+#
+# pnpm'in katı düzeninde her workspace paketi kendi node_modules'ünü taşır.
+# Paketlerinki atlanırsa derleme, sebebi anlaşılmaz tip hatalarıyla düşer:
+# `DateTimeManager` çekirdeğe taşındığı için dayjs eklentilerinin tip
+# genişletmesi çözülemez ve `Property 'tz' does not exist on type 'Dayjs'`
+# gibi, asıl sebebi göstermeyen hatalar çıkar.
+COPY --from=installer /app/node_modules                      ./node_modules
+COPY --from=installer /app/apps/api/node_modules             ./apps/api/node_modules
+COPY --from=installer /app/packages/shared/node_modules      ./packages/shared/node_modules
+COPY --from=installer /app/packages/nest-kernel/node_modules ./packages/nest-kernel/node_modules
 
 # Generate Prisma client 
 WORKDIR /app/apps/api

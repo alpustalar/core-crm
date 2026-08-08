@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
-import { PipelineRepositoryModule } from '@modules/crm/pipeline/infrastructure/persistence/prisma/repositories/pipeline.repository.module';
 import { CreatePipelineHandler } from './create-pipeline/create-pipeline.handler';
 import { AddPipelineStageHandler } from './add-pipeline-stage/add-pipeline-stage.handler';
 import { UpdatePipelineStageHandler } from './update-pipeline-stage/update-pipeline-stage.handler';
 import { DeletePipelineStageHandler } from './delete-pipeline-stage/delete-pipeline-stage.handler';
+import { PipelineInfrastructureModule } from '@modules/crm/pipeline/infrastructure/infrastructure.module';
 
-export const PIPELINE_COMMAND_HANDLERS = [
+const PIPELINE_COMMAND_HANDLERS = [
   CreatePipelineHandler,
   AddPipelineStageHandler,
   UpdatePipelineStageHandler,
@@ -14,7 +13,7 @@ export const PIPELINE_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, PipelineRepositoryModule],
+  imports: [PipelineInfrastructureModule],
   providers: PIPELINE_COMMAND_HANDLERS,
   exports: PIPELINE_COMMAND_HANDLERS,
 })

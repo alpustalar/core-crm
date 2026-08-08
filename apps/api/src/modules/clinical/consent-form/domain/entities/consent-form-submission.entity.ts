@@ -23,8 +23,8 @@ export class ConsentFormSubmission extends AggregateRoot {
     this._signatureImage = data.signatureImage;
     this._signedAt = data.signedAt;
     this._signedByUserId = data.signedByUserId;
-    this._appointmentId = data.appointmentId;
-    this._treatmentId = data.treatmentId;
+    this._appointmentId = UUID.create(data.appointmentId).instance ?? null;
+    this._treatmentId = UUID.create(data.treatmentId)?.instance ?? null;
     this._createdAt = data.createdAt;
   }
 
@@ -83,13 +83,13 @@ export class ConsentFormSubmission extends AggregateRoot {
     return this._signedByUserId;
   }
 
-  private _appointmentId: string | null;
-  get appointmentId(): string | null {
+  private _appointmentId: UUID | null;
+  get appointmentId(): UUID | null {
     return this._appointmentId;
   }
 
-  private _treatmentId: string | null;
-  get treatmentId(): string | null {
+  private _treatmentId: UUID | null;
+  get treatmentId(): UUID | null {
     return this._treatmentId;
   }
 
@@ -131,8 +131,8 @@ export class ConsentFormSubmission extends AggregateRoot {
       signatureImage: this.signatureImage,
       signedAt: this.signedAt,
       signedByUserId: this.signedByUserId,
-      appointmentId: this.appointmentId,
-      treatmentId: this.treatmentId,
+      appointmentId: this.appointmentId?.value ?? null,
+      treatmentId: this.treatmentId?.value ?? null,
       createdAt: this.createdAt,
     };
   }

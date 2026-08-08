@@ -24,13 +24,14 @@ import { ActivityModule } from '@modules/crm/activity/activity.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
-import { MessagingModule } from '@modules/messaging/messaging.module';
 import { InventoryModule } from '@modules/supply/inventory/inventory.module';
 import { NotificationModule } from '@modules/platform/notification/notification.module';
 import { EmployeeModule } from '@modules/hr/employee/employee.module';
 import { PurchasingModule } from '@modules/supply/purchasing/purchasing.module';
 import { CashRegisterModule } from '@modules/finance/cash-register/cash-register.module';
 import { BankModule } from '@modules/finance/bank/bank.module';
+import { WorkOrderModule } from '@modules/supply/work-order/work-order.module';
+import { ProjectModule } from '@modules/organization/project/project.module';
 
 export const APP_ROUTES: Routes = [
   {
@@ -133,11 +134,7 @@ export const APP_ROUTES: Routes = [
     path: 'health-tourism',
     module: HealthTourismModule,
   },
-  {
-    path: 'messaging',
-    module: MessagingModule,
-  },
-  {
+    {
     path: 'inventory',
     module: InventoryModule,
   },
@@ -160,5 +157,14 @@ export const APP_ROUTES: Routes = [
   {
     path: 'bank',
     module: BankModule,
+  },
+  {
+    path: 'work-orders',
+    module: WorkOrderModule,
+  },
+
+  {
+    path: 'project-management',
+    module: ProjectModule,
   },
 ];

@@ -8,9 +8,10 @@ import {
 import { NotificationNotFoundException } from '@modules/platform/notification/domain/exceptions/notification.exceptions';
 
 @CommandHandler(MarkNotificationReadCommand)
-export class MarkNotificationReadHandler
-  implements ICommandHandler<MarkNotificationReadCommand, void>
-{
+export class MarkNotificationReadHandler implements ICommandHandler<
+  MarkNotificationReadCommand,
+  void
+> {
   constructor(
     @Inject(STAFF_NOTIFICATION_COMMAND_REPOSITORY)
     private readonly staffNotificationCommandRepo: IStaffNotificationCommandRepository
@@ -30,6 +31,6 @@ export class MarkNotificationReadHandler
     }
 
     notification.markAsRead();
-    await this.staffNotificationCommandRepo.save(notification);
+    await this.staffNotificationCommandRepo.update(notification);
   }
 }

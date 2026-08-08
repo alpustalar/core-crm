@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 import { RoundingDirectionSchema } from '../inputTypeSchemas/RoundingDirectionSchema'
 import { PayoutTriggerSchema } from '../inputTypeSchemas/PayoutTriggerSchema'
@@ -17,10 +17,10 @@ export const ClinicFinanceSettingsSchema = z.object({
   invoicePrefix: z.string(),
   autoCreateInvoice: z.boolean(),
   autoSendDebtReminder: z.boolean(),
-  defaultVatRate: z.instanceof(Prisma.Decimal, { message: "Field 'defaultVatRate' must be a Decimal. Location: ['Models', 'ClinicFinanceSettings']"}),
+  defaultVatRate: decimalSchema("Field 'defaultVatRate' must be a Decimal. Location: ['Models', 'ClinicFinanceSettings']"),
   useCostTracking: z.boolean(),
   allowNegativeBalance: z.boolean(),
-  maxNegativeBalanceAmount: z.instanceof(Prisma.Decimal, { message: "Field 'maxNegativeBalanceAmount' must be a Decimal. Location: ['Models', 'ClinicFinanceSettings']"}),
+  maxNegativeBalanceAmount: decimalSchema("Field 'maxNegativeBalanceAmount' must be a Decimal. Location: ['Models', 'ClinicFinanceSettings']"),
   maxInstallmentCount: z.number().int(),
   isEInvoiceActive: z.boolean(),
   fiscalYearStartMonth: z.number().int(),

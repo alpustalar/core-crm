@@ -41,12 +41,12 @@ describe('GetVatDeclarationHandler (doc 06 §1)', () => {
 
   const run = (handler: GetVatDeclarationHandler) =>
     handler.execute(
-      new GetVatDeclarationQuery(
-        'clinic-1',
+      new GetVatDeclarationQuery({
+        clinicId: 'clinic-1',
         ctx,
-        new Date('2026-01-01'),
-        new Date('2026-02-28')
-      )
+        dateFrom: new Date('2026-01-01'),
+        dateTo: new Date('2026-02-28'),
+      })
     );
 
   it('391 > 191 → ödenecek KDV (devreden 0), aylık kırılım kronolojik', async () => {
@@ -64,8 +64,18 @@ describe('GetVatDeclarationHandler (doc 06 §1)', () => {
     expect(data.payableVat).toBe('1100.00');
     expect(data.carryForwardVat).toBe('0.00');
     expect(data.months).toEqual([
-      { month: '2026-01', outputVat: '1000.00', inputVat: '300.00', net: '700.00' },
-      { month: '2026-02', outputVat: '500.00', inputVat: '100.00', net: '400.00' },
+      {
+        month: '2026-01',
+        outputVat: '1000.00',
+        inputVat: '300.00',
+        net: '700.00',
+      },
+      {
+        month: '2026-02',
+        outputVat: '500.00',
+        inputVat: '100.00',
+        net: '400.00',
+      },
     ]);
   });
 

@@ -1,1 +1,1 @@
-export type CreateClinicCommandResponse = string
+export type CreateClinicCommandResponse = string;

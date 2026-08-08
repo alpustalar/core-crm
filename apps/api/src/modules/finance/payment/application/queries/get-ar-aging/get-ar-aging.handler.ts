@@ -1,10 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { DateTimeManager } from '@common/utils';
-import {
-  IPaymentQueryRepository,
-  PAYMENT_QUERY_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { GetArAgingQuery } from './get-ar-aging.query';
 import {
   ArAgingBucket,
@@ -14,6 +10,10 @@ import {
 } from './get-ar-aging.response';
 import { Decimal } from 'decimal.js';
 import { OpenInstallmentRow } from '@modules/finance/payment/domain/contracts/payment.contracts';
+import {
+  IPaymentQueryRepository,
+  PAYMENT_QUERY_REPOSITORY,
+} from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
 
 const BUCKET_ORDER: ArAgingBucketLabel[] = [
   'NOT_DUE',
@@ -35,7 +35,7 @@ export class GetArAgingHandler
 {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
-    private readonly paymentQueryRepo: IPaymentQueryRepository
+    private readonly paymentRepo: IPaymentQueryRepository
   ) {}
 
   async execute(query: GetArAgingQuery): Promise<GetArAgingResponse> {
@@ -45,8 +45,9 @@ export class GetArAgingHandler
       query.asOf ?? DateTimeManager.create()
     );
 
-    const { openInstallments, collectedTotal } =
-      await this.paymentQueryRepo.arAging({ clinicId });
+    const { openInstallments, collectedTotal } = await this.paymentRepo.arAging(
+      { clinicId }
+    );
 
     const buckets = this.buildBuckets(openInstallments, asOf);
     const patients = this.buildPatientRisk(openInstallments, asOf);

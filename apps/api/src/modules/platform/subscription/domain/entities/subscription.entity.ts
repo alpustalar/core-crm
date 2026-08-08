@@ -18,7 +18,7 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import { shouldValidate } from '@common/domain/utils/should-validate';
-import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/subscription.contracts';
+import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
 
 /** `Subscription.renew` girişi — yeni dönem + son ödeme referansı + audit event gövdesi. */
@@ -60,7 +60,7 @@ export class Subscription extends AggregateRoot {
 
   private _version: number;
 
-  /** Optimistic concurrency version'ı — repository save() guard'ında kullanılır. */
+  /** Optimistic concurrency version'ı — repository update() guard'ında kullanılır. */
   get version(): number {
     return this._version;
   }
@@ -301,6 +301,42 @@ export class Subscription extends AggregateRoot {
   /** PAST_DUE grace süresi sonrası abonelik süresi biter (expire processor). */
   public expire(): void {
     this._status = SubStatusSchema.enum.EXPIRED;
+  }
+
+  /**
+   * Yenileme günü geldi mi — ACTIVE ve fatura dönemi bitmiş.
+   *
+   * Zamanlanmış işler önce aday listesini tarar, sonra her aboneliği kilitleyip
+   * bu kuralla YENİDEN doğrular: tarama ile tahsilat arasında geçen sürede başka
+   * bir çalıştırma (veya callback) dönemi ilerletmiş olabilir. Doğrulama olmadan
+   * kayıtlı karttan ikinci kez çekim yapılır.
+   */
+  public isDueForRenewal(now: Date): boolean {
+    if (!this.isActive.value) return false;
+    const periodEnd = this.currentPeriodEnd;
+    return !!periodEnd && DateTimeManager.isBefore(periodEnd, now);
+  }
+
+  /** Deneme süresi doldu mu — hâlâ ACTIVE ve trialEndsAt geçmiş. */
+  public isTrialOver(now: Date): boolean {
+    if (!this.isActive.value) return false;
+    return (
+      !!this._trialEndsAt && DateTimeManager.isBefore(this._trialEndsAt, now)
+    );
+  }
+
+  /**
+   * PAST_DUE ödemesiz geçen grace süresi doldu mu — erişimin kesilebileceği an.
+   * Dönem bilgisi yoksa güvenli tarafta kalınır (süre dolmuş sayılır).
+   */
+  public isGracePeriodOver(now: Date, graceDays: number): boolean {
+    if (!this.isPastDue.value) return false;
+    const periodEnd = this.currentPeriodEnd;
+    if (!periodEnd) return true;
+    return DateTimeManager.isBefore(
+      DateTimeManager.addDays(periodEnd, graceDays),
+      now
+    );
   }
 
   /**

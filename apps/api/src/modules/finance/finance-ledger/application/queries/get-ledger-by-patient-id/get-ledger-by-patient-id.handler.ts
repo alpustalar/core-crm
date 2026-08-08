@@ -1,10 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetLedgerByPatientIdQuery } from './get-ledger-by-patient-id.query';
 import { GetLedgerByPatientIdQueryResponse } from './get-ledger-by-patient-id.response';
-import {
-  FINANCE_LEDGER_QUERY_REPOSITORY,
-  IFinanceLedgerQueryRepository,
-} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
@@ -13,6 +9,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
+import {
+  FINANCE_LEDGER_QUERY_REPOSITORY,
+  IFinanceLedgerQueryRepository,
+} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
 
 @QueryHandler(GetLedgerByPatientIdQuery)
 export class GetLedgerByPatientIdHandler

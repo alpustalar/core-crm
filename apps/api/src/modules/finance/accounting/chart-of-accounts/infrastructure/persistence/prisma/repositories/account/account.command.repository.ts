@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
-import { IAccountCommandRepository } from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account.repository';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { Account } from '@modules/finance/accounting/chart-of-accounts/domain/entities/account.entity';
+import { IAccountCommandRepository } from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account/account.command.repository';
 
 @Injectable()
 export class AccountCommandRepository
@@ -14,7 +14,12 @@ export class AccountCommandRepository
     super(prisma);
   }
 
-  async save(account: Account): Promise<Account> {
+  async existsForClinic(clinicId: string): Promise<boolean> {
+    const count = await this.db.account.count({ where: { clinicId } });
+    return count > 0;
+  }
+
+  async update(account: Account): Promise<Account> {
     const data = account.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.account.update({
@@ -25,7 +30,7 @@ export class AccountCommandRepository
     return new Account(raw);
   }
 
-  async saveMany(accounts: Account[]): Promise<void> {
+  async updateMany(accounts: Account[]): Promise<void> {
     const ops = accounts.map((account) => {
       const data = account.toPersistence();
       return this.db.account.upsert({

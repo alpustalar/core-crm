@@ -1,14 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BookingPaymentCommandModule } from './application/commands/command.module';
-import { BookingPaymentQueryModule } from './application/queries/query.module';
-import { BookingPaymentPresentationModule } from './presentation/booking-payment-presentation.module';
+import { BookingPaymentPresentationModule } from './presentation/presentation.module';
 
-@Module({
-  imports: [
-    BookingPaymentCommandModule,
-    BookingPaymentQueryModule,
-    BookingPaymentPresentationModule,
-  ],
-  exports: [BookingPaymentCommandModule, BookingPaymentQueryModule],
-})
+@Module({ imports: [BookingPaymentPresentationModule] })
 export class BookingPaymentModule {}

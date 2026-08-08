@@ -20,9 +20,10 @@ const OUTPUT_VAT_PREFIX = '391';
 const INPUT_VAT_PREFIX = '191';
 
 @QueryHandler(GetVatDeclarationQuery)
-export class GetVatDeclarationHandler
-  implements IQueryHandler<GetVatDeclarationQuery, GetVatDeclarationResponse>
-{
+export class GetVatDeclarationHandler implements IQueryHandler<
+  GetVatDeclarationQuery,
+  GetVatDeclarationResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,

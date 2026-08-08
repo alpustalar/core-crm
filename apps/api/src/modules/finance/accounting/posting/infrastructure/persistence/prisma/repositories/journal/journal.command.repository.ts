@@ -1,26 +1,52 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
-import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry-unique-constraint.exception';
+import { JournalEntryUniqueConstraintException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry.exceptions';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import {
+  IJournalCommandRepository,
+  TrialBalanceFilter,
+  TrialBalanceRow,
+} from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
 import { JournalLine } from '@modules/finance/accounting/posting/domain/entities/journal-line.entity';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { queryTrialBalance } from './journal-trial-balance.query';
 
 type JournalEntryWithLines = Prisma.JournalEntryGetPayload<{
   include: { lines: true };
 }>;
 
 @Injectable()
-export class JournalCommandRepository extends BaseRepository {
+export class JournalCommandRepository
+  extends BaseRepository
+  implements IJournalCommandRepository
+{
   constructor(prisma: PrismaService) {
     super(prisma);
   }
 
-  async findById(id: string): Promise<JournalEntry | null> {
-    const raw = await this.db.journalEntry.findUnique({ where: { id } });
-    return raw ? new JournalEntry(raw) : null;
+  async findByIdForUpdate(id: string): Promise<JournalEntry | null> {
+    await this.lockRowForUpdate('journal_entries', id);
+    const raw = await this.db.journalEntry.findUnique({
+      where: { id },
+      include: { lines: true },
+    });
+    return raw ? this.toEntity(raw) : null;
   }
+
+  async findByEventId(eventId: string): Promise<JournalEntry | null> {
+    const raw = await this.db.journalEntry.findUnique({
+      where: { eventId },
+      include: { lines: true },
+    });
+    return raw ? this.toEntity(raw) : null;
+  }
+
+  trialBalance(filter: TrialBalanceFilter): Promise<TrialBalanceRow[]> {
+    return queryTrialBalance(this.db, filter);
+  }
+
   async create(entry: JournalEntry): Promise<JournalEntry> {
     const data = entry.toPersistence();
     const lines = entry.linesToPersistence();

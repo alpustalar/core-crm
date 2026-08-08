@@ -1,14 +1,14 @@
 import { SoftDeleteManyUserByOrganizationIdCommand } from '@modules/identity/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-users-by-organization-id.command';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import {
-  IUserCommandRepository,
-  USER_COMMAND_REPOSITORY,
-} from '@modules/identity/user/domain/repositories/user.repository';
 import { InternalOnly } from '@common/decorators/internal-only.decorator';
 import { SoftDeleteManyUserByOrganizationIdResponse } from '@modules/identity/user/application/commands/soft-delete-many-user-by-organization-id/soft-delete-many-user-by-organization-id.response';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindManyByOrganizationIdQuery } from '@modules/organization/clinic/application/queries/find-many-by-organization-id/find-many-by-organization-id.query';
+import {
+  IUserCommandRepository,
+  USER_COMMAND_REPOSITORY,
+} from '@modules/identity/user/domain/repositories/user/user.command.repository';
 
 @CommandHandler(SoftDeleteManyUserByOrganizationIdCommand)
 export class SoftDeleteManyUsersByOrganizationIdHandler

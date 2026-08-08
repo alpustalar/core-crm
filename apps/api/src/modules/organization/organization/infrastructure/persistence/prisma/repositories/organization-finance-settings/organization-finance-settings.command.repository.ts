@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { OrganizationFinanceSettings } from '@modules/organization/organization/domain/entities/organization-finance-settings.entity';
-import { IOrganizationFinanceSettingsCommandRepository } from '@modules/organization/organization/domain/repositories/organization-finance-settings.repository.interface';
+import { IOrganizationFinanceSettingsCommandRepository } from '@modules/organization/organization/domain/repositories/organization-finance-settings/organization-finance-settings.command.repository';
 
 @Injectable()
 export class OrganizationFinanceSettingsCommandRepository
@@ -28,7 +28,7 @@ export class OrganizationFinanceSettingsCommandRepository
     return new OrganizationFinanceSettings(raw);
   }
 
-  async save(
+  async update(
     entity: OrganizationFinanceSettings
   ): Promise<OrganizationFinanceSettings> {
     const data = entity.toPersistence();

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { MODULE_COMMAND_REPOSITORY } from '@modules/platform/subscription/domain/repositories/module.repository.interface';
 import { ModuleCommandRepository } from './module.command.repository';
+import { MODULE_COMMAND_REPOSITORY } from '@modules/platform/subscription/domain/repositories/module/module.command.repository';
 
 @Module({
   providers: [

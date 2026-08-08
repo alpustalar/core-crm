@@ -2,21 +2,21 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetActionRequiredQuery } from './get-action-required.query';
 import { GetActionRequiredQueryResponse } from './get-action-required.response';
 import { Inject } from '@nestjs/common';
-import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetActionRequiredQuery)
-export class GetActionRequiredHandler
-  implements
-    IQueryHandler<GetActionRequiredQuery, GetActionRequiredQueryResponse>
-{
+export class GetActionRequiredHandler implements IQueryHandler<
+  GetActionRequiredQuery,
+  GetActionRequiredQueryResponse
+> {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,

@@ -16,11 +16,11 @@ import { CheckInAppointmentHandler } from './check-in-appointment/check-in-appoi
 import { LockAppointmentSlotHandler } from './lock-appointment-slot/lock-appointment-slot.handler';
 import { ReleaseAppointmentSlotHandler } from './release-appointment-slot/release-appointment-slot.handler';
 import { ProcessAppointmentRemindersHandler } from './process-appointment-reminders/process-appointment-reminders.handler';
-import { AppointmentEventModule } from '@modules/clinical/appointment/infrastructure/events/appointment-event.module';
-import { PatientModule } from '@modules/crm/patient/patient.module';
-import { AppointmentRepositoryModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/appointment/appointment.repository.module';
 import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
-import { AppointmentCacheService } from '@modules/clinical/appointment/infrastructure/cache/appointment-cache.service';
+import { ProviderDomainServicesModule } from '@modules/clinical/provider/domain/services/services.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
+import { AppointmentInfrastructureModule } from '@modules/clinical/appointment/infrastructure/infrastructure.module';
+import { AppointmentDomainServicesModule } from '@modules/clinical/appointment/domain/services/services.module';
 
 const CommandHandlers = [
   StaffRescheduleHandler,
@@ -43,12 +43,13 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [AppointmentEventModule, PatientModule, AppointmentRepositoryModule],
-  providers: [
-    ...CommandHandlers,
-    AppointmentCheckerService,
-    AppointmentCacheService,
+  imports: [
+    ProviderDomainServicesModule,
+    ClinicDomainServicesModule,
+    AppointmentDomainServicesModule,
+    AppointmentInfrastructureModule,
   ],
+  providers: [...CommandHandlers, AppointmentCheckerService],
   exports: [...CommandHandlers],
 })
 export class AppointmentCommandModule {}

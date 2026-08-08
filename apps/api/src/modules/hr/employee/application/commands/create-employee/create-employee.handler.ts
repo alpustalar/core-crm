@@ -1,12 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateEmployeeCommand } from './create-employee.command';
-import {
-  EMPLOYEE_COMMAND_REPOSITORY,
-  EMPLOYEE_CONTRACT_COMMAND_REPOSITORY,
-  IEmployeeCommandRepository,
-  IEmployeeContractCommandRepository,
-} from '@modules/hr/employee/domain/repositories/employee.repository';
 import { Employee } from '@modules/hr/employee/domain/entities/employee.entity';
 import { EmployeeContract } from '@modules/hr/employee/domain/entities/employee-contract.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -27,17 +21,24 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
 import { isDefined } from '@common/utils';
 import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
+import {
+  EMPLOYEE_COMMAND_REPOSITORY,
+  IEmployeeCommandRepository,
+} from '@modules/hr/employee/domain/repositories/employee/employee.command.repository';
+import {
+  EMPLOYEE_CONTRACT_COMMAND_REPOSITORY,
+  IEmployeeContractCommandRepository,
+} from '@modules/hr/employee/domain/repositories/employee-contract/employee-contract.command.repository';
 
 @CommandHandler(CreateEmployeeCommand)
-export class CreateEmployeeHandler implements ICommandHandler<
-  CreateEmployeeCommand,
-  string
-> {
+export class CreateEmployeeHandler
+  implements ICommandHandler<CreateEmployeeCommand, string>
+{
   constructor(
     @Inject(EMPLOYEE_COMMAND_REPOSITORY)
-    private readonly employeeCommandRepo: IEmployeeCommandRepository,
+    private readonly employeeRepo: IEmployeeCommandRepository,
     @Inject(EMPLOYEE_CONTRACT_COMMAND_REPOSITORY)
-    private readonly contractCommandRepo: IEmployeeContractCommandRepository,
+    private readonly employeeContractRepo: IEmployeeContractCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(EMPLOYEE_EVENT_PUBLISHER)
@@ -75,7 +76,7 @@ export class CreateEmployeeHandler implements ICommandHandler<
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.employeeCommandRepo.create(employee);
+      const saved = await this.employeeRepo.create(employee);
 
       // Maaş verildiyse başlangıç sözleşmesini de oluştur.
       if (isDefined(data.grossSalary)) {
@@ -86,7 +87,7 @@ export class CreateEmployeeHandler implements ICommandHandler<
           grossSalary: data.grossSalary,
           currency: data.currency,
         });
-        await this.contractCommandRepo.create(contract);
+        await this.employeeContractRepo.create(contract);
       }
 
       this.eventPublisher.employeeHired({

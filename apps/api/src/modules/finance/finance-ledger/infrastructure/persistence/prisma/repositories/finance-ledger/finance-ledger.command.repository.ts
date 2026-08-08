@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { LedgerStatus } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { txStorage } from '@src/infrastructure/persistence/prisma/transaction/als-storage';
-import { IFinanceLedgerCommandRepository } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { FinanceLedgerEntity } from '@modules/finance/finance-ledger/domain/entities/finance-ledger.entity';
+import { IFinanceLedgerCommandRepository } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.command.repository';
 
 @Injectable()
 export class FinanceLedgerCommandRepository
@@ -22,7 +22,7 @@ export class FinanceLedgerCommandRepository
     return new FinanceLedgerEntity(raw);
   }
 
-  async saveMany(entries: FinanceLedgerEntity[]): Promise<void> {
+  async updateMany(entries: FinanceLedgerEntity[]): Promise<void> {
     const ops = entries.map((entry) => {
       const data = entry.toPersistence();
       return this.db.financeLedger.upsert({

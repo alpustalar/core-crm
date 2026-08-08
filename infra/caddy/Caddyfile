@@ -1,0 +1,58 @@
+# Core CRM — tek public giriş noktası.
+#
+# İki servis tek alan adı altında görünür. Sınır tek bir yol önekidir:
+#   /api/v1/messaging/*  → apps/messaging (8081)   webhook'lar + kanal yönetimi
+#   diğer her şey        → apps/api       (8080)
+#
+# Alan adı env'den: DOMAIN=crm.example.com
+# TLS sertifikasını Caddy otomatik alır ve yeniler (Meta webhook'ları geçerli,
+# kendinden imzalı olmayan sertifika ister — bu yüzden tünel/self-signed olmaz).
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# ── probe'lar dışarı kapalı ───────────────────────────────────────────
+	# /health ve /health/ready orkestratöre aittir; konteynere doğrudan
+	# (8080/8081) sorulur. Dışarıya açık kalırsa hangi altyapı bileşeninin
+	# düştüğü kimlik doğrulamasız okunabilir.
+	handle /health* {
+		respond 404
+	}
+
+	# ── messaging servisi ─────────────────────────────────────────────────
+	# Tek kural bütün messaging yüzeyini karşılar (webhook'lar + klinik kanal
+	# uçları), çünkü rotaların hepsi `messaging` öneki altında toplandı.
+	# Yeni kanal eklendiğinde buraya dokunmak gerekmez.
+	handle /api/v1/messaging/* {
+		reverse_proxy messaging:8081 {
+			# Meta/WhatsApp imza doğrulaması ham gövdeyi (raw body) HMAC'ler.
+			# Caddy gövdeyi olduğu gibi geçirir; buraya gövdeye dokunan bir
+			# yönerge (ör. request_body manipülasyonu) EKLENMEMELİ — imza kırılır.
+
+			# Webhook sağlayıcıları kısa sürede yanıt bekler; asıl iş zaten
+			# kuyruğa düşüyor, bu yüzden uzun timeout'a gerek yok.
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+			}
+		}
+	}
+
+	# ── core api ──────────────────────────────────────────────────────────
+	handle {
+		reverse_proxy api:8080 {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 120s
+			}
+		}
+	}
+
+	# İstemci IP'si ve protokol X-Forwarded-* ile geçer; her iki serviste de
+	# NODE_ENV=production iken `trust proxy` açık (packages/nest-kernel setupApp).
+
+	log {
+		output stdout
+		format console
+	}
+}

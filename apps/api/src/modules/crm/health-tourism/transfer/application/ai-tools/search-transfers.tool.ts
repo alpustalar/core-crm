@@ -7,13 +7,10 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { SearchTransferAvailabilityQuery } from '@modules/crm/health-tourism/transfer/application/queries/search-transfer-availability/search-transfer-availability.query';
 import { SearchTransferAvailabilityDto } from '@shared/modules/health-tourism/dto/queries';
 import { CacheTransferRateOptionCommand } from '@modules/crm/health-tourism/transfer/application/commands/cache-transfer-rate-option/cache-transfer-rate-option.command';

@@ -4,13 +4,19 @@ import {
   BankStatementLineMatchStatusSchema,
   BankStatementLineMatchStatusType as MatchStatus,
 } from '@input-type-schemas/BankStatementLineMatchStatusSchema';
+import {
+  BankStatementLineMatchSourceSchema,
+  BankStatementLineMatchSourceType as MatchSource,
+} from '@input-type-schemas/BankStatementLineMatchSourceSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import {
+  AutoMatchLineInput,
   ReconcileLineInput,
   StatementLineImportProps,
 } from '@modules/finance/bank/domain/contracts/bank.contracts';
+import { MatchableStatementLine } from '@modules/finance/bank/domain/rules/statement-line-matcher';
 
 /**
  * Ekstre Hareketi (aggregate root). Bankadan gelen tekil hareket satırı; içerideki
@@ -35,6 +41,7 @@ export class BankStatementLine extends AggregateRoot {
     this._matchStatus = data.matchStatus;
     this._matchedRef = data.matchedRef;
     this._matchNote = data.matchNote;
+    this._matchSource = data.matchSource;
     this._reconciledById = data.reconciledById;
     this._reconciledAt = data.reconciledAt;
     this._createdAt = data.createdAt;
@@ -110,6 +117,11 @@ export class BankStatementLine extends AggregateRoot {
     return this._matchNote;
   }
 
+  private _matchSource: MatchSource;
+  get matchSource(): MatchSource {
+    return this._matchSource;
+  }
+
   private _reconciledById: string | null;
   get reconciledById(): string | null {
     return this._reconciledById;
@@ -146,6 +158,7 @@ export class BankStatementLine extends AggregateRoot {
       matchStatus: BankStatementLineMatchStatusSchema.enum.UNMATCHED,
       matchedRef: null,
       matchNote: null,
+      matchSource: BankStatementLineMatchSourceSchema.enum.MANUAL,
       reconciledById: null,
       reconciledAt: null,
       createdAt: DateTimeManager.create(),
@@ -160,6 +173,7 @@ export class BankStatementLine extends AggregateRoot {
       this._matchStatus = BankStatementLineMatchStatusSchema.enum.UNMATCHED;
       this._matchedRef = null;
       this._matchNote = null;
+      this._matchSource = BankStatementLineMatchSourceSchema.enum.MANUAL;
       this._reconciledById = null;
       this._reconciledAt = null;
       return;
@@ -168,8 +182,47 @@ export class BankStatementLine extends AggregateRoot {
     this._matchStatus = input.matchStatus;
     this._matchedRef = input.matchedRef ?? null;
     this._matchNote = input.matchNote ?? null;
+    // Elle yapılan her mutabakat kaynağı MANUAL'a döner: personel makinenin
+    // kurduğu bir eşleşmeyi düzelttiğinde iz artık insana aittir.
+    this._matchSource = BankStatementLineMatchSourceSchema.enum.MANUAL;
     this._reconciledById = input.reconciledById;
     this._reconciledAt = DateTimeManager.create();
+  }
+
+  /**
+   * Oto-eşleştirme taramasının kurduğu eşleşme. `reconcile`'dan ayrı bir metottur
+   * çünkü (1) kaynağı AUTO işaretler, (2) yalnız UNMATCHED satıra uygulanır —
+   * makine personelin verdiği kararın (MATCHED/IGNORED) üzerine yazmaz.
+   *
+   * Halihazırda mutabık edilmiş satırda çağrılırsa sessizce atlanır ve `false`
+   * döner; tarama bunu "dokunulmadı" olarak sayar.
+   */
+  public autoMatch(input: AutoMatchLineInput): boolean {
+    if (
+      this._matchStatus !== BankStatementLineMatchStatusSchema.enum.UNMATCHED
+    ) {
+      return false;
+    }
+
+    this._matchStatus = BankStatementLineMatchStatusSchema.enum.MATCHED;
+    this._matchedRef = input.matchedRef;
+    this._matchNote = input.matchNote;
+    this._matchSource = BankStatementLineMatchSourceSchema.enum.AUTO;
+    this._reconciledById = input.reconciledById;
+    this._reconciledAt = DateTimeManager.create();
+    return true;
+  }
+
+  /** Eşleştirme motorunun beklediği sade izdüşüm (motor entity bilmez). */
+  public toMatchable(): MatchableStatementLine {
+    return {
+      id: this.id.value,
+      transactionDate: this.transactionDate,
+      amount: this.amount,
+      description: this.description,
+      reference: this.reference,
+      counterpartyName: this.counterpartyName,
+    };
   }
 
   public toPersistence(): IBankStatementLine {
@@ -188,6 +241,7 @@ export class BankStatementLine extends AggregateRoot {
       matchStatus: this.matchStatus,
       matchedRef: this.matchedRef,
       matchNote: this.matchNote,
+      matchSource: this.matchSource,
       reconciledById: this.reconciledById,
       reconciledAt: this.reconciledAt,
       createdAt: this.createdAt,

@@ -3,16 +3,16 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { UpdateUserByStaffResponse } from '@modules/identity/user/application/commands/update-user-by-staff/update-user-by-staff.response';
-import {
-  IUserCommandRepository,
-  USER_COMMAND_REPOSITORY,
-} from '@modules/identity/user/domain/repositories/user.repository';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { USER_EVENTS } from '@src/domain/constants/events';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { UpdateUserByStaffCommand } from './update-user-by-staff.command';
 import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
+import {
+  IUserCommandRepository,
+  USER_COMMAND_REPOSITORY,
+} from '@modules/identity/user/domain/repositories/user/user.command.repository';
 
 @CommandHandler(UpdateUserByStaffCommand)
 export class UpdateUserByStaffHandler
@@ -21,7 +21,7 @@ export class UpdateUserByStaffHandler
 {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
-    private readonly userCommandRepo: IUserCommandRepository,
+    private readonly userRepo: IUserCommandRepository,
     @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -43,7 +43,7 @@ export class UpdateUserByStaffHandler
         'Kendi yetkilerinizi buradan değiştiremezsiniz.'
       );
 
-    const targetUser = await this.userCommandRepo.findById(targetUserId);
+    const targetUser = await this.userRepo.findById(targetUserId);
 
     if (!targetUser) throw new UserNotFoundException();
 
@@ -62,7 +62,7 @@ export class UpdateUserByStaffHandler
     targetUser.updateDetails(data, ctx.actor.userId);
 
     await this.txManager.run(async () => {
-      await this.userCommandRepo.save(targetUser);
+      await this.userRepo.update(targetUser);
     });
   }
 }

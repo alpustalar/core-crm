@@ -9,15 +9,9 @@ import {
 import { PaxVoidCommand } from './pax-void.command';
 import type { PaxVoidResponse } from './pax-void.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { PaxService } from '@src/infrastructure/payment/pos/physical/providers/pax/pax.service';
 import {
   PaxConnectionError,
@@ -27,6 +21,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(PaxVoidCommand)
 export class PaxVoidHandler
@@ -35,10 +33,8 @@ export class PaxVoidHandler
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
@@ -49,7 +45,9 @@ export class PaxVoidHandler
   async execute(command: PaxVoidCommand): Promise<PaxVoidResponse> {
     const { input } = command;
 
-    const originalTx = await this.posTransactionQueryRepo.findById(
+    // Orijinal işlem iptal kararını besliyor → okuma command repo'dan (ana bağlantı):
+    // satış az önce tamamlanmış olabilir, replica gecikmesi iptali reddederdi.
+    const originalTx = await this.posTransactionCommandRepo.findById(
       input.originalPosTransactionId
     );
     if (!originalTx) {
@@ -64,9 +62,7 @@ export class PaxVoidHandler
       .externalRef(new PosTransactionMissingExternalRefException())
       .orThrow();
 
-    const device = await this.posDeviceQueryRepo.findById(
-      originalTx.posDeviceId
-    );
+    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
@@ -103,7 +99,7 @@ export class PaxVoidHandler
       await this.txManager.outboxRun(async () => {
         if (result.approved) {
           voidTx.markSuccess(result.externalRef, result.rawResponse);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
           if (originalTx.paymentId) {
             await this.posPaymentSync.markRefunded({
               paymentId: originalTx.paymentId,
@@ -112,7 +108,7 @@ export class PaxVoidHandler
           }
         } else {
           voidTx.markFailed(result.rawResponse);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
         }
       });
 
@@ -142,7 +138,7 @@ export class PaxVoidHandler
       if (err instanceof PaxConnectionError) {
         await this.txManager.run(async () => {
           voidTx.markFailed();
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionCommandRepo.update(voidTx);
         });
         this.logger.error(`PAX void bağlantı hatası: id=${voidTransactionId}`);
         return { posTransactionId: voidTransactionId, status: 'FAILED' };

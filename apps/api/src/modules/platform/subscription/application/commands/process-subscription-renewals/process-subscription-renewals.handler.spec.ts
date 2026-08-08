@@ -1,17 +1,15 @@
 import { ProcessSubscriptionRenewalsHandler } from './process-subscription-renewals.handler';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
-import {
-  ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { ISubscriptionPaymentMethodQueryRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
+import { ISubscriptionCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
+import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
 import {
   IBillingAdapter,
   PaymentResult,
 } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { SavedCardChargeModel } from '@modules/platform/subscription/domain/subscription.contracts';
+import { SavedCardChargeModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 import { randomUUID } from 'crypto';
+import { DateTimeManager } from '@common/utils';
 import { Decimal } from 'decimal.js';
 
 describe('ProcessSubscriptionRenewalsHandler', () => {
@@ -45,8 +43,15 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
         opts.chargeResult ?? { success: true, iyzicoPaymentId: 'pay-1' }
       );
 
-    const subscriptionQueryRepo = {
+    // Tarama adayları döner; işleme sırasında her abonelik kilitli olarak yeniden
+    // okunur (findByIdForUpdate) — mükerrer çekimi engelleyen yeniden doğrulama.
+    const subscriptionCommandRepo = {
       findDueForRenewal: jest.fn().mockResolvedValue(opts.due),
+      findByIdForUpdate: jest
+        .fn()
+        .mockImplementation(
+          async (id: string) => opts.due.find((s) => s.id.value === id) ?? null
+        ),
       findRenewalCharge: jest
         .fn()
         .mockResolvedValue(
@@ -54,19 +59,16 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
             ? { amount: new Decimal(100), currency: 'TRY' }
             : opts.charge
         ),
-    } as unknown as ISubscriptionQueryRepository;
-
-    const subscriptionCommandRepo = {
-      save: jest.fn(async (s: Subscription) => s),
+      update: jest.fn(async (s: Subscription) => s),
     } as unknown as ISubscriptionCommandRepository;
 
-    const paymentMethodQueryRepo = {
+    const paymentMethodCommandRepo = {
       findBySubscriptionId: jest
         .fn()
         .mockResolvedValue(
           opts.savedCard === undefined ? savedCard : opts.savedCard
         ),
-    } as unknown as ISubscriptionPaymentMethodQueryRepository;
+    } as unknown as ISubscriptionPaymentMethodCommandRepository;
 
     const billingAdapter = {
       chargeSavedCard,
@@ -77,17 +79,27 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
     } as unknown as TransactionManager;
 
     const handler = new ProcessSubscriptionRenewalsHandler(
-      subscriptionQueryRepo,
       subscriptionCommandRepo,
-      paymentMethodQueryRepo,
+      paymentMethodCommandRepo,
       billingAdapter,
       txManager
     );
     return { handler, subscriptionCommandRepo, chargeSavedCard };
   };
 
-  const newSub = () =>
-    Subscription.create({ billingTarget: 'ORGANIZATION', organizationId });
+  /** Dönemi geçmiş (gerçekten yenileme günü gelmiş) abonelik. */
+  const newSub = () => {
+    const sub = Subscription.create({
+      billingTarget: 'ORGANIZATION',
+      organizationId,
+    });
+    const now = DateTimeManager.create();
+    sub.startNewPeriod(
+      DateTimeManager.addMonths(now, -2),
+      DateTimeManager.addMonths(now, -1)
+    );
+    return sub;
+  };
 
   it('kayıtlı kart + başarılı tahsilat → ACTIVE (renew) + yeni dönem', async () => {
     const sub = newSub();
@@ -98,7 +110,7 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
     expect(t.chargeSavedCard).toHaveBeenCalledTimes(1);
     expect(sub.status).toBe('ACTIVE');
     expect(sub.currentPeriodEnd).toBeInstanceOf(Date);
-    expect(t.subscriptionCommandRepo.save).toHaveBeenCalledTimes(1);
+    expect(t.subscriptionCommandRepo.update).toHaveBeenCalledTimes(1);
   });
 
   it('kayıtlı kart yok → tahsilat denenmez, PAST_DUE', async () => {
@@ -138,6 +150,29 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
   it('dönemi geçmiş abonelik yoksa hiçbir şey yapılmaz', async () => {
     const t = build({ due: [] });
     await t.handler.execute();
-    expect(t.subscriptionCommandRepo.save).not.toHaveBeenCalled();
+    expect(t.subscriptionCommandRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('tarama ile işleme arasında dönem ilerlediyse kart ÇEKİLMEZ (mükerrer tahsilat)', async () => {
+    // Aday listesine girdikten sonra başka bir çalıştırma aboneliği yenilemiş:
+    // kilitli okuma artık dönemi ileride olan hâli döner.
+    const stale = newSub();
+    const t = build({ due: [stale] });
+
+    const now = DateTimeManager.create();
+    const renewed = Subscription.create({
+      id: stale.id.value,
+      billingTarget: 'ORGANIZATION',
+      organizationId,
+    });
+    renewed.startNewPeriod(now, DateTimeManager.addMonths(now, 1));
+    (
+      t.subscriptionCommandRepo.findByIdForUpdate as jest.Mock
+    ).mockResolvedValue(renewed);
+
+    await t.handler.execute();
+
+    expect(t.chargeSavedCard).not.toHaveBeenCalled();
+    expect(t.subscriptionCommandRepo.update).not.toHaveBeenCalled();
   });
 });

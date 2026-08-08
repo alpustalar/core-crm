@@ -1,7 +1,7 @@
 import { Job } from 'bullmq';
 import { EDocumentProcessor } from './e-document.processor';
 import { EInvoicePort } from '@modules/finance/e-document/domain/ports/e-invoice.port';
-import { EDocumentRequest } from '@modules/finance/e-document/domain/e-document.contracts';
+import { EDocumentRequest } from '@modules/finance/e-document/domain/contracts/e-document.contracts';
 import { GetInvoiceByIdQuery } from '@modules/finance/invoice/application/queries/get-invoice-by-id/get-invoice-by-id.query';
 import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
 import { GetPartyByIdQuery } from '@modules/finance/party/application/queries/get-party-by-id/get-party-by-id.query';
@@ -52,7 +52,10 @@ describe('EDocumentProcessor (doc 07 §5)', () => {
         if (query instanceof GetInvoiceByIdQuery) return { data: invoiceView };
         if (query instanceof GetClinicGovernmentSpecsQuery) {
           return {
-            data: { legalType: params.legalType, companyTaxNumber: '1234567890' },
+            data: {
+              legalType: params.legalType,
+              companyTaxNumber: '1234567890',
+            },
           };
         }
         if (query instanceof GetPartyByIdQuery) {
@@ -107,16 +110,14 @@ describe('EDocumentProcessor (doc 07 §5)', () => {
     expect(request.totals.payable).toBe('1100.00');
     expect(request.currency).toBe('TRY');
 
-    const markCall = (
-      commandBus.execute as jest.Mock
-    ).mock.calls.find(([c]) => c instanceof MarkInvoiceEDocumentResultCommand);
+    const markCall = (commandBus.execute as jest.Mock).mock.calls.find(
+      ([c]) => c instanceof MarkInvoiceEDocumentResultCommand
+    );
     expect(markCall).toBeDefined();
     const markCmd = markCall![0] as MarkInvoiceEDocumentResultCommand;
     expect(markCmd.input.invoiceId).toBe('inv-1');
     expect(markCmd.input.status).toBe(EDocumentStatusSchema.enum.INTERNAL);
-    expect(markCmd.input.documentType).toBe(
-      EDocumentTypeSchema.enum.INTERNAL
-    );
+    expect(markCmd.input.documentType).toBe(EDocumentTypeSchema.enum.INTERNAL);
   });
 
   it('SERBEST_MESLEK → port E_SMM isteğiyle çağrılır', async () => {

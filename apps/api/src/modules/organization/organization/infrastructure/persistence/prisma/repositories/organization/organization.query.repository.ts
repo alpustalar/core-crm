@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
-import { IOrganizationQueryRepository } from '@modules/organization/organization/domain/repositories/organization.repository.interface';
+import { Organization as IOrganization } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { IOrganizationQueryRepository } from '@modules/organization/organization/domain/repositories/organization/organization.query.repository';
 
 @Injectable()
 export class OrganizationQueryRepository
@@ -13,24 +13,11 @@ export class OrganizationQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<Organization | null> {
-    const raw = await this.db.organization.findUnique({ where: { id } });
-    return raw ? new Organization(raw) : null;
-  }
-
-  async findBySlug(slug: string): Promise<Organization | null> {
-    const raw = await this.db.organization.findUnique({ where: { slug } });
-    return raw ? new Organization(raw) : null;
-  }
-
-  async findFirstByOwnerCredentials(
-    ownerId: string
-  ): Promise<Organization | null> {
-    const raw = await this.db.organization.findFirst({
+  findFirstByOwnerCredentials(ownerId: string): Promise<IOrganization | null> {
+    return this.db.organization.findFirst({
       where: this.ownerWhere(ownerId),
       orderBy: { createdAt: 'asc' },
     });
-    return raw ? new Organization(raw) : null;
   }
 
   async findIdByClinicId(clinicId: string) {
@@ -41,18 +28,25 @@ export class OrganizationQueryRepository
     return raw ? raw.id : null;
   }
 
-  async findOneByIdByOwner(
+  findOneByIdByOwner(
     ownerId: string,
     organizationId: string
-  ): Promise<Organization | null> {
-    const raw = await this.db.organization.findFirst({
+  ): Promise<IOrganization | null> {
+    return this.db.organization.findFirst({
       where: {
         id: organizationId,
         ...this.ownerWhere(ownerId),
       },
       orderBy: { createdAt: 'asc' },
     });
-    return raw ? new Organization(raw) : null;
+  }
+
+  findById(id: string): Promise<IOrganization | null> {
+    return this.db.organization.findUnique({ where: { id } });
+  }
+
+  findBySlug(slug: string): Promise<IOrganization | null> {
+    return this.db.organization.findUnique({ where: { slug } });
   }
 
   private ownerWhere(ownerId: string) {

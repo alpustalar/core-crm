@@ -3,14 +3,14 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetEmployeeByIdQuery } from './get-employee-by-id.query';
 import { GetEmployeeByIdResponse } from './get-employee-by-id.response';
 import {
-  EMPLOYEE_QUERY_REPOSITORY,
-  IEmployeeQueryRepository,
-} from '@modules/hr/employee/domain/repositories/employee.repository';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
+import {
+  EMPLOYEE_QUERY_REPOSITORY,
+  IEmployeeQueryRepository,
+} from '@modules/hr/employee/domain/repositories/employee/employee.query.repository';
 
 @QueryHandler(GetEmployeeByIdQuery)
 export class GetEmployeeByIdHandler
@@ -18,14 +18,14 @@ export class GetEmployeeByIdHandler
 {
   constructor(
     @Inject(EMPLOYEE_QUERY_REPOSITORY)
-    private readonly employeeQueryRepo: IEmployeeQueryRepository,
+    private readonly employeeRepo: IEmployeeQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetEmployeeByIdQuery): Promise<GetEmployeeByIdResponse> {
     const { employeeId, ctx } = query;
-    const data = await this.employeeQueryRepo.findById(employeeId);
+    const data = await this.employeeRepo.findById(employeeId);
 
     if (!data) return { data: null };
 

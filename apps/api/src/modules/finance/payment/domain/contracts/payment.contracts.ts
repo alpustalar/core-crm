@@ -3,7 +3,6 @@ import { Decimal } from 'decimal.js';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { PaymentMethodSchema } from '@input-type-schemas/PaymentMethodSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { InstallmentPlanItem } from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 
 // ==========================================
 // 1. YAŞLANDIRMA & RAPORLAMA SÖZLEŞMELERİ (AGING & REVENUE)
@@ -48,7 +47,7 @@ export type ProviderRevenueFilterData = z.infer<
 // 2. TAKSİTLENDİRME VE PLANLAMA SÖZLEŞMELERİ (INSTALLMENTS)
 // ==========================================
 
-export const CreateInstallmentPlanInputSchema = z.object({
+export const CreateInstallmentPlanDataSchema = z.object({
   clinicId: z.uuid(),
   patientId: z.uuid(),
   appointmentId: z.uuid().optional(),
@@ -61,8 +60,8 @@ export const CreateInstallmentPlanInputSchema = z.object({
     )
   ),
 });
-export type CreateInstallmentPlanInput = z.infer<
-  typeof CreateInstallmentPlanInputSchema
+export type CreateInstallmentPlanData = z.infer<
+  typeof CreateInstallmentPlanDataSchema
 >;
 
 export const CreateInstallmentPropsSchema = z.object({
@@ -118,3 +117,26 @@ export const CreateSinglePaymentDataSchema = z.object({
 export type CreateSinglePaymentData = z.infer<
   typeof CreateSinglePaymentDataSchema
 >;
+
+// Eğer projede PaymentMethod enum'ın/type'ın varsa buraya bağlayabilirsin.
+// Örnek: export const PaymentMethodSchema = z.enum(['CASH', 'CREDIT_CARD', 'BANK_TRANSFER', ...]);
+
+export const InstallmentPlanItemSchema = z.object({
+  // Finansal tutar: Sayısal, negatif olamaz
+  amount: z
+    .number({
+      error: 'Tutar zorunludur.',
+    })
+    .positive('Tutar 0 dan büyük olmalıdır'),
+
+  // Ödeme yöntemi (Enum veya string)
+  method: z.string(), // veya PaymentMethodSchema
+
+  // Vade tarihi (Opsiyonel)
+  dueDate: z.date().optional(),
+
+  // Taksit notu (Opsiyonel, maksimum karakter sınırı ile)
+  note: z.string().max(250, 'Taksit notu 250 karakteri geçemez').optional(),
+});
+
+export type InstallmentPlanItem = z.infer<typeof InstallmentPlanItemSchema>;

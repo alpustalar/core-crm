@@ -1,12 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { CancelSubscriptionCommand } from './cancel-subscription.command';
+import { SubscriptionNotFoundException } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import {
   ISubscriptionCommandRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { SubscriptionNotFoundException } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
 
 @CommandHandler(CancelSubscriptionCommand)
 export class CancelSubscriptionHandler
@@ -14,12 +14,12 @@ export class CancelSubscriptionHandler
 {
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
-    private readonly subscriptionCommandRepo: ISubscriptionCommandRepository,
+    private readonly subscriptionRepo: ISubscriptionCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CancelSubscriptionCommand): Promise<void> {
-    const subscription = await this.subscriptionCommandRepo.findById(
+    const subscription = await this.subscriptionRepo.findById(
       command.payload.subscriptionId
     );
     if (!subscription) throw new SubscriptionNotFoundException();
@@ -30,7 +30,7 @@ export class CancelSubscriptionHandler
       } else {
         subscription.scheduleCancellation(); // dönem sonunda iptal
       }
-      await this.subscriptionCommandRepo.save(subscription);
+      await this.subscriptionRepo.update(subscription);
     });
   }
 }

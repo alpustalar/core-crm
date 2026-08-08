@@ -1,7 +1,14 @@
 import { z } from 'zod';
-import type { Prisma } from '@prisma/client';
 
-export const JsonValueSchema: z.ZodType<Prisma.JsonValue> = z.lazy(() =>
+export type JsonValueType =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValueType | undefined }
+  | JsonValueType[];
+
+export const JsonValueSchema: z.ZodType<JsonValueType> = z.lazy(() =>
   z.union([
     z.string(),
     z.number(),
@@ -12,6 +19,5 @@ export const JsonValueSchema: z.ZodType<Prisma.JsonValue> = z.lazy(() =>
   ])
 );
 
-export type JsonValueType = z.infer<typeof JsonValueSchema>;
 
 export default JsonValueSchema

@@ -1,14 +1,12 @@
 import { Inject, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ReviewAdminRequestCommand } from './review-admin-request.command';
-import {
-  ADMIN_REQUEST_COMMAND_REPOSITORY,
-  ADMIN_REQUEST_QUERY_REPOSITORY,
-  IAdminRequestCommandRepository,
-  IAdminRequestQueryRepository,
-} from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { AdminRequestStatusSchema } from '@shared';
+import {
+  ADMIN_REQUEST_COMMAND_REPOSITORY,
+  IAdminRequestCommandRepository,
+} from '@modules/platform/admin-request/domain/repositories/admin-request/admin-request.command.repository';
 
 @CommandHandler(ReviewAdminRequestCommand)
 export class ReviewAdminRequestHandler
@@ -16,9 +14,7 @@ export class ReviewAdminRequestHandler
 {
   constructor(
     @Inject(ADMIN_REQUEST_COMMAND_REPOSITORY)
-    private readonly adminRequestCommandRepo: IAdminRequestCommandRepository,
-    @Inject(ADMIN_REQUEST_QUERY_REPOSITORY)
-    private readonly adminRequestQueryRepo: IAdminRequestQueryRepository,
+    private readonly adminRequestRepo: IAdminRequestCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -27,7 +23,7 @@ export class ReviewAdminRequestHandler
     const { actor } = ctx;
 
     await this.txManager.run(async () => {
-      const request = await this.adminRequestQueryRepo.findById(requestId);
+      const request = await this.adminRequestRepo.findById(requestId);
       if (!request) throw new NotFoundException('İstek bulunamadı.');
 
       if (data.status === AdminRequestStatusSchema.enum.APPROVED) {
@@ -36,7 +32,7 @@ export class ReviewAdminRequestHandler
         request.reject(actor.userId, data.reviewNote);
       }
 
-      await this.adminRequestCommandRepo.save(request);
+      await this.adminRequestRepo.update(request);
     });
   }
 }

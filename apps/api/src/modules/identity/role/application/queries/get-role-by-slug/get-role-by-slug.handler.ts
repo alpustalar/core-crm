@@ -5,7 +5,7 @@ import { GetRoleBySlugQueryResponse } from './get-role-by-slug.response';
 import {
   IRoleQueryRepository,
   ROLE_QUERY_REPOSITORY,
-} from '@modules/identity/role/domain/repositories/role.repository.interface';
+} from '@modules/identity/role/domain/repositories/role/role.query.repository';
 
 @QueryHandler(GetRoleBySlugQuery)
 export class GetRoleBySlugHandler

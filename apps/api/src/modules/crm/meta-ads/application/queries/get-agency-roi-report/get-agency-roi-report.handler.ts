@@ -5,7 +5,7 @@ import { GetAgencyRoiReportResponse } from './get-agency-roi-report.response';
 import {
   IMetaCampaignMetricQueryRepository,
   META_CAMPAIGN_METRIC_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetAdAttributedLeadsQuery } from '@modules/crm/lead/application/queries/get-ad-attributed-leads/get-ad-attributed-leads.query';
 import { GetRevenueByPatientsQuery } from '@modules/finance/finance-ledger/application/queries/get-revenue-by-patients/get-revenue-by-patients.query';
@@ -29,12 +29,13 @@ interface PeriodResult {
 }
 
 @QueryHandler(GetAgencyRoiReportQuery)
-export class GetAgencyRoiReportHandler
-  implements IQueryHandler<GetAgencyRoiReportQuery, GetAgencyRoiReportResponse>
-{
+export class GetAgencyRoiReportHandler implements IQueryHandler<
+  GetAgencyRoiReportQuery,
+  GetAgencyRoiReportResponse
+> {
   constructor(
     @Inject(META_CAMPAIGN_METRIC_QUERY_REPOSITORY)
-    private readonly metricQueryRepo: IMetaCampaignMetricQueryRepository,
+    private readonly metaCampaignMetricRepo: IMetaCampaignMetricQueryRepository,
     private readonly queryBus: TSQueryBus
   ) {}
 
@@ -80,7 +81,7 @@ export class GetAgencyRoiReportHandler
     const map = new Map<string, CampaignAgg>();
 
     // 1) Harcama (kampanya-başı).
-    const metrics = await this.metricQueryRepo.aggregateByAccount({
+    const metrics = await this.metaCampaignMetricRepo.aggregateByAccount({
       clinicId,
       from,
       to,

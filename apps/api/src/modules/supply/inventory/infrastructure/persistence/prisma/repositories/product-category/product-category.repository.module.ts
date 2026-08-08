@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common';
-import {
-  PRODUCT_CATEGORY_COMMAND_REPOSITORY,
-  PRODUCT_CATEGORY_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product-category.repository.interface';
 import { ProductCategoryCommandRepository } from './product-category.command.repository';
-import { ProductCategoryQueryRepository } from './product-category.query.repository';
+import { PRODUCT_CATEGORY_COMMAND_REPOSITORY } from '@modules/supply/inventory/domain/repositories/product-category/product-category.command.repository';
 
 @Module({
   providers: [
@@ -12,14 +8,7 @@ import { ProductCategoryQueryRepository } from './product-category.query.reposit
       provide: PRODUCT_CATEGORY_COMMAND_REPOSITORY,
       useClass: ProductCategoryCommandRepository,
     },
-    {
-      provide: PRODUCT_CATEGORY_QUERY_REPOSITORY,
-      useClass: ProductCategoryQueryRepository,
-    },
   ],
-  exports: [
-    PRODUCT_CATEGORY_COMMAND_REPOSITORY,
-    PRODUCT_CATEGORY_QUERY_REPOSITORY,
-  ],
+  exports: [PRODUCT_CATEGORY_COMMAND_REPOSITORY],
 })
 export class ProductCategoryRepositoryModule {}

@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateActivityCommand } from './update-activity.command';
-import {
-  ACTIVITY_COMMAND_REPOSITORY,
-  IActivityCommandRepository,
-} from '@modules/crm/activity/domain/repositories/activity.repository';
 import { ActivityNotFoundException } from '@modules/crm/activity/domain/exceptions/activity.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -12,6 +8,10 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ACTIVITY_EVENTS } from '@src/domain/constants/events';
+import {
+  ACTIVITY_COMMAND_REPOSITORY,
+  IActivityCommandRepository,
+} from '@modules/crm/activity/domain/repositories/activity/activity.command.repository';
 
 @CommandHandler(UpdateActivityCommand)
 export class UpdateActivityHandler
@@ -19,7 +19,7 @@ export class UpdateActivityHandler
 {
   constructor(
     @Inject(ACTIVITY_COMMAND_REPOSITORY)
-    private readonly activityCommandRepo: IActivityCommandRepository,
+    private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +29,7 @@ export class UpdateActivityHandler
     const { activityId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const activity = await this.activityCommandRepo.findById(activityId);
+      const activity = await this.activityRepo.findById(activityId);
       if (!activity) throw new ActivityNotFoundException(activityId);
 
       this.policyFactory
@@ -46,7 +46,7 @@ export class UpdateActivityHandler
         dueAt: data.dueAt,
       });
 
-      await this.activityCommandRepo.save(activity);
+      await this.activityRepo.update(activity);
     });
   }
 }

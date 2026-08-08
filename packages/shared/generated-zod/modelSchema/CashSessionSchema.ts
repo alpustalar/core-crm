@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CashSessionStatusSchema } from '../inputTypeSchemas/CashSessionStatusSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
@@ -14,10 +14,10 @@ export const CashSessionSchema = z.object({
   cashRegisterId: z.string(),
   clinicId: z.string(),
   organizationId: z.string(),
-  openingFloat: z.instanceof(Prisma.Decimal, { message: "Field 'openingFloat' must be a Decimal. Location: ['Models', 'CashSession']"}),
-  expectedAmount: z.instanceof(Prisma.Decimal, { message: "Field 'expectedAmount' must be a Decimal. Location: ['Models', 'CashSession']"}).nullable(),
-  countedAmount: z.instanceof(Prisma.Decimal, { message: "Field 'countedAmount' must be a Decimal. Location: ['Models', 'CashSession']"}).nullable(),
-  difference: z.instanceof(Prisma.Decimal, { message: "Field 'difference' must be a Decimal. Location: ['Models', 'CashSession']"}).nullable(),
+  openingFloat: decimalSchema("Field 'openingFloat' must be a Decimal. Location: ['Models', 'CashSession']"),
+  expectedAmount: decimalSchema("Field 'expectedAmount' must be a Decimal. Location: ['Models', 'CashSession']").nullable(),
+  countedAmount: decimalSchema("Field 'countedAmount' must be a Decimal. Location: ['Models', 'CashSession']").nullable(),
+  difference: decimalSchema("Field 'difference' must be a Decimal. Location: ['Models', 'CashSession']").nullable(),
   openedById: z.string(),
   closedById: z.string().nullable(),
   openedAt: z.coerce.date(),

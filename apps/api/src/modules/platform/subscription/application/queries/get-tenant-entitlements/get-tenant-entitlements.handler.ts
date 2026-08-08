@@ -2,21 +2,21 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetTenantEntitlementsQuery } from './get-tenant-entitlements.query';
 import { GetTenantEntitlementsResponse } from './get-tenant-entitlements.response';
-import {
-  ISubscriptionQueryRepository,
-  SUBSCRIPTION_QUERY_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import {
-  IPlanQueryRepository,
-  PLAN_QUERY_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
-import {
-  resolveEffectivePlanId,
-  subscriptionGrantsAccess,
-} from '@modules/platform/subscription/domain/entitlement-access';
 import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 import { TenantEntitlements } from '@common/interfaces';
 import { SUBSCRIPTION_GRACE_DAYS } from '@common/constants';
+import {
+  ISubscriptionQueryRepository,
+  SUBSCRIPTION_QUERY_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.query.repository';
+import {
+  IPlanQueryRepository,
+  PLAN_QUERY_REPOSITORY,
+} from '@modules/platform/subscription/domain/repositories/plan/plan.query.repository';
+import {
+  resolveEffectivePlanId,
+  subscriptionGrantsAccess,
+} from '@modules/platform/subscription/domain/services/entitlement-access.policy';
 
 const EMPTY_ENTITLEMENTS: TenantEntitlements = {
   modules: [],
@@ -33,15 +33,15 @@ export class GetTenantEntitlementsHandler
 {
   constructor(
     @Inject(SUBSCRIPTION_QUERY_REPOSITORY)
-    private readonly subscriptionQueryRepo: ISubscriptionQueryRepository,
+    private readonly subscriptionRepo: ISubscriptionQueryRepository,
     @Inject(PLAN_QUERY_REPOSITORY)
-    private readonly planQueryRepo: IPlanQueryRepository
+    private readonly planRepo: IPlanQueryRepository
   ) {}
 
   async execute(
     query: GetTenantEntitlementsQuery
   ): Promise<GetTenantEntitlementsResponse> {
-    const source = await this.subscriptionQueryRepo.findEntitlementSource({
+    const source = await this.subscriptionRepo.findEntitlementSource({
       organizationId: query.organizationId,
       clinicId: query.clinicId,
     });
@@ -89,7 +89,7 @@ export class GetTenantEntitlementsHandler
 
     const effectivePlanId = resolveEffectivePlanId(planId);
     if (effectivePlanId) {
-      const plan = await this.planQueryRepo.findByPlanIdWithModules(
+      const plan = await this.planRepo.findByPlanIdWithModules(
         effectivePlanId as PlanId
       );
       plan?.modules.forEach((m) => keys.add(m.key));

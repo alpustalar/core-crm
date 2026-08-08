@@ -4,22 +4,23 @@ import { MarkNoShowCommand } from './mark-no-show.command';
 import { MarkNoShowCommandResponse } from './mark-no-show.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(MarkNoShowCommand)
-export class MarkNoShowHandler
-  implements ICommandHandler<MarkNoShowCommand, MarkNoShowCommandResponse>
-{
+export class MarkNoShowHandler implements ICommandHandler<
+  MarkNoShowCommand,
+  MarkNoShowCommandResponse
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -30,8 +31,7 @@ export class MarkNoShowHandler
     const { appointmentId, ctx } = command;
     const { actor, source } = ctx;
 
-    const appointment =
-      await this.appointmentCommandRepo.findById(appointmentId);
+    const appointment = await this.appointmentRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
@@ -50,6 +50,6 @@ export class MarkNoShowHandler
 
     appointment.markAsNoShow();
 
-    await this.appointmentCommandRepo.save(appointment);
+    await this.appointmentRepo.update(appointment);
   }
 }

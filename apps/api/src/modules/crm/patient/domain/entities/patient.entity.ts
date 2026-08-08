@@ -5,10 +5,20 @@ import { BloodTypeType as BloodType } from '@input-type-schemas/BloodTypeSchema'
 import { PatientStatusType as PatientStatus } from '@input-type-schemas/PatientStatusSchema';
 import { PatientTypeType as PatientType } from '@input-type-schemas/PatientTypeSchema';
 import { Decimal } from 'decimal.js';
-import { CreatePatientProps } from '@modules/crm/patient/domain/patient.contracts';
+import { CreatePatientProps } from '@modules/crm/patient/domain/contracts/patient.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
-import { Email, FirebaseUid, FullName, Img, LastName, Name, Phone, TckNo, UUID, } from '@src/domain/value-objects';
+import {
+  Email,
+  FirebaseUid,
+  FullName,
+  Img,
+  LastName,
+  Name,
+  Phone,
+  TckNo,
+  UUID,
+} from '@src/domain/value-objects';
 
 export class Patient extends AggregateRoot {
   constructor(data: IPatient) {

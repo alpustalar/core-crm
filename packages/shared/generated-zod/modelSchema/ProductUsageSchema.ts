@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 
 /////////////////////////////////////////
 // PRODUCT USAGE SCHEMA
@@ -12,7 +12,7 @@ export const ProductUsageSchema = z.object({
   batchId: z.string().nullable(),
   appointmentId: z.string().nullable(),
   usedByProviderId: z.string().nullable(),
-  quantity: z.instanceof(Prisma.Decimal, { message: "Field 'quantity' must be a Decimal. Location: ['Models', 'ProductUsage']"}),
+  quantity: decimalSchema("Field 'quantity' must be a Decimal. Location: ['Models', 'ProductUsage']"),
   usedAt: z.coerce.date(),
   notes: z.string().nullable(),
   stockMovementId: z.string().nullable(),

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { BookingPaymentTypeSchema } from '../inputTypeSchemas/BookingPaymentTypeSchema'
 import { BookingPaymentStatusSchema } from '../inputTypeSchemas/BookingPaymentStatusSchema'
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
@@ -22,10 +22,10 @@ export const BookingPaymentSchema = z.object({
   saleCurrency: CurrencySchema,
   paidProvider: BookingPaymentProviderSchema.nullable(),
   id: z.string(),
-  saleAmount: z.instanceof(Prisma.Decimal, { message: "Field 'saleAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"}),
-  tryAmount: z.instanceof(Prisma.Decimal, { message: "Field 'tryAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"}),
-  netAmount: z.instanceof(Prisma.Decimal, { message: "Field 'netAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"}),
-  fxRate: z.instanceof(Prisma.Decimal, { message: "Field 'fxRate' must be a Decimal. Location: ['Models', 'BookingPayment']"}).nullable(),
+  saleAmount: decimalSchema("Field 'saleAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"),
+  tryAmount: decimalSchema("Field 'tryAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"),
+  netAmount: decimalSchema("Field 'netAmount' must be a Decimal. Location: ['Models', 'BookingPayment']"),
+  fxRate: decimalSchema("Field 'fxRate' must be a Decimal. Location: ['Models', 'BookingPayment']").nullable(),
   intent: JsonValueSchema,
   iyzicoConversationId: z.string().nullable(),
   iyzicoToken: z.string().nullable(),

@@ -7,13 +7,10 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { GetTransferRateOptionQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-rate-option/get-transfer-rate-option.query';
 import { InitiateBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.command';
 import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';

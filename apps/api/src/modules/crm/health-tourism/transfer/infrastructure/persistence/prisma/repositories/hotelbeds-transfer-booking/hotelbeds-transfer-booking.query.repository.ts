@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Pagination } from '@shared';
+import { HotelbedsTransferBooking, Pagination } from '@shared';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IHotelbedsTransferBookingQueryRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking.repository.interface';
-import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
 import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { IHotelbedsTransferBookingQueryRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.query.repository';
 
 @Injectable()
 export class HotelbedsTransferBookingQueryRepository
@@ -16,20 +15,16 @@ export class HotelbedsTransferBookingQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<HotelbedsTransferBooking | null> {
-    const raw = await this.db.hotelbedsTransferBooking.findUnique({
+  findById(id: string): Promise<HotelbedsTransferBooking | null> {
+    return this.db.hotelbedsTransferBooking.findUnique({
       where: { id },
     });
-    return raw ? new HotelbedsTransferBooking(raw) : null;
   }
 
-  async findByReference(
-    reference: string
-  ): Promise<HotelbedsTransferBooking | null> {
-    const raw = await this.db.hotelbedsTransferBooking.findUnique({
+  findByReference(reference: string): Promise<HotelbedsTransferBooking | null> {
+    return this.db.hotelbedsTransferBooking.findUnique({
       where: { reference },
     });
-    return raw ? new HotelbedsTransferBooking(raw) : null;
   }
 
   async findMany(
@@ -50,7 +45,7 @@ export class HotelbedsTransferBookingQueryRepository
     });
 
     return {
-      items: result.items.map((r) => new HotelbedsTransferBooking(r)),
+      items: result.items,
       total: result.total,
     };
   }

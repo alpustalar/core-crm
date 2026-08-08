@@ -4,13 +4,10 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { isActiveAppointmentStatus } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.util';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { isActiveAppointmentStatus } from '@modules/platform/ai-tools/application/ai-tool.util';
 import { DateTimeManager } from '@common/utils';
 import { PaginationSchema } from '@shared';
 import { PaginationDto } from '@shared/common';

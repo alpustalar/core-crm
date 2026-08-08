@@ -10,7 +10,7 @@ import {
   HAS_CAPABILITY_KEY,
   HasCapabilityType,
 } from '@common/decorators/has-capability.decorator';
-import { ActorContext, IRequestWithActor } from '@common/interfaces';
+import { IRequestWithActor } from '@common/interfaces';
 
 @Injectable()
 export class CapabilityGuard implements CanActivate {
@@ -28,7 +28,7 @@ export class CapabilityGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<IRequestWithActor>();
-    const actor = request.actor as ActorContext;
+    const actor = request.actor;
 
     if ((actor?.role?.priority ?? 0) >= 100) {
       return true;

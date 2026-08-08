@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ProviderShift } from '@modules/clinical/provider/domain/entities/provider-shift.entity';
-import { IProviderShiftCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { Prisma } from '@prisma/client';
+import { IProviderShiftCommandRepository } from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository';
 
 @Injectable()
 export class ProviderShiftCommandRepository
@@ -27,7 +27,7 @@ export class ProviderShiftCommandRepository
     return raw ? new ProviderShift(raw) : null;
   }
 
-  async save(entity: ProviderShift) {
+  async update(entity: ProviderShift) {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.providerShift.update({
@@ -65,7 +65,9 @@ export class ProviderShiftCommandRepository
 
     // ALS'de aktif transaction varsa onu kullan (iç içe tx açma); yoksa
     // delete + create'i atomik tutmak için yeni bir $transaction aç.
-    const activeTx = txStorage.getStore()?.tx;
+    // ALS bağlamı veritabanı-bağımsız (`tx?: unknown`); daraltma Prisma'yı bilen
+    // bu tarafta yapılır — handle'ı yalnız Prisma'nın `$transaction`'ı yazar.
+    const activeTx = txStorage.getStore()?.tx as Prisma.TransactionClient | undefined;
     if (activeTx) {
       await replace(activeTx);
     } else {
@@ -73,5 +75,21 @@ export class ProviderShiftCommandRepository
     }
 
     shifts.forEach((s) => s.flushEvents());
+  }
+
+  async findShiftsByDateRange(
+    providerId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<ProviderShift[]> {
+    const raws = await this.db.providerShift.findMany({
+      where: {
+        providerId,
+        date: { gte: startDate, lte: endDate },
+      },
+      orderBy: { date: 'asc' },
+    });
+
+    return raws.map((shift) => new ProviderShift(shift));
   }
 }

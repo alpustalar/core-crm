@@ -2,18 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ReceiveStockCommand } from './receive-stock.command';
 import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
-import {
-  IProductQueryRepository,
-  PRODUCT_QUERY_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product.repository.interface';
-import {
-  IProductBatchCommandRepository,
-  PRODUCT_BATCH_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product-batch.repository.interface';
-import {
-  IStockMovementCommandRepository,
-  STOCK_MOVEMENT_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
 import {
@@ -26,18 +14,30 @@ import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import {
+  IProductCommandRepository,
+  PRODUCT_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
+import {
+  IProductBatchCommandRepository,
+  PRODUCT_BATCH_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product-batch/product-batch.command.repository';
+import {
+  IStockMovementCommandRepository,
+  STOCK_MOVEMENT_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.command.repository';
 
 @CommandHandler(ReceiveStockCommand)
 export class ReceiveStockHandler
   implements ICommandHandler<ReceiveStockCommand, string>
 {
   constructor(
-    @Inject(PRODUCT_QUERY_REPOSITORY)
-    private readonly productQueryRepo: IProductQueryRepository,
+    @Inject(PRODUCT_COMMAND_REPOSITORY)
+    private readonly productRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
-    private readonly productBatchCommandRepo: IProductBatchCommandRepository,
+    private readonly productBatchRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
-    private readonly stockMovementCommandRepo: IStockMovementCommandRepository,
+    private readonly stockMovementRepo: IStockMovementCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -45,7 +45,7 @@ export class ReceiveStockHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
-    const product = await this.productQueryRepo.findById(dto.productId);
+    const product = await this.productRepo.findById(dto.productId);
     if (!product) throw new ProductNotFoundException();
 
     const batch = ProductBatch.createFromPurchase({
@@ -80,8 +80,8 @@ export class ReceiveStockHandler
     });
 
     return this.txManager.run(async () => {
-      await this.productBatchCommandRepo.create(batch);
-      await this.stockMovementCommandRepo.create(stockMovement);
+      await this.productBatchRepo.create(batch);
+      await this.stockMovementRepo.create(stockMovement);
       return batch.id.value;
     });
   }

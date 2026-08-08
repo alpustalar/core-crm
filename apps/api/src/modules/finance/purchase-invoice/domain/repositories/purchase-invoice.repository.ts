@@ -1,4 +1,5 @@
 import { Pagination } from '@shared';
+import { PurchaseInvoice as IPurchaseInvoice } from '@shared';
 import { PurchaseInvoice } from '../entities/purchase-invoice.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
@@ -12,10 +13,10 @@ export const PURCHASE_INVOICE_QUERY_REPOSITORY = Symbol(
 export type IPurchaseInvoiceCommandRepository =
   IBaseCommandRepository<PurchaseInvoice>;
 
+/** Okuma tarafı: entity değil, plain model döner (veri HTTP sınırını geçiyor). */
 export interface IPurchaseInvoiceQueryRepository {
-  findById(id: string): Promise<PurchaseInvoice | null>;
   findManyByClinic(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: PurchaseInvoice[]; total: number }>;
+  ): Promise<{ items: IPurchaseInvoice[]; total: number }>;
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { TaxParameterKeySchema } from '../inputTypeSchemas/TaxParameterKeySchema'
 
 /////////////////////////////////////////
@@ -11,7 +11,7 @@ export const TaxParameterSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
   clinicId: z.string(),
-  rate: z.instanceof(Prisma.Decimal, { message: "Field 'rate' must be a Decimal. Location: ['Models', 'TaxParameter']"}),
+  rate: decimalSchema("Field 'rate' must be a Decimal. Location: ['Models', 'TaxParameter']"),
   validFrom: z.coerce.date(),
   validTo: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),

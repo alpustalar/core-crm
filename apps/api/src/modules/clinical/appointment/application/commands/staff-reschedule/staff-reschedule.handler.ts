@@ -2,13 +2,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { StaffRescheduleCommand } from './staff-reschedule.command';
 import { StaffRescheduleCommandResponse } from './staff-reschedule.response';
-import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -17,6 +12,14 @@ import { APPOINTMENT_EVENTS } from '@src/domain/constants/events';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.query';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
+import {
+  APPOINTMENT_CHECKER_SERVICE,
+  IAppointmentCheckerService,
+} from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 @CommandHandler(StaffRescheduleCommand)
 export class StaffRescheduleHandler
@@ -25,10 +28,11 @@ export class StaffRescheduleHandler
 {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly appointmentCheckerService: AppointmentCheckerService,
+    @Inject(APPOINTMENT_CHECKER_SERVICE)
+    private readonly appointmentCheckerService: IAppointmentCheckerService,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -47,8 +51,7 @@ export class StaffRescheduleHandler
       duration,
     }).orThrow();
 
-    const appointment =
-      await this.appointmentCommandRepo.findById(appointmentId);
+    const appointment = await this.appointmentRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
@@ -92,7 +95,7 @@ export class StaffRescheduleHandler
     });
 
     await this.txManager.run(async () => {
-      await this.appointmentCommandRepo.save(appointment);
+      await this.appointmentRepo.update(appointment);
     });
   }
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { BankStatementLineMatchStatusSchema } from '../inputTypeSchemas/BankStatementLineMatchStatusSchema'
+import { BankStatementLineMatchSourceSchema } from '../inputTypeSchemas/BankStatementLineMatchSourceSchema'
 
 /////////////////////////////////////////
 // BANK STATEMENT LINE SCHEMA
@@ -8,6 +9,7 @@ import { BankStatementLineMatchStatusSchema } from '../inputTypeSchemas/BankStat
 
 export const BankStatementLineSchema = z.object({
   matchStatus: BankStatementLineMatchStatusSchema,
+  matchSource: BankStatementLineMatchSourceSchema,
   id: z.string(),
   bankStatementId: z.string(),
   bankAccountId: z.string(),
@@ -15,8 +17,8 @@ export const BankStatementLineSchema = z.object({
   organizationId: z.string(),
   transactionDate: z.coerce.date(),
   description: z.string(),
-  amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'BankStatementLine']"}),
-  balanceAfter: z.instanceof(Prisma.Decimal, { message: "Field 'balanceAfter' must be a Decimal. Location: ['Models', 'BankStatementLine']"}).nullable(),
+  amount: decimalSchema("Field 'amount' must be a Decimal. Location: ['Models', 'BankStatementLine']"),
+  balanceAfter: decimalSchema("Field 'balanceAfter' must be a Decimal. Location: ['Models', 'BankStatementLine']").nullable(),
   reference: z.string().nullable(),
   counterpartyName: z.string().nullable(),
   matchedRef: z.string().nullable(),

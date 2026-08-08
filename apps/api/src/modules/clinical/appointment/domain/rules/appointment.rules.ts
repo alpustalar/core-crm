@@ -7,7 +7,6 @@ import {
   AppointmentOnlyPendingCanBeConfirmedException,
   AppointmentRescheduleNotAllowedException,
 } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
-import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { AppointmentStatusSchema } from '@shared';
 import { BaseRules } from '@common/domain/rules/base.rules';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
@@ -15,104 +14,98 @@ import { ValidateOptionsType } from '@shared/common/validate-options/validate-op
 import { IAppointmentRules } from '@modules/clinical/appointment/domain/interfaces/appointment.rules.interface';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSchema';
-import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import {
+  AppointmentRuleSnapshot,
+  CreateAppointmentProps,
+} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 
+/** Bir işlemin üzerinde yapılamayacağı, sonuçlanmış (terminal) durumlar. */
+const SETTLED_STATUSES: AppointmentStatusType[] = [
+  AppointmentStatusSchema.enum.CANCELLED,
+  AppointmentStatusSchema.enum.COMPLETED,
+  AppointmentStatusSchema.enum.NOSHOW,
+];
+
+/** Henüz gerçekleşmemiş, işleme açık durumlar. */
+const OPEN_STATUSES: AppointmentStatusType[] = [
+  AppointmentStatusSchema.enum.PENDING,
+  AppointmentStatusSchema.enum.CONFIRMED,
+];
+
+/**
+ * Randevu iş kuralları. Entity'ye değil düz {@link AppointmentRuleSnapshot}'a
+ * bağlıdır: command tarafı `appointment.rules()` ile entity'nin snapshot'ını
+ * geçer, okuma tarafı aynı kuralı bir read-model'den kurup entity hydrate etmeden
+ * çalıştırabilir. Kural tek yerde yaşar, iki tüketicisi olur.
+ */
 export class AppointmentRules extends BaseRules implements IAppointmentRules {
   constructor(
-    private readonly appointment: Appointment,
+    private readonly snapshot: AppointmentRuleSnapshot,
     private readonly validateOptions: ValidateOptionsType = DefaultValidateOptions
   ) {
     super();
   }
 
-  public get markAsNoShow(): Validate {
-    const isInvalid =
-      !this.appointment.validate.status.isPending().value &&
-      !this.appointment.validate.status.isConfirmed().value;
+  private get status(): AppointmentStatusType {
+    return this.snapshot.status;
+  }
 
+  public get markAsNoShow(): Validate {
     return this.evaluate(
-      !isInvalid,
+      OPEN_STATUSES.includes(this.status),
       () =>
         new AppointmentInvalidNoShowStatusException(
-          this.appointment.id.value,
-          this.appointment.status
+          this.snapshot.id,
+          this.status
         ),
       this.validateOptions
     );
   }
 
   public get checkIn(): Validate {
-    const isInvalid =
-      !this.appointment.validate.status.isPending().value &&
-      !this.appointment.validate.status.isConfirmed().value;
-
     return this.evaluate(
-      !isInvalid,
-      () => new AppointmentCheckInNotAllowedException(this.appointment.status),
+      OPEN_STATUSES.includes(this.status),
+      () => new AppointmentCheckInNotAllowedException(this.status),
       this.validateOptions
     );
   }
 
   public get complete(): Validate {
-    const isInvalid =
-      this.appointment.validate.status.isCancelled().value ||
-      this.appointment.validate.status.isCompleted().value ||
-      this.appointment.validate.status.isNoShow().value;
-
     return this.evaluate(
-      !isInvalid,
+      !SETTLED_STATUSES.includes(this.status),
       () =>
-        new AppointmentCannotCompleteException(
-          this.appointment.id.value,
-          this.appointment.status
-        ),
+        new AppointmentCannotCompleteException(this.snapshot.id, this.status),
       this.validateOptions
     );
   }
 
   public get confirm(): Validate {
-    const isInvalid = !this.appointment.validate.status.isPending().value;
-
     return this.evaluate(
-      !isInvalid,
+      this.status === AppointmentStatusSchema.enum.PENDING,
       () =>
         new AppointmentOnlyPendingCanBeConfirmedException(
-          this.appointment.id.value,
-          this.appointment.status
+          this.snapshot.id,
+          this.status
         ),
       this.validateOptions
     );
   }
 
   public get canBeCancelled(): Validate {
-    const invalidStatuses: AppointmentStatusType[] = [
-      AppointmentStatusSchema.enum.CANCELLED,
-      AppointmentStatusSchema.enum.COMPLETED,
-      AppointmentStatusSchema.enum.NOSHOW,
-    ];
-    const isValid = !invalidStatuses.includes(this.appointment.status);
-
     return this.evaluate(
-      isValid,
+      !SETTLED_STATUSES.includes(this.status),
       () => new AppointmentCancellationNotAllowedException(),
       this.validateOptions
     );
   }
 
   public get canBeScheduled(): Validate {
-    const invalidStatuses: AppointmentStatusType[] = [
-      AppointmentStatusSchema.enum.CANCELLED,
-      AppointmentStatusSchema.enum.COMPLETED,
-      AppointmentStatusSchema.enum.NOSHOW,
-    ];
-    const isValid = !invalidStatuses.includes(this.appointment.status);
-
     return this.evaluate(
-      isValid,
+      !SETTLED_STATUSES.includes(this.status),
       () =>
         new AppointmentRescheduleNotAllowedException(
-          this.appointment.id.value,
-          this.appointment.status
+          this.snapshot.id,
+          this.status
         ),
       this.validateOptions
     );

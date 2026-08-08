@@ -6,10 +6,6 @@ import {
 } from './patient-cancel-appointment.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   APPOINTMENT_EVENT_PUBLISHER,
   IAppointmentEventPublisher,
 } from '@modules/clinical/appointment/domain/interfaces/appointment-event-publisher.interface';
@@ -26,18 +22,19 @@ import {
   IPatientPolicyFactory,
   PATIENT_POLICY_FACTORY,
 } from '@modules/platform/policy/patient/domain/interfaces/patient-policy-factory.interface';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(PatientCancelAppointmentCommand)
-export class PatientCancelAppointmentHandler
-  implements
-    ICommandHandler<
-      PatientCancelAppointmentCommand,
-      PatientCancelAppointmentResponse
-    >
-{
+export class PatientCancelAppointmentHandler implements ICommandHandler<
+  PatientCancelAppointmentCommand,
+  PatientCancelAppointmentResponse
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     @Inject(APPOINTMENT_EVENT_PUBLISHER)
     private readonly eventPublisher: IAppointmentEventPublisher,
     @Inject(PATIENT_POLICY_FACTORY)
@@ -53,8 +50,7 @@ export class PatientCancelAppointmentHandler
     const { appointmentId, cancelReason } = dto;
     const { actor, source } = ctx;
 
-    const appointment =
-      await this.appointmentCommandRepo.findById(appointmentId);
+    const appointment = await this.appointmentRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.patientPolicyFactory
@@ -101,7 +97,7 @@ export class PatientCancelAppointmentHandler
 
     appointment.cancelBooking(actor.patientId ?? actor.email, cancelReason);
     return this.transactionManager.outboxRun(async () => {
-      await this.appointmentCommandRepo.save(appointment);
+      await this.appointmentRepo.update(appointment);
       return { status: CancelAppointmentStatus.CANCELLED };
     });
   }

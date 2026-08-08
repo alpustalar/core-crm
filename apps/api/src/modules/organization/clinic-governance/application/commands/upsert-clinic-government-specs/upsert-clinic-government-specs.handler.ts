@@ -9,19 +9,16 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { GOVERNANCE_EVENTS } from '@src/domain/constants/events';
 import {
   CLINIC_GOVERNMENT_SPECS_COMMAND_REPOSITORY,
-  CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY,
   IClinicGovernmentSpecsCommandRepository,
-  IClinicGovernmentSpecsQueryRepository,
 } from '@modules/organization/clinic-governance/domain/repositories/clinic-government-specs.repository';
 import { ClinicGovernmentSpecs } from '@modules/organization/clinic-governance/domain/entities/clinic-government-specs.entity';
 
 @CommandHandler(UpsertClinicGovernmentSpecsCommand)
-export class UpsertClinicGovernmentSpecsHandler
-  implements ICommandHandler<UpsertClinicGovernmentSpecsCommand, void>
-{
+export class UpsertClinicGovernmentSpecsHandler implements ICommandHandler<
+  UpsertClinicGovernmentSpecsCommand,
+  void
+> {
   constructor(
-    @Inject(CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY)
-    private readonly specsQueryRepo: IClinicGovernmentSpecsQueryRepository,
     @Inject(CLINIC_GOVERNMENT_SPECS_COMMAND_REPOSITORY)
     private readonly specsCommandRepo: IClinicGovernmentSpecsCommandRepository,
     @Inject(POLICY_FACTORY)
@@ -41,7 +38,7 @@ export class UpsertClinicGovernmentSpecsHandler
       .orThrow(GOVERNANCE_EVENTS.UPSERT_CLINIC_SPECS);
 
     await this.txManager.run(async () => {
-      const existing = await this.specsQueryRepo.findByClinicId(clinicId);
+      const existing = await this.specsCommandRepo.findByClinicId(clinicId);
       if (existing) {
         existing.update({
           healthFacilityCode: data.healthFacilityCode,
@@ -49,7 +46,7 @@ export class UpsertClinicGovernmentSpecsHandler
           companyTaxNumber: data.companyTaxNumber ?? null,
           legalType: data.legalType,
         });
-        await this.specsCommandRepo.save(existing);
+        await this.specsCommandRepo.update(existing);
         return;
       }
 

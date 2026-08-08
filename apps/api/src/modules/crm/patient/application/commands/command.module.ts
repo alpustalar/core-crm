@@ -1,7 +1,6 @@
-import { LinkFirebaseAccountHandler } from './link-firebase-account/link-firebase-account.handler';
 import { Module } from '@nestjs/common';
 
-import { PatientRepositoryModule } from '@modules/crm/patient/infrastructure/persistence/prisma/repositories/patient.repository.module';
+import { PatientRepositoryModule } from '@modules/crm/patient/infrastructure/persistence/prisma/repositories/patient/patient.repository.module';
 import { CreatePatientHandler } from '@modules/crm/patient/application/commands/create-patient/create-patient.handler';
 
 const Handlers = [CreatePatientHandler];

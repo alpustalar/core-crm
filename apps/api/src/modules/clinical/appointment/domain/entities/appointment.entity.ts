@@ -16,6 +16,7 @@ import {
 } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
+  AppointmentRuleSnapshot,
   CalculateEndTimeProps,
   CancelScheduleProps,
   CreateAppointmentProps,
@@ -110,7 +111,7 @@ export class Appointment extends AggregateRoot {
 
   private _version: number;
 
-  /** Optimistic concurrency version'ı — repository save() guard'ında kullanılır. */
+  /** Optimistic concurrency version'ı — repository update() guard'ında kullanılır. */
   get version(): number {
     return this._version;
   }
@@ -676,21 +677,28 @@ export class Appointment extends AggregateRoot {
   public updateDetails(props: UpdateAppointmentDetailsProps): void {
     if (isNotUndefined(props.patientName))
       this._patientName = Name.create(props.patientName).orThrow();
+
     if (isNotUndefined(props.patientPhone))
       this._patientPhone = Phone.create(props.patientPhone).orThrow();
+
     if (isNotUndefined(props.patientEmail))
       this._patientEmail = props.patientEmail
         ? Email.create(props.patientEmail).orThrow()
         : null;
+
     if (isNotUndefined(props.notes)) this._notes = props.notes;
+
     if (isNotUndefined(props.treatmentType))
       this._treatmentType = props.treatmentType;
+
     if (isNotUndefined(props.treatmentId))
       this._treatmentId = props.treatmentId
         ? UUID.create(props.treatmentId).orThrow()
         : null;
+
     if (isNotUndefined(props.examinationType))
       this._examinationType = props.examinationType;
+
     if (isNotUndefined(props.visitType)) this._visitType = props.visitType;
 
     this._updatedAt = DateTimeManager.create();
@@ -699,7 +707,15 @@ export class Appointment extends AggregateRoot {
   }
 
   public rules(validateOptions: ValidateOptionsType = DefaultValidateOptions) {
-    return new AppointmentRules(this, validateOptions);
+    return new AppointmentRules(this.toRuleSnapshot(), validateOptions);
+  }
+
+  /**
+   * Kuralların ihtiyaç duyduğu asgari veri. Kural sınıfı entity'ye bağlı olmadığı
+   * için okuma tarafı da (read-model'den snapshot kurup) aynı kuralı çalıştırabilir.
+   */
+  public toRuleSnapshot(): AppointmentRuleSnapshot {
+    return { id: this.id.value, status: this.status };
   }
 
   public toPersistence(): IAppointment {

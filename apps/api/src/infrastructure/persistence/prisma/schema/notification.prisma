@@ -14,6 +14,8 @@ enum NotificationType {
   APPOINTMENT_CANCELLED // Randevu iptal edildi
   APPOINTMENT_CANCELLED_LATE // Son dakika iptali (CRITICAL senaryosu)
   APPOINTMENT_RESCHEDULED // Randevu ertelendi
+  WORK_ORDER_OVERDUE // Dış iş emri termini geçti (tedarikçi gecikmesi)
+  WORK_ORDER_DUE_SOON // Dış iş emri terminine az kaldı
   SYSTEM_ANNOUNCEMENT // Genel duyuru / broadcast
 }
 

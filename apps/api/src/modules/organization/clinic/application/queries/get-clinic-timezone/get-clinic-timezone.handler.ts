@@ -5,7 +5,7 @@ import { GetClinicTimezoneResponse } from './get-clinic-timezone.response';
 import {
   CLINIC_QUERY_REPOSITORY,
   IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 
 @QueryHandler(GetClinicTimezoneQuery)
 export class GetClinicTimezoneHandler
@@ -13,16 +13,16 @@ export class GetClinicTimezoneHandler
 {
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
-    private readonly clinicQueryRepo: IClinicQueryRepository
+    private readonly clinicRepo: IClinicQueryRepository
   ) {}
 
   async execute(
     query: GetClinicTimezoneQuery
   ): Promise<GetClinicTimezoneResponse> {
-    const clinic = await this.clinicQueryRepo.findById(query.clinicId);
+    const clinic = await this.clinicRepo.findById(query.clinicId);
     if (!clinic) {
       throw new Error(`Klinik bulunamadı: ${query.clinicId}`);
     }
-    return { data: clinic.timezone.value! };
+    return { data: clinic.timezone };
   }
 }

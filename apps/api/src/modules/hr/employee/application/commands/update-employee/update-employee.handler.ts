@@ -1,17 +1,17 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateEmployeeCommand } from './update-employee.command';
+import { EmployeeNotFoundException } from '@modules/hr/employee/domain/exceptions/employee.exceptions';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
 import {
   EMPLOYEE_COMMAND_REPOSITORY,
   IEmployeeCommandRepository,
-} from '@modules/hr/employee/domain/repositories/employee.repository';
-import { EmployeeNotFoundException } from '@modules/hr/employee/domain/exceptions/employee.exceptions';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+} from '@modules/hr/employee/domain/repositories/employee/employee.command.repository';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
 
 @CommandHandler(UpdateEmployeeCommand)
 export class UpdateEmployeeHandler
@@ -19,7 +19,7 @@ export class UpdateEmployeeHandler
 {
   constructor(
     @Inject(EMPLOYEE_COMMAND_REPOSITORY)
-    private readonly employeeCommandRepo: IEmployeeCommandRepository,
+    private readonly employeeRepo: IEmployeeCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +29,7 @@ export class UpdateEmployeeHandler
     const { employeeId, ctx, data } = command.payload;
 
     await this.txManager.run(async () => {
-      const employee = await this.employeeCommandRepo.findById(employeeId);
+      const employee = await this.employeeRepo.findById(employeeId);
       if (!employee) throw new EmployeeNotFoundException(employeeId);
 
       this.policyFactory
@@ -49,7 +49,7 @@ export class UpdateEmployeeHandler
         annualLeaveEntitlement: data.annualLeaveEntitlement,
       });
 
-      await this.employeeCommandRepo.save(employee);
+      await this.employeeRepo.update(employee);
     });
   }
 }

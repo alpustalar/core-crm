@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { Invoice as IInvoice, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IInvoiceQueryRepository } from '@modules/finance/invoice/domain/repositories/invoice.repository';
-import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { Pagination } from '@shared';
-import { FindInvoicesFilter } from '@modules/finance/invoice/domain/invoice.contracts';
+import { FindInvoicesFilter } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { IInvoiceQueryRepository } from '@modules/finance/invoice/domain/repositories/invoice/invoice.query.repository';
 
+/**
+ * Okuma tarafı: entity hidrate edilmez. Mükerrer fatura kontrolü ve e-Belge sonucu
+ * işleme gibi yazma kararını besleyen okumalar Command Repo'dadır.
+ */
 @Injectable()
 export class InvoiceQueryRepository
   extends BaseRepository
@@ -16,30 +19,21 @@ export class InvoiceQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<Invoice | null> {
-    const raw = await this.db.invoice.findUnique({ where: { id, isDeleted: false } });
-    return raw ? new Invoice(raw) : null;
+  findById(id: string): Promise<IInvoice | null> {
+    return this.db.invoice.findUnique({ where: { id, isDeleted: false } });
   }
 
-  async findByAppointmentId(appointmentId: string): Promise<Invoice | null> {
-    const raw = await this.db.invoice.findFirst({
-      where: { appointmentId, isDeleted: false },
-    });
-    return raw ? new Invoice(raw) : null;
-  }
-
-  async findByPaymentId(paymentId: string): Promise<Invoice | null> {
-    const raw = await this.db.invoice.findFirst({
+  findByPaymentId(paymentId: string): Promise<IInvoice | null> {
+    return this.db.invoice.findFirst({
       where: { paymentId, isDeleted: false },
     });
-    return raw ? new Invoice(raw) : null;
   }
 
-  async findMany(
+  findMany(
     filter: FindInvoicesFilter,
     pagination: Pagination
-  ): Promise<{ items: Invoice[]; total: number }> {
-    const result = await paginate({
+  ): Promise<{ items: IInvoice[]; total: number }> {
+    return paginate({
       delegate: this.db.invoice,
       pagination,
       where: {
@@ -48,9 +42,5 @@ export class InvoiceQueryRepository
         ...(filter.clinicId ? { clinicId: filter.clinicId } : {}),
       },
     });
-    return {
-      items: result.items.map((r) => new Invoice(r)),
-      total: result.total,
-    };
   }
 }

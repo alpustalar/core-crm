@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { FindTreatmentPackagesHandler } from './find-treatment-packages/find-treatment-packages.handler';
 import { FindPatientPackagesHandler } from './find-patient-packages/find-patient-packages.handler';
-import { TreatmentPackageRepositoryModule } from '@modules/clinical/treatment-package/infrastructure/persistence/prisma/repositories/treatment-package/treatment-package.repository.module';
-import { PatientTreatmentPackageRepositoryModule } from '@modules/clinical/treatment-package/infrastructure/persistence/prisma/repositories/patient-treatment-package/patient-treatment-package.repository.module';
+import { TreatmentPackageRepositoriesModule } from '@modules/clinical/treatment-package/infrastructure/persistence/prisma/repositories/repositories.module';
 
 export const TREATMENT_PACKAGE_QUERY_HANDLERS = [
   FindTreatmentPackagesHandler,
@@ -10,10 +9,7 @@ export const TREATMENT_PACKAGE_QUERY_HANDLERS = [
 ];
 
 @Module({
-  imports: [
-    TreatmentPackageRepositoryModule,
-    PatientTreatmentPackageRepositoryModule,
-  ],
+  imports: [TreatmentPackageRepositoriesModule],
   providers: TREATMENT_PACKAGE_QUERY_HANDLERS,
   exports: TREATMENT_PACKAGE_QUERY_HANDLERS,
 })

@@ -9,10 +9,9 @@ import {
 } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
 import {
   ISubscriptionCommandRepository,
-  ISubscriptionQueryRepository,
 } from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
 import { ISubscriptionItemCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-item.repository.interface';
-import { IPlanQueryRepository } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
+import { IPlanCommandRepository } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
 import { IBillingAdapter } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
@@ -42,11 +41,9 @@ describe('SubscribeToPlanHandler', () => {
         createdSub = s;
         return s;
       }),
-    } as unknown as ISubscriptionCommandRepository;
-
-    const subscriptionQueryRepo = {
+      // Guard iki kez sorulur: erken çıkış + yazma anındaki bağlayıcı kontrol.
       existsByOwner: jest.fn().mockResolvedValue(params.alreadyExists ?? false),
-    } as unknown as ISubscriptionQueryRepository;
+    } as unknown as ISubscriptionCommandRepository;
 
     const subscriptionItemCommandRepo = {
       create: jest.fn(async (i: SubscriptionItem) => {
@@ -55,10 +52,10 @@ describe('SubscribeToPlanHandler', () => {
       }),
     } as unknown as ISubscriptionItemCommandRepository;
 
-    const planQueryRepo = {
+    const planCommandRepo = {
       // Plan tanımı yok → command fiyatına düşer (mevcut testlerin davranışı korunur).
       findByPlanId: jest.fn().mockResolvedValue(null),
-    } as unknown as IPlanQueryRepository;
+    } as unknown as IPlanCommandRepository;
 
     const billingAdapter = {
       initializePayment: jest.fn().mockResolvedValue({
@@ -77,9 +74,8 @@ describe('SubscribeToPlanHandler', () => {
 
     const handler = new SubscribeToPlanHandler(
       subscriptionCommandRepo,
-      subscriptionQueryRepo,
       subscriptionItemCommandRepo,
-      planQueryRepo,
+      planCommandRepo,
       billingAdapter,
       queryBus,
       txManager

@@ -1,4 +1,4 @@
-import { DomainException } from './domain.exception';
+import { DomainException } from '@src/domain/exceptions/domain.exception';
 import { HttpStatus } from '@nestjs/common';
 import { ERROR_CODES } from '@common/constants/error-codes.constant';
 

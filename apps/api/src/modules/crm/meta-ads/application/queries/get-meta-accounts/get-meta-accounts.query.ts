@@ -6,6 +6,6 @@ export class GetMetaAccountsQuery implements IQuery {
   readonly __responseType!: GetMetaAccountsResponse;
   constructor(
     public readonly clinicId: string,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

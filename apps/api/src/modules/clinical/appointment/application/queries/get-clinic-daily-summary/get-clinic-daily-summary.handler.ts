@@ -3,10 +3,6 @@ import { Inject } from '@nestjs/common';
 import { AppointmentStatusSchema } from '@shared';
 import { GetClinicDailySummaryQuery } from './get-clinic-daily-summary.query';
 import { GetClinicDailySummaryQueryResponse } from './get-clinic-daily-summary.response';
-import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { ClinicDailySummary } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
@@ -17,6 +13,10 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 /**
  * Resepsiyon günlük özeti. Aktörün kliniğine sabitlenir; klinik saat dilimini alıp
@@ -24,13 +24,10 @@ import {
  * status sayımlarını çeker ve düz özete katlar. Entity sızmaz — okuma-modeli döner.
  */
 @QueryHandler(GetClinicDailySummaryQuery)
-export class GetClinicDailySummaryHandler
-  implements
-    IQueryHandler<
-      GetClinicDailySummaryQuery,
-      GetClinicDailySummaryQueryResponse
-    >
-{
+export class GetClinicDailySummaryHandler implements IQueryHandler<
+  GetClinicDailySummaryQuery,
+  GetClinicDailySummaryQueryResponse
+> {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,

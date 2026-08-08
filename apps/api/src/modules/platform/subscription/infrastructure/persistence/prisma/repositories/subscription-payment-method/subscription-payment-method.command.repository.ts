@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { SubscriptionPaymentMethod } from '@modules/platform/subscription/domain/entities/subscription-payment-method.entity';
-import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
-import { CreateSubscriptionPaymentMethodProps } from '@modules/platform/subscription/domain/subscription.contracts';
+import {
+  CreateSubscriptionPaymentMethodProps,
+  SavedCardChargeModel,
+} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 
 @Injectable()
 export class SubscriptionPaymentMethodCommandRepository
@@ -21,6 +24,29 @@ export class SubscriptionPaymentMethodCommandRepository
     return raw ? new SubscriptionPaymentMethod(raw) : null;
   }
 
+  async findBySubscriptionId(
+    subscriptionId: string
+  ): Promise<SavedCardChargeModel | null> {
+    const raw = await this.db.subscriptionPaymentMethod.findUnique({
+      where: { subscriptionId },
+    });
+    if (!raw) return null;
+
+    return {
+      cardUserKey: raw.cardUserKey,
+      cardToken: raw.cardToken,
+      buyer: {
+        name: raw.buyerName,
+        surname: raw.buyerSurname,
+        email: raw.buyerEmail,
+        gsmNumber: raw.buyerGsmNumber,
+        ip: raw.buyerIp,
+        city: raw.buyerCity,
+        address: raw.buyerAddress,
+      },
+    };
+  }
+
   async create(
     entity: SubscriptionPaymentMethod
   ): Promise<SubscriptionPaymentMethod> {
@@ -29,7 +55,7 @@ export class SubscriptionPaymentMethodCommandRepository
     return new SubscriptionPaymentMethod(raw);
   }
 
-  async save(
+  async update(
     entity: SubscriptionPaymentMethod
   ): Promise<SubscriptionPaymentMethod> {
     const { id, ...data } = entity.toPersistence();

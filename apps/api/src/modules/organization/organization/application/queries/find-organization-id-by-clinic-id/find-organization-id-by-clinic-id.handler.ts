@@ -1,12 +1,12 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindOrganizationIdByClinicIdQuery } from './find-organization-id-by-clinic-id.query';
 import { FindOrganizationIdByClinicIdQueryResponse } from './find-organization-id-by-clinic-id.response';
+import { Inject } from '@nestjs/common';
+import { OrganizationNotFoundException } from '@modules/organization/organization/domain/exceptions/organization.exceptions';
 import {
   IOrganizationQueryRepository,
   ORGANIZATION_QUERY_REPOSITORY,
-} from '@modules/organization/organization/domain/repositories/organization.repository.interface';
-import { Inject } from '@nestjs/common';
-import { OrganizationNotFoundException } from '@modules/organization/organization/domain/exceptions/organization.exceptions';
+} from '@modules/organization/organization/domain/repositories/organization/organization.query.repository';
 import {
   IOrganizationCacheService,
   ORGANIZATION_CACHE_SERVICE,
@@ -22,7 +22,7 @@ export class FindOrganizationIdByClinicIdHandler
 {
   constructor(
     @Inject(ORGANIZATION_QUERY_REPOSITORY)
-    private readonly organizationQueryRepo: IOrganizationQueryRepository,
+    private readonly organizationRepo: IOrganizationQueryRepository,
     @Inject(ORGANIZATION_CACHE_SERVICE)
     private readonly cacheService: IOrganizationCacheService
   ) {}
@@ -39,7 +39,7 @@ export class FindOrganizationIdByClinicIdHandler
     if (result) return { organizationId: result.organizationId };
 
     const organizationId =
-      await this.organizationQueryRepo.findIdByClinicId(clinicId);
+      await this.organizationRepo.findIdByClinicId(clinicId);
 
     if (!organizationId) throw new OrganizationNotFoundException();
 

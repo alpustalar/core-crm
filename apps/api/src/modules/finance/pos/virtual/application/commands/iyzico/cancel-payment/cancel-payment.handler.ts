@@ -25,8 +25,8 @@ import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/applic
 import { MarkInstallmentAsCancelledCommand } from '@modules/finance/payment/application/commands/mark-installment-as-cancelled/mark-installment-as-cancelled.command';
 import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
 import {
-  IIyzicoTransactionQueryRepository,
-  IYZICO_TRANSACTION_QUERY_REPOSITORY,
+  IIyzicoTransactionCommandRepository,
+  IYZICO_TRANSACTION_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import {
@@ -44,8 +44,8 @@ export class CancelPaymentHandler
     private readonly txManager: TransactionManager,
     @Inject(IYZICO_PROVIDER)
     private readonly iyzicoProvider: IIyzicoProvider,
-    @Inject(IYZICO_TRANSACTION_QUERY_REPOSITORY)
-    private readonly iyzicoQueryRepo: IIyzicoTransactionQueryRepository,
+    @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
+    private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     @Inject(POLICY_FACTORY)
@@ -78,7 +78,10 @@ export class CancelPaymentHandler
     if (!completedInstallment)
       throw new CompletedInstallmentNotFoundException();
 
-    const iyzicoTx = await this.iyzicoQueryRepo.findByInstallmentId(
+    // İptal çağrısı için dış referans (iyzicoPaymentId). Kayıt az önce yazılmış
+    // olabileceğinden okuma command repo'dan (ana bağlantı) yapılır; bu akış iyzico
+    // işlem kaydını değiştirmediği için kilit gerekmez.
+    const iyzicoTx = await this.iyzicoCommandRepo.findByInstallmentId(
       completedInstallment.id
     );
 

@@ -1,10 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CancelLeaveCommand } from './cancel-leave.command';
-import {
-  ILeaveCommandRepository,
-  LEAVE_COMMAND_REPOSITORY,
-} from '@modules/hr/leave/domain/repositories/leave.repository';
 import { LeaveNotFoundException } from '@modules/hr/leave/domain/exceptions/leave.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
@@ -12,6 +8,10 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
+import {
+  ILeaveCommandRepository,
+  LEAVE_COMMAND_REPOSITORY,
+} from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
 
 @CommandHandler(CancelLeaveCommand)
 export class CancelLeaveHandler
@@ -19,7 +19,7 @@ export class CancelLeaveHandler
 {
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
-    private readonly leaveCommandRepo: ILeaveCommandRepository,
+    private readonly leaveRepo: ILeaveCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +29,7 @@ export class CancelLeaveHandler
     const { leaveId, ctx } = command;
 
     await this.txManager.run(async () => {
-      const leave = await this.leaveCommandRepo.findById(leaveId);
+      const leave = await this.leaveRepo.findById(leaveId);
       if (!leave) throw new LeaveNotFoundException(leaveId);
 
       this.policyFactory
@@ -44,7 +44,7 @@ export class CancelLeaveHandler
       leave.rules(validateOptions).cancel().orThrow();
       leave.cancel();
 
-      await this.leaveCommandRepo.save(leave);
+      await this.leaveRepo.update(leave);
     });
   }
 }

@@ -34,6 +34,7 @@ export class Organization extends AggregateRoot {
     this._district = data.district;
     this._status = data.status;
     this._timezone = TimeZone.fromTrusted(data.timezone);
+    this._isPlatform = data.isPlatform;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt;
@@ -104,6 +105,15 @@ export class Organization extends AggregateRoot {
     return this._deletedAt;
   }
 
+  /**
+   * Platformun kendi kiracı satırı mı. Sistem satırıdır (migration ile kurulur);
+   * uygulamadan açılan hiçbir organizasyon bu bayrağı alamaz.
+   */
+  private _isPlatform: boolean;
+  get isPlatform(): boolean {
+    return this._isPlatform;
+  }
+
   public static create(props: CreateOrganizationProps): Organization {
     const now = DateTimeManager.create();
 
@@ -118,6 +128,8 @@ export class Organization extends AggregateRoot {
       district: props.district ?? null,
       status: GlobalStatusSchema.enum.ACTIVE,
       timezone: props.timezone ?? TimeZoneSchema.enum.Europe_Istanbul,
+      // Uygulamadan açılan organizasyon hiçbir zaman platform değildir.
+      isPlatform: false,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -200,6 +212,7 @@ export class Organization extends AggregateRoot {
       district: this.district,
       status: this.status,
       timezone: this.timezone.value,
+      isPlatform: this.isPlatform,
       createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
       deletedAt: this.deletedAt,

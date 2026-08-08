@@ -2,18 +2,18 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { UpdateTreatmentPackageCommand } from './update-treatment-package.command';
 import type { UpdateTreatmentPackageResponse } from './update-treatment-package.response';
-import {
-  ITreatmentPackageCommandRepository,
-  TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { Money } from '@src/domain/value-objects/money.vo';
+import { Money } from '@src/domain/value-objects';
 import { Decimal } from 'decimal.js';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
+import {
+  ITreatmentPackageCommandRepository,
+  TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.command.repository';
 
 @CommandHandler(UpdateTreatmentPackageCommand)
 export class UpdateTreatmentPackageHandler
@@ -25,7 +25,7 @@ export class UpdateTreatmentPackageHandler
 {
   constructor(
     @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly treatmentPackageCommandRepo: ITreatmentPackageCommandRepository,
+    private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -38,7 +38,7 @@ export class UpdateTreatmentPackageHandler
 
     await this.txManager.run(async () => {
       const treatmentPackage =
-        await this.treatmentPackageCommandRepo.findById(packageId);
+        await this.treatmentPackageRepo.findById(packageId);
       if (!treatmentPackage)
         throw new NotFoundException('Tedavi paketi bulunamadı');
 
@@ -57,7 +57,7 @@ export class UpdateTreatmentPackageHandler
             price: Money.create(new Decimal(price), currency).orThrow(),
           }),
       });
-      await this.treatmentPackageCommandRepo.save(treatmentPackage);
+      await this.treatmentPackageRepo.update(treatmentPackage);
     });
   }
 }

@@ -1,16 +1,16 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindClinicIdByProviderIdQuery } from './find-clinic-id-by-provider-id.query';
 import { FindClinicIdByProviderIdQueryResponse } from './find-clinic-id-by-provider-id.response';
-import {
-  CLINIC_QUERY_REPOSITORY,
-  IClinicQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
 import { Inject } from '@nestjs/common';
 import {
   CLINIC_CACHE_SERVICE,
   IClinicCacheService,
 } from '@modules/organization/clinic/domain/interfaces/clinic-cache.service.interface';
 import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
+import {
+  CLINIC_QUERY_REPOSITORY,
+  IClinicQueryRepository,
+} from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 
 @QueryHandler(FindClinicIdByProviderIdQuery)
 export class FindClinicIdByProviderIdHandler
@@ -22,7 +22,7 @@ export class FindClinicIdByProviderIdHandler
 {
   constructor(
     @Inject(CLINIC_QUERY_REPOSITORY)
-    private readonly clinicQueryRepo: IClinicQueryRepository,
+    private readonly clinicRepo: IClinicQueryRepository,
     @Inject(CLINIC_CACHE_SERVICE)
     private readonly clinicCacheService: IClinicCacheService
   ) {}
@@ -40,7 +40,7 @@ export class FindClinicIdByProviderIdHandler
       return payload;
     }
 
-    const clinicId = await this.clinicQueryRepo.findIdByProviderId(providerId);
+    const clinicId = await this.clinicRepo.findIdByProviderId(providerId);
 
     if (!clinicId) throw new ClinicNotFoundException();
 

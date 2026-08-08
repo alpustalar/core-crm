@@ -8,6 +8,5 @@ const QueryHandlers = [GetPartyByIdHandler, FindPartiesHandler];
 @Module({
   imports: [PartyRepositoryModule],
   providers: [...QueryHandlers],
-  exports: [...QueryHandlers],
 })
 export class PartyQueryModule {}

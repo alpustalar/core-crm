@@ -32,7 +32,7 @@ export class GetPurchaseInvoicesHandler
       );
 
     return {
-      data: items.map((invoice) => invoice.toPersistence()),
+      data: items,
       meta: {
         pagination: buildPaginationMeta(query.pagination, total),
       },

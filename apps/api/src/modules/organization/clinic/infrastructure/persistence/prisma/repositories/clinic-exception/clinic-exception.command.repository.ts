@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { ClinicException } from '@modules/organization/clinic/domain/entities/clinic-exception.entity';
-import { IClinicExceptionCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception.repository.interface';
+
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { IClinicExceptionCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-exception/clinic-exception.command.repository';
 
 @Injectable()
 export class ClinicExceptionCommandRepository
@@ -18,7 +20,7 @@ export class ClinicExceptionCommandRepository
     return raw ? new ClinicException(raw) : null;
   }
 
-  async save(entity: ClinicException) {
+  async update(entity: ClinicException) {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;
     const raw = await this.db.clinicException.update({
@@ -44,5 +46,44 @@ export class ClinicExceptionCommandRepository
       update,
     });
     return new ClinicException(raw);
+  }
+
+  async findExceptionByClinicAndDate(
+    clinicId: string,
+    date: Date
+  ): Promise<ClinicException | null> {
+    const normalizedDate = DateTimeManager.create(date);
+    normalizedDate.setUTCHours(0, 0, 0, 0);
+
+    const raw = await this.db.clinicException.findUnique({
+      where: {
+        clinicId_date: {
+          clinicId,
+          date: normalizedDate,
+        },
+      },
+    });
+
+    return raw ? new ClinicException(raw) : null;
+  }
+
+  async findExceptionsByDateRange(
+    clinicId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<ClinicException[]> {
+    const normalizedStart = DateTimeManager.create(startDate);
+    normalizedStart.setUTCHours(0, 0, 0, 0);
+    const normalizedEnd = DateTimeManager.create(endDate);
+    normalizedEnd.setUTCHours(0, 0, 0, 0);
+
+    const raw = await this.db.clinicException.findMany({
+      where: {
+        clinicId,
+        date: { gte: normalizedStart, lte: normalizedEnd },
+      },
+    });
+
+    return raw ? raw.map((item) => new ClinicException(item)) : [];
   }
 }

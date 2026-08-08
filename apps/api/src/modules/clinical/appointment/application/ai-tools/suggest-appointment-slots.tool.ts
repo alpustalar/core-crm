@@ -5,13 +5,10 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { GetProviderOpenSlotsQuery } from '@modules/clinical/appointment/application/queries/get-provider-open-slots/get-provider-open-slots.query';
 
 const SuggestAppointmentSlotsInputSchema = z.object({
@@ -22,7 +19,7 @@ const SuggestAppointmentSlotsInputSchema = z.object({
 
 /**
  * Bir doktorun verilen gündeki hazır boş slotlarını (klinik yerel saatinde) döner.
- * AI bu çıktıyı doğrudan hastaya sunar — boş slot aritmetiği LLM'e bırakılmaz.
+ * AI bu çıktıyı doğrudan hastaya sunar — boş slot aritmetiği ai'a bırakılmaz.
  */
 @AiTool()
 @Injectable()
@@ -98,7 +95,7 @@ export class SuggestAppointmentSlotsTool implements IAiSubToolHandler {
       content: JSON.stringify({
         date,
         durationMinutes,
-        slots: slots.map((s) => s.time),
+        slots: slots.map((openSlot) => openSlot.time),
       }),
     };
   }

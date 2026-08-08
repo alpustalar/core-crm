@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { Pagination } from '@shared';
-import { IStockMovementQueryRepository } from '@modules/supply/inventory/domain/repositories/stock-movement.repository.interface';
-import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
+import { Pagination, StockMovement as IStockMovement } from '@shared';
+import { IStockMovementQueryRepository } from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.query.repository';
 
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class StockMovementQueryRepository
   extends BaseRepository
@@ -15,34 +15,26 @@ export class StockMovementQueryRepository
     super(prisma);
   }
 
-  async findManyByClinic(
+  findManyByClinic(
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: StockMovement[]; total: number }> {
-    const result = await paginate({
+  ): Promise<{ items: IStockMovement[]; total: number }> {
+    return paginate({
       delegate: this.db.stockMovement,
       pagination,
       where: { clinicId },
     });
-    return {
-      items: result.items.map((r) => new StockMovement(r)),
-      total: result.total,
-    };
   }
 
-  async findManyByProduct(
+  findManyByProduct(
     productId: string,
     clinicId: string,
     pagination: Pagination
-  ): Promise<{ items: StockMovement[]; total: number }> {
-    const result = await paginate({
+  ): Promise<{ items: IStockMovement[]; total: number }> {
+    return paginate({
       delegate: this.db.stockMovement,
       pagination,
       where: { productId, clinicId },
     });
-    return {
-      items: result.items.map((r) => new StockMovement(r)),
-      total: result.total,
-    };
   }
 }

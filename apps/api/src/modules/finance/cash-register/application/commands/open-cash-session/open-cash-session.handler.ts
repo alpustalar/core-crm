@@ -2,14 +2,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CashRegisterStatusSchema } from '@input-type-schemas/CashRegisterStatusSchema';
 import { OpenCashSessionCommand } from './open-cash-session.command';
-import {
-  CASH_REGISTER_COMMAND_REPOSITORY,
-  ICashRegisterCommandRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-register.repository';
-import {
-  CASH_SESSION_COMMAND_REPOSITORY,
-  ICashSessionCommandRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-session.repository';
 import { CashSession } from '@modules/finance/cash-register/domain/entities/cash-session.entity';
 import {
   CashRegisterArchivedException,
@@ -22,17 +14,24 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { CASH_REGISTER_EVENTS } from '@src/domain/constants/events/cash-register.constant';
+import {
+  CASH_REGISTER_COMMAND_REPOSITORY,
+  ICashRegisterCommandRepository,
+} from '@modules/finance/cash-register/domain/repositories/cash-register/cash-register.command.repository';
+import {
+  CASH_SESSION_COMMAND_REPOSITORY,
+  ICashSessionCommandRepository,
+} from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.command.repository';
 
 @CommandHandler(OpenCashSessionCommand)
-export class OpenCashSessionHandler implements ICommandHandler<
-  OpenCashSessionCommand,
-  string
-> {
+export class OpenCashSessionHandler
+  implements ICommandHandler<OpenCashSessionCommand, string>
+{
   constructor(
     @Inject(CASH_REGISTER_COMMAND_REPOSITORY)
-    private readonly registerCommandRepo: ICashRegisterCommandRepository,
+    private readonly cashRegisterRepo: ICashRegisterCommandRepository,
     @Inject(CASH_SESSION_COMMAND_REPOSITORY)
-    private readonly sessionCommandRepo: ICashSessionCommandRepository,
+    private readonly cashSessionRepo: ICashSessionCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -46,7 +45,7 @@ export class OpenCashSessionHandler implements ICommandHandler<
       // Kasayı FOR UPDATE ile kilitle: eşzamanlı ikinci açılış ilk tx commit olana
       // kadar bloklanır; "açık oturum var mı?" kontrolü + create bu kilit altında
       // serialize edilir → tek-açık-oturum kuralının çift-açılış yarışı önlenir.
-      const register = await this.registerCommandRepo.findByIdForUpdate(
+      const register = await this.cashRegisterRepo.findByIdForUpdate(
         data.cashRegisterId
       );
       if (!register) {
@@ -66,7 +65,7 @@ export class OpenCashSessionHandler implements ICommandHandler<
 
       // Lock-guarded mutasyon kararı → Command Repo (CQRS: yazma tarafında state'i
       // belirleyen okuma daima command repo'dan, tx/kilit bütünlüğü için).
-      const openSession = await this.sessionCommandRepo.findOpenByRegister(
+      const openSession = await this.cashSessionRepo.findOpenByRegister(
         register.id.value
       );
       if (openSession) {
@@ -86,7 +85,7 @@ export class OpenCashSessionHandler implements ICommandHandler<
         note: data.note,
       });
 
-      const saved = await this.sessionCommandRepo.create(session);
+      const saved = await this.cashSessionRepo.create(session);
       return saved.id.value;
     });
   }

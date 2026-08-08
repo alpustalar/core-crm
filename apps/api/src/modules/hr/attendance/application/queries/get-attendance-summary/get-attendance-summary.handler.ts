@@ -3,14 +3,14 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetAttendanceSummaryQuery } from './get-attendance-summary.query';
 import { GetAttendanceSummaryResponse } from './get-attendance-summary.response';
 import {
-  ATTENDANCE_QUERY_REPOSITORY,
-  IAttendanceQueryRepository,
-} from '@modules/hr/attendance/domain/repositories/attendance.repository';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ATTENDANCE_EVENTS } from '@src/domain/constants/events/attendance.constant';
+import {
+  ATTENDANCE_QUERY_REPOSITORY,
+  IAttendanceQueryRepository,
+} from '@modules/hr/attendance/domain/repositories/attendance/attendance.query.repository';
 
 @QueryHandler(GetAttendanceSummaryQuery)
 export class GetAttendanceSummaryHandler
@@ -19,7 +19,7 @@ export class GetAttendanceSummaryHandler
 {
   constructor(
     @Inject(ATTENDANCE_QUERY_REPOSITORY)
-    private readonly attendanceQueryRepo: IAttendanceQueryRepository,
+    private readonly attendanceRepo: IAttendanceQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -34,7 +34,7 @@ export class GetAttendanceSummaryHandler
       .evaluator.check((p) => p.canManageClinicHr(ctx.actor.clinicId))
       .orThrow(ATTENDANCE_EVENTS.SUMMARY);
 
-    const summary = await this.attendanceQueryRepo.getSummary({
+    const summary = await this.attendanceRepo.getSummary({
       employeeId,
       from: filter.from,
       to: filter.to,

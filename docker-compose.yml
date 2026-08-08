@@ -22,15 +22,39 @@ services:
   mongodb:
     image: mongo:7
     restart: unless-stopped
+    # Messaging çok-dokümanlı transaction kullanır; bu da replica set zorunlu kılar
+    # (tek düğüm yeterli). Standalone kalırsa messaging'in HER yazması hata verir.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    # Healthcheck aynı zamanda replica set'i başlatır: rs.status() hata verirse
+    # (henüz initiate edilmemişse) initiate eder. Servis ancak rs ayağa kalkınca
+    # "healthy" olur, böylece api ondan önce başlamaz.
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet --eval "try { rs.status().ok } catch (e) {
+          rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}).ok }"
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+
+  # Servisler arası mesajlaşma (apps/api ↔ apps/messaging).
+  nats:
+    image: nats:2-alpine
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8222/healthz"]
+      interval: 10s
       timeout: 5s
       retries: 10
+    command: ["--http_port", "8222"]
 
   redis:
     image: redis:7-alpine
@@ -60,7 +84,9 @@ services:
       - apps/api/.env
     environment:
       DATABASE_URL: postgresql://postgres:mysecretpassword@postgres:5432/core-crm?schema=public
-      MONGODB_URI: mongodb://mongodb:27017/core-crm-audit
+      MONGODB_URI: mongodb://mongodb:27017/core-crm-audit?replicaSet=rs0
+      # Messaging kendi veritabanı — Faz 3'te ayrı servise taşınacak.
+      MESSAGING_MONGODB_URI: mongodb://mongodb:27017/core-crm-messaging?replicaSet=rs0
       REDIS_URL: redis://redis:6379
       ALLOWED_ORIGINS: http://localhost:3000
       ORIGIN: http://localhost:8080
@@ -71,10 +97,80 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Readiness probe'u: bağımlılıkları (postgres + redis) yoklar, 503 dönerse
+    # konteyner "unhealthy" olur. Liveness (/health) yeniden başlatma içindir ve
+    # burada kullanılmaz — compose healthcheck'i trafik değil durum bildirir.
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:8080/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     volumes:
       # Firebase Admin SDK — place your service account JSON here before running.
       # File expected at process.cwd()/secrets/firebase-sdk.json inside the container.
       - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
+
+  messaging:
+    build:
+      context: .
+      dockerfile: apps/messaging/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    env_file:
+      - apps/messaging/.env
+    environment:
+      # Kendi MongoDB veritabanı — api'nin audit DB'siyle paylaşılmaz.
+      MESSAGING_MONGODB_URI: mongodb://mongodb:27017/core-crm-messaging?replicaSet=rs0
+      # Redis api ile PAYLAŞILIR: ActorContext cache'ini api doldurur, messaging okur.
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      PORT: 8081
+      ALLOWED_ORIGINS: http://localhost:3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    # Readiness Mongo + Redis'e bakar, NATS'a BAKMAZ: core'a ulaşamadığında
+    # messaging körelir ama çalışır (webhook alır, mesajı kaydeder).
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:8081/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      # Token imzasını yerel doğrular; api ile aynı servis hesabını kullanır.
+      - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
+
+  # Tek public giriş noktası: /api/v1/messaging/* → messaging, gerisi → api.
+  # Yerel geliştirmede gerekmez (servislere doğrudan 8080/8081'den gidilir),
+  # bu yüzden profil arkasında: `docker compose --profile proxy up`.
+  # Sunucuda DOMAIN env'i verilir; TLS'i Caddy kendi alır ve yeniler.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["proxy"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
 
   web:
     build:
@@ -95,3 +191,5 @@ volumes:
   postgres_data:
   mongo_data:
   redis_data:
+  caddy_data:
+  caddy_config:

@@ -1,8 +1,6 @@
 import { PatientBookAppointmentHandler } from './patient-book-appointment.handler';
 import { PatientBookAppointmentCommand } from './patient-book-appointment.command';
 import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.query';
-import { AssertClinicCanBookQuery } from '@modules/organization/clinic/application/queries/assert-clinic-can-book/assert-clinic-can-book.query';
-import { AssertProviderCanBookQuery } from '@modules/clinical/provider/application/queries/assert-provider-can-book/assert-provider-can-book.query';
 import { MaxActiveBookingsExceededException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 
 /**
@@ -18,9 +16,9 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
 
   const patient = {
     patientId: PATIENT,
-    patientName: 'Ayşe Yılmaz',
-    patientPhone: '+905551112233',
-    patientEmail: null,
+    firstName: 'Ayşe Yılmaz',
+    phone: '+905551112233',
+    email: null,
   };
 
   const dto = {
@@ -50,9 +48,9 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
         return Promise.resolve({ id: { value: 'apt-1' } });
       }
     );
-    const appointmentCommandRepo = { create: createSpy } as never;
-
-    const appointmentQueryRepo = {
+    // countActiveByPatient artık command repo'da (query repo command handler'dan kaldırıldı).
+    const appointmentCommandRepo = {
+      create: createSpy,
       countActiveByPatient: jest.fn(() =>
         Promise.resolve(options.activeCount ?? 0)
       ),
@@ -62,12 +60,20 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
       assertNoConflict: jest.fn(() => Promise.resolve()),
     } as never;
 
+    // Klinik/hekim uygunluk kontrolü artık bus üzerinden değil, sahibinin domain
+    // servisi üzerinden (assert* → void ya da DomainException).
+    const clinicBookingService = {
+      assertCanBook: jest.fn(() => Promise.resolve()),
+    } as never;
+
+    const providerBookingService = {
+      assertCanBook: jest.fn(() => Promise.resolve()),
+    } as never;
+
     const queryBus = {
       execute: jest.fn((q: unknown) => {
         if (q instanceof GetClinicAppointmentSettingsQuery)
           return Promise.resolve({ data: settings });
-        if (q instanceof AssertClinicCanBookQuery) return Promise.resolve({});
-        if (q instanceof AssertProviderCanBookQuery) return Promise.resolve({});
         throw new Error('beklenmeyen query');
       }),
     } as never;
@@ -79,8 +85,9 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
     return {
       handler: new PatientBookAppointmentHandler(
         appointmentCommandRepo,
-        appointmentQueryRepo,
         appointmentCheckerService,
+        providerBookingService,
+        clinicBookingService,
         queryBus,
         transactionManager
       ),
@@ -96,7 +103,11 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
 
     await expect(
       handler.execute(
-        new PatientBookAppointmentCommand(dto as never, patient, {} as never)
+        new PatientBookAppointmentCommand({
+          data: dto as never,
+          ctx: {} as never,
+          aiConversationPatient: patient as never,
+        })
       )
     ).rejects.toBeInstanceOf(MaxActiveBookingsExceededException);
     expect(createSpy).not.toHaveBeenCalled();
@@ -110,7 +121,11 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
     });
 
     await handler.execute(
-      new PatientBookAppointmentCommand(dto as never, patient, {} as never)
+      new PatientBookAppointmentCommand({
+        data: dto as never,
+        ctx: {} as never,
+        aiConversationPatient: patient as never,
+      })
     );
 
     expect(status).toBe('CONFIRMED');
@@ -124,7 +139,11 @@ describe('PatientBookAppointmentHandler (klinik ayarı: maxActive + requireConfi
     });
 
     await handler.execute(
-      new PatientBookAppointmentCommand(dto as never, patient, {} as never)
+      new PatientBookAppointmentCommand({
+        data: dto as never,
+        ctx: {} as never,
+        aiConversationPatient: patient as never,
+      })
     );
 
     expect(status).toBe('PENDING');

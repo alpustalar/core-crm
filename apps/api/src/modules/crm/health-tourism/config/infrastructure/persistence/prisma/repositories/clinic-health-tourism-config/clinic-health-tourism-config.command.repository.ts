@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IClinicHealthTourismConfigCommandRepository } from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config.repository';
 import { ClinicHealthTourismConfig } from '@modules/crm/health-tourism/config/domain/entities/clinic-health-tourism-config.entity';
+import { IClinicHealthTourismConfigCommandRepository } from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config/clinic-health-tourism-config.command.repository';
 
 @Injectable()
 export class ClinicHealthTourismConfigCommandRepository
@@ -20,6 +20,15 @@ export class ClinicHealthTourismConfigCommandRepository
     return raw ? new ClinicHealthTourismConfig(raw) : null;
   }
 
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicHealthTourismConfig | null> {
+    const raw = await this.db.clinicHealthTourismConfig.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicHealthTourismConfig(raw) : null;
+  }
+
   async create(
     entity: ClinicHealthTourismConfig
   ): Promise<ClinicHealthTourismConfig> {
@@ -29,7 +38,7 @@ export class ClinicHealthTourismConfigCommandRepository
     return new ClinicHealthTourismConfig(raw);
   }
 
-  async save(
+  async update(
     entity: ClinicHealthTourismConfig
   ): Promise<ClinicHealthTourismConfig> {
     const data = entity.toPersistence();

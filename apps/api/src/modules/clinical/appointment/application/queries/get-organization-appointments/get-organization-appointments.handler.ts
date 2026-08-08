@@ -3,23 +3,20 @@ import { GetOrganizationAppointmentsQuery } from './get-organization-appointment
 import { GetOrganizationAppointmentsQueryResponse } from './get-organization-appointments.response';
 import { Inject } from '@nestjs/common';
 import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetOrganizationAppointmentsQuery)
-export class GetOrganizationAppointmentsHandler
-  implements
-    IQueryHandler<
-      GetOrganizationAppointmentsQuery,
-      GetOrganizationAppointmentsQueryResponse
-    >
-{
+export class GetOrganizationAppointmentsHandler implements IQueryHandler<
+  GetOrganizationAppointmentsQuery,
+  GetOrganizationAppointmentsQueryResponse
+> {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,

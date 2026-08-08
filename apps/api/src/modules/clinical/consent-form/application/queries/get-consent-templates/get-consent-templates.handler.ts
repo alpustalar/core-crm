@@ -2,25 +2,25 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetConsentTemplatesQuery } from './get-consent-templates.query';
 import { GetConsentTemplatesResponse } from './get-consent-templates.response';
-import {
-  CONSENT_TEMPLATE_QUERY_REPOSITORY,
-  IConsentTemplateQueryRepository,
-} from '@modules/clinical/consent-form/domain/repositories/consent-form.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { CONSENT_TEMPLATE_EVENTS } from '@src/domain/constants/events/consent-form.constant';
+import {
+  CONSENT_TEMPLATE_QUERY_REPOSITORY,
+  IConsentTemplateQueryRepository,
+} from '@modules/clinical/consent-form/domain/repositories/consent-template/consent-template.query.repository';
 
 @QueryHandler(GetConsentTemplatesQuery)
-export class GetConsentTemplatesHandler implements IQueryHandler<
-  GetConsentTemplatesQuery,
-  GetConsentTemplatesResponse
-> {
+export class GetConsentTemplatesHandler
+  implements
+    IQueryHandler<GetConsentTemplatesQuery, GetConsentTemplatesResponse>
+{
   constructor(
     @Inject(CONSENT_TEMPLATE_QUERY_REPOSITORY)
-    private readonly templateQueryRepo: IConsentTemplateQueryRepository,
+    private readonly consentTemplateRepo: IConsentTemplateQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -35,7 +35,7 @@ export class GetConsentTemplatesHandler implements IQueryHandler<
       .evaluator.check((p) => p.canAccessConsentTemplates(filter.clinicId))
       .orThrow(CONSENT_TEMPLATE_EVENTS.LIST);
 
-    const result = await this.templateQueryRepo.findMany({
+    const result = await this.consentTemplateRepo.findMany({
       clinicId: filter.clinicId,
       isActive: filter.isActive,
       sectorId: filter.sectorId,
@@ -43,7 +43,7 @@ export class GetConsentTemplatesHandler implements IQueryHandler<
     });
 
     return {
-      data: result.items.map((item) => item.toPersistence()),
+      data: result.items,
       meta: { pagination: buildPaginationMeta(pagination, result.total) },
     };
   }

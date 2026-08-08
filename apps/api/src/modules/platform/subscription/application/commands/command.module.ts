@@ -14,9 +14,9 @@ import { StartTrialHandler } from './start-trial/start-trial.handler';
 import { ExpireTrialsHandler } from './expire-trials/expire-trials.handler';
 import { BILLING_ADAPTER } from '@modules/platform/subscription/infrastructure/adapters/billing-adapter.interface';
 import { IyzicoBillingAdapter } from '@modules/platform/subscription/infrastructure/adapters/iyzico-billing.adapter';
-import { SubscriptionRepositoriesModule } from '@modules/platform/subscription/infrastructure/persistence/prisma/repositories/repositories.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
 import { PosModule } from '@modules/finance/pos/pos.module';
+import { SubscriptionInfrastructureModule } from '@modules/platform/subscription/infrastructure/infrastructure.module';
 
 const CommandHandlers = [
   SubscribeToPlanHandler,
@@ -35,11 +35,10 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [PosModule, SubscriptionRepositoriesModule, PrismaModule],
+  imports: [PosModule, SubscriptionInfrastructureModule, PrismaModule],
   providers: [
     ...CommandHandlers,
     { provide: BILLING_ADAPTER, useClass: IyzicoBillingAdapter },
   ],
-  exports: [...CommandHandlers],
 })
 export class SubscriptionCommandModule {}

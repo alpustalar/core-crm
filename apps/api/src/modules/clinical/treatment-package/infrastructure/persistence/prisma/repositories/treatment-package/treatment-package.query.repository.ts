@@ -1,13 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import {
-  ITreatmentPackageQueryRepository,
-  TreatmentPackageWithRelations,
-} from '../../../../../domain/repositories/treatment-package.repository.interface';
-import { Pagination } from '@shared';
+import { Pagination, TreatmentPackage } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { TreatmentPackage } from '@modules/clinical/treatment-package/domain/entities/treatment-package.entity';
+import { ITreatmentPackageQueryRepository } from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.query.repository';
+import { TreatmentPackageWithRelations } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
 
 const packageInclude = {
   items: { select: { id: true, treatmentId: true, count: true } },
@@ -23,12 +20,10 @@ export class TreatmentPackageQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<TreatmentPackage | null> {
-    const raw = await this.db.treatmentPackage.findFirst({
+  findById(id: string): Promise<TreatmentPackage | null> {
+    return this.db.treatmentPackage.findFirst({
       where: { id, deletedAt: null },
     });
-
-    return raw ? new TreatmentPackage(raw) : null;
   }
 
   async findMany(clinicId: string, pagination: Pagination, isActive?: boolean) {

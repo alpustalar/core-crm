@@ -5,6 +5,10 @@ export const FINANCIAL_EVENT_SOURCE_MODULES = {
   POS: 'pos',
   CASH_REGISTER: 'cash-register',
   INVOICE: 'invoice',
+  /** Sağlık turizmi rezervasyon tahsilatı — platform defterine yazar. */
+  BOOKING_PAYMENT: 'booking-payment',
+  /** Satıcıya ödeme — 320'deki cari borcu kapatır. */
+  SUPPLIER_PAYMENT: 'supplier-payment',
 } as const;
 
 export type FinancialEventSourceModule =

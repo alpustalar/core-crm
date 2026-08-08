@@ -1,32 +1,32 @@
-import { Inject } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import {
-  IProviderAvailabilityQueryRepository,
-  PROVIDER_AVAILABILITY_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-availability.repository.interface';
-import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-import { GetProviderScheduleQuery } from './get-provider-schedule.query';
-import { GetProviderScheduleQueryResponse } from './get-provider-schedule.response';
-import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
-import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import {
   IProviderExceptionQueryRepository,
   PROVIDER_EXCEPTION_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-exception.repository.interface';
+} from '@modules/clinical/provider/domain/repositories/provider-exception/provider-exception.query.repository';
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { GetProviderScheduleQuery } from '@modules/clinical/provider/application/queries';
+import { GetProviderScheduleQueryResponse } from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.response';
+import { Inject } from '@nestjs/common';
 import {
-  IProviderShiftQueryRepository,
-  PROVIDER_SHIFT_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
-import { DateRange } from '@src/domain/value-objects/date-range.vo';
+  IProviderAvailabilityQueryRepository,
+  PROVIDER_AVAILABILITY_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider-availability/provider-availability.query.repository';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+import { DateRange } from '@src/domain/value-objects';
+import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
+import {
+  IProviderQueryRepository,
+  PROVIDER_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
+import {
+  IProviderShiftQueryRepository,
+  PROVIDER_SHIFT_QUERY_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.query.repository';
 
 @QueryHandler(GetProviderScheduleQuery)
 export class GetProviderScheduleHandler
@@ -35,13 +35,13 @@ export class GetProviderScheduleHandler
 {
   constructor(
     @Inject(PROVIDER_EXCEPTION_QUERY_REPOSITORY)
-    private readonly providerExceptionQueryRepo: IProviderExceptionQueryRepository,
+    private readonly providerExceptionRepo: IProviderExceptionQueryRepository,
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    private readonly providerRepo: IProviderQueryRepository,
     @Inject(PROVIDER_AVAILABILITY_QUERY_REPOSITORY)
-    private readonly providerAvailabilityQueryRepo: IProviderAvailabilityQueryRepository,
+    private readonly providerAvailabilityRepo: IProviderAvailabilityQueryRepository,
     @Inject(PROVIDER_SHIFT_QUERY_REPOSITORY)
-    private readonly providerShiftQueryRepo: IProviderShiftQueryRepository,
+    private readonly providerShiftRepo: IProviderShiftQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus
@@ -60,7 +60,7 @@ export class GetProviderScheduleHandler
       .provider(ctx.actor, ctx.source)
       .policy.getSerializationOptions(clinicId, providerId);
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -70,14 +70,14 @@ export class GetProviderScheduleHandler
     ).orThrow();
 
     const exceptions =
-      await this.providerExceptionQueryRepo.findExceptionsByDateRange(
+      await this.providerExceptionRepo.findExceptionsByDateRange(
         providerId,
         exceptionQueryDateRange.startDate,
         exceptionQueryDateRange.endDate
       );
 
-    if (provider.validate.operationMode.isShift.value) {
-      const shifts = await this.providerShiftQueryRepo.findShiftsByDateRange(
+    if (provider.operationMode === OperationModeSchema.enum.SHIFT) {
+      const shifts = await this.providerShiftRepo.findShiftsByDateRange(
         providerId,
         exceptionQueryDateRange.startDate,
         exceptionQueryDateRange.endDate
@@ -85,19 +85,19 @@ export class GetProviderScheduleHandler
       return {
         data: {
           operationMode: OperationModeSchema.enum.SHIFT,
-          shifts: shifts.map((shift) => shift.toPersistence()),
-          exceptions: exceptions.map((exception) => exception.toPersistence()),
+          shifts,
+          exceptions,
         },
       };
     }
 
     const availabilities =
-      await this.providerAvailabilityQueryRepo.findManyByProviderId(providerId);
+      await this.providerAvailabilityRepo.findManyByProviderId(providerId);
     return {
       data: {
         operationMode: OperationModeSchema.enum.STATIC,
         availabilities,
-        exceptions: exceptions.map((exception) => exception.toPersistence()),
+        exceptions,
       },
       meta: { serializationOptions },
     };

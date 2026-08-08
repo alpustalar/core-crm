@@ -2,7 +2,7 @@ import { TaxParameter as ITaxParameter } from '@shared';
 import { Decimal } from 'decimal.js';
 import { BadRequestException } from '@nestjs/common';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateTaxParameterProps } from '@modules/finance/accounting/tax-parameters/domain/tax-parameters.contracts';
+import { CreateTaxParameterProps } from '@modules/finance/accounting/tax-parameters/domain/contracts/tax-parameters.contracts';
 import { TaxParameterKeyType as TaxParameterKey } from '@input-type-schemas/TaxParameterKeySchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

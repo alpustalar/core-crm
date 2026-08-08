@@ -2,7 +2,7 @@ import { JournalLine as IJournalLine } from '@shared';
 import { JournalEntryLineAmount } from '@modules/finance/shared/domain/value-objects/journal-entry-line-amount.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Decimal } from 'decimal.js';
-import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/posting.contracts';
+import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/contracts/posting.contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 export class JournalLine {

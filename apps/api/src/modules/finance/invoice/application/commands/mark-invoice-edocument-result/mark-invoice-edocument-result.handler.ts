@@ -1,13 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { MarkInvoiceEDocumentResultCommand } from './mark-invoice-edocument-result.command';
 import {
   IInvoiceCommandRepository,
-  IInvoiceQueryRepository,
   INVOICE_COMMAND_REPOSITORY,
-  INVOICE_QUERY_REPOSITORY,
-} from '@modules/finance/invoice/domain/repositories/invoice.repository';
-import { MarkInvoiceEDocumentResultCommand } from './mark-invoice-edocument-result.command';
+} from '@modules/finance/invoice/domain/repositories/invoice/invoice.command.repository';
 
 @CommandHandler(MarkInvoiceEDocumentResultCommand)
 export class MarkInvoiceEDocumentResultHandler
@@ -15,9 +13,7 @@ export class MarkInvoiceEDocumentResultHandler
 {
   constructor(
     @Inject(INVOICE_COMMAND_REPOSITORY)
-    private readonly invoiceCommandRepo: IInvoiceCommandRepository,
-    @Inject(INVOICE_QUERY_REPOSITORY)
-    private readonly invoiceQueryRepo: IInvoiceQueryRepository,
+    private readonly invoiceRepo: IInvoiceCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -25,7 +21,7 @@ export class MarkInvoiceEDocumentResultHandler
     const { input } = command;
 
     await this.txManager.run(async () => {
-      const invoice = await this.invoiceQueryRepo.findById(input.invoiceId);
+      const invoice = await this.invoiceRepo.findById(input.invoiceId);
       if (!invoice) {
         throw new NotFoundException(`Fatura bulunamadı: ${input.invoiceId}`);
       }
@@ -35,7 +31,7 @@ export class MarkInvoiceEDocumentResultHandler
         status: input.status,
         invoiceNumber: input.invoiceNumber,
       });
-      await this.invoiceCommandRepo.save(invoice);
+      await this.invoiceRepo.update(invoice);
     });
   }
 }

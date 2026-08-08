@@ -1,14 +1,12 @@
 import { ProcessMetaLeadHandler } from './process-meta-lead.handler';
 import { ProcessMetaLeadCommand } from './process-meta-lead.command';
 import { CreateLeadCommand } from '@modules/crm/lead/application/commands/create-lead/create-lead.command';
-import {
-  IMetaLeadCommandRepository,
-  IMetaLeadQueryRepository,
-} from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository.interface';
-import { IMetaAdAccountQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+import { IMetaLeadCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
+import { IMetaAdAccountCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import { IMetaAdsEventPublisher } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () => {
   const buildFakeMetaLead = () => ({
@@ -28,18 +26,18 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
   const build = (params: { existing?: unknown }) => {
     const fakeLead = buildFakeMetaLead();
 
+    // Idempotentlik kontrolü ve hesap okuması yazmayı beslediği için Command Repo'dan.
     const leadCommandRepo = {
       create: jest.fn().mockResolvedValue(fakeLead),
-      save: jest.fn().mockResolvedValue(fakeLead),
+      update: jest.fn().mockResolvedValue(fakeLead),
+      findByMetaLeadId: jest.fn().mockResolvedValue(params.existing ?? null),
     } as unknown as IMetaLeadCommandRepository;
 
-    const leadQueryRepo = {
-      findByMetaLeadId: jest.fn().mockResolvedValue(params.existing ?? null),
-    } as unknown as IMetaLeadQueryRepository;
-
-    const accountQueryRepo = {
-      findById: jest.fn().mockResolvedValue({ clinicId: { value: 'clinic-1' } }),
-    } as unknown as IMetaAdAccountQueryRepository;
+    const accountCommandRepo = {
+      findById: jest
+        .fn()
+        .mockResolvedValue({ clinicId: { value: 'clinic-1' } }),
+    } as unknown as IMetaAdAccountCommandRepository;
 
     const eventPublisher = {
       leadReceived: jest.fn(),
@@ -53,16 +51,21 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
       execute: jest.fn().mockResolvedValue('unified-lead-1'),
     } as unknown as TSCommandBus;
 
+    // Yazma + event yayını tek transaction'da; testte callback doğrudan çalıştırılır.
+    const txManager = {
+      run: jest.fn((cb: () => Promise<unknown>) => cb()),
+    } as unknown as TransactionManager;
+
     const handler = new ProcessMetaLeadHandler(
       leadCommandRepo,
-      leadQueryRepo,
-      accountQueryRepo,
+      accountCommandRepo,
       eventPublisher,
       queryBus,
-      commandBus
+      commandBus,
+      txManager
     );
 
-    return { handler, commandBus, leadCommandRepo };
+    return { handler, commandBus, leadCommandRepo, eventPublisher, txManager };
   };
 
   const command = new ProcessMetaLeadCommand({
@@ -86,14 +89,25 @@ describe('ProcessMetaLeadHandler (MetaLead → birleşik Lead köprüsü)', () =
     const cmd = (t.commandBus.execute as jest.Mock).mock
       .calls[0][0] as CreateLeadCommand;
     expect(cmd).toBeInstanceOf(CreateLeadCommand);
-    expect(cmd.clinicId).toBe('clinic-1');
-    expect(cmd.dto.source).toBe('META_FORM');
-    expect(cmd.dto.medium).toBe('FORM');
-    expect(cmd.dto.metaLeadId).toBe('ml-uuid-1');
-    expect(cmd.dto.campaignId).toBe('camp-1');
-    expect(cmd.dto.campaignName).toBe('Yaz Kampanyası');
-    expect(cmd.dto.adId).toBe('ad-1');
-    expect(cmd.dto.phone).toBe('+905550001122');
+    expect(cmd.payload.clinicId).toBe('clinic-1');
+    expect(cmd.payload.data.source).toBe('META_FORM');
+    expect(cmd.payload.data.medium).toBe('FORM');
+    expect(cmd.payload.data.metaLeadId).toBe('ml-uuid-1');
+    expect(cmd.payload.data.campaignId).toBe('camp-1');
+    expect(cmd.payload.data.campaignName).toBe('Yaz Kampanyası');
+    expect(cmd.payload.data.adId).toBe('ad-1');
+    expect(cmd.payload.data.phone).toBe('+905550001122');
+  });
+
+  it('yazma + event yayını transaction içinde yapılır (event ALS bağlamı bulmadan düşerdi)', async () => {
+    const t = build({});
+
+    await t.handler.execute(command);
+
+    expect(t.txManager.run).toHaveBeenCalledTimes(1);
+    expect(t.eventPublisher.leadReceived).toHaveBeenCalledWith(
+      expect.objectContaining({ clinicId: 'clinic-1' })
+    );
   });
 
   it('MetaLead zaten var (idempotency) → köprü çalışmaz, Lead üretilmez', async () => {

@@ -1,12 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RefundLedgerEntriesCommand } from './refund-ledger-entries.command';
 import { RefundLedgerEntriesCommandResponse } from './refund-ledger-entries.response';
+import { Inject } from '@nestjs/common';
+import LedgerStatusSchema from '@input-type-schemas/LedgerStatusSchema';
 import {
   FINANCE_LEDGER_COMMAND_REPOSITORY,
   IFinanceLedgerCommandRepository,
-} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
-import { Inject } from '@nestjs/common';
-import LedgerStatusSchema from '@input-type-schemas/LedgerStatusSchema';
+} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.command.repository';
 
 @CommandHandler(RefundLedgerEntriesCommand)
 export class RefundLedgerEntriesHandler

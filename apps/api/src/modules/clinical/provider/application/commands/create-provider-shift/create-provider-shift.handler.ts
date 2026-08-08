@@ -5,35 +5,39 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import {
-  IProviderQueryRepository,
-  PROVIDER_QUERY_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
-
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { CreateProviderShiftCommand } from './create-provider-shift.command';
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
+
+import { ProviderShift } from '@modules/clinical/provider/domain/entities/provider-shift.entity';
+
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 import {
   IProviderShiftCommandRepository,
   PROVIDER_SHIFT_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider-shift.repository.interface';
-import { ProviderShift } from '@modules/clinical/provider/domain/entities/provider-shift.entity';
-import { AssertTimeWithinClinicHoursQuery } from '@modules/organization/clinic/application/queries/assert-time-within-clinic-hours/assert-time-within-clinic-hours.query';
+} from '@modules/clinical/provider/domain/repositories/provider-shift/provider-shift.command.repository';
+import {
+  CLINIC_BOOKING_SERVICE,
+  IClinicBookingService,
+} from '@modules/organization/clinic/domain/services/clinic-booking/clinic-booking.service.interface';
 
 @CommandHandler(CreateProviderShiftCommand)
 export class CreateProviderShiftHandler
   implements ICommandHandler<CreateProviderShiftCommand, void>
 {
   constructor(
-    @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerQueryRepo: IProviderQueryRepository,
+    @Inject(PROVIDER_COMMAND_REPOSITORY)
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(PROVIDER_SHIFT_COMMAND_REPOSITORY)
-    private readonly providerShiftCommandRepo: IProviderShiftCommandRepository,
+    private readonly providerShiftRepo: IProviderShiftCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly transactionManager: TransactionManager,
-    private readonly queryBus: TSQueryBus
+    @Inject(CLINIC_BOOKING_SERVICE)
+    private readonly clinicBookingService: IClinicBookingService,
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(command: CreateProviderShiftCommand): Promise<void> {
@@ -42,7 +46,8 @@ export class CreateProviderShiftHandler
       data: { providerId, shifts },
     } = command;
 
-    const provider = await this.providerQueryRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
+
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
@@ -55,9 +60,10 @@ export class CreateProviderShiftHandler
     provider.validate.operationMode.isShift.orThrow();
 
     await this.transactionManager.run(async () => {
-      await this.queryBus.execute(
-        new AssertTimeWithinClinicHoursQuery(provider.clinicId.value, shifts)
-      );
+      await this.clinicBookingService.assertTimeWithinClinicHours({
+        clinicId: provider.clinicId.value,
+        items: shifts,
+      });
 
       const preparedShifts = shifts.map((shift) =>
         ProviderShift.create({
@@ -66,7 +72,7 @@ export class CreateProviderShiftHandler
         })
       );
 
-      await this.providerShiftCommandRepo.replaceShiftsForDates(preparedShifts);
+      await this.providerShiftRepo.replaceShiftsForDates(preparedShifts);
     });
   }
 }

@@ -3,10 +3,6 @@ import { Inject, Logger } from '@nestjs/common';
 import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { IyzicoTerminalEodCommand } from './iyzico-terminal-eod.command';
 import type { IyzicoTerminalEodResponse } from './iyzico-terminal-eod.response';
-import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
@@ -15,6 +11,10 @@ import {
 } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.errors';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(IyzicoTerminalEodCommand)
 export class IyzicoTerminalEodHandler
@@ -24,8 +24,8 @@ export class IyzicoTerminalEodHandler
   private readonly logger = new Logger(IyzicoTerminalEodHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
     private readonly iyzicoTerminalService: IyzicoTerminalService
   ) {}
@@ -35,7 +35,7 @@ export class IyzicoTerminalEodHandler
   ): Promise<IyzicoTerminalEodResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }

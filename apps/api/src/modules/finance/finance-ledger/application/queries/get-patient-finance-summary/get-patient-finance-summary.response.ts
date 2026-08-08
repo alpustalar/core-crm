@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { PatientFinanceSummary } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
+import { PatientFinanceSummary } from '@modules/finance/finance-ledger/domain/contracts/finance-ledger.contracts';
 
 export type GetPatientFinanceSummaryQueryResponse =
   QueryResponse<PatientFinanceSummary>;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 import { PosTransactionStatusSchema } from '../inputTypeSchemas/PosTransactionStatusSchema'
 
@@ -17,7 +17,7 @@ export const PosTransactionSchema = z.object({
   patientId: z.string().nullable(),
   appointmentId: z.string().nullable(),
   paymentId: z.string().nullable(),
-  amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'PosTransaction']"}),
+  amount: decimalSchema("Field 'amount' must be a Decimal. Location: ['Models', 'PosTransaction']"),
   externalRef: z.string().nullable(),
   rawRequest: JsonValueSchema.nullable(),
   rawResponse: JsonValueSchema.nullable(),

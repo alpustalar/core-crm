@@ -5,12 +5,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ApproveLeaveCommand } from './approve-leave.command';
 import {
-  ILeaveCommandRepository,
-  ILeaveQueryRepository,
-  LEAVE_COMMAND_REPOSITORY,
-  LEAVE_QUERY_REPOSITORY,
-} from '@modules/hr/leave/domain/repositories/leave.repository';
-import {
   LeaveInsufficientBalanceException,
   LeaveNotFoundException,
 } from '@modules/hr/leave/domain/exceptions/leave.exceptions';
@@ -22,9 +16,13 @@ import {
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetEmployeeByIdQuery } from '@modules/hr/employee/application/queries/get-employee-by-id/get-employee-by-id.query';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { LeaveBalance } from '@modules/hr/leave/domain/value-objects/leave-balance.vo';
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  ILeaveCommandRepository,
+  LEAVE_COMMAND_REPOSITORY,
+} from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
 
 @CommandHandler(ApproveLeaveCommand)
 export class ApproveLeaveHandler
@@ -33,9 +31,7 @@ export class ApproveLeaveHandler
   public internalCtx: IGetContext;
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
-    private readonly leaveCommandRepo: ILeaveCommandRepository,
-    @Inject(LEAVE_QUERY_REPOSITORY)
-    private readonly leaveQueryRepo: ILeaveQueryRepository,
+    private readonly leaveRepo: ILeaveCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -47,7 +43,7 @@ export class ApproveLeaveHandler
     this.internalCtx = ExecutionContextFactory.createInternal(ctx);
 
     await this.txManager.run(async () => {
-      const leave = await this.leaveCommandRepo.findById(leaveId);
+      const leave = await this.leaveRepo.findById(leaveId);
       if (!leave) throw new LeaveNotFoundException(leaveId);
 
       this.policyFactory
@@ -68,7 +64,7 @@ export class ApproveLeaveHandler
 
       leave.approve(ctx.actor.userId, data.note);
 
-      await this.leaveCommandRepo.save(leave);
+      await this.leaveRepo.update(leave);
     });
   }
 
@@ -79,22 +75,26 @@ export class ApproveLeaveHandler
     const { data: employee } = await this.queryBus.execute(
       new GetEmployeeByIdQuery(employeeId, this.internalCtx)
     );
-    const entitlement = employee?.annualLeaveEntitlement ?? 0;
 
-    // İçinde bulunulan takvim yılının onaylı ANNUAL gün toplamı (bu talep henüz onaylı değil).
-    const currentYear = DateTimeManager.currentYear(); // 2026
-
-    const from = DateTimeManager.startOfYear(currentYear); // 2026-01-01 00:00:00.000 (Local/TZ)
-    const to = DateTimeManager.endOfYear(currentYear); // 2026-12-31 23:59:59.999 (Local/TZ)
-
-    const used = await this.leaveQueryRepo.sumApprovedAnnualDays(
+    // İzin yılı + bakiye aritmetiği domain'de (LeaveBalance) — bakiye sorgusuyla
+    // birebir aynı hesap; iki yerde ayrı ayrı yazılmaz.
+    const { from, to } = LeaveBalance.periodOf();
+    const usedDays = await this.leaveRepo.sumApprovedAnnualDays(
       employeeId,
       from,
       to
     );
-    const remaining = entitlement - used;
-    if (requestedDays > remaining) {
-      throw new LeaveInsufficientBalanceException(requestedDays, remaining);
+
+    const balance = LeaveBalance.calculate({
+      entitlement: employee?.annualLeaveEntitlement ?? 0,
+      usedDays,
+    });
+
+    if (balance.exceeds(requestedDays)) {
+      throw new LeaveInsufficientBalanceException(
+        requestedDays,
+        balance.remaining
+      );
     }
   }
 }

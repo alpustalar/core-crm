@@ -1,8 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LeadPresentationModule } from './presentation/lead.presentation.module';
-import { LeadAiToolsModule } from './application/ai-tools/lead-ai-tools.module';
+import { LeadPresentationModule } from './presentation/presentation.module';
 
-@Module({
-  imports: [LeadPresentationModule, LeadAiToolsModule],
-})
+@Module({ imports: [LeadPresentationModule] })
 export class LeadModule {}

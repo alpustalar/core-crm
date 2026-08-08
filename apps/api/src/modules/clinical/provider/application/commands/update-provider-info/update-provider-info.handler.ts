@@ -1,9 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  IProviderCommandRepository,
-  PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -12,6 +9,10 @@ import { UpdateProviderInfoCommand } from './update-provider-info.command';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 
 @CommandHandler(UpdateProviderInfoCommand)
 export class UpdateProviderInfoHandler
@@ -19,7 +20,7 @@ export class UpdateProviderInfoHandler
 {
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -29,7 +30,7 @@ export class UpdateProviderInfoHandler
     const { payload } = command;
     const { providerId, data, ctx } = payload;
 
-    const provider = await this.providerCommandRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory
@@ -41,6 +42,6 @@ export class UpdateProviderInfoHandler
 
     provider.updateInfo(data);
 
-    await this.txManager.run(() => this.providerCommandRepo.save(provider));
+    await this.txManager.run(() => this.providerRepo.update(provider));
   }
 }

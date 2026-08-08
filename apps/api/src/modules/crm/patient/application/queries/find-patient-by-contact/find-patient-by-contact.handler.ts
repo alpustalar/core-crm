@@ -2,11 +2,11 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindPatientByContactQuery } from './find-patient-by-contact.query';
 import { FindPatientByContactResponse } from './find-patient-by-contact.response';
+import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
 import {
   IPatientQueryRepository,
   PATIENT_QUERY_REPOSITORY,
-} from '@modules/crm/patient/domain/repositories/patient.repository.interface';
-import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
+} from '@modules/crm/patient/domain/repositories/patient/patient.query.repository';
 
 @QueryHandler(FindPatientByContactQuery)
 export class FindPatientByContactHandler
@@ -15,14 +15,14 @@ export class FindPatientByContactHandler
 {
   constructor(
     @Inject(PATIENT_QUERY_REPOSITORY)
-    private readonly patientQueryRepo: IPatientQueryRepository
+    private readonly patientRepo: IPatientQueryRepository
   ) {}
 
   async execute(
     query: FindPatientByContactQuery
   ): Promise<FindPatientByContactResponse> {
     const { payload } = query;
-    const patient = await this.patientQueryRepo.findByContact({
+    const patient = await this.patientRepo.findByContact({
       organizationId: payload.clinicId,
       phone: payload.phone,
       email: payload.email,
@@ -30,6 +30,6 @@ export class FindPatientByContactHandler
 
     if (!patient) throw new PatientNotFoundException();
 
-    return { data: patient.toPersistence() };
+    return { data: patient };
   }
 }

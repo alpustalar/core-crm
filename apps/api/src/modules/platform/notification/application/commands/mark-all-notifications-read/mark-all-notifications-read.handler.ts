@@ -7,9 +7,10 @@ import {
 } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
 
 @CommandHandler(MarkAllNotificationsReadCommand)
-export class MarkAllNotificationsReadHandler
-  implements ICommandHandler<MarkAllNotificationsReadCommand, void>
-{
+export class MarkAllNotificationsReadHandler implements ICommandHandler<
+  MarkAllNotificationsReadCommand,
+  void
+> {
   constructor(
     @Inject(STAFF_NOTIFICATION_COMMAND_REPOSITORY)
     private readonly staffNotificationCommandRepo: IStaffNotificationCommandRepository

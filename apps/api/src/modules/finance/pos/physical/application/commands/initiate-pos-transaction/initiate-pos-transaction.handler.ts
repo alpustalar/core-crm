@@ -4,13 +4,9 @@ import { PosDeviceNotFoundException } from '@modules/finance/pos/physical/domain
 import { InitiatePosTransactionCommand } from './initiate-pos-transaction.command';
 import { InitiatePosTransactionResponse } from './initiate-pos-transaction.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import {
   IPhysicalPosProvider,
   PHYSICAL_POS_PROVIDER,
@@ -24,6 +20,10 @@ import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(InitiatePosTransactionCommand)
 export class InitiatePosTransactionHandler
@@ -34,8 +34,8 @@ export class InitiatePosTransactionHandler
     >
 {
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     @Inject(PHYSICAL_POS_PROVIDER)
@@ -49,7 +49,7 @@ export class InitiatePosTransactionHandler
   ): Promise<InitiatePosTransactionResponse> {
     const { input } = command;
 
-    const device = await this.posDeviceQueryRepo.findById(input.posDeviceId);
+    const device = await this.posDeviceRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
@@ -113,7 +113,7 @@ export class InitiatePosTransactionHandler
     // Faz 3 — externalRef kaydedilir
     await this.txManager.run(async () => {
       transaction.setExternalRef(result.externalRef, result.rawRequest);
-      await this.posTransactionCommandRepo.save(transaction);
+      await this.posTransactionCommandRepo.update(transaction);
     });
 
     return {

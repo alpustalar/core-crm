@@ -3,11 +3,11 @@ import { Inject } from '@nestjs/common';
 import PosProviderSchema from '@input-type-schemas/PosProviderSchema';
 import { RegisterPosDeviceCommand } from './register-pos-device.command';
 import { RegisterPosDeviceResponse } from './register-pos-device.response';
+import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(RegisterPosDeviceCommand)
 export class RegisterPosDeviceHandler
@@ -16,7 +16,7 @@ export class RegisterPosDeviceHandler
 {
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
-    private readonly posDeviceCommandRepo: IPosDeviceCommandRepository
+    private readonly posDeviceRepo: IPosDeviceCommandRepository
   ) {}
 
   async execute(
@@ -44,7 +44,7 @@ export class RegisterPosDeviceHandler
             port: input.port!,
           });
 
-    const saved = await this.posDeviceCommandRepo.create(device);
+    const saved = await this.posDeviceRepo.create(device);
 
     return {
       id: saved.id.value,

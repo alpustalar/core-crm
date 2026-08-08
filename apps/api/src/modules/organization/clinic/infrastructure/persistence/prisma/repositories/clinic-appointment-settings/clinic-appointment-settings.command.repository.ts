@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { ClinicAppointmentSettings } from '@modules/organization/clinic/domain/entities/clinic-appointment-settings.entity';
-import { IClinicAppointmentSettingsCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings.repository.interface';
+import { IClinicAppointmentSettingsCommandRepository } from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.command.repository';
 
 @Injectable()
 export class ClinicAppointmentSettingsCommandRepository
@@ -28,7 +28,7 @@ export class ClinicAppointmentSettingsCommandRepository
     return new ClinicAppointmentSettings(raw);
   }
 
-  async save(
+  async update(
     entity: ClinicAppointmentSettings
   ): Promise<ClinicAppointmentSettings> {
     const data = entity.toPersistence();
@@ -53,5 +53,14 @@ export class ClinicAppointmentSettingsCommandRepository
       update,
     });
     return new ClinicAppointmentSettings(raw);
+  }
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicAppointmentSettings | null> {
+    const raw = await this.db.clinicAppointmentSettings.findUnique({
+      where: { clinicId },
+    });
+
+    return raw ? new ClinicAppointmentSettings(raw) : null;
   }
 }

@@ -1,12 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SignConsentFormCommand } from './sign-consent-form.command';
-import {
-  CONSENT_FORM_SUBMISSION_COMMAND_REPOSITORY,
-  CONSENT_TEMPLATE_COMMAND_REPOSITORY,
-  IConsentFormSubmissionCommandRepository,
-  IConsentTemplateCommandRepository,
-} from '@modules/clinical/consent-form/domain/repositories/consent-form.repository';
 import { ConsentFormSubmission } from '@modules/clinical/consent-form/domain/entities/consent-form-submission.entity';
 import {
   ConsentTemplateArchivedException,
@@ -21,17 +15,24 @@ import { CONSENT_FORM_EVENTS } from '@src/domain/constants/events/consent-form.c
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
 import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
+import {
+  CONSENT_FORM_SUBMISSION_COMMAND_REPOSITORY,
+  IConsentFormSubmissionCommandRepository,
+} from '@modules/clinical/consent-form/domain/repositories/consent-form-submission/consent-form-submission.command.repository';
+import {
+  CONSENT_TEMPLATE_COMMAND_REPOSITORY,
+  IConsentTemplateCommandRepository,
+} from '@modules/clinical/consent-form/domain/repositories/consent-template/consent-template.command.repository';
 
 @CommandHandler(SignConsentFormCommand)
-export class SignConsentFormHandler implements ICommandHandler<
-  SignConsentFormCommand,
-  string
-> {
+export class SignConsentFormHandler
+  implements ICommandHandler<SignConsentFormCommand, string>
+{
   constructor(
     @Inject(CONSENT_FORM_SUBMISSION_COMMAND_REPOSITORY)
-    private readonly submissionCommandRepo: IConsentFormSubmissionCommandRepository,
+    private readonly consentFormSubmissionRepo: IConsentFormSubmissionCommandRepository,
     @Inject(CONSENT_TEMPLATE_COMMAND_REPOSITORY)
-    private readonly templateCommandRepo: IConsentTemplateCommandRepository,
+    private readonly consentTemplateRepo: IConsentTemplateCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
@@ -57,7 +58,7 @@ export class SignConsentFormHandler implements ICommandHandler<
     if (!patient) throw new PatientNotFoundException();
 
     return this.txManager.run(async () => {
-      const template = await this.templateCommandRepo.findById(data.templateId);
+      const template = await this.consentTemplateRepo.findById(data.templateId);
       if (!template) {
         throw new ConsentTemplateNotFoundException(data.templateId);
       }
@@ -79,8 +80,9 @@ export class SignConsentFormHandler implements ICommandHandler<
         treatmentId: data.treatmentId,
       });
 
-      const saved = await this.submissionCommandRepo.create(submission);
-      return saved.id.value;
+      await this.consentFormSubmissionRepo.create(submission);
+
+      return submission.id.value;
     });
   }
 }

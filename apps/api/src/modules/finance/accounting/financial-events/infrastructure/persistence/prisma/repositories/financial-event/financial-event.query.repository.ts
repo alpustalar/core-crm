@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Pagination } from '@shared';
+import { FinancialEvent as IFinancialEvent, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { IFinancialEventQueryRepository } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event.repository';
-import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
-import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/financial-events.contracts';
+import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/contracts/financial-events.contracts';
+import { IFinancialEventQueryRepository } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event/financial-event.query.repository';
 
 @Injectable()
 export class FinancialEventQueryRepository
@@ -16,22 +15,14 @@ export class FinancialEventQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<FinancialEvent | null> {
-    const raw = await this.db.financialEvent.findUnique({ where: { id } });
-    return raw ? new FinancialEvent(raw) : null;
+  findById(id: string): Promise<IFinancialEvent | null> {
+    return this.db.financialEvent.findUnique({ where: { id } });
   }
 
-  async findByDedupeKey(dedupeKey: string): Promise<FinancialEvent | null> {
-    const raw = await this.db.financialEvent.findUnique({
-      where: { dedupeKey },
-    });
-    return raw ? new FinancialEvent(raw) : null;
-  }
-
-  async findMany(
+  findMany(
     filter: FindFinancialEventsFilter,
     pagination: Pagination
-  ): Promise<{ items: FinancialEvent[]; total: number }> {
+  ): Promise<{ items: IFinancialEvent[]; total: number }> {
     const where = {
       organizationId: filter.organizationId,
       ...(filter.type ? { type: filter.type } : {}),
@@ -39,15 +30,10 @@ export class FinancialEventQueryRepository
       ...(filter.sourceRefId ? { sourceRefId: filter.sourceRefId } : {}),
     };
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.financialEvent,
       pagination,
       where,
     });
-
-    return {
-      items: result.items.map((raw) => new FinancialEvent(raw)),
-      total: result.total,
-    };
   }
 }

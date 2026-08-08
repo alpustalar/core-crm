@@ -5,9 +5,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
 import {
   IJournalCommandRepository,
-  IJournalQueryRepository,
   JOURNAL_COMMAND_REPOSITORY,
-  JOURNAL_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
 import { AccountingPeriodStatusSchema } from '@shared';
@@ -15,14 +13,13 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 @CommandHandler(ReverseJournalEntryCommand)
-export class ReverseJournalEntryHandler
-  implements ICommandHandler<ReverseJournalEntryCommand, string>
-{
+export class ReverseJournalEntryHandler implements ICommandHandler<
+  ReverseJournalEntryCommand,
+  string
+> {
   constructor(
     @Inject(JOURNAL_COMMAND_REPOSITORY)
     private readonly journalCommandRepo: IJournalCommandRepository,
-    @Inject(JOURNAL_QUERY_REPOSITORY)
-    private readonly journalQueryRepo: IJournalQueryRepository,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -30,40 +27,43 @@ export class ReverseJournalEntryHandler
   async execute(command: ReverseJournalEntryCommand): Promise<string> {
     const { entryId, ctx, reason } = command.payload;
 
-    const original = await this.journalQueryRepo.findById(entryId);
-    if (!original) {
-      throw new NotFoundException(`Yevmiye fişi bulunamadı: ${entryId}`);
-    }
-
-    // Storno bugünün açık dönemine girer; kilitli dönemdeki orijinal kayda dokunulmaz.
     const entryDate = DateTimeManager.create();
-    const { data: period } = await this.queryBus.execute(
-      new FindPeriodByDateQuery(original.clinicId, entryDate, ctx)
-    );
-    if (!period) {
-      throw new BadRequestException(
-        `${entryDate.toISOString()} tarihi için muhasebe dönemi yok.`
-      );
-    }
-    if (period.status !== AccountingPeriodStatusSchema.enum.OPEN) {
-      throw new BadRequestException(
-        `Dönem ${period.year} kapalı/kilitli; storno atılamaz.`
-      );
-    }
-
-    const generatedReversalUUID = UUID.generate();
-    // buildReversalDraft + markReversed aynı invariant'ı (POSTED + henüz storno yok) korur.
-    const reversal = original.buildReversalDraft({
-      reversalId: generatedReversalUUID.value,
-      periodId: period.id,
-      entryDate,
-      description: reason,
-      performedById: ctx.actor.userId,
-    });
-    original.markReversed(generatedReversalUUID.value);
 
     // Storno fişi + orijinalin REVERSED linkajı atomik (kritik finansal mutasyon).
+    // Orijinal fiş kilitli okunur: `ensureReversible` yalnız kendi kopyasını korur,
+    // kilit olmadan iki eşzamanlı istek aynı POSTED fişe iki ters kayıt üretebilirdi.
     return this.txManager.outboxRun(async () => {
+      const original = await this.journalCommandRepo.findByIdForUpdate(entryId);
+      if (!original) {
+        throw new NotFoundException(`Yevmiye fişi bulunamadı: ${entryId}`);
+      }
+
+      // Storno bugünün açık dönemine girer; kilitli dönemdeki orijinal kayda dokunulmaz.
+      const { data: period } = await this.queryBus.execute(
+        new FindPeriodByDateQuery(original.clinicId, entryDate, ctx)
+      );
+      if (!period) {
+        throw new BadRequestException(
+          `${entryDate.toISOString()} tarihi için muhasebe dönemi yok.`
+        );
+      }
+      if (period.status !== AccountingPeriodStatusSchema.enum.OPEN) {
+        throw new BadRequestException(
+          `Dönem ${period.year} kapalı/kilitli; storno atılamaz.`
+        );
+      }
+
+      const generatedReversalUUID = UUID.generate();
+      // buildReversalDraft + markReversed aynı invariant'ı (POSTED + henüz storno yok) korur.
+      const reversal = original.buildReversalDraft({
+        reversalId: generatedReversalUUID.value,
+        periodId: period.id,
+        entryDate,
+        description: reason,
+        performedById: ctx.actor.userId,
+      });
+      original.markReversed(generatedReversalUUID.value);
+
       const entryNo = await this.journalCommandRepo.nextEntryNo(
         original.clinicId,
         period.id

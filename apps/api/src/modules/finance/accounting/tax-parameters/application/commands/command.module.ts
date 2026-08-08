@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { InitializeTaxParametersHandler } from './initialize-tax-parameters/initialize-tax-parameters.handler';
 import { SetTaxParameterHandler } from './set-tax-parameter/set-tax-parameter.handler';
-import { TaxParameterRepositoryModule } from '@modules/finance/accounting/tax-parameters/infrastructure/persistence/prisma/repositories/tax-parameter/tax-parameter.repository.module';
+import { TaxParameterInfrastructureModule } from '@modules/finance/accounting/tax-parameters/infrastructure/infrastructure.module';
 
-const CommandHandlers = [InitializeTaxParametersHandler, SetTaxParameterHandler];
+const COMMAND_HANDLERS = [
+  InitializeTaxParametersHandler,
+  SetTaxParameterHandler,
+];
 
 @Module({
-  imports: [TaxParameterRepositoryModule],
-  providers: [...CommandHandlers],
-  exports: [...CommandHandlers],
+  imports: [TaxParameterInfrastructureModule],
+  providers: [...COMMAND_HANDLERS],
+  exports: [...COMMAND_HANDLERS],
 })
 export class TaxParameterCommandModule {}

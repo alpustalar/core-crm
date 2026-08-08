@@ -3,22 +3,21 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetCashSessionByIdQuery } from './get-cash-session-by-id.query';
 import { GetCashSessionByIdResponse } from './get-cash-session-by-id.response';
 import {
-  CASH_SESSION_QUERY_REPOSITORY,
-  ICashSessionQueryRepository,
-} from '@modules/finance/cash-register/domain/repositories/cash-session.repository';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  CASH_SESSION_QUERY_REPOSITORY,
+  ICashSessionQueryRepository,
+} from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.query.repository';
 
 @QueryHandler(GetCashSessionByIdQuery)
-export class GetCashSessionByIdHandler implements IQueryHandler<
-  GetCashSessionByIdQuery,
-  GetCashSessionByIdResponse
-> {
+export class GetCashSessionByIdHandler
+  implements IQueryHandler<GetCashSessionByIdQuery, GetCashSessionByIdResponse>
+{
   constructor(
     @Inject(CASH_SESSION_QUERY_REPOSITORY)
-    private readonly sessionQueryRepo: ICashSessionQueryRepository,
+    private readonly cashSessionRepo: ICashSessionQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -27,7 +26,7 @@ export class GetCashSessionByIdHandler implements IQueryHandler<
     query: GetCashSessionByIdQuery
   ): Promise<GetCashSessionByIdResponse> {
     const { sessionId, ctx } = query;
-    const data = await this.sessionQueryRepo.findByIdWithMovements(sessionId);
+    const data = await this.cashSessionRepo.findByIdWithMovements(sessionId);
 
     if (!data) return { data: null };
 

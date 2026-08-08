@@ -6,14 +6,14 @@ import {
   HOTELBEDS_API_SERVICE,
   IHotelbedsApiService,
 } from '@modules/crm/health-tourism/hotel/domain/interfaces/hotelbeds-api.interface';
-import {
-  HOTELBEDS_BOOKING_COMMAND_REPOSITORY,
-  IHotelbedsBookingCommandRepository,
-} from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { HotelbedsBookingStatusSchema } from '@shared';
+import {
+  HOTELBEDS_BOOKING_COMMAND_REPOSITORY,
+  IHotelbedsBookingCommandRepository,
+} from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.command.repository';
 
 @CommandHandler(BookHotelCommand)
 export class BookHotelHandler
@@ -23,7 +23,7 @@ export class BookHotelHandler
     @Inject(HOTELBEDS_API_SERVICE)
     private readonly hotelbedsApi: IHotelbedsApiService,
     @Inject(HOTELBEDS_BOOKING_COMMAND_REPOSITORY)
-    private readonly hotelbedsBookingCommandRepo: IHotelbedsBookingCommandRepository,
+    private readonly hotelbedsBookingRepo: IHotelbedsBookingCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -62,7 +62,7 @@ export class BookHotelHandler
     });
 
     await this.txManager.run(async () => {
-      return this.hotelbedsBookingCommandRepo.create(bookingHotel);
+      return this.hotelbedsBookingRepo.create(bookingHotel);
     });
 
     return generatedBookingUUID.value;

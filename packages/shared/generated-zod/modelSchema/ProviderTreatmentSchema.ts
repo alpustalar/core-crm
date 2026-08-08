@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 
 /////////////////////////////////////////
 // PROVIDER TREATMENT SCHEMA
@@ -8,7 +8,7 @@ import { Prisma } from '@prisma/client'
 export const ProviderTreatmentSchema = z.object({
   id: z.string(),
   providerId: z.string(),
-  customPrice: z.instanceof(Prisma.Decimal, { message: "Field 'customPrice' must be a Decimal. Location: ['Models', 'ProviderTreatment']"}).nullable(),
+  customPrice: decimalSchema("Field 'customPrice' must be a Decimal. Location: ['Models', 'ProviderTreatment']").nullable(),
   customDuration: z.number().int().nullable(),
   isActive: z.boolean(),
   updatedAt: z.coerce.date().nullable(),

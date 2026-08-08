@@ -64,15 +64,6 @@ export async function paginate<T, W>({
   return { items, total };
 }
 
-export function buildPaginationMeta(
-  pagination: Pagination,
-  total: number
-): PaginationMeta {
-  const currentPage = Math.floor(pagination.skip / pagination.take) + 1;
-  return {
-    total,
-    page: currentPage,
-    limit: pagination.take,
-    totalPages: Math.ceil(total / pagination.take),
-  };
-}
+// Sayfalama üst verisi hesabı DB-bağımsızdır ve çekirdeğe taşındı; mevcut
+// çağrı yerleri değişmesin diye buradan yeniden dışa açılır.
+export { buildPaginationMeta } from '@common/pagination/pagination-meta';

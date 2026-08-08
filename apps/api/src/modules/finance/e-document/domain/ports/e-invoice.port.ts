@@ -3,7 +3,7 @@ import {
   EDocumentRequest,
   EDocumentResult,
   MailboxInfo,
-} from '@modules/finance/e-document/domain/e-document.contracts';
+} from '@modules/finance/e-document/domain/contracts/e-document.contracts';
 
 export const E_INVOICE_PORT = Symbol('EInvoicePort');
 

@@ -1,10 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ProcessAppointmentRemindersCommand } from './process-appointment-reminders.command';
-import {
-  APPOINTMENT_COMMAND_REPOSITORY,
-  IAppointmentCommandRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.query';
@@ -12,6 +8,10 @@ import { ClinicAppointmentSettingsView } from '@modules/organization/clinic/appl
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
 import { DateTimeManager } from '@common/utils';
 import { APPOINTMENT_REMINDER_MAX_WINDOW_HOURS } from '@common/constants';
+import {
+  APPOINTMENT_COMMAND_REPOSITORY,
+  IAppointmentCommandRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment';
 
 /** Tek taramada işlenecek azami randevu (parti boyutu). */
 const REMINDER_SCAN_BATCH_LIMIT = 500;
@@ -31,7 +31,7 @@ export class ProcessAppointmentRemindersHandler implements ICommandHandler<
 
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
-    private readonly appointmentCommandRepo: IAppointmentCommandRepository,
+    private readonly appointmentRepo: IAppointmentCommandRepository,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -44,7 +44,7 @@ export class ProcessAppointmentRemindersHandler implements ICommandHandler<
     );
 
     // Sonuç mutasyona (markReminderSent + save) besleniyor → command repo (CQRS).
-    const due = await this.appointmentCommandRepo.findDueForReminder({
+    const due = await this.appointmentRepo.findDueForReminder({
       now,
       windowEnd,
       limit: REMINDER_SCAN_BATCH_LIMIT,
@@ -113,7 +113,7 @@ export class ProcessAppointmentRemindersHandler implements ICommandHandler<
   ): Promise<void> {
     appointment.markReminderSent(requireResponse);
     await this.txManager
-      .run(() => this.appointmentCommandRepo.save(appointment))
+      .run(() => this.appointmentRepo.update(appointment))
       .catch((err) =>
         this.logger.error(
           `Hatırlatma gönderilemedi (appointmentId=${appointment.id.value}): ${err}`

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { JsonValueSchema } from '../inputTypeSchemas/JsonValueSchema'
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 import { InvoiceStatusSchema } from '../inputTypeSchemas/InvoiceStatusSchema'
 import { EDocumentTypeSchema } from '../inputTypeSchemas/EDocumentTypeSchema'
@@ -21,10 +21,10 @@ export const InvoiceSchema = z.object({
   patientId: z.string(),
   appointmentId: z.string().nullable(),
   paymentId: z.string().nullable(),
-  amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'Invoice']"}),
+  amount: decimalSchema("Field 'amount' must be a Decimal. Location: ['Models', 'Invoice']"),
   vatRate: z.number().int(),
-  netTotal: z.instanceof(Prisma.Decimal, { message: "Field 'netTotal' must be a Decimal. Location: ['Models', 'Invoice']"}),
-  vatTotal: z.instanceof(Prisma.Decimal, { message: "Field 'vatTotal' must be a Decimal. Location: ['Models', 'Invoice']"}),
+  netTotal: decimalSchema("Field 'netTotal' must be a Decimal. Location: ['Models', 'Invoice']"),
+  vatTotal: decimalSchema("Field 'vatTotal' must be a Decimal. Location: ['Models', 'Invoice']"),
   invoiceNumber: z.string().nullable(),
   issuedAt: z.coerce.date().nullable(),
   einvoiceUuid: z.string().nullable(),

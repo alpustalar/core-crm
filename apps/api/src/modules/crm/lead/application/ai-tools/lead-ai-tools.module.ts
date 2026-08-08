@@ -8,7 +8,5 @@ import { RegisterLeadTool } from './register-lead.tool';
  */
 export const LEAD_AI_TOOLS = [RegisterLeadTool];
 
-@Module({
-  providers: LEAD_AI_TOOLS,
-})
+@Module({ providers: LEAD_AI_TOOLS })
 export class LeadAiToolsModule {}

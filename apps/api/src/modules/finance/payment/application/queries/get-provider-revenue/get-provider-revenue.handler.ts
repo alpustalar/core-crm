@@ -1,15 +1,15 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import {
-  IPaymentQueryRepository,
-  PAYMENT_QUERY_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
 import { GetProviderRevenueQuery } from './get-provider-revenue.query';
 import {
   GetProviderRevenueResponse,
   ProviderRevenueLine,
 } from './get-provider-revenue.response';
 import { Decimal } from 'decimal.js';
+import {
+  IPaymentQueryRepository,
+  PAYMENT_QUERY_REPOSITORY,
+} from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
 
 /** providerId null grubu için sabit anahtar (Map key olarak kullanılır). */
 const UNASSIGNED = '__unassigned__';

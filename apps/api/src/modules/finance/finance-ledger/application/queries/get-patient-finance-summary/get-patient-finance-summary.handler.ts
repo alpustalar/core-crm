@@ -2,10 +2,6 @@ import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetPatientFinanceSummaryQuery } from './get-patient-finance-summary.query';
 import { GetPatientFinanceSummaryQueryResponse } from './get-patient-finance-summary.response';
-import {
-  FINANCE_LEDGER_QUERY_REPOSITORY,
-  IFinanceLedgerQueryRepository,
-} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger.repository.interface';
 import { Inject } from '@nestjs/common';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import {
@@ -14,6 +10,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPatientByIdQuery } from '@modules/crm/patient/application/queries/find-patient-by-id/find-patient-by-id.query';
+import {
+  FINANCE_LEDGER_QUERY_REPOSITORY,
+  IFinanceLedgerQueryRepository,
+} from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
 
 @QueryHandler(GetPatientFinanceSummaryQuery)
 export class GetPatientFinanceSummaryHandler

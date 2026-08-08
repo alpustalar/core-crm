@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DomainEventMetadata } from '@common/interfaces';
-import { txStorage } from '../persistence/prisma/transaction/als-storage';
+import { txStorage } from '@src/infrastructure/transaction/als-storage';
 import { IContextService } from '@src/infrastructure/context/context.service.interface';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

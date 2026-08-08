@@ -5,15 +5,14 @@ import {
   IYZICO_PAYMENT_LINK,
   STRIPE_PAYMENT_LINK,
 } from '@src/infrastructure/payment/links/payment-link.port';
-import {
-  BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  BOOKING_PAYMENT_QUERY_REPOSITORY,
-  IBookingPaymentCommandRepository,
-  IBookingPaymentQueryRepository,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { RefundBookingPaymentCommand } from './refund-booking-payment.command';
 import { PaymentProviders } from '@common/constants';
 import { Currency } from '@src/domain/value-objects/currency.vo';
+import {
+  BOOKING_PAYMENT_COMMAND_REPOSITORY,
+  IBookingPaymentCommandRepository,
+} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
+import BookingPaymentStatusSchema from '@input-type-schemas/BookingPaymentStatusSchema';
 
 @CommandHandler(RefundBookingPaymentCommand)
 export class RefundBookingPaymentHandler
@@ -26,16 +25,14 @@ export class RefundBookingPaymentHandler
     private readonly iyzicoLink: IPaymentLinkProvider,
     @Inject(STRIPE_PAYMENT_LINK)
     private readonly stripeLink: IPaymentLinkProvider,
-    @Inject(BOOKING_PAYMENT_QUERY_REPOSITORY)
-    private readonly bookingPaymentQueryRepo: IBookingPaymentQueryRepository,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository
+    private readonly bookingPaymentRepo: IBookingPaymentCommandRepository
   ) {}
 
   async execute(command: RefundBookingPaymentCommand): Promise<void> {
     const { bookingId, reason } = command;
 
-    const bp = await this.bookingPaymentQueryRepo.findByBookingId(bookingId);
+    const bp = await this.bookingPaymentRepo.findByBookingId(bookingId);
     // B7 öncesi/ödemesiz rezervasyonda kayıt olmayabilir → iptal akışını bozmadan geç.
     if (!bp) {
       this.logger.warn(
@@ -44,7 +41,7 @@ export class RefundBookingPaymentHandler
       return;
     }
 
-    if (bp.status !== 'BOOKED') {
+    if (bp.status !== BookingPaymentStatusSchema.enum.BOOKED) {
       this.logger.warn(
         `İade atlandı (bp=${bp.id.value}); durum BOOKED değil (mevcut: ${bp.status}).`
       );
@@ -79,7 +76,7 @@ export class RefundBookingPaymentHandler
     });
 
     bp.markRefunded(reason ?? 'Rezervasyon iptal edildi.');
-    await this.bookingPaymentCommandRepo.save(bp);
+    await this.bookingPaymentRepo.update(bp);
     this.logger.log(
       `İade tamamlandı (bp=${bp.id.value}, provider=${bp.paidProvider}, amount=${amount} ${currency}).`
     );

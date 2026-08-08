@@ -7,10 +7,9 @@ import {
 } from './refresh-meta-tokens.command';
 import {
   IMetaAdAccountCommandRepository,
-  IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
@@ -21,26 +20,25 @@ import { ENV } from '@common/constants/env.constant';
 const REFRESH_WITHIN_DAYS = 7;
 
 @CommandHandler(RefreshMetaTokensCommand)
-export class RefreshMetaTokensHandler
-  implements
-    ICommandHandler<RefreshMetaTokensCommand, RefreshMetaTokensResponse>
-{
+export class RefreshMetaTokensHandler implements ICommandHandler<
+  RefreshMetaTokensCommand,
+  RefreshMetaTokensResponse
+> {
   private readonly logger = new Logger(RefreshMetaTokensHandler.name);
 
   constructor(
-    @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
     private readonly accountCommandRepo: IMetaAdAccountCommandRepository,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(): Promise<RefreshMetaTokensResponse> {
     const accounts =
-      await this.accountQueryRepo.findExpiringSoon(REFRESH_WITHIN_DAYS);
+      await this.accountCommandRepo.findExpiringSoon(REFRESH_WITHIN_DAYS);
 
     const appId = this.config.getOrThrow<string>(ENV.META_APP_ID);
     const appSecret = this.config.getOrThrow<string>(ENV.META_APP_SECRET);
@@ -48,9 +46,12 @@ export class RefreshMetaTokensHandler
     let refreshed = 0;
     let failed = 0;
 
-    for (const account of accounts) {
+    for (const candidate of accounts) {
       try {
-        const currentToken = this.tokenCipher.decrypt(account.accessToken);
+        const currentToken = this.tokenCipher.decrypt(candidate.accessToken);
+        // Dış çağrı transaction dışında: tarama ile yazma arasında geçen sürede
+        // hesap değişmiş olabilir, o yüzden kayıt tazeden okunup güncellenir
+        // (update tüm alanları yazar → bayat kopya diğer değişiklikleri ezerdi).
         const result = await this.metaApi.extendToLongLivedToken(
           currentToken,
           appId,
@@ -58,16 +59,23 @@ export class RefreshMetaTokensHandler
         );
 
         const encryptedToken = this.tokenCipher.encrypt(result.accessToken);
-        account.refreshToken(encryptedToken, result.expiresAt);
-        await this.accountCommandRepo.save(account);
+
+        await this.txManager.run(async () => {
+          const account = await this.accountCommandRepo.findById(
+            candidate.id.value
+          );
+          if (!account) return;
+          account.refreshToken(encryptedToken, result.expiresAt);
+          await this.accountCommandRepo.update(account);
+        });
 
         this.logger.log(
-          `Token yenilendi: ${account.adAccountId} (expires: ${result.expiresAt?.toISOString() ?? 'unknown'})`
+          `Token yenilendi: ${candidate.adAccountId} (expires: ${result.expiresAt?.toISOString() ?? 'unknown'})`
         );
         refreshed++;
       } catch (err) {
         this.logger.error(
-          `Token yenileme başarısız: ${account.adAccountId}`,
+          `Token yenileme başarısız: ${candidate.adAccountId}`,
           err
         );
         failed++;

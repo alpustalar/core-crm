@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ISupplierCommandRepository } from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
+import { ISupplierCommandRepository } from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
 
 @Injectable()
 export class SupplierCommandRepository
@@ -30,7 +30,7 @@ export class SupplierCommandRepository
     return raw ? new Supplier(raw) : null;
   }
 
-  async save(supplier: Supplier): Promise<Supplier> {
+  async update(supplier: Supplier): Promise<Supplier> {
     const data = supplier.toPersistence();
 
     const raw = await this.db.supplier.update({

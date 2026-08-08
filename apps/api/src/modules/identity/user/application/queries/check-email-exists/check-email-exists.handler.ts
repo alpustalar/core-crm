@@ -1,12 +1,12 @@
 /* eslint-disable */
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  IUserQueryRepository,
-  USER_QUERY_REPOSITORY,
-} from '@modules/identity/user/domain/repositories/user.repository';
 import { CheckEmailExistsQuery } from '@modules/identity/user/application/queries/check-email-exists/check-email-exists.query';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { CheckEmailExistsQueryResponse } from '@modules/identity/user/application/queries/check-email-exists/check-email-exists.response';
+import {
+  IUserQueryRepository,
+  USER_QUERY_REPOSITORY,
+} from '@modules/identity/user/domain/repositories/user/user.query.repository';
 
 @Injectable()
 export class CheckEmailIsExistUseCase {}

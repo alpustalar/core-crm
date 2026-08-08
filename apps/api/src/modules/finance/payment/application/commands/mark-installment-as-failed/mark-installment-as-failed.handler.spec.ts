@@ -12,11 +12,10 @@ describe('MarkInstallmentAsFailedHandler', () => {
   });
 
   const make = (payment: ReturnType<typeof makePayment> | null) => {
-    const paymentQueryRepo = {
-      findByInstallmentId: jest.fn().mockResolvedValue(payment),
-    };
+    // Okuma da yazma da command repo'dan: kilitli okuma + güncelleme aynı tx'te.
     const paymentCommandRepo = {
-      save: jest.fn().mockResolvedValue(payment),
+      findByInstallmentIdForUpdate: jest.fn().mockResolvedValue(payment),
+      update: jest.fn().mockResolvedValue(payment),
     };
     const publisher = { paymentFailed: jest.fn() };
     const txManager = {
@@ -25,7 +24,6 @@ describe('MarkInstallmentAsFailedHandler', () => {
         .mockImplementation((cb: () => Promise<unknown>) => cb()),
     };
     const handler = new MarkInstallmentAsFailedHandler(
-      paymentQueryRepo as never,
       paymentCommandRepo as never,
       publisher as never,
       txManager as never
@@ -42,7 +40,7 @@ describe('MarkInstallmentAsFailedHandler', () => {
     );
 
     expect(payment.failInstallment).toHaveBeenCalledWith('inst-1');
-    expect(paymentCommandRepo.save).toHaveBeenCalledWith(payment);
+    expect(paymentCommandRepo.update).toHaveBeenCalledWith(payment);
     expect(publisher.paymentFailed).toHaveBeenCalledWith({
       paymentId: 'pay-1',
       appointmentId: 'appt-1',

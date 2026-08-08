@@ -2,53 +2,121 @@ import { LockAppointmentSlotHandler } from './lock-appointment-slot.handler';
 import { LockAppointmentSlotCommand } from './lock-appointment-slot.command';
 import { SlotTemporarilyHeldException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
-/**
- * Slot geçici kilit handler'ı. Kilit alınırsa lockedUntil/ttl döner; başka biri
- * tutuyorsa SlotTemporarilyHeldException; aktör yoksa ClinicNotAssigned.
- */
-describe('LockAppointmentSlotHandler (slot geçici kilit)', () => {
-  const dto = {
-    providerId: '33333333-3333-4333-8333-333333333333',
-    startTime: new Date('2026-05-03T09:00:00Z'),
-  };
+// DateTimeManager spy'ları için mock hazırlığı
+jest.mock('@common/infrastructure/date-time/date-time.manager');
 
-  const build = (acquired: boolean, actor: Record<string, unknown> = { userId: 'user-1' }) => {
-    const acquireSlotLock = jest.fn(() => Promise.resolve(acquired));
-    const redis = { acquireSlotLock, slotLockTtlSeconds: 120 } as never;
-    const ctx = { actor } as never;
+describe('LockAppointmentSlotHandler', () => {
+  const mockNow = new Date('2026-03-01T10:00:00.000Z');
+  const mockLockedUntil = new Date('2026-03-01T10:05:00.000Z');
+  const sampleStartTime = new Date('2026-03-01T12:00:00.000Z');
+
+  const build = (options?: { acquired?: boolean; ttlSeconds?: number }) => {
+    const acquired = options?.acquired ?? true;
+    const ttlSeconds = options?.ttlSeconds ?? 300;
+
+    const mockSlotLock = {
+      acquire: jest.fn().mockResolvedValue(acquired),
+    };
+
+    const mockCacheService = {
+      slotLock: mockSlotLock,
+      slotLockTtlSeconds: ttlSeconds,
+    };
+
     return {
-      handler: new LockAppointmentSlotHandler(redis),
-      ctx,
-      acquireSlotLock,
+      mockCacheService,
+      mockSlotLock,
+      ttlSeconds,
     };
   };
 
-  it('kilit alınırsa ttl + lockedUntil döner ve holder=userId ile kilitler', async () => {
-    const { handler, ctx, acquireSlotLock } = build(true);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (DateTimeManager.create as jest.Mock).mockReturnValue(mockNow);
+    (DateTimeManager.addSeconds as jest.Mock).mockReturnValue(mockLockedUntil);
+  });
 
-    const res = await handler.execute(new LockAppointmentSlotCommand(dto as never, ctx));
+  const createCommand = (payloadOverrides?: Partial<any>) => {
+    return new LockAppointmentSlotCommand({
+      data: {
+        providerId: 'provider-123',
+        startTime: sampleStartTime,
+      },
+      ctx: {
+        actor: { userId: 'user-actor-id' },
+      },
+      ...payloadOverrides,
+    } as any);
+  };
 
-    expect(acquireSlotLock).toHaveBeenCalledWith(
-      dto.providerId,
-      dto.startTime.toISOString(),
-      'user-1'
+  it('açıkça holderId verildiğinde kilidi o id ile alır ve kilit zamanını döner', async () => {
+    const { mockCacheService, mockSlotLock, ttlSeconds } = build({});
+    const handler = new LockAppointmentSlotHandler(mockCacheService as any);
+
+    const command = createCommand({ holderId: 'custom-holder-id' });
+    const result = await handler.execute(command);
+
+    // Redis parametre doğrulama
+    expect(mockSlotLock.acquire).toHaveBeenCalledWith({
+      providerId: 'provider-123',
+      startTimeIso: sampleStartTime.toISOString(),
+      holderId: 'custom-holder-id',
+    });
+
+    // Zaman yönetimi ve dönen response doğrulama
+    expect(DateTimeManager.create).toHaveBeenCalledTimes(1);
+    expect(DateTimeManager.addSeconds).toHaveBeenCalledWith(
+      mockNow,
+      ttlSeconds
     );
-    expect(res.ttlSeconds).toBe(120);
-    expect(res.lockedUntil).toBeInstanceOf(Date);
+    expect(result).toEqual({
+      ttlSeconds,
+      lockedUntil: mockLockedUntil,
+    });
   });
 
-  it('slot başkası tarafından tutuluyorsa SlotTemporarilyHeldException fırlatır', async () => {
-    const { handler, ctx } = build(false);
-    await expect(
-      handler.execute(new LockAppointmentSlotCommand(dto as never, ctx))
-    ).rejects.toBeInstanceOf(SlotTemporarilyHeldException);
+  it('holderId verilmediğinde fallback olarak actor.userId kullanır', async () => {
+    const { mockCacheService, mockSlotLock } = build({});
+    const handler = new LockAppointmentSlotHandler(mockCacheService as any);
+
+    const command = createCommand({ holderId: undefined });
+    await handler.execute(command);
+
+    expect(mockSlotLock.acquire).toHaveBeenCalledWith(
+      expect.objectContaining({
+        holderId: 'user-actor-id',
+      })
+    );
   });
 
-  it('aktör yoksa ClinicNotAssignedException fırlatır', async () => {
-    const { handler, ctx } = build(true, {});
-    await expect(
-      handler.execute(new LockAppointmentSlotCommand(dto as never, ctx))
-    ).rejects.toBeInstanceOf(ClinicNotAssignedException);
+  it('hem holderId hem de actor.userId yoksa ClinicNotAssignedException fırlatır', async () => {
+    const { mockCacheService, mockSlotLock } = build({});
+    const handler = new LockAppointmentSlotHandler(mockCacheService as any);
+
+    const command = new LockAppointmentSlotCommand({
+      data: { providerId: 'provider-123', startTime: sampleStartTime },
+      ctx: { actor: { userId: undefined } },
+      holderId: undefined,
+    } as any);
+
+    await expect(handler.execute(command)).rejects.toBeInstanceOf(
+      ClinicNotAssignedException
+    );
+
+    // Kilit almaya çalışmadan hemen kesilmeli
+    expect(mockSlotLock.acquire).not.toHaveBeenCalled();
+  });
+
+  it('slot zaten başkası tarafından kilitliyse SlotTemporarilyHeldException fırlatır', async () => {
+    const { mockCacheService } = build({ acquired: false });
+    const handler = new LockAppointmentSlotHandler(mockCacheService as any);
+
+    const command = createCommand();
+
+    await expect(handler.execute(command)).rejects.toBeInstanceOf(
+      SlotTemporarilyHeldException
+    );
   });
 });

@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# Örnek dosya sırların değil, kurulum talimatının parçası — izlenmeli.
+!.env.example
 
 # vercel
 .vercel

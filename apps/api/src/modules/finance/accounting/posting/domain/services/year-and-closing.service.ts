@@ -1,22 +1,10 @@
 import { Decimal } from 'decimal.js';
-import { AccountResolver } from '../posting/account-resolver';
-import { CreateJournalEntryLineProps } from '../posting.contracts';
-import { TrialBalanceRow } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
+import { CreateJournalEntryLineProps } from '../contracts/posting.contracts';
 import { JOURNAL_DESCRIPTIONS } from '@modules/finance/shared/domain/constants/journal-descriptions.constant';
 import { ACCOUNTING_RULES } from '@modules/finance/shared/domain/constants/accounting-rules.constant';
 import { Account } from '@shared';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
-
-interface GenerateClosingEntriesProps {
-  clinicId: string;
-  organizationId: string;
-  periodId: string;
-  entryDate: Date;
-  performedById?: string | null;
-  trialBalanceRows: TrialBalanceRow[];
-  resolver: AccountResolver;
-  accounts: Account[];
-}
+import { GenerateClosingEntriesProps } from '@modules/finance/accounting/posting/domain/services/year-and-closing.service.interface';
 
 export class YearEndClosingService {
   static generateClosingEntries(

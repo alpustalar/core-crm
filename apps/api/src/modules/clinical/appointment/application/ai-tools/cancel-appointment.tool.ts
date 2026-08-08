@@ -5,16 +5,13 @@ import {
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
-} from '@modules/messaging/ai-agent/domain/ports/ai-tool.port';
-import {
-  AiTool,
-  IAiSubToolHandler,
-} from '@modules/messaging/ai-agent/domain/ports/ai-sub-tool.port';
-import { AI_TOOL_NAMES } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.definitions';
-import { AiToolSupport } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.support';
-import { createPatientActorContext } from '@modules/messaging/ai-agent/infrastructure/ai-tools/ai-tool.util';
+} from '@common/ai-tools';
+import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
+import { AI_TOOL_NAMES } from '@common/ai-tools';
+import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
+import { createPatientActorContext } from '@modules/platform/ai-tools/application/ai-tool.util';
 import { PatientCancelAppointmentCommand } from '@modules/clinical/appointment/application/commands/patient-cancel-appointment/patient-cancel-appointment.command';
-import { CancelAppointmentDto } from '@shared/modules/appointment/dto/commands/cancel-appointment.dto';
+import { CancelAppointment } from '@shared/modules/appointment/types/commands/cancel-appointment.type';
 
 const CancelAppointmentInputSchema = z.object({
   appointmentId: z.string().trim().min(1),
@@ -83,7 +80,7 @@ export class CancelAppointmentTool implements IAiSubToolHandler {
       };
     }
 
-    const dto: CancelAppointmentDto = {
+    const cancelAppointmentData: CancelAppointment = {
       appointmentId,
       cancelReason: reason,
     };
@@ -93,10 +90,14 @@ export class CancelAppointmentTool implements IAiSubToolHandler {
       clinicId: context.clinicId,
       organizationId: context.organizationId,
       patientId: context.patientId!,
+      firstName: context.contactName ?? 'Hasta',
     });
 
     const result = await this.commandBus.execute(
-      new PatientCancelAppointmentCommand(dto, patientActorContext)
+      new PatientCancelAppointmentCommand(
+        cancelAppointmentData,
+        patientActorContext
+      )
     );
 
     const message =

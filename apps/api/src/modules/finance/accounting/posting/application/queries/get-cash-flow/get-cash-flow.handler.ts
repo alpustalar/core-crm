@@ -16,9 +16,10 @@ import { Decimal } from 'decimal.js';
 const CASH_CODE_PREFIX = '10';
 
 @QueryHandler(GetCashFlowQuery)
-export class GetCashFlowHandler
-  implements IQueryHandler<GetCashFlowQuery, GetCashFlowResponse>
-{
+export class GetCashFlowHandler implements IQueryHandler<
+  GetCashFlowQuery,
+  GetCashFlowResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,

@@ -1,16 +1,16 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { CreateProductCategoryCommand } from './create-product-category.command';
-import {
-  IProductCategoryCommandRepository,
-  PRODUCT_CATEGORY_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/product-category.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { ProductCategory } from '@modules/supply/inventory/domain/entities/product-category.entity';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IProductCategoryCommandRepository,
+  PRODUCT_CATEGORY_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/product-category/product-category.command.repository';
 
 @CommandHandler(CreateProductCategoryCommand)
 export class CreateProductCategoryHandler
@@ -18,7 +18,7 @@ export class CreateProductCategoryHandler
 {
   constructor(
     @Inject(PRODUCT_CATEGORY_COMMAND_REPOSITORY)
-    private readonly productCategoryCommandRepo: IProductCategoryCommandRepository,
+    private readonly productCategoryRepo: IProductCategoryCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -45,7 +45,7 @@ export class CreateProductCategoryHandler
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.productCategoryCommandRepo.create(category);
+      const saved = await this.productCategoryRepo.create(category);
       return saved.id.value;
     });
   }

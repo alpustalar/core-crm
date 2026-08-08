@@ -5,3 +5,12 @@ export interface IMetaAdsConfig {
 }
 
 export const META_ADS_CONFIG = Symbol('IMetaAdsConfig');
+
+export interface IMetaAdsPresentationConfig {
+  verifyToken: string;
+  appSecret: string;
+}
+
+export const META_ADS_PRESENTATION_CONFIG = Symbol(
+  'IMetaAdsPresentationConfig'
+);

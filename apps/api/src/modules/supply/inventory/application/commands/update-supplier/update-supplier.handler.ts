@@ -1,12 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UpdateSupplierCommand } from './update-supplier.command';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { SupplierNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 import {
   ISupplierCommandRepository,
   SUPPLIER_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
-import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { SupplierNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
+} from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
 
 @CommandHandler(UpdateSupplierCommand)
 export class UpdateSupplierHandler
@@ -14,7 +14,7 @@ export class UpdateSupplierHandler
 {
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
-    private readonly supplierCommandRepo: ISupplierCommandRepository,
+    private readonly supplierRepo: ISupplierCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -24,7 +24,7 @@ export class UpdateSupplierHandler
 
     if (!supplierId) throw new SupplierNotFoundException(supplierId);
 
-    const supplier = await this.supplierCommandRepo.findById(supplierId);
+    const supplier = await this.supplierRepo.findById(supplierId);
 
     if (!supplier) throw new SupplierNotFoundException(supplierId);
 
@@ -33,7 +33,7 @@ export class UpdateSupplierHandler
     supplier.update(dto);
 
     await this.txManager.run(async () => {
-      await this.supplierCommandRepo.save(supplier);
+      await this.supplierRepo.update(supplier);
     });
   }
 }

@@ -5,7 +5,7 @@ import { GetBankStatementsResponse } from './get-bank-statements.response';
 import {
   BANK_STATEMENT_QUERY_REPOSITORY,
   IBankStatementQueryRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
@@ -18,7 +18,7 @@ export class GetBankStatementsHandler
 {
   constructor(
     @Inject(BANK_STATEMENT_QUERY_REPOSITORY)
-    private readonly statementQueryRepo: IBankStatementQueryRepository,
+    private readonly bankStatementRepo: IBankStatementQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -34,7 +34,7 @@ export class GetBankStatementsHandler
       .evaluator.check((p) => p.canAccessClinicFinances(clinicId))
       .orThrow('bank-statement.list');
 
-    const result = await this.statementQueryRepo.findByClinic({
+    const result = await this.bankStatementRepo.findByClinic({
       clinicId,
       bankAccountId: filter.bankAccountId,
       pagination,

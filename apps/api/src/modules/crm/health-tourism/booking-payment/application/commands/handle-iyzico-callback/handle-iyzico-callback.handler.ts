@@ -8,11 +8,13 @@ import {
 import { HandleBookingPaymentIyzicoCallbackCommand } from './handle-iyzico-callback.command';
 import { ConfirmBookingPaymentCommand } from '../confirm-booking-payment/confirm-booking-payment.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { PaymentProviders } from '@common/constants';
 
 @CommandHandler(HandleBookingPaymentIyzicoCallbackCommand)
-export class HandleBookingPaymentIyzicoCallbackHandler
-  implements ICommandHandler<HandleBookingPaymentIyzicoCallbackCommand, void>
-{
+export class HandleBookingPaymentIyzicoCallbackHandler implements ICommandHandler<
+  HandleBookingPaymentIyzicoCallbackCommand,
+  void
+> {
   private readonly logger = new Logger(
     HandleBookingPaymentIyzicoCallbackHandler.name
   );
@@ -41,7 +43,7 @@ export class HandleBookingPaymentIyzicoCallbackHandler
     await this.commandBus.execute(
       new ConfirmBookingPaymentCommand({
         bookingPaymentId: conversationId,
-        provider: 'IYZICO',
+        provider: PaymentProviders.IYZICO,
         providerRef: result.paymentTransactionId,
         ctx: ExecutionContextFactory.createInternal(),
       })

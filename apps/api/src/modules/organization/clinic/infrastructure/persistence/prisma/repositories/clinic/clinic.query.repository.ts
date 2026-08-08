@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic.repository.interface';
-import { Clinic as ClinicEntity } from '@modules/organization/clinic/domain/entities/clinic.entity';
+
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
+import { Clinic } from '@shared';
 
 @Injectable()
 export class ClinicQueryRepository
@@ -15,11 +16,10 @@ export class ClinicQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<ClinicEntity | null> {
-    const raw = await this.db.clinic.findUnique({
+  findById(id: string): Promise<Clinic | null> {
+    return this.db.clinic.findUnique({
       where: { id, status: { not: GlobalStatusSchema.enum.DELETED } },
     });
-    return raw ? new ClinicEntity(raw) : null;
   }
 
   async findByIdWithDetails(id: string): Promise<ClinicDetails | null> {
@@ -45,11 +45,10 @@ export class ClinicQueryRepository
     });
   }
 
-  async findBySlug(slug: string): Promise<ClinicEntity | null> {
-    const raw = await this.db.clinic.findUnique({
+  findBySlug(slug: string): Promise<Clinic | null> {
+    return this.db.clinic.findUnique({
       where: { slug, status: { not: GlobalStatusSchema.enum.DELETED } },
     });
-    return raw ? new ClinicEntity(raw) : null;
   }
 
   async findIdByPatientId(patientId: string): Promise<string | null> {
@@ -68,11 +67,8 @@ export class ClinicQueryRepository
     return raw ? raw.id : null;
   }
 
-  async findByIdAsManager(
-    id: string,
-    userId: string
-  ): Promise<ClinicEntity | null> {
-    const raw = await this.db.clinic.findFirst({
+  findByIdAsManager(id: string, userId: string): Promise<Clinic | null> {
+    return this.db.clinic.findFirst({
       where: {
         id,
         status: { not: GlobalStatusSchema.enum.DELETED },
@@ -80,20 +76,16 @@ export class ClinicQueryRepository
       },
       include: { organization: true },
     });
-    return raw ? new ClinicEntity(raw) : null;
   }
 
-  async findManyByOrganizationId(
-    organizationId: string
-  ): Promise<ClinicEntity[]> {
-    const rows = await this.db.clinic.findMany({
+  findManyByOrganizationId(organizationId: string): Promise<Clinic[]> {
+    return this.db.clinic.findMany({
       where: {
         organizationId,
         status: { not: GlobalStatusSchema.enum.DELETED },
       },
       orderBy: { name: 'asc' },
     });
-    return rows.map((r) => new ClinicEntity(r));
   }
 
   async existsBySlug(slug: string): Promise<boolean> {

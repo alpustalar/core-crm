@@ -10,10 +10,6 @@ import {
   IYZICO_PAYMENT_LINK,
   STRIPE_PAYMENT_LINK,
 } from '@src/infrastructure/payment/links/payment-link.port';
-import {
-  BOOKING_PAYMENT_COMMAND_REPOSITORY,
-  IBookingPaymentCommandRepository,
-} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import {
   BookingPaymentProviderValue,
@@ -27,7 +23,12 @@ import {
   BookHotelDto,
   BookTransferDto,
 } from '@shared/modules/health-tourism/dto/commands';
-import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.command';
+import { ClientProxy } from '@nestjs/microservices';
+import {
+  BookingConfirmedEventPayload,
+  NATS_CLIENT,
+  NATS_SUBJECTS,
+} from '@src/transport';
 import { ConfirmBookingPaymentCommand } from './confirm-booking-payment.command';
 import { PaymentProviders } from '@common/constants';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
@@ -38,6 +39,19 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  BOOKING_PAYMENT_COMMAND_REPOSITORY,
+  IBookingPaymentCommandRepository,
+} from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
+import { FinancialEventTypeSchema } from '@shared';
+import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
+import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
+import {
+  IPlatformTenantProvider,
+  PLATFORM_TENANT_PROVIDER,
+} from '@modules/finance/accounting/posting/domain/interfaces/platform-tenant.provider.interface';
+import { PlatformBookingSettledEventPayload } from '@modules/finance/accounting/posting/domain/posting/event-payloads';
 
 @CommandHandler(ConfirmBookingPaymentCommand)
 export class ConfirmBookingPaymentHandler
@@ -52,15 +66,19 @@ export class ConfirmBookingPaymentHandler
     @Inject(STRIPE_PAYMENT_LINK)
     private readonly stripeLink: IPaymentLinkProvider,
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
-    private readonly bookingPaymentCommandRepo: IBookingPaymentCommandRepository,
+    private readonly bookingPaymentRepo: IBookingPaymentCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    @Inject(NATS_CLIENT)
+    private readonly natsClient: ClientProxy,
+    @Inject(PLATFORM_TENANT_PROVIDER)
+    private readonly platformTenant: IPlatformTenantProvider
   ) {}
 
   async execute(command: ConfirmBookingPaymentCommand): Promise<void> {
     const { bookingPaymentId, provider, providerRef, ctx } = command.input;
 
-    const bp = await this.bookingPaymentCommandRepo.findById(bookingPaymentId);
+    const bp = await this.bookingPaymentRepo.findById(bookingPaymentId);
     if (!bp) {
       throw new BookingPaymentNotFoundException(
         `Ödeme kaydı bulunamadı: ${bookingPaymentId}`
@@ -86,7 +104,7 @@ export class ConfirmBookingPaymentHandler
 
     // PENDING → PAID
     bp.markPaid(provider, providerRef);
-    await this.bookingPaymentCommandRepo.save(bp);
+    await this.bookingPaymentRepo.update(bp);
 
     // Diğer linki geçersiz kıl (best-effort).
     await this.expireOtherLink(provider, bp);
@@ -95,15 +113,16 @@ export class ConfirmBookingPaymentHandler
     try {
       const bookingId = await this.book(bp);
       bp.markBooked(bookingId, bookingId);
-      await this.bookingPaymentCommandRepo.save(bp);
+      await this.bookingPaymentRepo.update(bp);
       this.logger.log(
         `Rezervasyon tamamlandı (bp=${bookingPaymentId}, bookingId=${bookingId}).`
       );
-      // NOT: Tahsilat kliniğin finans defterine YAZILMAZ. Otel/transfer bir platform işlemidir
-      // (hasta platform hesabına öder, platform HotelBeds'e öder); komisyon platform geliridir.
-      // Klinik bu işleme finansal olarak taraf değildir. Platform-gelir defteri ayrı ele alınacak.
+      // Tahsilat kliniğin defterine YAZILMAZ; platform defterine yazılır. Otel/transfer
+      // bir platform işlemidir (hasta platforma öder, platform HotelBeds'e öder) ve
+      // komisyon platform geliridir — klinik bu işleme finansal olarak taraf değildir.
+      await this.postSettlementToPlatformLedger(bp, provider);
       // Müşteriye mesajlaşma kanalından onay (AI dilinde / pencere dışı HSM); hatası bozmaz.
-      await this.notifyCustomer(bp);
+      this.notifyCustomer(bp);
     } catch (err) {
       const reason =
         err instanceof Error ? err.message : 'Rezervasyon başarısız';
@@ -111,12 +130,12 @@ export class ConfirmBookingPaymentHandler
         `HotelBeds rezervasyonu başarısız (bp=${bookingPaymentId}): ${reason}`
       );
       bp.markFailed(reason);
-      await this.bookingPaymentCommandRepo.save(bp);
+      await this.bookingPaymentRepo.update(bp);
       // Tahsil edildi ama rezervasyon açılamadı → ödemeyi iade et.
       try {
         await this.refundCharge(provider, providerRef, bp);
         bp.markRefunded(reason);
-        await this.bookingPaymentCommandRepo.save(bp);
+        await this.bookingPaymentRepo.update(bp);
       } catch (refundErr) {
         // TODO: slack bildirimi yollanacak
         this.logger.error(
@@ -129,28 +148,107 @@ export class ConfirmBookingPaymentHandler
   }
 
   /**
-   * Müşteriye rezervasyon onayını mesajlaşma kanalından bildirir (cross-module → messaging).
-   * Konuşma bağlamı yoksa (conversationId null) atlanır; hata booking'i bozmaz.
+   * Tahsilatı **platform** defterine yazar (komisyon geliri + tedarikçi borcu).
+   *
+   * Bilerek best-effort: buraya gelindiğinde para tahsil edilmiş ve rezervasyon
+   * açılmıştır. Muhasebe kaydı atılamadı diye hata fırlatmak, üstteki catch'i
+   * tetikleyip başarılı bir rezervasyonu iade akışına sokardı — kaydı sonradan
+   * tamamlamak, müşterinin rezervasyonunu iptal etmekten çok daha ucuz.
+   * `dedupeKey` sayesinde olay yeniden denendiğinde mükerrer yazılmaz.
    */
-  private async notifyCustomer(bp: BookingPayment): Promise<void> {
-    if (!bp.conversationId) return;
+  private async postSettlementToPlatformLedger(
+    bp: BookingPayment,
+    provider: BookingPaymentProviderValue
+  ): Promise<void> {
     try {
+      const target = await this.platformTenant.resolve();
+
+      const sale = bp.saleAmount.value;
+      const supplier = bp.netAmount.value;
+      // `satisfies`: sözleşmeye uygunluk derleyicide doğrulanır ama literal tipi
+      // korunur — `Record<string, unknown>`'a genişletmek olayın JSON payload
+      // tipiyle (InputJsonValue) uyuşmuyor.
+      const payload = {
+        saleAmount: sale.toFixed(2),
+        supplierAmount: supplier.toFixed(2),
+        commission: sale.minus(supplier).toFixed(2),
+        currency: bp.saleCurrency.value,
+        bookingType: bp.bookingType,
+        provider,
+      } satisfies PlatformBookingSettledEventPayload;
+
       await this.commandBus.execute(
-        new SendBookingConfirmationCommand({
-          clinicId: bp.clinicId.value,
-          conversationId: bp.conversationId,
-          bookingType: bp.bookingType,
-          reference: bp.bookingReference ?? bp.bookingId ?? bp.id.value,
-          summary: this.buildSummary(bp),
-        })
+        new RecordFinancialEventCommand(
+          {
+            clinicId: target.clinicId,
+            type: FinancialEventTypeSchema.enum.PLATFORM_BOOKING_SETTLED,
+            payload,
+            sourceModule: FINANCIAL_EVENT_SOURCE_MODULES.BOOKING_PAYMENT,
+            sourceRefId: bp.id.value,
+            dedupeKey: FinancialEventDedupeKeys.platform_booking_settled(
+              bp.id.value
+            ),
+          },
+          this.buildPlatformContext(target.clinicId, target.organizationId)
+        )
       );
     } catch (err) {
-      this.logger.warn(
-        `Onay mesajı gönderilemedi (bp=${bp.id.value}): ${
-          err instanceof Error ? err.message : err
+      this.logger.error(
+        `Platform defterine tahsilat yazılamadı (bp=${bp.id.value}); rezervasyon etkilenmedi, kayıt sonradan tamamlanmalı: ${
+          err instanceof Error ? err.message : String(err)
         }`
       );
     }
+  }
+
+  /** Platform defterine yazarken kullanılacak sistem context'i. */
+  private buildPlatformContext(
+    clinicId: string,
+    organizationId: string
+  ): IGetContext {
+    const actor: ActorContext = {
+      ...SYSTEM_ACTOR,
+      clinicId,
+      organizationId,
+      managedClinics: [{ id: clinicId }],
+    };
+    return {
+      actor,
+      source: ExecutionSources.INTERNAL_CASCADE,
+      ip: '127.0.0.1',
+      userAgent: 'BOOKING_PAYMENT_WEBHOOK',
+    };
+  }
+
+  /**
+   * Müşteriye rezervasyon onayını mesajlaşma kanalından bildirir.
+   *
+   * Messaging ayrı bir servis olduğu için bu artık bir **komut değil olaydır**: core
+   * "şu yazışmaya onay mesajı gönder" diye emretmez, "rezervasyon onaylandı" diye
+   * duyurur; kanaldan nasıl bildirileceği messaging'in kararıdır.
+   *
+   * `emit` bilerek beklenmiyor (fire-and-forget): bildirim ödemeyi bloklamamalı.
+   * Konuşma bağlamı yoksa (conversationId null) atlanır.
+   */
+  private notifyCustomer(bp: BookingPayment): void {
+    if (!bp.conversationId) return;
+
+    const payload: BookingConfirmedEventPayload = {
+      clinicId: bp.clinicId.value,
+      conversationId: bp.conversationId,
+      bookingType: bp.bookingType,
+      referenceCode: bp.bookingReference ?? bp.bookingId ?? bp.id.value,
+      summary: this.buildSummary(bp),
+    };
+
+    this.natsClient.emit(NATS_SUBJECTS.booking.confirmed, payload).subscribe({
+      error: (err: unknown) =>
+        this.logger.warn(
+          `Onay bildirimi yayınlanamadı (bp=${bp.id.value}): ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        ),
+    });
   }
 
   private buildSummary(bp: BookingPayment): string {

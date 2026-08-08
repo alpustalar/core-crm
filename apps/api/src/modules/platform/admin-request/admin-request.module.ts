@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AdminRequestPresentationModule } from './presentation/admin-request.presentation.module';
+import { AdminRequestPresentationModule } from './presentation/presentation.module';
 
-@Module({
-  imports: [AdminRequestPresentationModule],
-})
+@Module({ imports: [AdminRequestPresentationModule] })
 export class AdminRequestModule {}

@@ -5,15 +5,16 @@ import {
   ClinicAppointmentSettingsView,
   GetClinicAppointmentSettingsResponse,
 } from './get-clinic-appointment-settings.response';
-import {
-  CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY,
-  IClinicAppointmentSettingsQueryRepository,
-} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings.repository.interface';
+
 import { ClinicAppointmentSettings } from '@modules/organization/clinic/domain/entities/clinic-appointment-settings.entity';
 import {
   CLINIC_CACHE_SERVICE,
   IClinicCacheService,
 } from '@modules/organization/clinic/domain/interfaces/clinic-cache.service.interface';
+import {
+  CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY,
+  IClinicAppointmentSettingsQueryRepository,
+} from '@modules/organization/clinic/domain/repositories/clinic-appointment-settings/clinic-appointment-settings.query.repository';
 
 @QueryHandler(GetClinicAppointmentSettingsQuery)
 export class GetClinicAppointmentSettingsHandler
@@ -25,7 +26,7 @@ export class GetClinicAppointmentSettingsHandler
 {
   constructor(
     @Inject(CLINIC_APPOINTMENT_SETTINGS_QUERY_REPOSITORY)
-    private readonly appointmentSettingsQueryRepo: IClinicAppointmentSettingsQueryRepository,
+    private readonly clinicAppointmentSettingsRepo: IClinicAppointmentSettingsQueryRepository,
     @Inject(CLINIC_CACHE_SERVICE)
     private readonly cacheService: IClinicCacheService
   ) {}
@@ -44,12 +45,15 @@ export class GetClinicAppointmentSettingsHandler
     // Satır henüz yoksa DB default'ları geçerli — entity `createDefault` ile
     // birebir aynı varsayılanlar döner (6/24 saat, patient iptal açık vb.).
     const settings =
-      (await this.appointmentSettingsQueryRepo.findByClinicId(
+      (await this.clinicAppointmentSettingsRepo.findByClinicId(
         query.clinicId
       )) ?? ClinicAppointmentSettings.createDefault(query.clinicId);
 
     const view: ClinicAppointmentSettingsView = {
-      clinicId: settings.clinicId.value,
+      clinicId:
+        typeof settings.clinicId === 'string'
+          ? settings.clinicId
+          : settings.clinicId.value,
       allowPatientBooking: settings.allowPatientBooking,
       rescheduleLimitHours: settings.rescheduleLimitHours,
       cancelLimitHours: settings.cancelLimitHours,

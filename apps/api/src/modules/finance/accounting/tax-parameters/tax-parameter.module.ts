@@ -1,14 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TaxParameterCommandModule } from './application/commands/command.module';
-import { TaxParameterQueryModule } from './application/queries/query.module';
-import { TaxParameterPresentationModule } from './presentation/tax-parameter-presentation.module';
+import { TaxParameterPresentationModule } from './presentation/presentation.module';
 
-@Module({
-  imports: [
-    TaxParameterCommandModule,
-    TaxParameterQueryModule,
-    TaxParameterPresentationModule,
-  ],
-  exports: [TaxParameterCommandModule, TaxParameterQueryModule],
-})
+@Module({ imports: [TaxParameterPresentationModule] })
 export class TaxParameterModule {}

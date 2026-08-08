@@ -3,10 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ReverseJournalEntryHandler } from './reverse-journal-entry.handler';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
-import {
-  IJournalCommandRepository,
-  IJournalQueryRepository,
-} from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
+import { IJournalCommandRepository } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { AccountingPeriodStatusSchema } from '@shared';
@@ -51,13 +48,12 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
           : AccountingPeriodStatusSchema.enum.OPEN,
     };
 
-    const journalQueryRepo = {
-      findById: jest.fn().mockResolvedValue(params.original),
-    } as unknown as IJournalQueryRepository;
-
     const journalCommandRepo = {
+      // Storno okuması kilitli: handler orijinali Command Repo'dan çeker.
+      findByIdForUpdate: jest.fn().mockResolvedValue(params.original),
       nextEntryNo: jest.fn().mockResolvedValue(107n),
-      save: jest.fn(async (entry: JournalEntry) => entry),
+      create: jest.fn(async (entry: JournalEntry) => entry),
+      update: jest.fn(async (entry: JournalEntry) => entry),
       applyReversal: jest.fn().mockResolvedValue(undefined),
     } as unknown as IJournalCommandRepository;
 
@@ -72,7 +68,6 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     return {
       handler: new ReverseJournalEntryHandler(
         journalCommandRepo,
-        journalQueryRepo,
         queryBus,
         txManager
       ),
@@ -95,7 +90,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
 
     const reversalId = await run(handler);
 
-    // save'e geçen storno fişi: satırlar ters (acc-100 alacak, acc-600 borç).
+    // update'e geçen storno fişi: satırlar ters (acc-100 alacak, acc-600 borç).
     const saved = (journalCommandRepo.create as jest.Mock).mock
       .calls[0][0] as JournalEntry;
     const lines = saved.lines.items;
@@ -113,7 +108,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     expect(journalCommandRepo.applyReversal).toHaveBeenCalledWith(original);
   });
 
-  it('dönem kilitliyse storno atılamaz (save çağrılmaz)', async () => {
+  it('dönem kilitliyse storno atılamaz (update çağrılmaz)', async () => {
     const original = buildPostedOriginal();
     const { handler, journalCommandRepo } = build({ original, canPost: false });
 

@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IAdminRequestQueryRepository } from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
-import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
+import { AdminRequest as IAdminRequest } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/admin-request.contracts';
+import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/contracts/admin-request.contracts';
+import { IAdminRequestQueryRepository } from '@modules/platform/admin-request/domain/repositories/admin-request/admin-request.query.repository';
 
+/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class AdminRequestQueryRepository
   extends BaseRepository
@@ -15,28 +16,18 @@ export class AdminRequestQueryRepository
     super(prisma);
   }
 
-  async findById(id: string): Promise<AdminRequest | null> {
-    const raw = await this.db.adminRequest.findUnique({ where: { id } });
-    return raw ? new AdminRequest(raw) : null;
-  }
-
-  async findMany(
+  findMany(
     filter: FindAdminRequestsFilter
-  ): Promise<{ items: AdminRequest[]; total: number }> {
+  ): Promise<{ items: IAdminRequest[]; total: number }> {
     const where: Record<string, unknown> = {};
     if (filter.type) where.type = filter.type;
     if (filter.status) where.status = filter.status;
     if (filter.organizationId) where.organizationId = filter.organizationId;
 
-    const result = await paginate({
+    return paginate({
       delegate: this.db.adminRequest,
       pagination: filter.pagination,
       where,
     });
-
-    return {
-      items: result.items.map((r) => new AdminRequest(r)),
-      total: result.total,
-    };
   }
 }

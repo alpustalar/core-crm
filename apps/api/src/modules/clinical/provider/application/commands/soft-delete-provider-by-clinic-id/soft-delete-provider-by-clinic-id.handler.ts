@@ -1,9 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  IProviderCommandRepository,
-  PROVIDER_COMMAND_REPOSITORY,
-} from '@modules/clinical/provider/domain/repositories/provider.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -12,6 +9,10 @@ import { SoftDeleteProviderByClinicIdCommand } from '@modules/clinical/provider/
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { PROVIDER_EVENTS } from '@src/domain/constants/events';
+import {
+  IProviderCommandRepository,
+  PROVIDER_COMMAND_REPOSITORY,
+} from '@modules/clinical/provider/domain/repositories/provider/provider.command.repository';
 
 @CommandHandler(SoftDeleteProviderByClinicIdCommand)
 export class SoftDeleteProviderByClinicIdHandler
@@ -19,7 +20,7 @@ export class SoftDeleteProviderByClinicIdHandler
 {
   constructor(
     @Inject(PROVIDER_COMMAND_REPOSITORY)
-    private readonly providerCommandRepo: IProviderCommandRepository,
+    private readonly providerRepo: IProviderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly transactionManager: TransactionManager
@@ -28,7 +29,7 @@ export class SoftDeleteProviderByClinicIdHandler
   async execute(command: SoftDeleteProviderByClinicIdCommand): Promise<void> {
     const { providerId, ctx } = command;
 
-    const provider = await this.providerCommandRepo.findById(providerId);
+    const provider = await this.providerRepo.findById(providerId);
 
     if (!provider) throw new ProviderNotFoundException();
 
@@ -41,8 +42,6 @@ export class SoftDeleteProviderByClinicIdHandler
 
     provider.softDelete();
 
-    await this.transactionManager.run(() =>
-      this.providerCommandRepo.save(provider)
-    );
+    await this.transactionManager.run(() => this.providerRepo.update(provider));
   }
 }

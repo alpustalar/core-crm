@@ -1,3 +1,4 @@
+import { StaffNotification as IStaffNotification } from '@shared';
 import { StaffNotification } from '@modules/platform/notification/domain/entities/staff-notification.entity';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { NotificationDeliveryStatusType } from '@input-type-schemas/NotificationDeliveryStatusSchema';
@@ -14,7 +15,7 @@ export interface IStaffNotificationCommandRepository {
   /** Toplu ekleme — bir event birden çok personele bildirim üretir. */
   createMany(notifications: StaffNotification[]): Promise<void>;
   findById(id: string): Promise<StaffNotification | null>;
-  save(notification: StaffNotification): Promise<StaffNotification>;
+  update(notification: StaffNotification): Promise<StaffNotification>;
   /** Alıcının tüm okunmamışlarını okundu işaretler; etkilenen satır sayısı döner. */
   markAllRead(staffId: string): Promise<number>;
   /** Real-time push sonucu teslimat durumunu toplu günceller (SENT/FAILED). */
@@ -24,9 +25,10 @@ export interface IStaffNotificationCommandRepository {
   ): Promise<void>;
 }
 
+/** Okuma tarafı: entity değil, plain model döner (veri HTTP sınırını geçiyor). */
 export interface IStaffNotificationQueryRepository {
   findByRecipient(
     props: FindStaffNotificationsByRecipientProps
-  ): Promise<Paginated<StaffNotification>>;
+  ): Promise<Paginated<IStaffNotification>>;
   countUnread(staffId: string): Promise<number>;
 }

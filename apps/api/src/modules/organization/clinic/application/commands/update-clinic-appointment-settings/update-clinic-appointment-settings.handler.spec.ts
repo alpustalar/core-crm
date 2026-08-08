@@ -12,16 +12,17 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
     const canAccess = options.canAccess ?? true;
     const executionOrder: string[] = [];
 
-    const settingsQueryRepo = {
-      findByClinicId: jest.fn(() => Promise.resolve(options.existing ?? null)),
-    } as any;
-
     // Gerçek sıralamayı yakalamak için spy'ların tetiklenme anını logluyoruz
     const saveSpy = jest.fn().mockImplementation(() => {
-      executionOrder.push('save');
+      executionOrder.push('update');
       return Promise.resolve();
     });
-    const settingsCommandRepo = { save: saveSpy } as any;
+    // Okuma da yazma da Command Repo'dan: satır yüklenip üstünde domain metodu
+    // çalıştırılıyor (mutasyonu besleyen okuma → Command Context).
+    const settingsCommandRepo = {
+      findByClinicId: jest.fn(() => Promise.resolve(options.existing ?? null)),
+      upsertByClinicId: saveSpy,
+    } as any;
 
     const policyFactory = {
       clinic: jest.fn().mockReturnValue({
@@ -39,7 +40,11 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
       executionOrder.push('bust');
       return Promise.resolve();
     });
-    const redis = { deleteClinicAppointmentSettings: deleteSpy } as any;
+    const cacheService = {
+      clinicAppointmentSettings: jest.fn().mockReturnValue({
+        del: deleteSpy,
+      }),
+    } as any;
 
     // txManager artık sadece callback'i güvenle yürüten şeffaf bir katman
     const txManager = {
@@ -48,10 +53,9 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
 
     return {
       handler: new UpdateClinicAppointmentSettingsHandler(
-        settingsQueryRepo,
         settingsCommandRepo,
         policyFactory,
-        redis,
+        cacheService,
         txManager
       ),
       saveSpy,
@@ -60,7 +64,7 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
     };
   };
 
-  it('mevcut satırı yükler, update+save eder ve cache’i bust eder (bust kesinlikle save’den sonra)', async () => {
+  it('mevcut satırı yükler, update+update eder ve cache’i bust eder (bust kesinlikle update’den sonra)', async () => {
     const updateSpy = jest.fn();
     const { handler, saveSpy, deleteSpy, executionOrder } = build({
       existing: { update: updateSpy },
@@ -80,7 +84,7 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
     expect(deleteSpy).toHaveBeenCalledWith(CLINIC);
 
     // Sıralama artık tamamen garanti altında
-    expect(executionOrder).toEqual(['save', 'bust']);
+    expect(executionOrder).toEqual(['update', 'bust']);
   });
 
   it('satır yoksa default’tan üretip yine kaydeder ve cache bust eder', async () => {
@@ -98,7 +102,7 @@ describe('UpdateClinicAppointmentSettingsHandler (ayar güncelleme)', () => {
     expect(deleteSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('yetki yoksa hata fırlatır ve hiçbir yan etki (save/bust) oluşturmaz', async () => {
+  it('yetki yoksa hata fırlatır ve hiçbir yan etki (update/bust) oluşturmaz', async () => {
     const { handler, saveSpy, deleteSpy } = build({ canAccess: false });
 
     await expect(

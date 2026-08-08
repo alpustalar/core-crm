@@ -111,7 +111,7 @@ export class TreatmentPackage extends AggregateRoot {
   }
 
   /**
-   * Repository save() tarafından senkronlanacak ilişki yazma niyeti.
+   * Repository update() tarafından senkronlanacak ilişki yazma niyeti.
    * `undefined` → ilişkilere dokunma; dizi → mevcut ilişkileri bu set ile değiştir.
    * Prisma scalar modeline ait olmadıkları için toPersistence() dışında tutulur.
    */

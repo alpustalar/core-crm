@@ -59,7 +59,7 @@ export class StaffNotificationCommandRepository
     return raw ? new StaffNotification(raw) : null;
   }
 
-  async save(notification: StaffNotification): Promise<StaffNotification> {
+  async update(notification: StaffNotification): Promise<StaffNotification> {
     const data = notification.toPersistence();
     const raw = await this.db.staffNotification.update({
       where: { id: data.id },

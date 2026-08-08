@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IPosDeviceCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
 import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
+import { IPosDeviceCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @Injectable()
 export class PosDeviceCommandRepository
@@ -11,6 +11,11 @@ export class PosDeviceCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findById(id: string): Promise<PosDevice | null> {
+    const raw = await this.db.posDevice.findUnique({ where: { id } });
+    return raw ? new PosDevice(raw) : null;
   }
 
   async create(entity: PosDevice): Promise<PosDevice> {

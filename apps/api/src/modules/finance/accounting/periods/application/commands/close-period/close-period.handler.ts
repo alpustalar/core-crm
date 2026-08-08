@@ -3,15 +3,15 @@ import { Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { GenerateYearEndClosingCommand } from '@modules/finance/accounting/posting/application/commands/generate-year-end-closing/generate-year-end-closing.command';
-import {
-  ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
-  IAccountingPeriodCommandRepository,
-} from '@modules/finance/accounting/periods/domain/repositories/accounting-period.repository';
 import { ClosePeriodCommand } from './close-period.command';
 import {
   PeriodAlreadyClosedException,
   PeriodNotFoundException,
 } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
+import {
+  ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
+  IAccountingPeriodCommandRepository,
+} from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.command.repository';
 
 @CommandHandler(ClosePeriodCommand)
 export class ClosePeriodHandler
@@ -19,13 +19,13 @@ export class ClosePeriodHandler
 {
   constructor(
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
-    private readonly periodCommandRepo: IAccountingPeriodCommandRepository,
+    private readonly accountingPeriodRepo: IAccountingPeriodCommandRepository,
     private readonly commandBus: TSCommandBus,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: ClosePeriodCommand): Promise<void> {
-    const period = await this.periodCommandRepo.findById(command.periodId);
+    const period = await this.accountingPeriodRepo.findById(command.periodId);
     if (!period) throw new PeriodNotFoundException();
 
     // Transaction dışı hızlı-ret (belirgin kapalı dönemler için); kesin/otoriter
@@ -36,7 +36,7 @@ export class ClosePeriodHandler
       // Atomik sahiplenme: OPEN/LOCKED → CLOSED tek koşullu UPDATE ile. Eşzamanlı
       // ikinci istek satır kilidinde bekler, commit sonrası CLOSED görüp 0 satır
       // etkiler → false döner ve mükerrer kapanış fişi üretmeden reddedilir.
-      const claimed = await this.periodCommandRepo.claimForClosing(
+      const claimed = await this.accountingPeriodRepo.claimForClosing(
         period.id.value
       );
       if (!claimed) {

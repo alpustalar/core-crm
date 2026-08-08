@@ -18,9 +18,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreatePurchaseOrderCommand)
-export class CreatePurchaseOrderHandler
-  implements ICommandHandler<CreatePurchaseOrderCommand, string>
-{
+export class CreatePurchaseOrderHandler implements ICommandHandler<
+  CreatePurchaseOrderCommand,
+  string
+> {
   constructor(
     @Inject(PURCHASE_ORDER_COMMAND_REPOSITORY)
     private readonly poCommandRepo: IPurchaseOrderCommandRepository,
@@ -64,7 +65,7 @@ export class CreatePurchaseOrderHandler
           throw new PurchaseRequestNotFoundException(data.purchaseRequestId);
         }
         request.markOrdered();
-        await this.prCommandRepo.save(request);
+        await this.prCommandRepo.update(request);
       }
 
       const saved = await this.poCommandRepo.create(order);

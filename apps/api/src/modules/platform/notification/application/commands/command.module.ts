@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { MarkNotificationReadHandler } from './mark-notification-read/mark-notification-read.handler';
 import { MarkAllNotificationsReadHandler } from './mark-all-notifications-read/mark-all-notifications-read.handler';
-import { StaffNotificationRepositoryModule } from '@modules/platform/notification/infrastructure/persistence/prisma/repositories/staff-notification/staff-notification.repository.module';
+import { NotificationInfrastructureModule } from '@modules/platform/notification/infrastructure/infrastructure.module';
 
 const CommandHandlers = [
   MarkNotificationReadHandler,
@@ -10,8 +9,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, StaffNotificationRepositoryModule],
+  imports: [NotificationInfrastructureModule],
   providers: [...CommandHandlers],
-  exports: [...CommandHandlers],
 })
 export class NotificationCommandModule {}

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IInvoiceCommandRepository } from '@modules/finance/invoice/domain/repositories/invoice.repository';
-import { CreateInvoiceProps } from '@modules/finance/invoice/domain/invoice.contracts';
+import { CreateInvoiceProps } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
 import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
+import { IInvoiceCommandRepository } from '@modules/finance/invoice/domain/repositories/invoice/invoice.command.repository';
 
 @Injectable()
 export class InvoiceCommandRepository
@@ -12,6 +12,27 @@ export class InvoiceCommandRepository
 {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  async findById(id: string): Promise<Invoice | null> {
+    const raw = await this.db.invoice.findUnique({
+      where: { id, isDeleted: false },
+    });
+    return raw ? new Invoice(raw) : null;
+  }
+
+  async findByAppointmentId(appointmentId: string): Promise<Invoice | null> {
+    const raw = await this.db.invoice.findFirst({
+      where: { appointmentId, isDeleted: false },
+    });
+    return raw ? new Invoice(raw) : null;
+  }
+
+  async findByPaymentId(paymentId: string): Promise<Invoice | null> {
+    const raw = await this.db.invoice.findFirst({
+      where: { paymentId, isDeleted: false },
+    });
+    return raw ? new Invoice(raw) : null;
   }
 
   async create(props: CreateInvoiceProps): Promise<Invoice> {
@@ -38,7 +59,7 @@ export class InvoiceCommandRepository
     return new Invoice(raw);
   }
 
-  async save(entity: Invoice): Promise<Invoice> {
+  async update(entity: Invoice): Promise<Invoice> {
     const data = entity.toPersistence();
     const raw = await this.db.invoice.update({
       where: { id: data.id },

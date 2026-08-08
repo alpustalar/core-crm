@@ -1,12 +1,8 @@
 import {
-  IOrganizationCommandRepository,
-  ORGANIZATION_COMMAND_REPOSITORY,
-} from '@modules/organization/organization/domain/repositories/organization.repository.interface';
-import {
   IOrganizationEventPublisher,
   ORGANIZATION_EVENT_PUBLISHER,
 } from '@modules/organization/organization/domain/interfaces/organization-event-publisher.interface';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
@@ -15,6 +11,11 @@ import { AdminRequestType } from '@shared/modules/admin-request/types';
 import { SoftDeleteOrganizationCommand } from './soft-delete-organization.command';
 import { SoftDeleteOrganizationCommandResponse } from './soft-delete-organization.response';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import {
+  IOrganizationCommandRepository,
+  ORGANIZATION_COMMAND_REPOSITORY,
+} from '@modules/organization/organization/domain/repositories/organization/organization.command.repository';
+import { OrganizationNotFoundException } from '@modules/organization/organization/domain/exceptions/organization.exceptions';
 
 @CommandHandler(SoftDeleteOrganizationCommand)
 export class SoftDeleteOrganizationHandler
@@ -26,7 +27,7 @@ export class SoftDeleteOrganizationHandler
 {
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
-    private readonly organizationCommandRepo: IOrganizationCommandRepository,
+    private readonly organizationRepo: IOrganizationCommandRepository,
     @Inject(ORGANIZATION_EVENT_PUBLISHER)
     private readonly eventPublisher: IOrganizationEventPublisher,
     private readonly commandBus: TSCommandBus,
@@ -39,15 +40,13 @@ export class SoftDeleteOrganizationHandler
     const { organizationId, ctx } = command;
 
     return this.transactionManager.run(async () => {
-      const organization =
-        await this.organizationCommandRepo.findById(organizationId);
+      const organization = await this.organizationRepo.findById(organizationId);
 
-      if (!organization)
-        throw new NotFoundException('Organizasyon bulunamadı.');
+      if (!organization) throw new OrganizationNotFoundException();
 
       if (ExecutionPolicy.isSystemInitiated(ctx.source)) {
         organization.softDelete(ctx.actor.userId);
-        await this.organizationCommandRepo.save(organization);
+        await this.organizationRepo.update(organization);
         return organization.id.value;
       }
 

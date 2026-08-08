@@ -79,7 +79,10 @@ describe('Appointment — iptal event fırlatma', () => {
   it('cancelSchedule (personel) AppointmentCancelledEvent fırlatır', () => {
     const appointment = buildFutureAppointment(48);
 
-    appointment.cancelSchedule(randomUUID(), 'klinik kararı');
+    appointment.cancelSchedule({
+      canceledBy: randomUUID(),
+      reason: 'klinik kararı',
+    });
 
     const events = appointment.getDomainEvents();
     expect(events.some((e) => e instanceof AppointmentCancelledEvent)).toBe(

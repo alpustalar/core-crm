@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { RecordFinancialEventHandler } from './record-financial-event/record-financial-event.handler';
-import { FinancialEventRepositoryModule } from '@modules/finance/accounting/financial-events/infrastructure/persistence/prisma/repositories/financial-event/financial-event.repository.module';
+import { RecordSupplierPaymentHandler } from './record-supplier-payment/record-supplier-payment.handler';
+import { FinancialEventRepositoriesModule } from '@modules/finance/accounting/financial-events/infrastructure/persistence/prisma/repositories/repositories.module';
 
-const CommandHandlers = [RecordFinancialEventHandler];
+const CommandHandlers = [
+  RecordFinancialEventHandler,
+  RecordSupplierPaymentHandler,
+];
 
 @Module({
-  imports: [FinancialEventRepositoryModule],
+  imports: [CqrsModule, FinancialEventRepositoriesModule],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })

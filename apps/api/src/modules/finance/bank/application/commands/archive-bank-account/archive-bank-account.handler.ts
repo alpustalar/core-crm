@@ -1,16 +1,16 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ArchiveBankAccountCommand } from './archive-bank-account.command';
-import {
-  BANK_ACCOUNT_COMMAND_REPOSITORY,
-  IBankAccountCommandRepository,
-} from '@modules/finance/bank/domain/repositories/bank-account.repository';
 import { BankAccountNotFoundException } from '@modules/finance/bank/domain/exceptions/bank.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  BANK_ACCOUNT_COMMAND_REPOSITORY,
+  IBankAccountCommandRepository,
+} from '@modules/finance/bank/domain/repositories/bank-account/bank-account.command.repository';
 
 @CommandHandler(ArchiveBankAccountCommand)
 export class ArchiveBankAccountHandler
@@ -18,7 +18,7 @@ export class ArchiveBankAccountHandler
 {
   constructor(
     @Inject(BANK_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly accountCommandRepo: IBankAccountCommandRepository,
+    private readonly bankAccountRepo: IBankAccountCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -27,7 +27,7 @@ export class ArchiveBankAccountHandler
   async execute(command: ArchiveBankAccountCommand): Promise<void> {
     const { accountId, ctx } = command;
 
-    const account = await this.accountCommandRepo.findById(accountId);
+    const account = await this.bankAccountRepo.findById(accountId);
     if (!account) {
       throw new BankAccountNotFoundException(accountId);
     }
@@ -40,7 +40,7 @@ export class ArchiveBankAccountHandler
     account.archive();
 
     await this.txManager.run(async () => {
-      await this.accountCommandRepo.save(account);
+      await this.bankAccountRepo.update(account);
     });
   }
 }

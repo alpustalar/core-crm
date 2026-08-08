@@ -4,19 +4,16 @@ import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity
 import { SubscriptionPlanNotFoundException } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
 import {
   IPlanCommandRepository,
-  IPlanQueryRepository,
 } from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
 
 describe('SetPlanModulesHandler', () => {
   const build = (plan: Plan | null) => {
-    const planQueryRepo = {
-      findByPlanId: jest.fn().mockResolvedValue(plan),
-    } as unknown as IPlanQueryRepository;
     const planCommandRepo = {
+      findByPlanId: jest.fn().mockResolvedValue(plan),
       setModules: jest.fn().mockResolvedValue(undefined),
     } as unknown as IPlanCommandRepository;
     return {
-      handler: new SetPlanModulesHandler(planQueryRepo, planCommandRepo),
+      handler: new SetPlanModulesHandler(planCommandRepo),
       planCommandRepo,
     };
   };

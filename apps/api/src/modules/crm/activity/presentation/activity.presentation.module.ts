@@ -1,10 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ActivityController } from './controllers/activity.controller';
-import { ActivityCommandModule } from '@modules/crm/activity/application/commands/command.module';
-import { ActivityQueryModule } from '@modules/crm/activity/application/queries/query.module';
+import { ActivityController } from '@modules/crm/activity/presentation/http/controllers/activity.controller';
 
-@Module({
-  imports: [ActivityCommandModule, ActivityQueryModule],
-  controllers: [ActivityController],
-})
+@Module({ controllers: [ActivityController] })
 export class ActivityPresentationModule {}

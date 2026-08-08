@@ -17,7 +17,7 @@ import { MarkInvoiceEDocumentResultCommand } from '@modules/finance/invoice/appl
 import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { GetPartyByIdQuery } from '@modules/finance/party/application/queries/get-party-by-id/get-party-by-id.query';
-import { EDocumentRequest } from '@modules/finance/e-document/domain/e-document.contracts';
+import { EDocumentRequest } from '@modules/finance/e-document/domain/contracts/e-document.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 interface SendJobData {

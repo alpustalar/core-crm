@@ -11,6 +11,10 @@ import { ThrottleMonitorGuard } from '@common/guards/throttle-monitor.guard';
 import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listener';
 import { UserModule } from '@modules/identity/user/user.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
+import { KernelHealthModule, RedisHealthIndicator } from '@src/http';
+import { PrismaHealthIndicator } from '@src/infrastructure/health/prisma-health.indicator';
+import { MongoPersistenceModule } from '@src/infrastructure/persistence/mongo/mongo-persistence.module';
+import { CoreTransportModule } from '@src/infrastructure/transport/core-transport.module';
 import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
 import { AuditLogModule } from '@modules/platform/audit-log/audit-log.module';
 import { AppointmentModule } from '@modules/clinical/appointment/appointment.module';
@@ -51,7 +55,6 @@ import { ActivityModule } from '@modules/crm/activity/activity.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
-import { MessagingModule } from '@modules/messaging/messaging.module';
 import { InventoryModule } from '@modules/supply/inventory/inventory.module';
 import { NotificationModule } from '@modules/platform/notification/notification.module';
 import { MailModule } from '@src/infrastructure/mail/mail.module';
@@ -62,6 +65,8 @@ import { PurchasingModule } from '@modules/supply/purchasing/purchasing.module';
 import { CashRegisterModule } from '@modules/finance/cash-register/cash-register.module';
 import { BankModule } from '@modules/finance/bank/bank.module';
 import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.module';
+import { WorkOrderModule } from '@modules/supply/work-order/work-order.module';
+import { ProjectModule } from '@modules/organization/project/project.module';
 
 @Module({
   imports: [
@@ -71,6 +76,14 @@ import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.m
     RouterModule.register(APP_ROUTES),
     FirebaseModule,
     PrismaModule,
+    MongoPersistenceModule,
+    // Readiness: api'nin işini yapamayacağı iki bağımlılık. Mongo YOK — orası
+    // yalnız audit log tutuyor, erişilemediğinde api istekleri karşılamayı
+    // sürdürür (log kaybı, hizmet kaybı değil).
+    KernelHealthModule.forRoot({
+      indicators: [PrismaHealthIndicator, RedisHealthIndicator],
+    }),
+    CoreTransportModule,
     AuthModule,
     TSCqrsModule,
     UserModule,
@@ -106,7 +119,6 @@ import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.m
     ActivityModule,
     AdminRequestModule,
     HealthTourismModule,
-    MessagingModule,
     InventoryModule,
     NotificationModule,
     EmployeeModule,
@@ -116,6 +128,8 @@ import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.m
     CashRegisterModule,
     BankModule,
     ConsentFormModule,
+    WorkOrderModule,
+    ProjectModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ExecutionSourceInterceptor },

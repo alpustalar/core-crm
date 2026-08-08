@@ -438,3 +438,18 @@ export const CancelScheduleSchema = z.object({
 });
 
 export type CancelScheduleProps = z.infer<typeof CancelScheduleSchema>;
+
+/**
+ * Randevu iş kurallarının (AppointmentRules) ihtiyaç duyduğu asgari veri. Kural
+ * sınıfı entity'ye değil bu düz snapshot'a bağlıdır; böylece aynı kurallar hem
+ * command tarafında (entity üzerinden) hem okuma tarafında (read-model üzerinden,
+ * entity hydrate etmeden) çalıştırılabilir.
+ */
+export const AppointmentRuleSnapshotSchema = z.object({
+  id: z.uuid(),
+  status: AppointmentStatusSchema,
+});
+
+export type AppointmentRuleSnapshot = z.infer<
+  typeof AppointmentRuleSnapshotSchema
+>;

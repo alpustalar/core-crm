@@ -4,10 +4,8 @@ import { ConnectMetaAccountCommand } from './connect-meta-account.command';
 import { ConnectMetaAccountResponse } from './connect-meta-account.response';
 import {
   IMetaAdAccountCommandRepository,
-  IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import {
   IMetaAdsEventPublisher,
   META_ADS_EVENT_PUBLISHER,
@@ -21,15 +19,13 @@ import {
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
 
 @CommandHandler(ConnectMetaAccountCommand)
-export class ConnectMetaAccountHandler
-  implements
-    ICommandHandler<ConnectMetaAccountCommand, ConnectMetaAccountResponse>
-{
+export class ConnectMetaAccountHandler implements ICommandHandler<
+  ConnectMetaAccountCommand,
+  ConnectMetaAccountResponse
+> {
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly metaAdAccountCommandRepo: IMetaAdAccountCommandRepository,
-    @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
+    private readonly metaAdAccountRepo: IMetaAdAccountCommandRepository,
     @Inject(META_ADS_EVENT_PUBLISHER)
     private readonly eventPublisher: IMetaAdsEventPublisher,
     @Inject(POLICY_FACTORY)
@@ -52,7 +48,7 @@ export class ConnectMetaAccountHandler
       .orThrow(META_ADS_EVENTS.ACCOUNT_CONNECTED);
 
     const metaAdAccount =
-      await this.accountQueryRepo.findByClinicAndAdAccountId(
+      await this.metaAdAccountRepo.findByClinicAndAdAccountId(
         clinicId,
         data.adAccountId
       );
@@ -71,7 +67,7 @@ export class ConnectMetaAccountHandler
       businessName: data.businessName,
     });
 
-    const savedAccount = await this.metaAdAccountCommandRepo.create(account);
+    const savedAccount = await this.metaAdAccountRepo.create(account);
 
     return {
       id: savedAccount.id.value,

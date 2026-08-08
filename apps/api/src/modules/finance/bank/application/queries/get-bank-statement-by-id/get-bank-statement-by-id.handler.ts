@@ -5,7 +5,7 @@ import { GetBankStatementByIdResponse } from './get-bank-statement-by-id.respons
 import {
   BANK_STATEMENT_QUERY_REPOSITORY,
   IBankStatementQueryRepository,
-} from '@modules/finance/bank/domain/repositories/bank-statement.repository';
+} from '@modules/finance/bank/domain/repositories/bank-statement/bank-statement.repository';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -18,7 +18,7 @@ export class GetBankStatementByIdHandler
 {
   constructor(
     @Inject(BANK_STATEMENT_QUERY_REPOSITORY)
-    private readonly statementQueryRepo: IBankStatementQueryRepository,
+    private readonly bankStatementRepo: IBankStatementQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -27,7 +27,7 @@ export class GetBankStatementByIdHandler
     query: GetBankStatementByIdQuery
   ): Promise<GetBankStatementByIdResponse> {
     const { statementId, ctx } = query;
-    const data = await this.statementQueryRepo.findByIdWithLines(statementId);
+    const data = await this.bankStatementRepo.findByIdWithLines(statementId);
 
     if (!data) return { data: null };
 

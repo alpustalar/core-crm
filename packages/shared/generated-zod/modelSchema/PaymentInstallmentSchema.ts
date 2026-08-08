@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 import { PaymentMethodSchema } from '../inputTypeSchemas/PaymentMethodSchema'
 import { InstallmentStatusSchema } from '../inputTypeSchemas/InstallmentStatusSchema'
@@ -15,7 +15,7 @@ export const PaymentInstallmentSchema = z.object({
   id: z.string(),
   paymentId: z.string(),
   installmentNo: z.number().int(),
-  amount: z.instanceof(Prisma.Decimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'PaymentInstallment']"}),
+  amount: decimalSchema("Field 'amount' must be a Decimal. Location: ['Models', 'PaymentInstallment']"),
   dueDate: z.coerce.date().nullable(),
   paidAt: z.coerce.date().nullable(),
   note: z.string().nullable(),

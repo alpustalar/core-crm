@@ -4,7 +4,7 @@ import { ConvertLeadCommand } from './convert-lead.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   LeadConvertMissingTargetException,
@@ -29,7 +29,7 @@ export class ConvertLeadHandler
   private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
-    private readonly leadCommandRepo: ILeadCommandRepository,
+    private readonly leadRepo: ILeadCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
@@ -46,7 +46,7 @@ export class ConvertLeadHandler
       .orThrow();
 
     await this.txManager.run(async () => {
-      const lead = await this.leadCommandRepo.findById(leadId);
+      const lead = await this.leadRepo.findById(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       // patientId verilmediyse lead'in telefon+isminden hastayı çöz-veya-oluştur
@@ -72,7 +72,7 @@ export class ConvertLeadHandler
       // Kanban tutarlılığı: lead bir huniye bağlıysa WON aşamasına taşı.
       await this.syncWonStage(lead);
 
-      await this.leadCommandRepo.save(lead);
+      await this.leadRepo.update(lead);
     });
   }
 

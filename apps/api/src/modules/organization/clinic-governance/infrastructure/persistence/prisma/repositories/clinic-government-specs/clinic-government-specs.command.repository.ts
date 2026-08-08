@@ -20,6 +20,15 @@ export class ClinicGovernmentSpecsCommandRepository
     return raw ? new ClinicGovernmentSpecs(raw) : null;
   }
 
+  async findByClinicId(
+    clinicId: string
+  ): Promise<ClinicGovernmentSpecs | null> {
+    const raw = await this.db.clinicGovernmentSpecs.findUnique({
+      where: { clinicId },
+    });
+    return raw ? new ClinicGovernmentSpecs(raw) : null;
+  }
+
   async create(entity: ClinicGovernmentSpecs): Promise<ClinicGovernmentSpecs> {
     const data = entity.toPersistence();
     const raw = await this.db.clinicGovernmentSpecs.create({ data });
@@ -27,7 +36,7 @@ export class ClinicGovernmentSpecsCommandRepository
     return new ClinicGovernmentSpecs(raw);
   }
 
-  async save(entity: ClinicGovernmentSpecs): Promise<ClinicGovernmentSpecs> {
+  async update(entity: ClinicGovernmentSpecs): Promise<ClinicGovernmentSpecs> {
     const persistenceData = entity.toPersistence();
     const { clinicId, ...data } = persistenceData;
     const raw = await this.db.clinicGovernmentSpecs.update({

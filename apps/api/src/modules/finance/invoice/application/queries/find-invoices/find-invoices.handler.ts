@@ -3,16 +3,17 @@ import { Inject } from '@nestjs/common';
 import { FindInvoicesQuery } from './find-invoices.query';
 import { FindInvoicesResponse } from './find-invoices.response';
 import {
-  IInvoiceQueryRepository,
-  INVOICE_QUERY_REPOSITORY,
-} from '@modules/finance/invoice/domain/repositories/invoice.repository';
-import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
-import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
-import { InvoiceListItem } from '@modules/finance/invoice/domain/invoice.contracts';
+import { Invoice as IInvoice } from '@shared';
+import { taxSpecificationOf } from '@modules/finance/invoice/domain/rules/invoice-tax';
+import { InvoiceListItem } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import {
+  IInvoiceQueryRepository,
+  INVOICE_QUERY_REPOSITORY,
+} from '@modules/finance/invoice/domain/repositories/invoice/invoice.query.repository';
 
 @QueryHandler(FindInvoicesQuery)
 export class FindInvoicesHandler
@@ -20,7 +21,7 @@ export class FindInvoicesHandler
 {
   constructor(
     @Inject(INVOICE_QUERY_REPOSITORY)
-    private readonly invoiceQueryRepo: IInvoiceQueryRepository,
+    private readonly invoiceRepo: IInvoiceQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -45,7 +46,7 @@ export class FindInvoicesHandler
         .orThrow();
     }
 
-    const result = await this.invoiceQueryRepo.findMany(
+    const result = await this.invoiceRepo.findMany(
       { organizationId, clinicId },
       pagination
     );
@@ -58,16 +59,16 @@ export class FindInvoicesHandler
     };
   }
 
-  private toListItem(invoice: Invoice): InvoiceListItem {
+  private toListItem(invoice: IInvoice): InvoiceListItem {
     return {
-      id: invoice.id.value,
-      organizationId: invoice.organizationId.value,
-      clinicId: invoice.clinicId.value,
-      patientId: invoice.patientId.value,
-      grandTotal: invoice.taxSpecification.grossAmount.value.toFixed(2),
-      currency: invoice.currency.value,
+      id: invoice.id,
+      organizationId: invoice.organizationId,
+      clinicId: invoice.clinicId,
+      patientId: invoice.patientId,
+      grandTotal: taxSpecificationOf(invoice).grossAmount.value.toFixed(2),
+      currency: invoice.currency,
       status: invoice.status,
-      invoiceNumber: invoice.invoiceNumber?.value ?? null,
+      invoiceNumber: invoice.invoiceNumber,
       issuedAt: invoice.issuedAt,
       createdAt: invoice.createdAt,
     };

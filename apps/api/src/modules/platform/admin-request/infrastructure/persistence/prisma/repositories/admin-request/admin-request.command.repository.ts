@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { IAdminRequestCommandRepository } from '@modules/platform/admin-request/domain/repositories/admin-request.repository.interface';
 import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
 import { Prisma } from '@prisma/client';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { IAdminRequestCommandRepository } from '@modules/platform/admin-request/domain/repositories/admin-request/admin-request.command.repository';
 
 @Injectable()
 export class AdminRequestCommandRepository
@@ -34,7 +34,7 @@ export class AdminRequestCommandRepository
     return new AdminRequest(raw);
   }
 
-  async save(entity: AdminRequest): Promise<AdminRequest> {
+  async update(entity: AdminRequest): Promise<AdminRequest> {
     const data = entity.toPersistence();
 
     const raw = await this.db.adminRequest.update({
@@ -49,7 +49,7 @@ export class AdminRequestCommandRepository
     return new AdminRequest(raw);
   }
 
-  async saveMany(entities: AdminRequest[]): Promise<void> {
+  async updateMany(entities: AdminRequest[]): Promise<void> {
     const prismaQueries = entities.map((entity) => {
       const data = entity.toPersistence();
       return this.db.adminRequest.upsert({

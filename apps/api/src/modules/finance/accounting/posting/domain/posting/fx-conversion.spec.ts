@@ -82,7 +82,10 @@ describe('FxConversion.convertLine', () => {
 describe('FxConversion.roundingBalance', () => {
   it('borç ve alacak eşitse null döner (denkleştirme gerekmez)', () => {
     expect(
-      FxConversion.roundingBalance(new Decimal('3550.00'), new Decimal('3550.00'))
+      FxConversion.roundingBalance(
+        new Decimal('3550.00'),
+        new Decimal('3550.00')
+      )
     ).toBeNull();
   });
 

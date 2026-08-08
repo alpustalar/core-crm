@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead.repository';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 
@@ -26,7 +26,7 @@ export class LeadCommandRepository
     return raw ? new Lead(raw) : null;
   }
 
-  async save(entity: Lead): Promise<Lead> {
+  async update(entity: Lead): Promise<Lead> {
     const data = entity.toPersistence();
     const { id, ...update } = data;
     const raw = await this.db.lead.update({
@@ -37,7 +37,7 @@ export class LeadCommandRepository
     return new Lead(raw);
   }
 
-  async saveMany(leads: Lead[]): Promise<void> {
+  async updateMany(leads: Lead[]): Promise<void> {
     const prismaQueries = leads.map((lead) => {
       const data = lead.toPersistence();
       return this.db.lead.upsert({

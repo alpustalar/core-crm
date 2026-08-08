@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
-import { LeaveRepositoryModule } from '@modules/hr/leave/infrastructure/persistence/prisma/repositories/leave.repository.module';
 import { RequestLeaveHandler } from './request-leave/request-leave.handler';
 import { ApproveLeaveHandler } from './approve-leave/approve-leave.handler';
 import { RejectLeaveHandler } from './reject-leave/reject-leave.handler';
 import { CancelLeaveHandler } from './cancel-leave/cancel-leave.handler';
+import { LeaveInfrastructureModule } from '@modules/hr/leave/infrastructure/infrastructure.module';
 
 export const LEAVE_COMMAND_HANDLERS = [
   RequestLeaveHandler,
@@ -14,8 +13,7 @@ export const LEAVE_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [CqrsModule, LeaveRepositoryModule],
+  imports: [LeaveInfrastructureModule],
   providers: LEAVE_COMMAND_HANDLERS,
-  exports: LEAVE_COMMAND_HANDLERS,
 })
 export class LeaveCommandModule {}

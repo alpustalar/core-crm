@@ -4,10 +4,8 @@ import { HandleMetaOAuthCallbackCommand } from './handle-meta-oauth-callback.com
 import { HandleMetaOAuthCallbackResponse } from './handle-meta-oauth-callback.response';
 import {
   IMetaAdAccountCommandRepository,
-  IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
-  META_AD_ACCOUNT_QUERY_REPOSITORY,
-} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository.interface';
+} from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
 import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
@@ -23,20 +21,15 @@ import {
 import { isOAuthStatePayload } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
 
 @CommandHandler(HandleMetaOAuthCallbackCommand)
-export class HandleMetaOAuthCallbackHandler
-  implements
-    ICommandHandler<
-      HandleMetaOAuthCallbackCommand,
-      HandleMetaOAuthCallbackResponse
-    >
-{
+export class HandleMetaOAuthCallbackHandler implements ICommandHandler<
+  HandleMetaOAuthCallbackCommand,
+  HandleMetaOAuthCallbackResponse
+> {
   private readonly logger = new Logger(HandleMetaOAuthCallbackHandler.name);
 
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
-    private readonly metaAdAccountCommandRepo: IMetaAdAccountCommandRepository,
-    @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly metaAdAccountQueryRepo: IMetaAdAccountQueryRepository,
+    private readonly metaAdAccountRepo: IMetaAdAccountCommandRepository,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaMarketingApi: IMetaMarketingApiService,
     @Inject(META_ADS_CONFIG)
@@ -97,11 +90,10 @@ export class HandleMetaOAuthCallbackHandler
     let connectedAccounts = 0;
 
     for (const adAccount of adAccounts) {
-      const existing =
-        await this.metaAdAccountQueryRepo.findByClinicAndAdAccountId(
-          clinicId,
-          adAccount.id
-        );
+      const existing = await this.metaAdAccountRepo.findByClinicAndAdAccountId(
+        clinicId,
+        adAccount.id
+      );
       if (existing) continue;
 
       const metaAdAccount = MetaAdAccount.create({
@@ -114,7 +106,7 @@ export class HandleMetaOAuthCallbackHandler
       });
 
       await this.txManager.run(async () => {
-        await this.metaAdAccountCommandRepo.create(metaAdAccount);
+        await this.metaAdAccountRepo.create(metaAdAccount);
       });
 
       connectedAccounts++;

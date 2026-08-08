@@ -21,9 +21,10 @@ import {
 } from './get-account-ledger.response';
 
 @QueryHandler(GetAccountLedgerQuery)
-export class GetAccountLedgerHandler
-  implements IQueryHandler<GetAccountLedgerQuery, GetAccountLedgerResponse>
-{
+export class GetAccountLedgerHandler implements IQueryHandler<
+  GetAccountLedgerQuery,
+  GetAccountLedgerResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,

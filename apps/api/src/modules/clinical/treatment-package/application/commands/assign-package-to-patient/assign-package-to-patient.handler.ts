@@ -2,14 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { AssignPackageToPatientCommand } from './assign-package-to-patient.command';
 import type { AssignPackageToPatientResponse } from './assign-package-to-patient.response';
-import {
-  ITreatmentPackageQueryRepository,
-  TREATMENT_PACKAGE_QUERY_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/treatment-package.repository.interface';
-import {
-  IPatientTreatmentPackageCommandRepository,
-  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -21,6 +13,14 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  IPatientTreatmentPackageCommandRepository,
+  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.command.repository';
+import {
+  ITreatmentPackageCommandRepository,
+  TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.command.repository';
 
 @CommandHandler(AssignPackageToPatientCommand)
 export class AssignPackageToPatientHandler
@@ -31,10 +31,10 @@ export class AssignPackageToPatientHandler
     >
 {
   constructor(
-    @Inject(TREATMENT_PACKAGE_QUERY_REPO)
-    private readonly treatmentPackageQueryRepo: ITreatmentPackageQueryRepository,
+    @Inject(TREATMENT_PACKAGE_COMMAND_REPO)
+    private readonly treatmentPackageRepo: ITreatmentPackageCommandRepository,
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    private readonly patientTreatmentPackageRepo: IPatientTreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager,
@@ -46,7 +46,7 @@ export class AssignPackageToPatientHandler
   ): Promise<AssignPackageToPatientResponse> {
     const { data, ctx } = command;
 
-    const pkg = await this.treatmentPackageQueryRepo.findById(data.packageId);
+    const pkg = await this.treatmentPackageRepo.findById(data.packageId);
     if (!pkg) throw new TreatmentPackageNotFoundException();
 
     this.policyFactory
@@ -82,7 +82,7 @@ export class AssignPackageToPatientHandler
         paymentId: generatedPaymentUUID.value,
       });
 
-      await this.patientTreatmentPackageCommandRepo.create(patientTreatmentPkg);
+      await this.patientTreatmentPackageRepo.create(patientTreatmentPkg);
 
       return {
         id: patientTreatmentPkg.id.value,

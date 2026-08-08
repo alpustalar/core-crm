@@ -10,15 +10,9 @@ import {
 import { IyzicoTerminalVoidCommand } from './iyzico-terminal-void.command';
 import type { IyzicoTerminalVoidResponse } from './iyzico-terminal-void.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
-  IPosTransactionQueryRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-  POS_TRANSACTION_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
@@ -32,6 +26,10 @@ import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatus
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
 import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(IyzicoTerminalVoidCommand)
 export class IyzicoTerminalVoidHandler
@@ -41,12 +39,10 @@ export class IyzicoTerminalVoidHandler
   private readonly logger = new Logger(IyzicoTerminalVoidHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
-    @Inject(POS_TRANSACTION_QUERY_REPOSITORY)
-    private readonly posTransactionQueryRepo: IPosTransactionQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
-    private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
+    private readonly posTransactionRepo: IPosTransactionCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
     private readonly iyzicoTerminalService: IyzicoTerminalService,
     private readonly txManager: TransactionManager,
@@ -58,7 +54,9 @@ export class IyzicoTerminalVoidHandler
   ): Promise<IyzicoTerminalVoidResponse> {
     const { input } = command;
 
-    const originalTx = await this.posTransactionQueryRepo.findById(
+    // Orijinal işlem iptal kararını besliyor → okuma command repo'dan (ana bağlantı):
+    // satış az önce tamamlanmış olabilir, replica gecikmesi iptali reddederdi.
+    const originalTx = await this.posTransactionRepo.findById(
       input.originalPosTransactionId
     );
     if (!originalTx) {
@@ -76,9 +74,7 @@ export class IyzicoTerminalVoidHandler
       throw new PosTransactionMissingPaymentDateException();
     }
 
-    const device = await this.posDeviceQueryRepo.findById(
-      originalTx.posDeviceId
-    );
+    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
     if (!device || !device.isActive) {
       throw new PosDeviceNotFoundException();
     }
@@ -97,7 +93,7 @@ export class IyzicoTerminalVoidHandler
     // Faz 1 — PENDING iptal kaydı atomik olarak oluşturulur (HTTP öncesi)
     const { voidTransactionId, voidTx } = await this.txManager.outboxRun(
       async () => {
-        const tx = await this.posTransactionCommandRepo.create(posTransaction);
+        const tx = await this.posTransactionRepo.create(posTransaction);
         return { voidTransactionId: tx.id.value, voidTx: tx };
       }
     );
@@ -121,7 +117,7 @@ export class IyzicoTerminalVoidHandler
       await this.txManager.outboxRun(async () => {
         if (approved) {
           voidTx.markSuccess(externalRef, result);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionRepo.update(voidTx);
           if (originalTx.paymentId) {
             await this.posPaymentSync.markRefunded({
               paymentId: originalTx.paymentId,
@@ -130,7 +126,7 @@ export class IyzicoTerminalVoidHandler
           }
         } else {
           voidTx.markFailed(result);
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionRepo.update(voidTx);
         }
       });
 
@@ -172,7 +168,7 @@ export class IyzicoTerminalVoidHandler
       ) {
         await this.txManager.outboxRun(async () => {
           voidTx.markFailed();
-          await this.posTransactionCommandRepo.save(voidTx);
+          await this.posTransactionRepo.update(voidTx);
         });
         this.logger.error(
           `iyzico terminal iptal hatası: id=${voidTransactionId} — ${err.message}`

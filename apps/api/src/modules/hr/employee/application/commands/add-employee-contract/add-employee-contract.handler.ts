@@ -1,12 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AddEmployeeContractCommand } from './add-employee-contract.command';
-import {
-  EMPLOYEE_COMMAND_REPOSITORY,
-  EMPLOYEE_CONTRACT_COMMAND_REPOSITORY,
-  IEmployeeCommandRepository,
-  IEmployeeContractCommandRepository,
-} from '@modules/hr/employee/domain/repositories/employee.repository';
 import { EmployeeContract } from '@modules/hr/employee/domain/entities/employee-contract.entity';
 import { EmployeeNotFoundException } from '@modules/hr/employee/domain/exceptions/employee.exceptions';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
@@ -24,17 +18,24 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
+import {
+  EMPLOYEE_COMMAND_REPOSITORY,
+  IEmployeeCommandRepository,
+} from '@modules/hr/employee/domain/repositories/employee/employee.command.repository';
+import {
+  EMPLOYEE_CONTRACT_COMMAND_REPOSITORY,
+  IEmployeeContractCommandRepository,
+} from '@modules/hr/employee/domain/repositories/employee-contract/employee-contract.command.repository';
 
 @CommandHandler(AddEmployeeContractCommand)
-export class AddEmployeeContractHandler implements ICommandHandler<
-  AddEmployeeContractCommand,
-  string
-> {
+export class AddEmployeeContractHandler
+  implements ICommandHandler<AddEmployeeContractCommand, string>
+{
   constructor(
     @Inject(EMPLOYEE_COMMAND_REPOSITORY)
-    private readonly employeeCommandRepo: IEmployeeCommandRepository,
+    private readonly employeeRepo: IEmployeeCommandRepository,
     @Inject(EMPLOYEE_CONTRACT_COMMAND_REPOSITORY)
-    private readonly contractCommandRepo: IEmployeeContractCommandRepository,
+    private readonly employeeContractRepo: IEmployeeContractCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     @Inject(EMPLOYEE_EVENT_PUBLISHER)
@@ -46,7 +47,7 @@ export class AddEmployeeContractHandler implements ICommandHandler<
     const { employeeId, ctx, data } = command.payload;
 
     return this.txManager.run(async () => {
-      const employee = await this.employeeCommandRepo.findById(employeeId);
+      const employee = await this.employeeRepo.findById(employeeId);
       if (!employee) throw new EmployeeNotFoundException(employeeId);
 
       this.policyFactory
@@ -56,10 +57,10 @@ export class AddEmployeeContractHandler implements ICommandHandler<
 
       // Yeni sözleşme başlarken mevcut aktif sözleşmeyi sonlandır (tek aktif kuralı).
       const active =
-        await this.contractCommandRepo.findActiveByEmployeeId(employeeId);
+        await this.employeeContractRepo.findActiveByEmployeeId(employeeId);
       if (active) {
         active.end(data.startDate);
-        await this.contractCommandRepo.save(active);
+        await this.employeeContractRepo.update(active);
       }
 
       const contract = EmployeeContract.create({
@@ -70,7 +71,7 @@ export class AddEmployeeContractHandler implements ICommandHandler<
         grossSalary: data.grossSalary,
         currency: data.currency,
       });
-      const saved = await this.contractCommandRepo.create(contract);
+      const saved = await this.employeeContractRepo.create(contract);
 
       this.eventPublisher.employeeSalaryChanged({
         employeeId,

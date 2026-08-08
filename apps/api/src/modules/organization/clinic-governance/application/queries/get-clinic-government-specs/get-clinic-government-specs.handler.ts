@@ -8,13 +8,10 @@ import {
 } from '@modules/organization/clinic-governance/domain/repositories/clinic-government-specs.repository';
 
 @QueryHandler(GetClinicGovernmentSpecsQuery)
-export class GetClinicGovernmentSpecsHandler
-  implements
-    IQueryHandler<
-      GetClinicGovernmentSpecsQuery,
-      GetClinicGovernmentSpecsResponse
-    >
-{
+export class GetClinicGovernmentSpecsHandler implements IQueryHandler<
+  GetClinicGovernmentSpecsQuery,
+  GetClinicGovernmentSpecsResponse
+> {
   constructor(
     @Inject(CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY)
     private readonly specsQueryRepo: IClinicGovernmentSpecsQueryRepository
@@ -31,7 +28,7 @@ export class GetClinicGovernmentSpecsHandler
         clinicId: specs.clinicId,
         healthFacilityCode: specs.healthFacilityCode,
         ussPassword: specs.ussPassword,
-        companyTaxNumber: specs.companyTaxNumber?.value ?? null,
+        companyTaxNumber: specs.companyTaxNumber,
         legalType: specs.legalType,
         createdAt: specs.createdAt,
         updatedAt: specs.updatedAt,

@@ -91,7 +91,7 @@ describe('GetClinicOpenSlotsHandler (klinik geneli açık slotlar)', () => {
           return Promise.resolve({ data: options.providers });
         }
         if (query instanceof GetProviderAvailabilityQuery) {
-          const days = options.daysByProvider[query.dto.providerId] ?? [];
+          const days = options.daysByProvider[query.filter.providerId] ?? [];
           return Promise.resolve({ data: days });
         }
         throw new Error('beklenmeyen query');

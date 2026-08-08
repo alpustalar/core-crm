@@ -19,9 +19,10 @@ import {
 } from './get-balance-sheet.response';
 
 @QueryHandler(GetBalanceSheetQuery)
-export class GetBalanceSheetHandler
-  implements IQueryHandler<GetBalanceSheetQuery, GetBalanceSheetResponse>
-{
+export class GetBalanceSheetHandler implements IQueryHandler<
+  GetBalanceSheetQuery,
+  GetBalanceSheetResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,

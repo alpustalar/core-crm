@@ -34,6 +34,11 @@ model Clinic {
   status   GlobalStatus @default(ACTIVE)
   timezone TimeZone     @default(Europe_Istanbul)
 
+  /// Platformun kendi defter sahibi "şube"si — gerçek bir klinik değildir.
+  /// Sağlık turizmi komisyonu buraya postlanır (bkz. Organization.isPlatform).
+  /// Kiracıya dönük klinik listelerinden dışlanır.
+  isPlatform Boolean @default(false) @map("is_platform")
+
   logo String?
 
   organization Organization @relation(fields: [organizationId], references: [id])
@@ -56,10 +61,10 @@ model Clinic {
   paymentGateway       ClinicPaymentGateway?
   iyzicoTerminalConfig ClinicIyzicoTerminalConfig?
   governmentSpecs      ClinicGovernmentSpecs?
-  whatsappChannel      ClinicWhatsappChannel?
-  aiAgentConfig        ClinicAiAgentConfig?
-  telegramChannels     ClinicTelegramChannel[]
-  instagramChannel     ClinicInstagramChannel?
+  // NOT: WhatsApp/Telegram/Instagram kanal ve AI asistan config'leri messaging
+  // bounded-context'ine ait olup MongoDB'de tutulur (bkz. documents/messaging-microservice.md).
+  // İlişki yerine messaging tarafında düz `clinicId` string'i taşınır; klinik silindiğinde
+  // temizlik DB cascade'i ile değil event ile yürür.
   healthTourismConfig  ClinicHealthTourismConfig?
   products             Product[]
   subscriptions        Subscription[]

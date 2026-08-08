@@ -11,13 +11,9 @@ import {
 import { IyzicoTerminalRefundCommand } from './iyzico-terminal-refund.command';
 import type { IyzicoTerminalRefundResponse } from './iyzico-terminal-refund.response';
 import {
-  IPosDeviceQueryRepository,
-  POS_DEVICE_QUERY_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-device.repository';
-import {
   IPosTransactionCommandRepository,
   POS_TRANSACTION_COMMAND_REPOSITORY,
-} from '@modules/finance/pos/physical/domain/repositories/pos-transaction.repository';
+} from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';
 import {
@@ -31,6 +27,10 @@ import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatus
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
 import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
+import {
+  IPosDeviceCommandRepository,
+  POS_DEVICE_COMMAND_REPOSITORY,
+} from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
 
 @CommandHandler(IyzicoTerminalRefundCommand)
 export class IyzicoTerminalRefundHandler
@@ -40,8 +40,8 @@ export class IyzicoTerminalRefundHandler
   private readonly logger = new Logger(IyzicoTerminalRefundHandler.name);
 
   constructor(
-    @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceQueryRepo: IPosDeviceQueryRepository,
+    @Inject(POS_DEVICE_COMMAND_REPOSITORY)
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
@@ -78,9 +78,7 @@ export class IyzicoTerminalRefundHandler
       throw new RefundAmountExceedsOriginalException();
     }
 
-    const device = await this.posDeviceQueryRepo.findById(
-      originalTx.posDeviceId
-    );
+    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
@@ -126,7 +124,7 @@ export class IyzicoTerminalRefundHandler
       await this.txManager.outboxRun(async () => {
         if (approved) {
           refundTx.markSuccess(externalRef, result);
-          await this.posTransactionCommandRepo.save(refundTx);
+          await this.posTransactionCommandRepo.update(refundTx);
           if (originalTx.paymentId) {
             await this.posPaymentSync.markRefunded({
               paymentId: originalTx.paymentId,
@@ -135,7 +133,7 @@ export class IyzicoTerminalRefundHandler
           }
         } else {
           refundTx.markFailed(result);
-          await this.posTransactionCommandRepo.save(refundTx);
+          await this.posTransactionCommandRepo.update(refundTx);
         }
       });
 
@@ -177,7 +175,7 @@ export class IyzicoTerminalRefundHandler
       ) {
         await this.txManager.outboxRun(async () => {
           refundTx.markFailed();
-          await this.posTransactionCommandRepo.save(refundTx);
+          await this.posTransactionCommandRepo.update(refundTx);
         });
         this.logger.error(
           `iyzico terminal iade hatası: id=${refundTransactionId} — ${err.message}`

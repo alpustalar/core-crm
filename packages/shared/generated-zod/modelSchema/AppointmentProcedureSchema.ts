@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '@prisma/client'
+import { decimalSchema } from '../../common/decimal';
 import { CurrencySchema } from '../inputTypeSchemas/CurrencySchema'
 
 /////////////////////////////////////////
@@ -12,8 +12,8 @@ export const AppointmentProcedureSchema = z.object({
   appointmentId: z.string(),
   sutCode: z.string(),
   description: z.string().nullable(),
-  quantity: z.instanceof(Prisma.Decimal, { message: "Field 'quantity' must be a Decimal. Location: ['Models', 'AppointmentProcedure']"}),
-  unitPrice: z.instanceof(Prisma.Decimal, { message: "Field 'unitPrice' must be a Decimal. Location: ['Models', 'AppointmentProcedure']"}).nullable(),
+  quantity: decimalSchema("Field 'quantity' must be a Decimal. Location: ['Models', 'AppointmentProcedure']"),
+  unitPrice: decimalSchema("Field 'unitPrice' must be a Decimal. Location: ['Models', 'AppointmentProcedure']").nullable(),
   createdAt: z.coerce.date(),
 })
 

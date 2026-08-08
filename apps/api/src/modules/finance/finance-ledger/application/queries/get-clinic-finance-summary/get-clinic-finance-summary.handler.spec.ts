@@ -14,7 +14,9 @@ describe('GetClinicFinanceSummaryHandler', () => {
     const repo = { getClinicSummary: jest.fn().mockResolvedValue(summary) };
     const orThrow = jest.fn();
     const check = jest.fn().mockReturnValue({ orThrow });
-    const policyFactory = { clinic: jest.fn().mockReturnValue({ evaluator: { check } }) };
+    const policyFactory = {
+      clinic: jest.fn().mockReturnValue({ evaluator: { check } }),
+    };
     const handler = new GetClinicFinanceSummaryHandler(
       repo as never,
       policyFactory as never
@@ -33,7 +35,12 @@ describe('GetClinicFinanceSummaryHandler', () => {
     const to = new Date('2026-12-31');
 
     const result = await handler.execute(
-      new GetClinicFinanceSummaryQuery('clinic-1', ctx, from, to)
+      new GetClinicFinanceSummaryQuery({
+        clinicId: 'clinic-1',
+        ctx,
+        dateFrom: from,
+        dateTo: to,
+      })
     );
 
     expect(check).toHaveBeenCalledTimes(1); // yetki kontrolü yapıldı
@@ -48,7 +55,9 @@ describe('GetClinicFinanceSummaryHandler', () => {
     jest.spyOn(ExecutionPolicy, 'isSystemInitiated').mockReturnValue(true);
     const { handler, check } = make();
 
-    await handler.execute(new GetClinicFinanceSummaryQuery('clinic-1', ctx));
+    await handler.execute(
+      new GetClinicFinanceSummaryQuery({ clinicId: 'clinic-1', ctx })
+    );
 
     expect(check).not.toHaveBeenCalled();
   });

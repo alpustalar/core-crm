@@ -2,11 +2,13 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { Decimal } from 'decimal.js';
 import {
   IJournalQueryRepository,
   JOURNAL_QUERY_REPOSITORY,
+  JournalReportRow,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
-import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
+import { JournalEntrySequence } from '@modules/finance/shared/domain/value-objects/journal-entry-sequence.vo';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import { GetJournalReportQuery } from './get-journal-report.query';
 import {
@@ -16,9 +18,10 @@ import {
 import { Account } from '@shared';
 
 @QueryHandler(GetJournalReportQuery)
-export class GetJournalReportHandler
-  implements IQueryHandler<GetJournalReportQuery, GetJournalReportResponse>
-{
+export class GetJournalReportHandler implements IQueryHandler<
+  GetJournalReportQuery,
+  GetJournalReportResponse
+> {
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
@@ -50,29 +53,41 @@ export class GetJournalReportHandler
   }
 
   private toEntry(
-    entry: JournalEntry,
+    entry: JournalReportRow,
     accountById: Map<string, Account>
   ): JournalReportEntry {
+    let totalDebit = new Decimal(0);
+    let totalCredit = new Decimal(0);
+
+    const lines = entry.lines.map((line) => {
+      const account = accountById.get(line.accountId);
+      totalDebit = totalDebit.plus(line.debit.toString());
+      totalCredit = totalCredit.plus(line.credit.toString());
+
+      return {
+        accountId: line.accountId,
+        code: account?.code ?? '?',
+        name: account?.name ?? '(bilinmeyen hesap)',
+        partyId: line.partyId,
+        debit: line.debit.toFixed(2),
+        credit: line.credit.toFixed(2),
+        lineDesc: line.lineDesc,
+      };
+    });
+
     return {
       id: entry.id,
-      entryNo: entry.entryNo?.value !== undefined ? entry.entryNo.value : null,
+      // Fiş numarası biçimi (min-3 hane) VO'nun kuralı — entity kurmadan da aynısı.
+      entryNo:
+        entry.entryNo === null
+          ? null
+          : JournalEntrySequence.fromSequence(entry.entryNo).value,
       entryDate: entry.entryDate,
       description: entry.description,
       status: entry.status,
-      lines: entry.lines.items.map((line) => {
-        const account = accountById.get(line.accountId);
-        return {
-          accountId: line.accountId,
-          code: account?.code ?? '?',
-          name: account?.name ?? '(bilinmeyen hesap)',
-          partyId: line.partyId,
-          debit: line.debit.toFixed(2),
-          credit: line.credit.toFixed(2),
-          lineDesc: line.lineDesc,
-        };
-      }),
-      totalDebit: entry.totalDebit.toFixed(2),
-      totalCredit: entry.totalCredit.toFixed(2),
+      lines,
+      totalDebit: totalDebit.toFixed(2),
+      totalCredit: totalCredit.toFixed(2),
     };
   }
 }

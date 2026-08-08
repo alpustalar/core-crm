@@ -1,15 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BadRequestException, Inject } from '@nestjs/common';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import {
-  ITaxParameterCommandRepository,
-  ITaxParameterQueryRepository,
-  TAX_PARAMETER_COMMAND_REPOSITORY,
-  TAX_PARAMETER_QUERY_REPOSITORY,
-} from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter.repository';
 import { TaxParameter } from '@modules/finance/accounting/tax-parameters/domain/entities/tax-parameter.entity';
 import { SetTaxParameterCommand } from './set-tax-parameter.command';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import {
+  ITaxParameterCommandRepository,
+  TAX_PARAMETER_COMMAND_REPOSITORY,
+} from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter/tax-parameter.command.repository';
 
 @CommandHandler(SetTaxParameterCommand)
 export class SetTaxParameterHandler
@@ -17,9 +15,7 @@ export class SetTaxParameterHandler
 {
   constructor(
     @Inject(TAX_PARAMETER_COMMAND_REPOSITORY)
-    private readonly taxParameterCommandRepo: ITaxParameterCommandRepository,
-    @Inject(TAX_PARAMETER_QUERY_REPOSITORY)
-    private readonly taxParameterQueryRepo: ITaxParameterQueryRepository,
+    private readonly taxParameterRepo: ITaxParameterCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -29,7 +25,9 @@ export class SetTaxParameterHandler
 
     return this.txManager.run(async () => {
       // Mevcut açık sürümü yeni geçerlilik tarihinde kapat (ileriye dönük versiyonlama).
-      const open = await this.taxParameterQueryRepo.findOpen(
+      // Kilitli okunur: satır kapatılacağı ve yerine yenisi açılacağı için eşzamanlı
+      // ikinci istek bu tx commit olmadan aynı açık sürümü göremez.
+      const open = await this.taxParameterRepo.findOpenForUpdate(
         input.clinicId,
         input.key
       );
@@ -40,7 +38,7 @@ export class SetTaxParameterHandler
           );
         }
         open.close(validFrom);
-        await this.taxParameterCommandRepo.save(open);
+        await this.taxParameterRepo.update(open);
       }
 
       const parameter = TaxParameter.create({
@@ -50,7 +48,7 @@ export class SetTaxParameterHandler
         rate: input.rate,
         validFrom,
       });
-      const saved = await this.taxParameterCommandRepo.create(parameter);
+      const saved = await this.taxParameterRepo.create(parameter);
       return saved.id;
     });
   }

@@ -48,10 +48,13 @@ export interface IMetaMarketingApiService {
     adAccountId: string,
     accessToken: string,
     dateFrom: string,
-    dateTo: string,
+    dateTo: string
   ): Promise<MetaCampaignInsight[]>;
 
-  getLeadData(leadId: string, accessToken: string): Promise<MetaLeadData | null>;
+  getLeadData(
+    leadId: string,
+    accessToken: string
+  ): Promise<MetaLeadData | null>;
 
   buildOAuthUrl(appId: string, redirectUri: string, state: string): string;
 
@@ -59,13 +62,13 @@ export interface IMetaMarketingApiService {
     code: string,
     appId: string,
     appSecret: string,
-    redirectUri: string,
+    redirectUri: string
   ): Promise<MetaTokenResult>;
 
   extendToLongLivedToken(
     shortLivedToken: string,
     appId: string,
-    appSecret: string,
+    appSecret: string
   ): Promise<MetaTokenResult>;
 
   getAdAccounts(accessToken: string): Promise<MetaAdAccountInfo[]>;
@@ -75,6 +78,6 @@ export interface IMetaMarketingApiService {
   verifyWebhookSignature(
     rawBody: Buffer,
     signature: string,
-    appSecret: string,
+    appSecret: string
   ): boolean;
 }

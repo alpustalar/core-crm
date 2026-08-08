@@ -4,12 +4,12 @@ import {
   CreatePaymentCommand,
   CreatePaymentCommandResponse,
 } from './create-payment.command';
+import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
+import { Money, UUID } from '@src/domain/value-objects';
 import {
   IPaymentCommandRepository,
   PAYMENT_COMMAND_REPOSITORY,
-} from '@modules/finance/payment/domain/repositories/payment.repository.interface';
-import { Payment } from '@modules/finance/payment/domain/entities/payment.entity';
-import { Money, UUID } from '@src/domain/value-objects';
+} from '@modules/finance/payment/domain/repositories/payment/payment.command.repository';
 
 @CommandHandler(CreatePaymentCommand)
 export class CreatePaymentHandler
@@ -18,7 +18,7 @@ export class CreatePaymentHandler
 {
   constructor(
     @Inject(PAYMENT_COMMAND_REPOSITORY)
-    private readonly paymentCommandRepo: IPaymentCommandRepository
+    private readonly paymentRepo: IPaymentCommandRepository
   ) {}
 
   async execute(
@@ -51,7 +51,7 @@ export class CreatePaymentHandler
       ],
     });
 
-    const savedPayment = await this.paymentCommandRepo.create(payment);
+    const savedPayment = await this.paymentRepo.create(payment);
     return savedPayment.id.value;
   }
 }

@@ -1,11 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UpsertPlanCommand } from './upsert-plan.command';
+import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity';
 import {
   IPlanCommandRepository,
   PLAN_COMMAND_REPOSITORY,
-} from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
-import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity';
+} from '@modules/platform/subscription/domain/repositories/plan/plan.command.repository';
 
 @CommandHandler(UpsertPlanCommand)
 export class UpsertPlanHandler
@@ -13,7 +13,7 @@ export class UpsertPlanHandler
 {
   constructor(
     @Inject(PLAN_COMMAND_REPOSITORY)
-    private readonly planCommandRepo: IPlanCommandRepository
+    private readonly planRepo: IPlanCommandRepository
   ) {}
 
   async execute(command: UpsertPlanCommand): Promise<string> {
@@ -23,7 +23,7 @@ export class UpsertPlanHandler
       monthlyPrice: command.monthlyPrice,
       currency: command.currency,
     });
-    const saved = await this.planCommandRepo.upsertByPlanId(plan);
+    const saved = await this.planRepo.upsertByPlanId(plan);
     return saved.id.value;
   }
 }

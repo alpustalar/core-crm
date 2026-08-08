@@ -4,7 +4,11 @@ import { LockAppointmentSlotResponse } from './lock-appointment-slot.response';
 import { SlotTemporarilyHeldException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { ClinicNotAssignedException } from '@src/domain/exceptions/clinic-not-assigned.exception';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { AppointmentCacheService } from '@modules/clinical/appointment/infrastructure/cache/appointment-cache.service';
+import {
+  APPOINTMENT_CACHE_SERVICE,
+  IAppointmentCacheService,
+} from '@modules/clinical/appointment/domain/interfaces/appointment-cache.service.interface';
+import { Inject } from '@nestjs/common';
 
 /**
  * Slotu (doktor + başlangıç anı) aktör adına geçici kilitler. Başka biri tutuyorsa
@@ -16,7 +20,10 @@ export class LockAppointmentSlotHandler
   implements
     ICommandHandler<LockAppointmentSlotCommand, LockAppointmentSlotResponse>
 {
-  constructor(private readonly cacheService: AppointmentCacheService) {}
+  constructor(
+    @Inject(APPOINTMENT_CACHE_SERVICE)
+    private readonly cacheService: IAppointmentCacheService
+  ) {}
 
   async execute(
     command: LockAppointmentSlotCommand

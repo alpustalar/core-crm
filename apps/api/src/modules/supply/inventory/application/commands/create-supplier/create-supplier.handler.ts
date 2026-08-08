@@ -1,16 +1,16 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { CreateSupplierCommand } from './create-supplier.command';
-import {
-  ISupplierCommandRepository,
-  SUPPLIER_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/supplier.repository.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { Supplier } from '@modules/supply/inventory/domain/entities/supplier.entity';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ISupplierCommandRepository,
+  SUPPLIER_COMMAND_REPOSITORY,
+} from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
 
 @CommandHandler(CreateSupplierCommand)
 export class CreateSupplierHandler
@@ -18,7 +18,7 @@ export class CreateSupplierHandler
 {
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
-    private readonly supplierCommandRepo: ISupplierCommandRepository,
+    private readonly supplierRepo: ISupplierCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -50,7 +50,7 @@ export class CreateSupplierHandler
     });
 
     return this.txManager.run(async () => {
-      const saved = await this.supplierCommandRepo.create(supplier);
+      const saved = await this.supplierRepo.create(supplier);
       return saved.id.value;
     });
   }

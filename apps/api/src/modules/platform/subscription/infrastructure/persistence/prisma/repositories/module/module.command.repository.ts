@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Module } from '@modules/platform/subscription/domain/entities/module.entity';
-import { IModuleCommandRepository } from '@modules/platform/subscription/domain/repositories/module.repository.interface';
+import { IModuleCommandRepository } from '@modules/platform/subscription/domain/repositories/module/module.command.repository';
 
 @Injectable()
 export class ModuleCommandRepository
@@ -28,7 +28,7 @@ export class ModuleCommandRepository
     return new Module(raw);
   }
 
-  async save(entity: Module): Promise<Module> {
+  async update(entity: Module): Promise<Module> {
     const data = entity.toPersistence();
     const { id: _id, ...update } = data;
     const raw = await this.db.module.update({

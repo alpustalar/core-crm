@@ -5,7 +5,7 @@ import { GetLeadsResponse } from './get-leads.response';
 import {
   ILeadQueryRepository,
   LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository.interface';
+} from '@modules/crm/lead/domain/repositories/lead.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
@@ -39,7 +39,7 @@ export class GetLeadsHandler
       .policy.getSerializationOptions({ clinicId });
 
     return {
-      data: result.items.map((item) => item.toPersistence()),
+      data: result.items,
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
         serializationOptions,

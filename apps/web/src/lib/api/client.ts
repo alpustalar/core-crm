@@ -1,0 +1,191 @@
+import type {
+  AnyEndpoint,
+  BodyOf,
+  ParamsOf,
+  QueryOf,
+  ResponseOf,
+} from '@core-crm/shared/client';
+import { ApiError, toApiError } from './error';
+import { type ApiResult, normalizeEnvelope } from './envelope';
+import { getTokenProvider } from './token-provider';
+
+/**
+ * Sürümleme öneki dahil taban adres (`.../api/v1`). Sunucu bileşenlerinden de
+ * çağrıldığı için **mutlak** olmalı: Node'un `fetch`'i göreli yolu çözemez.
+ */
+const BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'
+).replace(/\/$/, '');
+
+/**
+ * `AuthGuard` bu başlığı okuyup `actor.source`a yazıyor; audit log'un "bu işlem
+ * nereden geldi" sorusunun cevabı bu. Gönderilmezse SYSTEM'e düşer.
+ * (Backend'deki `LogSource` enum'ı nest-kernel'de yaşıyor ve `shared`'a açık
+ * değil — o yüzden burada sabit.)
+ */
+const SOURCE_TYPE = 'WEB';
+
+interface BaseRequestOptions {
+  /** Sunucu tarafında zorunlu: cookie'den okunan Firebase ID token. */
+  token?: string;
+  signal?: AbortSignal;
+}
+
+/**
+ * Endpoint sözleşmesinden türeyen istek seçenekleri. `params` / `body` yalnız
+ * endpoint onları tanımlıyorsa **zorunlu**; tanımlamıyorsa geçilmesi derleme
+ * hatası (`?: never`).
+ */
+export type RequestOptions<E> = BaseRequestOptions &
+  ([ParamsOf<E>] extends [never]
+    ? { params?: never }
+    : { params: ParamsOf<E> }) &
+  ([BodyOf<E>] extends [never] ? { body?: never } : { body: BodyOf<E> }) &
+  ([QueryOf<E>] extends [never] ? { query?: never } : { query?: QueryOf<E> });
+
+/**
+ * Seçenek nesnesi yalnız gerçekten zorunlu bir alan varsa şart koşulur; aksi
+ * hâlde `api(endpoint)` diye çağrılabilir. Bunun için rest-tuple hilesi gerekli:
+ * parametreye varsayılan değer vermek onu her durumda opsiyonel yapar ve zorunlu
+ * `params`ı sessizce kaçırırdı.
+ */
+type ApiArgs<E> = [ParamsOf<E>] extends [never]
+  ? [BodyOf<E>] extends [never]
+    ? [options?: RequestOptions<E>]
+    : [options: RequestOptions<E>]
+  : [options: RequestOptions<E>];
+
+function buildUrl(
+  endpoint: AnyEndpoint,
+  params: unknown,
+  query: unknown
+): string {
+  const path =
+    typeof endpoint.path === 'function'
+      ? endpoint.path(params as never)
+      : endpoint.path;
+
+  const url = new URL(
+    `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+  );
+
+  if (query && typeof query === 'object') {
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null || value === '') continue;
+
+      // Dizi filtreleri tekrarlı anahtar olarak gider (`?status=NEW&status=WON`) —
+      // NestJS'in varsayılan sorgu ayrıştırıcısının beklediği biçim.
+      if (Array.isArray(value)) {
+        value.forEach((item) => url.searchParams.append(key, String(item)));
+        continue;
+      }
+
+      url.searchParams.append(
+        key,
+        value instanceof Date ? value.toISOString() : String(value)
+      );
+    }
+  }
+
+  return url.toString();
+}
+
+async function readBody(response: Response): Promise<unknown> {
+  // `void` dönen command'lerde gövde boş gelir; `.json()` orada patlar.
+  const text = await response.text();
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function execute<E extends AnyEndpoint>(
+  endpoint: E,
+  options: RequestOptions<AnyEndpoint>
+): Promise<ApiResult<ResponseOf<E>>> {
+  const url = buildUrl(endpoint, options.params, options.query);
+  const provider = getTokenProvider();
+
+  const send = async (token: string | null): Promise<Response> => {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'x-source-type': SOURCE_TYPE,
+    };
+
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+
+    try {
+      return await fetch(url, {
+        method: endpoint.method,
+        headers,
+        body:
+          options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        signal: options.signal,
+        credentials: 'include',
+      });
+    } catch (cause) {
+      throw ApiError.network(cause);
+    }
+  };
+
+  const initialToken = options.token ?? (await provider?.getToken()) ?? null;
+  let response = await send(initialToken);
+
+  // Firebase ID token'ı 1 saat ömürlü. 401'de **bir kez** zorla yenileyip
+  // tekrar deniyoruz; yine 401 ise sorun token tazeliği değil, oturumun kendisi.
+  if (response.status === 401 && provider && !options.token) {
+    const refreshed = await provider.getToken(true);
+
+    if (refreshed && refreshed !== initialToken) {
+      response = await send(refreshed);
+    }
+
+    if (response.status === 401) {
+      await provider.onUnauthorized?.();
+    }
+  }
+
+  const payload = await readBody(response);
+
+  if (!response.ok) {
+    throw toApiError(response.status, payload, url);
+  }
+
+  return normalizeEnvelope<ResponseOf<E>>(payload);
+}
+
+/**
+ * Zarfı soyup yalnız veriyi döndürür — çağrıların çoğu bunu ister.
+ *
+ * ```ts
+ * const id = await api(leadEndpoints.create, { params: { clinicId }, body: dto });
+ * ```
+ */
+export async function api<E extends AnyEndpoint>(
+  endpoint: E,
+  ...args: ApiArgs<E>
+): Promise<ResponseOf<E>> {
+  const result = await execute<E>(
+    endpoint,
+    (args[0] ?? {}) as RequestOptions<AnyEndpoint>
+  );
+  return result.data;
+}
+
+/**
+ * Sayfalama bilgisi veya serileştirme grupları gerektiğinde — yani liste
+ * ekranlarında — zarfın tamamı.
+ */
+export async function apiWithMeta<E extends AnyEndpoint>(
+  endpoint: E,
+  ...args: ApiArgs<E>
+): Promise<ApiResult<ResponseOf<E>>> {
+  return execute<E>(endpoint, (args[0] ?? {}) as RequestOptions<AnyEndpoint>);
+}
+
+export { ApiError };
+export type { ApiResult };

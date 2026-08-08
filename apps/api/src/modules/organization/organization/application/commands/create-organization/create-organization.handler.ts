@@ -1,9 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateOrganizationCommand } from './create-organization.command';
-import {
-  IOrganizationCommandRepository,
-  ORGANIZATION_COMMAND_REPOSITORY,
-} from '@modules/organization/organization/domain/repositories/organization.repository.interface';
 import { Inject } from '@nestjs/common';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { CreateOrganizationResponse } from '@modules/organization/organization/application/commands/create-organization/create-organization.response';
@@ -13,6 +9,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { Organization } from '@modules/organization/organization/domain/entities/organization.entity';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import {
+  IOrganizationCommandRepository,
+  ORGANIZATION_COMMAND_REPOSITORY,
+} from '@modules/organization/organization/domain/repositories/organization/organization.command.repository'; // REGISTER İŞLEMLERİ BURADAN YAPILMAZ
 
 // REGISTER İŞLEMLERİ BURADAN YAPILMAZ
 
@@ -23,7 +23,7 @@ export class CreateOrganizationHandler
 {
   constructor(
     @Inject(ORGANIZATION_COMMAND_REPOSITORY)
-    private orgRepository: IOrganizationCommandRepository,
+    private organizationRepo: IOrganizationCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -50,7 +50,7 @@ export class CreateOrganizationHandler
 
     const id = internalRelations?.id ?? UUID.generate().value;
     const org = Organization.create({ ...data, id });
-    const saved = await this.orgRepository.create(org);
+    const saved = await this.organizationRepo.create(org);
     return saved.id.value;
   }
 }

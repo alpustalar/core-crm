@@ -2,20 +2,21 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { SearchClinicAppointmentsQuery } from './search-clinic-appointments.query';
 import { SearchClinicAppointmentsQueryResponse } from './search-clinic-appointments.response';
-import {
-  APPOINTMENT_QUERY_REPOSITORY,
-  IAppointmentQueryRepository,
-} from '@modules/clinical/appointment/domain/repositories/appointment.repository.interface';
+
 import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
+import {
+  APPOINTMENT_QUERY_REPOSITORY,
+  IAppointmentQueryRepository,
+} from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query.repository';
 
 /**
  * Resepsiyon randevu araması. Aktörün kliniğine sabitlenir (başka klinik aranamaz);
  * ad/telefon + opsiyonel status/doktor/tarih filtreleri repo'ya geçirilir. Sonuç
- * entity listesidir → toPersistence() ile düz modele çevrilip döner.
+ * düz kayıt listesidir; handler yalnız serileştirme seçeneklerini ekler.
  */
 @QueryHandler(SearchClinicAppointmentsQuery)
 export class SearchClinicAppointmentsHandler

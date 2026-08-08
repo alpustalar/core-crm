@@ -1,13 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import {
-  IUserCommandRepository,
-  USER_COMMAND_REPOSITORY,
-} from '@modules/identity/user/domain/repositories/user.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { UpdateUserBySelfCommand } from './update-user-by-self.command';
 import { UpdateUserBySelfResponse } from './update-user-by-self.response';
 import { UserNotFoundException } from '@modules/identity/user/domain/exceptions/user.exceptions';
+import {
+  IUserCommandRepository,
+  USER_COMMAND_REPOSITORY,
+} from '@modules/identity/user/domain/repositories/user/user.command.repository';
 
 @CommandHandler(UpdateUserBySelfCommand)
 export class UpdateUserBySelfHandler
@@ -15,14 +15,14 @@ export class UpdateUserBySelfHandler
 {
   constructor(
     @Inject(USER_COMMAND_REPOSITORY)
-    private readonly userCommandRepo: IUserCommandRepository,
+    private readonly userRepo: IUserCommandRepository,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: UpdateUserBySelfCommand): Promise<void> {
     const { data, actor } = command;
 
-    const user = await this.userCommandRepo.findById(actor.userId);
+    const user = await this.userRepo.findById(actor.userId);
 
     if (!user) throw new UserNotFoundException();
 
@@ -36,7 +36,7 @@ export class UpdateUserBySelfHandler
     );
 
     await this.txManager.run(async () => {
-      await this.userCommandRepo.save(user);
+      await this.userRepo.update(user);
     });
   }
 }

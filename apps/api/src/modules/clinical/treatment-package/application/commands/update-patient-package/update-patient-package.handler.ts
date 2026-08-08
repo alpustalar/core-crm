@@ -2,10 +2,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UpdatePatientPackageCommand } from './update-patient-package.command';
 import type { UpdatePatientPackageResponse } from './update-patient-package.response';
-import {
-  IPatientTreatmentPackageCommandRepository,
-  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
-} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package.repository.interface';
 import { PatientTreatmentPackageNotFoundException } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
 import {
   IPolicyFactory,
@@ -14,6 +10,10 @@ import {
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
 import { PATIENT_TREATMENT_PACKAGE_EVENTS } from '@src/domain/constants/events';
+import {
+  IPatientTreatmentPackageCommandRepository,
+  PATIENT_TREATMENT_PACKAGE_COMMAND_REPO,
+} from '@modules/clinical/treatment-package/domain/repositories/patient-treatment-package/patient-treatment-package.command.repository';
 
 @CommandHandler(UpdatePatientPackageCommand)
 export class UpdatePatientPackageHandler
@@ -22,7 +22,7 @@ export class UpdatePatientPackageHandler
 {
   constructor(
     @Inject(PATIENT_TREATMENT_PACKAGE_COMMAND_REPO)
-    private readonly patientTreatmentPackageCommandRepo: IPatientTreatmentPackageCommandRepository,
+    private readonly patientTreatmentPackageRepo: IPatientTreatmentPackageCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus
@@ -35,7 +35,7 @@ export class UpdatePatientPackageHandler
     const { patientPackageId, data } = payload;
 
     const patientTreatmentPackage =
-      await this.patientTreatmentPackageCommandRepo.findById(patientPackageId);
+      await this.patientTreatmentPackageRepo.findById(patientPackageId);
 
     if (!patientTreatmentPackage)
       throw new PatientTreatmentPackageNotFoundException();
@@ -53,7 +53,7 @@ export class UpdatePatientPackageHandler
 
     patientTreatmentPackage.update(data);
 
-    await this.patientTreatmentPackageCommandRepo.save(patientTreatmentPackage);
+    await this.patientTreatmentPackageRepo.update(patientTreatmentPackage);
 
     return patientTreatmentPackage.id.value;
   }

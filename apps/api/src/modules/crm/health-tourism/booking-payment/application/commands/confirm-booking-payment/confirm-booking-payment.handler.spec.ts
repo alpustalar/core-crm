@@ -2,7 +2,7 @@ import { ConfirmBookingPaymentHandler } from './confirm-booking-payment.handler'
 import { ConfirmBookingPaymentCommand } from './confirm-booking-payment.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { IPaymentLinkProvider } from '@src/infrastructure/payment/links/payment-link.port';
-import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment.repository';
+import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import { BookingPaymentNotFoundException } from '@modules/crm/health-tourism/booking-payment/domain/exceptions/booking-payment.exceptions';
 import {
@@ -10,7 +10,9 @@ import {
   HotelBookingIntent,
 } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 import { BookHotelCommand } from '@modules/crm/health-tourism/hotel/application/commands/book-hotel/book-hotel.command';
-import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.command';
+import { NATS_SUBJECTS } from '@src/transport';
+import { IGetContext } from '@common/decorators';
+import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 
 describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
   // Entity.create UUID VO doğrulaması yaptığından fixture id'leri geçerli UUID olmalı.
@@ -18,6 +20,16 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
   const ORG_ID = '22222222-2222-4222-8222-222222222222';
   const PATIENT_ID = '33333333-3333-4333-8333-333333333333';
   const LEAD_ID = '44444444-4444-4444-8444-444444444444';
+
+  const ctx: IGetContext = {
+    actor: {
+      userId: 'user-1',
+      clinicId: CLINIC_ID,
+      organizationId: ORG_ID,
+      managedClinics: [{ id: CLINIC_ID }],
+    } as IGetContext['actor'],
+    source: ExecutionSources.USER_ACTION,
+  };
 
   const hotelIntent: HotelBookingIntent = {
     type: 'HOTEL',
@@ -88,32 +100,61 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
 
     const commandRepo = {
       findById: jest.fn(async () => bp),
-      save: jest.fn(async (e: BookingPayment) => e),
+      update: jest.fn(async (e: BookingPayment) => e),
     } as unknown as IBookingPaymentCommandRepository;
+
+    const natsClient = {
+      emit: jest.fn(() => ({ subscribe: jest.fn() })),
+    } as any;
+
+    const policyFactory = {
+      clinic: jest.fn().mockReturnValue({
+        evaluator: {
+          check: jest.fn().mockReturnValue({
+            orThrow: () => undefined,
+          }),
+        },
+      }),
+    } as any;
+
+    // Platform defteri: tahsilat kliniğe değil buraya postlanır.
+    const platformTenant = {
+      resolve: jest.fn().mockResolvedValue({
+        clinicId: 'platform-clinic',
+        organizationId: 'platform-org',
+      }),
+    } as any;
 
     return {
       handler: new ConfirmBookingPaymentHandler(
         commandBus,
         iyzicoLink,
         stripeLink,
-        commandRepo
+        commandRepo,
+        policyFactory,
+        natsClient,
+        platformTenant
       ),
+      platformTenant,
       commandBus,
       iyzicoLink,
       stripeLink,
       commandRepo,
+      policyFactory,
+      natsClient,
     };
   };
 
   it('PENDING + Stripe ödeme → PAID → book → BOOKED; diğer link (iyzico) expire edilir', async () => {
     const bp = makeBp('PENDING');
-    const { handler, commandBus, iyzicoLink } = build(bp);
+    const { handler, commandBus, iyzicoLink, natsClient } = build(bp);
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
         bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
+              ctx,
       })
     );
 
@@ -122,13 +163,54 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     const calls = (commandBus.execute as jest.Mock).mock.calls.map((c) => c[0]);
     // book + müşteri onay bildirimi (misafir → muhasebe atlanır)
     expect(calls.some((c) => c instanceof BookHotelCommand)).toBe(true);
-    expect(calls.some((c) => c instanceof SendBookingConfirmationCommand)).toBe(
-      true
+    // Onay bildirimi artık komut değil olay: messaging ayrı serviste.
+    expect(natsClient.emit).toHaveBeenCalledWith(
+      NATS_SUBJECTS.booking.confirmed,
+      expect.objectContaining({ clinicId: CLINIC_ID })
     );
     expect(iyzicoLink.expireLink).toHaveBeenCalledWith(bp.id.value);
   });
 
-  it('hastalı rezervasyonda bile klinik muhasebe köprüsü YOK: yalnız book + onay bildirimi dispatch edilir (tahsilat platform işlemi)', async () => {
+  it('hastalı rezervasyonda bile tahsilat KLİNİK defterine yazılmaz: platform defterine yazılır', async () => {
+    const bp = makeBp('PENDING', PATIENT_ID);
+    const { handler, commandBus, natsClient } = build(bp);
+
+    await handler.execute(
+      new ConfirmBookingPaymentCommand({
+        bookingPaymentId: bp.id.value,
+        provider: 'STRIPE',
+        providerRef: 'pi_1',
+              ctx,
+      })
+    );
+
+    expect(bp.status).toBe('BOOKED');
+    const commands = (commandBus.execute as jest.Mock).mock.calls.map(
+      (c) => c[0]
+    );
+    const dispatched = commands.map((c) => (c as object).constructor.name);
+
+    // Klinik cari hesabı açılmaz — klinik bu işleme finansal olarak taraf değil.
+    expect(dispatched).not.toContain('EnsurePartyForPatientCommand');
+
+    const financialEvent = commands.find(
+      (c) => (c as object).constructor.name === 'RecordFinancialEventCommand'
+    ) as { data: { clinicId: string; type: string } };
+
+    // Olay yazılır ama defter sahibi PLATFORM'dur; rezervasyonun kliniği DEĞİL.
+    expect(financialEvent).toBeDefined();
+    expect(financialEvent.data.clinicId).toBe('platform-clinic');
+    expect(financialEvent.data.clinicId).not.toBe(CLINIC_ID);
+    expect(financialEvent.data.type).toBe('PLATFORM_BOOKING_SETTLED');
+
+    expect(dispatched).toEqual(expect.arrayContaining(['BookHotelCommand']));
+    expect(natsClient.emit).toHaveBeenCalledWith(
+      NATS_SUBJECTS.booking.confirmed,
+      expect.objectContaining({ clinicId: CLINIC_ID })
+    );
+  });
+
+  it('komisyon = brüt − tedarikçi payı; hasılat yalnız komisyon olacak şekilde yazılır', async () => {
     const bp = makeBp('PENDING', PATIENT_ID);
     const { handler, commandBus } = build(bp);
 
@@ -137,23 +219,41 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
+        ctx,
       })
     );
 
+    const event = (commandBus.execute as jest.Mock).mock.calls
+      .map((c) => c[0])
+      .find(
+        (c) => (c as object).constructor.name === 'RecordFinancialEventCommand'
+      ) as { data: { payload: Record<string, string>; dedupeKey?: string } };
+
+    const { saleAmount, supplierAmount, commission } = event.data.payload;
+    expect(Number(commission)).toBeCloseTo(
+      Number(saleAmount) - Number(supplierAmount),
+      2
+    );
+  });
+
+  it('muhasebe kaydı düşse bile rezervasyon bozulmaz (tahsilat alınmış, otel açılmış)', async () => {
+    const bp = makeBp('PENDING', PATIENT_ID);
+    const { handler, platformTenant } = build(bp);
+    platformTenant.resolve.mockRejectedValue(
+      new Error('platform kiracısı yok')
+    );
+
+    await handler.execute(
+      new ConfirmBookingPaymentCommand({
+        bookingPaymentId: bp.id.value,
+        provider: 'STRIPE',
+        providerRef: 'pi_1',
+        ctx,
+      })
+    );
+
+    // Kayıt atılamadı ama rezervasyon ayakta; iade akışına DÜŞMEZ.
     expect(bp.status).toBe('BOOKED');
-    const dispatched = (commandBus.execute as jest.Mock).mock.calls.map(
-      (c) => (c[0] as object).constructor.name
-    );
-    // Komisyon platform geliridir → klinik defterine PAYMENT_RECEIVED yazılmaz.
-    expect(dispatched).not.toContain('RecordFinancialEventCommand');
-    expect(dispatched).not.toContain('EnsurePartyForPatientCommand');
-    // Yalnız rezervasyon replay'i + müşteri onay bildirimi kalır.
-    expect(dispatched).toEqual(
-      expect.arrayContaining([
-        'BookHotelCommand',
-        'SendBookingConfirmationCommand',
-      ])
-    );
   });
 
   it('çift-çekim: zaten BOOKED kayda ikinci ödeme → ikinci ödeme iade, rebook YOK', async () => {
@@ -165,6 +265,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'IYZICO',
         providerRef: 'tx_2',
+              ctx,
       })
     );
 
@@ -188,6 +289,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         bookingPaymentId: bp.id.value,
         provider: 'STRIPE',
         providerRef: 'pi_1',
+              ctx,
       })
     );
 
@@ -209,6 +311,7 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
           bookingPaymentId: 'yok',
           provider: 'STRIPE',
           providerRef: 'pi_1',
+                  ctx,
         })
       )
     ).rejects.toBeInstanceOf(BookingPaymentNotFoundException);
