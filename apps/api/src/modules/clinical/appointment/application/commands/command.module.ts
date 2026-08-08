@@ -16,7 +16,7 @@ import { CheckInAppointmentHandler } from './check-in-appointment/check-in-appoi
 import { LockAppointmentSlotHandler } from './lock-appointment-slot/lock-appointment-slot.handler';
 import { ReleaseAppointmentSlotHandler } from './release-appointment-slot/release-appointment-slot.handler';
 import { ProcessAppointmentRemindersHandler } from './process-appointment-reminders/process-appointment-reminders.handler';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { ProviderDomainServicesModule } from '@modules/clinical/provider/domain/services/services.module';
 import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 import { AppointmentInfrastructureModule } from '@modules/clinical/appointment/infrastructure/infrastructure.module';

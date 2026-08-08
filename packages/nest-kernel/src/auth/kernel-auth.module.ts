@@ -1,6 +1,8 @@
 import { DynamicModule, Module, ModuleMetadata, Provider } from '@nestjs/common';
 import { ActorAuthenticator } from './actor-authenticator.service';
 import { TokenAuthGuard } from './token-auth.guard';
+import { TOKEN_VERIFIER } from './token-verifier.port';
+import { ACTOR_CONTEXT_RESOLVER } from './actor-context-resolver.port';
 
 export interface KernelAuthOptions {
   /** `TOKEN_VERIFIER` token'ını karşılayan sağlayıcı. */
@@ -42,7 +44,14 @@ export class KernelAuthModule {
         ActorAuthenticator,
         TokenAuthGuard,
       ],
-      exports: [ActorAuthenticator, TokenAuthGuard],
+      // Port token'ları da dışa açılır: guard/authenticator dışında da tüketilebilirler
+      // (ör. core'un RPC controller'ı `ACTOR_CONTEXT_RESOLVER`'ı messaging'e servis eder).
+      exports: [
+        ActorAuthenticator,
+        TokenAuthGuard,
+        TOKEN_VERIFIER,
+        ACTOR_CONTEXT_RESOLVER,
+      ],
     };
   }
 }

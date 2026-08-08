@@ -24,7 +24,6 @@ import { ActivityModule } from '@modules/crm/activity/activity.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
-import { MessagingModule } from '@modules/messaging/messaging.module';
 import { InventoryModule } from '@modules/supply/inventory/inventory.module';
 import { NotificationModule } from '@modules/platform/notification/notification.module';
 import { EmployeeModule } from '@modules/hr/employee/employee.module';
@@ -135,11 +134,7 @@ export const APP_ROUTES: Routes = [
     path: 'health-tourism',
     module: HealthTourismModule,
   },
-  {
-    path: 'messaging',
-    module: MessagingModule,
-  },
-  {
+    {
     path: 'inventory',
     module: InventoryModule,
   },

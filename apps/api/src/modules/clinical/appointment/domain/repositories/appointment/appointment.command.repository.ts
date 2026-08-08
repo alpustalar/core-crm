@@ -1,6 +1,6 @@
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import { BatchPayload } from '@common/interfaces/batcy-payload.type';
+import { BatchPayload } from '@common/interfaces/batch-payload.type';
 import {
   CancelProviderAppointmentsData,
   FindDueForReminderData,

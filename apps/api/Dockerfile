@@ -10,7 +10,8 @@ WORKDIR /app
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json            ./apps/api/package.json
-COPY packages/shared/package.json     ./packages/shared/package.json
+COPY packages/shared/package.json      ./packages/shared/package.json
+COPY packages/nest-kernel/package.json ./packages/nest-kernel/package.json
 
 RUN pnpm install --frozen-lockfile
 
@@ -23,7 +24,8 @@ COPY --from=installer /app/node_modules            ./node_modules
 COPY --from=installer /app/apps/api/node_modules   ./apps/api/node_modules
 
 # Copy source
-COPY packages/shared/ ./packages/shared/
+COPY packages/shared/      ./packages/shared/
+COPY packages/nest-kernel/ ./packages/nest-kernel/
 COPY apps/api/        ./apps/api/
 
 # Generate Prisma client 

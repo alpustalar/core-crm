@@ -34,6 +34,8 @@ import { MESSAGING_MONGO_CONNECTION } from '@src/infrastructure/persistence/mong
         [ENV.MONGODB_URI]: Joi.string().required(),
         [ENV.MESSAGING_MONGODB_URI]: Joi.string().required(),
         [ENV.REDIS_URL]: Joi.string().required(),
+        // apps/messaging ile RPC/olay kanalı.
+        [ENV.NATS_URL]: Joi.string().required(),
 
         // Observability / Logging
         [ENV.BETTERSTACK_TOKEN]: Joi.string().required(),

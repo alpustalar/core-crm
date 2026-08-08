@@ -23,7 +23,12 @@ import {
   BookHotelDto,
   BookTransferDto,
 } from '@shared/modules/health-tourism/dto/commands';
-import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.command';
+import { ClientProxy } from '@nestjs/microservices';
+import {
+  BookingConfirmedEventPayload,
+  NATS_CLIENT,
+  NATS_SUBJECTS,
+} from '@src/transport';
 import { ConfirmBookingPaymentCommand } from './confirm-booking-payment.command';
 import { PaymentProviders } from '@common/constants';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
@@ -54,7 +59,9 @@ export class ConfirmBookingPaymentHandler
     @Inject(BOOKING_PAYMENT_COMMAND_REPOSITORY)
     private readonly bookingPaymentRepo: IBookingPaymentCommandRepository,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    @Inject(NATS_CLIENT)
+    private readonly natsClient: ClientProxy
   ) {}
 
   async execute(command: ConfirmBookingPaymentCommand): Promise<void> {
@@ -103,7 +110,7 @@ export class ConfirmBookingPaymentHandler
       // (hasta platform hesabına öder, platform HotelBeds'e öder); komisyon platform geliridir.
       // Klinik bu işleme finansal olarak taraf değildir. Platform-gelir defteri ayrı ele alınacak.
       // Müşteriye mesajlaşma kanalından onay (AI dilinde / pencere dışı HSM); hatası bozmaz.
-      await this.notifyCustomer(bp);
+      this.notifyCustomer(bp);
     } catch (err) {
       const reason =
         err instanceof Error ? err.message : 'Rezervasyon başarısız';
@@ -129,28 +136,34 @@ export class ConfirmBookingPaymentHandler
   }
 
   /**
-   * Müşteriye rezervasyon onayını mesajlaşma kanalından bildirir (cross-module → messaging).
-   * Konuşma bağlamı yoksa (conversationId null) atlanır; hata booking'i bozmaz.
+   * Müşteriye rezervasyon onayını mesajlaşma kanalından bildirir.
+   *
+   * Messaging ayrı bir servis olduğu için bu artık bir **komut değil olaydır**: core
+   * "şu yazışmaya onay mesajı gönder" diye emretmez, "rezervasyon onaylandı" diye
+   * duyurur; kanaldan nasıl bildirileceği messaging'in kararıdır.
+   *
+   * `emit` bilerek beklenmiyor (fire-and-forget): bildirim ödemeyi bloklamamalı.
+   * Konuşma bağlamı yoksa (conversationId null) atlanır.
    */
-  private async notifyCustomer(bp: BookingPayment): Promise<void> {
+  private notifyCustomer(bp: BookingPayment): void {
     if (!bp.conversationId) return;
-    try {
-      await this.commandBus.execute(
-        new SendBookingConfirmationCommand({
-          clinicId: bp.clinicId.value,
-          conversationId: bp.conversationId,
-          bookingType: bp.bookingType,
-          reference: bp.bookingReference ?? bp.bookingId ?? bp.id.value,
-          summary: this.buildSummary(bp),
-        })
-      );
-    } catch (err) {
-      this.logger.warn(
-        `Onay mesajı gönderilemedi (bp=${bp.id.value}): ${
-          err instanceof Error ? err.message : err
-        }`
-      );
-    }
+
+    const payload: BookingConfirmedEventPayload = {
+      clinicId: bp.clinicId.value,
+      conversationId: bp.conversationId,
+      bookingType: bp.bookingType,
+      referenceCode: bp.bookingReference ?? bp.bookingId ?? bp.id.value,
+      summary: this.buildSummary(bp),
+    };
+
+    this.natsClient.emit(NATS_SUBJECTS.booking.confirmed, payload).subscribe({
+      error: (err: unknown) =>
+        this.logger.warn(
+          `Onay bildirimi yayınlanamadı (bp=${bp.id.value}): ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        ),
+    });
   }
 
   private buildSummary(bp: BookingPayment): string {

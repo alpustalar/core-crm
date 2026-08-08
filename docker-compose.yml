@@ -102,6 +102,34 @@ services:
       # File expected at process.cwd()/secrets/firebase-sdk.json inside the container.
       - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
 
+  messaging:
+    build:
+      context: .
+      dockerfile: apps/messaging/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    env_file:
+      - apps/messaging/.env
+    environment:
+      # Kendi MongoDB veritabanı — api'nin audit DB'siyle paylaşılmaz.
+      MESSAGING_MONGODB_URI: mongodb://mongodb:27017/core-crm-messaging?replicaSet=rs0
+      # Redis api ile PAYLAŞILIR: ActorContext cache'ini api doldurur, messaging okur.
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      PORT: 8081
+      ALLOWED_ORIGINS: http://localhost:3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    volumes:
+      # Token imzasını yerel doğrular; api ile aynı servis hesabını kullanır.
+      - ./secrets/firebase-sdk.json:/app/secrets/firebase-sdk.json:ro
+
   web:
     build:
       context: .

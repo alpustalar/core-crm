@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service';
+import { AppointmentCheckerService } from '@modules/clinical/appointment/domain/services/appointment-checker.service';
 import { AppointmentRepositoriesModule } from '@modules/clinical/appointment/infrastructure/persistence/prisma/repositories/repositories.module';
-import { APPOINTMENT_CHECKER_SERVICE } from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service.interface';
+import { APPOINTMENT_CHECKER_SERVICE } from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 @Module({
   imports: [AppointmentRepositoriesModule],

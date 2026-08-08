@@ -10,7 +10,7 @@ import {
   HotelBookingIntent,
 } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
 import { BookHotelCommand } from '@modules/crm/health-tourism/hotel/application/commands/book-hotel/book-hotel.command';
-import { SendBookingConfirmationCommand } from '@modules/messaging/ai-agent/application/commands/send-booking-confirmation/send-booking-confirmation.command';
+import { NATS_SUBJECTS } from '@src/transport';
 import { IGetContext } from '@common/decorators';
 import { ExecutionSources } from '@src/domain/constants/execution-source.constant';
 
@@ -103,6 +103,10 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
       update: jest.fn(async (e: BookingPayment) => e),
     } as unknown as IBookingPaymentCommandRepository;
 
+    const natsClient = {
+      emit: jest.fn(() => ({ subscribe: jest.fn() })),
+    } as any;
+
     const policyFactory = {
       clinic: jest.fn().mockReturnValue({
         evaluator: {
@@ -119,19 +123,21 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
         iyzicoLink,
         stripeLink,
         commandRepo,
-        policyFactory
+        policyFactory,
+        natsClient
       ),
       commandBus,
       iyzicoLink,
       stripeLink,
       commandRepo,
       policyFactory,
+      natsClient,
     };
   };
 
   it('PENDING + Stripe ödeme → PAID → book → BOOKED; diğer link (iyzico) expire edilir', async () => {
     const bp = makeBp('PENDING');
-    const { handler, commandBus, iyzicoLink } = build(bp);
+    const { handler, commandBus, iyzicoLink, natsClient } = build(bp);
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
@@ -147,15 +153,17 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     const calls = (commandBus.execute as jest.Mock).mock.calls.map((c) => c[0]);
     // book + müşteri onay bildirimi (misafir → muhasebe atlanır)
     expect(calls.some((c) => c instanceof BookHotelCommand)).toBe(true);
-    expect(calls.some((c) => c instanceof SendBookingConfirmationCommand)).toBe(
-      true
+    // Onay bildirimi artık komut değil olay: messaging ayrı serviste.
+    expect(natsClient.emit).toHaveBeenCalledWith(
+      NATS_SUBJECTS.booking.confirmed,
+      expect.objectContaining({ clinicId: CLINIC_ID })
     );
     expect(iyzicoLink.expireLink).toHaveBeenCalledWith(bp.id.value);
   });
 
   it('hastalı rezervasyonda bile klinik muhasebe köprüsü YOK: yalnız book + onay bildirimi dispatch edilir (tahsilat platform işlemi)', async () => {
     const bp = makeBp('PENDING', PATIENT_ID);
-    const { handler, commandBus } = build(bp);
+    const { handler, commandBus, natsClient } = build(bp);
 
     await handler.execute(
       new ConfirmBookingPaymentCommand({
@@ -173,12 +181,11 @@ describe('ConfirmBookingPaymentHandler — saga (book replay / iade)', () => {
     // Komisyon platform geliridir → klinik defterine PAYMENT_RECEIVED yazılmaz.
     expect(dispatched).not.toContain('RecordFinancialEventCommand');
     expect(dispatched).not.toContain('EnsurePartyForPatientCommand');
-    // Yalnız rezervasyon replay'i + müşteri onay bildirimi kalır.
-    expect(dispatched).toEqual(
-      expect.arrayContaining([
-        'BookHotelCommand',
-        'SendBookingConfirmationCommand',
-      ])
+    // Yalnız rezervasyon replay'i komut olarak kalır; onay bildirimi NATS olayıdır.
+    expect(dispatched).toEqual(expect.arrayContaining(['BookHotelCommand']));
+    expect(natsClient.emit).toHaveBeenCalledWith(
+      NATS_SUBJECTS.booking.confirmed,
+      expect.objectContaining({ clinicId: CLINIC_ID })
     );
   });
 

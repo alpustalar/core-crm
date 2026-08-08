@@ -1,6 +1,6 @@
 # Messaging Mikroservis Ayrımı — Mimari Plan
 
-**Durum:** Faz 0/1/2 ✅ · Cutover ✅ · **Faz 3.1–3.4 ✅ (2026-08-08)** — `apps/messaging` ayrı servis olarak ayağa kalkıyor (port 8081, kendi Mongo'su, api'ye derleme-zamanı erişimi yok) → sırada 3.5 (NATS + modüllerin taşınması)
+**Durum:** **AYRIM TAMAMLANDI ✅ (2026-08-08)** — Faz 0/1/2 · Cutover · Faz 3.1–3.5. Messaging ayrı bir servis (`apps/messaging`, :8081, kendi MongoDB'si, NATS ile core'a bağlı). Kalan tek iş operasyonel: webhook trafiğinin 8081'e yönlendirilmesi (3.6).
 **Karar tarihi:** 2026-08-07
 **Kapsam:** `apps/api/src/modules/messaging/` (263 dosya, 3 alt-context, 40 spec)
 
@@ -371,12 +371,51 @@ adresi yoktur (`none`) ve Telegram webhook kaydı zaten yapılamaz; katı olsayd
 
 `docker-compose.yml`'e **NATS** servisi eklendi (`nats:2-alpine`, healthcheck'li).
 
-**3.5** NATS transport: ai-tool gateway + `ACTOR_CONTEXT_RESOLVER` (messaging'in cache-miss
-yolu) + tek core→messaging kenarı `SendBookingConfirmationCommand` event'e çevrilir; ardından
-messaging modülleri `apps/api/src/modules/messaging` → `apps/messaging/src`'e taşınır.
+**3.5 NATS transport + modüllerin taşınması ✅ (2026-08-08)** — **ayrım tamamlandı.**
 
-**3.6** webhook route'ları **en son** (Meta/Telegram webhook adresleri güncellenmeli;
-atlanırsa gelen mesajlar sessizce düşer).
+266 dosya `apps/api/src/modules/messaging` → `apps/messaging/src/modules`'a taşındı.
+Import'lar elden geçirilmedi; yalnız `@modules/messaging/` → `@modules/` öneki düştü ve
+messaging'in tsconfig'inde `@modules/*` kendi `src/modules`'una bağlandı.
+
+Dışarıdan kopan referans **yalnız 4 taneydi** (2'si app kaydı) — Faz 1'de port sınırlarını
+çekmenin karşılığı bu.
+
+| Sınır | Önce | Sonra |
+| --- | --- | --- |
+| AI araçları (15) | in-process `AiToolsModule` | `NatsAiToolExecutor` → `core.ai-tool.*` |
+| Kontak (hasta/lead) | `LocalContactResolverAdapter` | `NatsContactResolverAdapter` → `core.contact.*` |
+| `ActorContext` cache-miss | DB (aynı süreç) | `NatsActorContextResolver` → `core.auth.resolve-actor` |
+| Rezervasyon onayı | `SendBookingConfirmationCommand` (komut) | `messaging.booking.confirmed` (**olay**) |
+
+Son satır bir tasarım kararıdır: core artık "şu yazışmaya mesaj gönder" diye emretmiyor,
+"rezervasyon onaylandı" diye duyuruyor. Kanaldan nasıl bildirileceği (AI dili / 24s
+penceresi / HSM şablonu) messaging'in kararı.
+
+NATS konuları tek kaynakta (`transport/nats-subjects.ts`) — auth Redis anahtarlarıyla
+aynı gerekçe: iki tarafta ayrı yazılsalar bir harflik fark derleme hatası vermez, istek
+sessizce kimseye ulaşmaz.
+
+**Uçtan uca doğrulandı** (NATS container + iki servis birlikte açık):
+
+```
+api       : Nest microservice successfully started · 15 AI aracı keşfedildi · :8099
+messaging : NatsAiToolExecutor  15 AI aracı core'dan alındı.  · :8081 · 32 route
+```
+
+Testler: api 90 suite / 442 test · messaging 38 suite / 215 test · üç ardışık yeşil koşu.
+`tsc` üçü de 0 (api, messaging, nest-kernel standalone).
+
+Taşıma sırasında ortaya çıkan üç DI kopukluğu (hepsi "messaging gidince kimse import
+etmiyor" kalıbı): `AiToolsModule` (artık `CoreTransportModule` import ediyor),
+`TSCqrsModule` ve `CryptoModule` (messaging'in app.module'üne eklendi; `crypto.module.ts`
+servisiyle birlikte çekirdeğe taşındı).
+
+**3.6 Webhook'lar — kod tarafı bitti, kalan operasyon.** Üç webhook route'u
+(`/whatsapp/webhook`, `/telegram/bot/:clinicId`, `/instagram/webhook`) modülle birlikte
+messaging'e geçti ve artık **8081**'de. Yapılması gereken tek şey trafiğin oraya
+yönlendirilmesi: reverse proxy'de bu üç yol messaging servisine gitmeli **ya da** Meta/
+Telegram'daki kayıtlı webhook adresleri güncellenmeli. Atlanırsa gelen mesajlar sessizce
+düşer — hiçbir yerde hata görünmez.
 
 ---
 

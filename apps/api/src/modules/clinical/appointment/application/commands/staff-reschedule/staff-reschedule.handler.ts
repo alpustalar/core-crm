@@ -19,7 +19,7 @@ import {
 import {
   APPOINTMENT_CHECKER_SERVICE,
   IAppointmentCheckerService,
-} from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service.interface';
+} from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 @CommandHandler(StaffRescheduleCommand)
 export class StaffRescheduleHandler

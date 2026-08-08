@@ -19,7 +19,10 @@
       "@common/*": ["../../packages/nest-kernel/src/common/*"],
       "@src/*": ["../../packages/nest-kernel/src/*"],
 
-      // Messaging'in kendi modülleri.
+      // Messaging'in kendi modülleri. `@modules/*` adı korundu: 266 dosya taşınırken
+      // yalnız `@modules/messaging/` → `@modules/` öneki düştü, import'lar elden
+      // geçirilmedi.
+      "@modules/*": ["src/modules/*"],
       "@messaging/*": ["src/*"],
 
       "@shared": ["../../packages/shared/index"],

@@ -33,7 +33,7 @@ import {
 import {
   APPOINTMENT_CHECKER_SERVICE,
   IAppointmentCheckerService,
-} from '@modules/clinical/appointment/domain/services/appointment-checker/appointment-checker.service.interface';
+} from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 /**
  * AI asistanı üzerinden randevu açar. Portal handler'ı ile aynı iş kurallarını uygular

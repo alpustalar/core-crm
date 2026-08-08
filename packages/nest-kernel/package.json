@@ -10,6 +10,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/event-emitter": "^3.0.1",
+    "@nestjs/microservices": "^11.1.28",
     "@nestjs/mongoose": "^11.0.4",
     "dayjs": "^1.11.20",
     "ioredis": "^5.9.2",
@@ -20,8 +21,8 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "typescript": "^5.7.3",
-    "@types/jest": "^30.0.0"
+    "@types/jest": "^30.0.0",
+    "typescript": "^5.7.3"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

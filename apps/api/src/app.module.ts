@@ -12,6 +12,7 @@ import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listene
 import { UserModule } from '@modules/identity/user/user.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
 import { MongoPersistenceModule } from '@src/infrastructure/persistence/mongo/mongo-persistence.module';
+import { CoreTransportModule } from '@src/infrastructure/transport/core-transport.module';
 import { FirebaseModule } from '@src/infrastructure/firebase/firebase.module';
 import { AuditLogModule } from '@modules/platform/audit-log/audit-log.module';
 import { AppointmentModule } from '@modules/clinical/appointment/appointment.module';
@@ -52,7 +53,6 @@ import { ActivityModule } from '@modules/crm/activity/activity.module';
 import { AdminRequestModule } from '@modules/platform/admin-request/admin-request.module';
 import { HealthTourismModule } from '@modules/crm/health-tourism/health-tourism.module';
 import { GovernanceModule } from '@modules/organization/clinic-governance/governance.module';
-import { MessagingModule } from '@modules/messaging/messaging.module';
 import { InventoryModule } from '@modules/supply/inventory/inventory.module';
 import { NotificationModule } from '@modules/platform/notification/notification.module';
 import { MailModule } from '@src/infrastructure/mail/mail.module';
@@ -75,6 +75,7 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     FirebaseModule,
     PrismaModule,
     MongoPersistenceModule,
+    CoreTransportModule,
     AuthModule,
     TSCqrsModule,
     UserModule,
@@ -110,7 +111,6 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     ActivityModule,
     AdminRequestModule,
     HealthTourismModule,
-    MessagingModule,
     InventoryModule,
     NotificationModule,
     EmployeeModule,
