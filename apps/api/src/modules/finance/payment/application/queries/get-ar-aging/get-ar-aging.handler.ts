@@ -14,6 +14,10 @@ import {
   IPaymentQueryRepository,
   PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 const BUCKET_ORDER: ArAgingBucketLabel[] = [
   'NOT_DUE',
@@ -35,11 +39,25 @@ export class GetArAgingHandler
 {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
-    private readonly paymentRepo: IPaymentQueryRepository
+    private readonly paymentRepo: IPaymentQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetArAgingQuery): Promise<GetArAgingResponse> {
-    const { clinicId } = query;
+    const { clinicId, ctx } = query;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin alacak yaşlandırma raporuna erişim yetkiniz yok.'
+      )
+      .orThrow('payment.ar-aging');
     // Saat farkından kaynaklanan yanlış vadelendirmeyi önlemek için gün başına normalize et.
     const asOf = DateTimeManager.startOfDay(
       query.asOf ?? DateTimeManager.create()
@@ -81,6 +99,9 @@ export class GetArAgingHandler
           totalCollected: collectedTotal.toFixed(2),
           collectionRate: collectionRate.toFixed(4),
         },
+      },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
       },
     };
   }

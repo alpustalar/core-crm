@@ -2,7 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { ExceptionTypeType as ExceptionType } from '@input-type-schemas/ExceptionTypeSchema';
 import { ProviderResponseGroups } from '@modules/clinical/provider/domain/contracts/provider.contracts';
 
-const { INTERNAL, MANAGEMENT, DATA_OWNER, ADMIN } = ProviderResponseGroups;
+const { INTERNAL, MANAGEMENT, DATA_OWNER } = ProviderResponseGroups;
 
 export class ProviderExceptionResponseDto {
   @Expose() id: string;
@@ -18,10 +18,10 @@ export class ProviderExceptionResponseDto {
   @Type(() => Date)
   endTime: Date;
 
-  @Expose({ groups: [ADMIN, INTERNAL, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [INTERNAL, MANAGEMENT, DATA_OWNER] })
   reason: string | null;
 
-  @Expose({ groups: [ADMIN, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [MANAGEMENT, DATA_OWNER] })
   @Type(() => Date)
   createdAt: Date;
 }

@@ -9,9 +9,10 @@ export class ConfigureClinicHealthTourismCommand {
   readonly __responseType!: string;
   constructor(
     public readonly payload: {
-      clinicId: string;
-      data: ConfigureHealthTourismConfig;
-      ctx: IGetContext;
+      readonly clinicId: string;
+      readonly organizationId?: string | null;
+      readonly data: ConfigureHealthTourismConfig;
+      readonly ctx: IGetContext;
     }
   ) {}
 }

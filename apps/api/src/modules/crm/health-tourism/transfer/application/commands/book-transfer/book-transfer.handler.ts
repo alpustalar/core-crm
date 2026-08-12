@@ -10,12 +10,16 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { HotelbedsTransferBooking } from '@modules/crm/health-tourism/transfer/domain/entities/hotelbeds-transfer-booking.entity';
-import { HotelbedsTransferBookingStatusSchema } from '@shared';
+import {
+  HotelbedsTransferBookingStatusSchema,
+  ITenantScopeResolver,
+} from '@shared';
 import { JsonValueType } from '@input-type-schemas/JsonValueSchema';
 import {
   HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY,
   IHotelbedsTransferBookingCommandRepository,
 } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 @CommandHandler(BookTransferCommand)
 export class BookTransferHandler
@@ -26,14 +30,17 @@ export class BookTransferHandler
     private readonly transferApi: IHotelbedsTransferApiService,
     @Inject(HOTELBEDS_TRANSFER_BOOKING_COMMAND_REPOSITORY)
     private readonly hotelbedsTransferBookingRepo: IHotelbedsTransferBookingCommandRepository,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: BookTransferCommand): Promise<BookTransferResponse> {
-    const { data, ctx } = command;
-    const { actor } = ctx;
+    const { data } = command;
 
-    const clientReference = `${actor.organizationId!.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
+    const clientReference = `${organizationId.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
 
     const result = await this.transferApi.createBooking({
       language: data.language,
@@ -61,8 +68,8 @@ export class BookTransferHandler
       totalAmount: result.totalAmount,
       currency: Currency.create(result.currency).orThrow().value,
       remarks: data.remark,
-      organizationId: actor.organizationId!,
-      clinicId: data.clinicId ?? actor.clinicId ?? undefined,
+      clinicId: data.clinicId,
+      organizationId,
       patientId: data.patientId,
       leadId: data.leadId,
     });

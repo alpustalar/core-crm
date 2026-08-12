@@ -14,6 +14,11 @@ import {
   IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { META_ADS_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetMetaReportQuery)
 export class GetMetaReportHandler implements IQueryHandler<
@@ -26,11 +31,25 @@ export class GetMetaReportHandler implements IQueryHandler<
     @Inject(META_LEAD_QUERY_REPOSITORY)
     private readonly metaLeadRepo: IMetaLeadQueryRepository,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly metaAdAccountRepo: IMetaAdAccountQueryRepository
+    private readonly metaAdAccountRepo: IMetaAdAccountQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetMetaReportQuery): Promise<GetMetaReportResponse> {
-    const { clinicId, from, to, campaignId } = query;
+    const { clinicId, from, to, campaignId, ctx } = query;
+
+    const { evaluator, policy } = this.policyFactory.clinic(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
+        'Bu kliniğin reklam raporlarına erişim yetkiniz yok.'
+      )
+      .orThrow(META_ADS_EVENTS.REPORT);
 
     const [metrics, accounts] = await Promise.all([
       this.metaCampaignMetricRepo.aggregateByAccount({
@@ -109,6 +128,9 @@ export class GetMetaReportHandler implements IQueryHandler<
         costPerAppointment,
         conversionRate,
         campaigns,
+      },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
       },
     };
   }

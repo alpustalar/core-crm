@@ -13,6 +13,7 @@ import {
   FINANCE_LEDGER_QUERY_REPOSITORY,
   IFinanceLedgerQueryRepository,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
+import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetLedgerByPatientIdQuery)
 export class GetLedgerByPatientIdHandler
@@ -36,7 +37,18 @@ export class GetLedgerByPatientIdHandler
       new FindPatientByIdQuery(patientId, ctx)
     );
 
-    // TODO: patient.clinicId policyde kullan. policy eklenecek
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    // Hastanın kliniği cari hareketlerin sahibi — erişim oradan doğrulanır.
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(patient?.clinicId ?? undefined),
+        'Bu hastanın cari hareketlerine erişim yetkiniz yok.'
+      )
+      .orThrow(FINANCE_LEDGER_EVENTS.PATIENT_LEDGER);
 
     const { items, total } =
       await this.financeLedgerRepository.findManyByPatientIdWithDetails(
@@ -48,6 +60,9 @@ export class GetLedgerByPatientIdHandler
       data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: patient?.clinicId ?? '',
+        }),
       },
     };
   }

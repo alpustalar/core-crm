@@ -1,4 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { GetClinicOpenSlotsQuery } from './get-clinic-open-slots.query';
 import { GetClinicOpenSlotsResponse } from './get-clinic-open-slots.response';
 import {
@@ -14,6 +15,10 @@ import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/
 import { FindProvidersDirectoryQuery } from '@modules/clinical/provider/application/queries/find-providers-directory/find-providers-directory.query';
 import { GetProviderAvailabilityQuery } from '@modules/clinical/appointment/application/queries/get-provider-availability/get-provider-availability.query';
 import { GetProviderAvailabilityDto } from '@shared/modules/appointment/dto/queries/get-provider-availability.dto';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 interface BuildDaySlotsInput {
   day: ProviderCalendarDayResponse;
@@ -36,13 +41,23 @@ interface BuildDaySlotsInput {
 export class GetClinicOpenSlotsHandler
   implements IQueryHandler<GetClinicOpenSlotsQuery, GetClinicOpenSlotsResponse>
 {
-  constructor(private readonly queryBus: TSQueryBus) {}
+  constructor(
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
+  ) {}
 
   async execute(
     query: GetClinicOpenSlotsQuery
   ): Promise<GetClinicOpenSlotsResponse> {
     const { dto, ctx } = query;
     const { clinicId, startDate, endDate, providerId } = dto;
+
+    // Slot listesi hasta kimliği taşımaz; yine de serileştirme seçenekleri
+    // üretilir — meta olmadan interceptor DTO projeksiyonunu hiç çalıştırmaz.
+    const serializationOptions = this.policyFactory
+      .appointment(ctx.actor, ctx.source)
+      .policy.getSerializationOptions({ clinicId, providerId });
 
     const [{ data: tz }, durationMinutes, { data: providers }] =
       await Promise.all([
@@ -56,7 +71,7 @@ export class GetClinicOpenSlotsHandler
       : providers;
 
     if (targetProviders.length === 0) {
-      return { data: [] };
+      return { data: [], meta: { serializationOptions } };
     }
 
     const now = DateTimeManager.create();
@@ -110,7 +125,7 @@ export class GetClinicOpenSlotsHandler
         ),
       }));
 
-    return { data: result };
+    return { data: result, meta: { serializationOptions } };
   }
 
   /** DTO override > klinik ayarındaki varsayılan slot süresi. */

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
-import { BankAccountController } from '@modules/finance/bank/presentation/http/controllers/bank-account.controller';
-import { BankStatementController } from '@modules/finance/bank/presentation/http/controllers/bank-statement.controller';
+import { BankAccountQueryController } from '@modules/finance/bank/presentation/http/controllers/bank-account.query.controller';
+import { BankAccountCommandController } from '@modules/finance/bank/presentation/http/controllers/bank-account.command.controller';
+import { BankStatementQueryController } from '@modules/finance/bank/presentation/http/controllers/bank-statement.query.controller';
+import { BankStatementCommandController } from '@modules/finance/bank/presentation/http/controllers/bank-statement.command.controller';
 
-@Module({ controllers: [BankAccountController, BankStatementController] })
+@Module({ controllers: [BankAccountQueryController, BankAccountCommandController, BankStatementQueryController, BankStatementCommandController] })
 export class BankPresentationModule {}

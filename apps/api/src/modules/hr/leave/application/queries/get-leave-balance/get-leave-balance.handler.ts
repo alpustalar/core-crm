@@ -29,9 +29,13 @@ export class GetLeaveBalanceHandler
   async execute(query: GetLeaveBalanceQuery): Promise<GetLeaveBalanceResponse> {
     const { employeeId, ctx } = query;
 
-    this.policyFactory
-      .employee(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicHr(ctx.actor.clinicId))
+    const { evaluator, policy } = this.policyFactory.employee(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canManageClinicHr(ctx.actor.clinicId))
       .orThrow('leave.balance');
 
     // Hak ediş çalışan modülünden (cross-module, QueryBus).
@@ -53,6 +57,13 @@ export class GetLeaveBalanceHandler
       usedDays,
     });
 
-    return { data: balance.toView() };
+    return {
+      data: balance.toView(),
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: ctx.actor.clinicId ?? '',
+        }),
+      },
+    };
   }
 }

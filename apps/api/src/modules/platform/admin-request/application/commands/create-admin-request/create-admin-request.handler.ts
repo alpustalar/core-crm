@@ -2,7 +2,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateAdminRequestCommand } from './create-admin-request.command';
 import { AdminRequest } from '@modules/platform/admin-request/domain/entities/admin-request.entity';
-import { AdminRequestType } from '@shared/modules/admin-request/types';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   ADMIN_REQUEST_COMMAND_REPOSITORY,
@@ -25,7 +24,7 @@ export class CreateAdminRequestHandler
 
     return this.txManager.run(async () => {
       const entity = AdminRequest.create({
-        type: data.type as AdminRequestType,
+        type: data.type,
         targetId: data.targetId,
         requestedBy: actor.userId,
         organizationId: actor.organizationId ?? undefined,

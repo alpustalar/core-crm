@@ -10,6 +10,10 @@ import {
   IPaymentQueryRepository,
   PAYMENT_QUERY_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment/payment.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 /** providerId null grubu için sabit anahtar (Map key olarak kullanılır). */
 const UNASSIGNED = '__unassigned__';
@@ -20,13 +24,27 @@ export class GetProviderRevenueHandler
 {
   constructor(
     @Inject(PAYMENT_QUERY_REPOSITORY)
-    private readonly paymentQueryRepo: IPaymentQueryRepository
+    private readonly paymentQueryRepo: IPaymentQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetProviderRevenueQuery
   ): Promise<GetProviderRevenueResponse> {
-    const { clinicId, dateFrom, dateTo } = query;
+    const { clinicId, dateFrom, dateTo, ctx } = query;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin hekim ciro raporuna erişim yetkiniz yok.'
+      )
+      .orThrow('payment.provider-revenue');
 
     const rows = await this.paymentQueryRepo.providerRevenue({
       clinicId,
@@ -70,6 +88,9 @@ export class GetProviderRevenueHandler
         dateTo: dateTo ?? null,
         lines,
         totalCollected: totalCollected.toFixed(2),
+      },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
       },
     };
   }

@@ -7,13 +7,13 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { FindOrganizationIdByClinicIdQuery } from '@modules/organization/organization/application/queries/find-organization-id-by-clinic-id/find-organization-id-by-clinic-id.query';
 import { HEALTH_TOURISM_CONFIG_EVENTS } from '@src/domain/constants/events';
 import {
   CLINIC_HEALTH_TOURISM_CONFIG_COMMAND_REPOSITORY,
   IClinicHealthTourismConfigCommandRepository,
 } from '@modules/crm/health-tourism/config/domain/repositories/clinic-health-tourism-config/clinic-health-tourism-config.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(ConfigureClinicHealthTourismCommand)
 export class ConfigureClinicHealthTourismHandler
@@ -24,7 +24,8 @@ export class ConfigureClinicHealthTourismHandler
     private readonly clinicHealthTourismConfigRepo: IClinicHealthTourismConfigCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly queryBus: TSQueryBus,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -35,8 +36,8 @@ export class ConfigureClinicHealthTourismHandler
       await this.clinicHealthTourismConfigRepo.findByClinicId(clinicId);
 
     if (!config) {
-      const { organizationId } = await this.queryBus.execute(
-        new FindOrganizationIdByClinicIdQuery(clinicId)
+      const organizationId = await this.tenantScopeResolver.resolve(
+        command.payload
       );
 
       config = ClinicHealthTourismConfig.create({

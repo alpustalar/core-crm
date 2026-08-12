@@ -7,5 +7,3 @@ export const SignConsentFormSchema = z.object({
   appointmentId: z.uuid().nullable().optional(),
   treatmentId: z.uuid().nullable().optional(),
 });
-
-export type SignConsentForm = z.infer<typeof SignConsentFormSchema>;

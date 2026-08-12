@@ -2,16 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { ILeadQueryRepository } from '@modules/crm/lead/domain/repositories/lead.repository';
-import { Lead as ILead } from '@shared';
+import { Lead as ILead, LeadStatusSchema } from '@shared';
 import {
   AdAttributedLead,
   FindAdAttributedLeadsFilter,
   FindLeadsFilter,
 } from '@modules/crm/lead/domain/contracts/lead-contracts';
-import { LeadStatusSchema } from '@shared';
+import { ILeadQueryRepository } from '@modules/crm/lead/domain/repositories/lead/lead.query.repository';
 
-/** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */
 @Injectable()
 export class LeadQueryRepository
   extends BaseRepository
@@ -25,7 +23,9 @@ export class LeadQueryRepository
     return this.db.lead.findUnique({ where: { id } });
   }
 
-  findMany(filter: FindLeadsFilter): Promise<{ items: ILead[]; total: number }> {
+  findMany(
+    filter: FindLeadsFilter
+  ): Promise<{ items: ILead[]; total: number }> {
     const where: Record<string, unknown> = { clinicId: filter.clinicId };
     if (filter.status) where.status = filter.status;
     if (filter.source) where.source = filter.source;

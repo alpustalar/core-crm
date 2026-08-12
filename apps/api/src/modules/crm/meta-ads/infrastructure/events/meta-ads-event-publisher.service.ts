@@ -1,7 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  MetaAccountConnectedEvent,
-  MetaAccountConnectedEventPayload,
   MetaLeadReceivedEvent,
   MetaLeadReceivedEventPayload,
 } from '@modules/crm/meta-ads/domain/events';
@@ -17,10 +15,6 @@ export class MetaAdsEventPublisher implements IMetaAdsEventPublisher {
     @Inject(CONTEXT_SERVICE)
     private readonly contextService: IContextService
   ) {}
-
-  accountConnected(payload: MetaAccountConnectedEventPayload): void {
-    this.contextService.addEvent(new MetaAccountConnectedEvent(payload));
-  }
 
   leadReceived(payload: MetaLeadReceivedEventPayload): void {
     this.contextService.addEvent(new MetaLeadReceivedEvent(payload));

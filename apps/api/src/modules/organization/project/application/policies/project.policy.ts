@@ -1,6 +1,11 @@
 import { ActorContext } from '@common/interfaces';
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import { SerializationOptionsResponse } from '@common/interfaces/serialization-policy.interface';
+import {
+  ProjectResponseGroup,
+  ProjectResponseGroups,
+} from '@modules/organization/project/domain/contracts/project.contracts';
 
 /**
  * Proje yönetimi staff policy'si.
@@ -17,22 +22,32 @@ export class ProjectPolicy extends ClinicPolicy {
 
   /** Proje/pano görüntüleme + kendi görevini ilerletme (aynı klinik personeli). */
   canAccessClinicProjects(clinicId: string | undefined | null): boolean {
-    return (
-      this.isSystem() || this.actorCanAccessTargetClinic(clinicId ?? undefined)
-    );
+    return this.actorCanAccessTargetClinic(clinicId ?? undefined);
   }
 
   /** Proje/aşama/görev tanımlama, durum değiştirme, kaynak tahsisi (yönetici). */
   canManageClinicProjects(clinicId: string | undefined | null): boolean {
-    return this.isSystem() || this.actorCanManageTargetClinic(clinicId);
+    return this.actorCanManageTargetClinic(clinicId);
   }
 
-  /**
-   * Bütçe belirleme, maliyet kaydı ve bütçe-vs-fiili raporu.
-   * Yönetici yetkisiyle aynı kapıdan geçer; ayrı metot olması niyeti belgeler ve
-   * ileride finans-özel bir yetkiye bağlanmasını tek noktadan mümkün kılar.
-   */
-  canManageProjectFinancials(clinicId: string | undefined | null): boolean {
-    return this.isSystem() || this.actorCanManageTargetClinic(clinicId);
+  override getSerializationOptions(payload: {
+    clinicId: string | undefined | null;
+  }): SerializationOptionsResponse<ProjectResponseGroup> {
+    const canAccess = this.canAccessClinicProjects(payload.clinicId);
+    const isManager = this.actorCanManageTargetClinic(payload.clinicId);
+    const isSystem = this.isSystem();
+
+    const { ADMIN, INTERNAL, FINANCIAL, MANAGEMENT } = ProjectResponseGroups;
+
+    const groups: ProjectResponseGroup[] = [];
+
+    if (canAccess) groups.push(INTERNAL, FINANCIAL);
+    if (isManager) groups.push(MANAGEMENT);
+    if (isSystem) groups.push(ADMIN);
+
+    return {
+      isGroupActive: canAccess || isManager || isSystem,
+      groups,
+    };
   }
 }

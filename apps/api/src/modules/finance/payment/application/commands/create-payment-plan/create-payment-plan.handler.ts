@@ -23,12 +23,12 @@ export class CreatePaymentPlanHandler
   async execute(
     command: CreatePaymentPlanCommand
   ): Promise<CreatePaymentPlanCommandResponse> {
-    const { dto } = command;
+    const { data } = command;
 
-    const installmentsData = dto.installments.map((inst, idx) => ({
+    const installmentsData = data.installments.map((inst, idx) => ({
       id: crypto.randomUUID(),
       installmentNo: idx + 1,
-      money: Money.create(inst.amount, dto.currency).orThrow(),
+      money: Money.create(inst.amount, data.currency).orThrow(),
       method: inst.method,
       dueDate: inst.dueDate,
       note: inst.note,
@@ -44,10 +44,10 @@ export class CreatePaymentPlanHandler
 
     const payment = Payment.create({
       totalAmount: calculatedTotalMoney,
-      clinicId: dto.clinicId,
-      patientId: dto.patientId,
-      appointmentId: dto.appointmentId,
-      providerId: dto.providerId,
+      clinicId: data.clinicId,
+      patientId: data.patientId,
+      appointmentId: data.appointmentId,
+      providerId: data.providerId,
       installments: installmentsData,
     });
 

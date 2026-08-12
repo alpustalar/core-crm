@@ -34,7 +34,7 @@ export class ArchiveCashRegisterHandler
     this.policyFactory
       .finance(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.canManageClinicFinances(register.clinicId.value)
+        p.canAccessClinicFinances(register.clinicId.value)
       )
       .orThrow(CASH_REGISTER_EVENTS.ARCHIVED);
 

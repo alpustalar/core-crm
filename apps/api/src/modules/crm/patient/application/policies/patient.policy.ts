@@ -27,8 +27,8 @@ export class PatientPolicy extends ClinicPolicy {
    * Aynı organizasyon, hastanın kliniğini yöneten aktör veya sistem yöneticisi.
    */
   canAccessPatient(scope: PatientScope): boolean {
-    if (this.isSystemAdmin()) return true;
-    if (this.actorCanManageTargetClinic(scope.clinicId)) return true;
+    if (this.actorCanAccessTargetClinic(scope?.clinicId ?? undefined))
+      return true;
     return (
       !!scope.organizationId &&
       scope.organizationId === this.actor.organizationId
@@ -55,23 +55,18 @@ export class PatientPolicy extends ClinicPolicy {
   ): SerializationOptionsResponse<PatientResponseGroup> {
     const hasAccess = this.canAccessPatient(scope);
     const isManager = this.actorCanManageTargetClinic(scope.clinicId);
-    const isAdmin = this.isSystemAdmin();
+    const isSystem = this.isSystem();
     const isMedical = hasAccess && this.isMedicalStaff();
 
-    const candidateGroups: (PatientResponseGroup | false)[] = [
-      hasAccess && PatientResponseGroups.INTERNAL,
-      isMedical && PatientResponseGroups.MEDICAL,
-      isManager && PatientResponseGroups.MANAGEMENT,
-      isManager && PatientResponseGroups.FINANCIAL,
-      isAdmin && PatientResponseGroups.ADMIN,
-    ];
+    const groups: PatientResponseGroup[] = [];
 
-    const groups = candidateGroups.filter(
-      (group): group is PatientResponseGroup => group !== false
-    );
+    if (hasAccess) groups.push(PatientResponseGroups.INTERNAL);
+    if (isMedical) groups.push(PatientResponseGroups.MEDICAL);
+    if (isManager) groups.push(PatientResponseGroups.MANAGEMENT);
+    if (isSystem) groups.push(PatientResponseGroups.ADMIN);
 
     return {
-      isGroupActive: hasAccess || isAdmin,
+      isGroupActive: hasAccess || isSystem,
       groups,
     };
   }

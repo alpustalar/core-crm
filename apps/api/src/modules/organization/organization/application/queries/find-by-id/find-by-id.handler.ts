@@ -8,6 +8,10 @@ import {
   IOrganizationQueryRepository,
   ORGANIZATION_QUERY_REPOSITORY,
 } from '@modules/organization/organization/domain/repositories/organization/organization.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(FindByIdQuery)
 export class FindByIdHandler
@@ -15,7 +19,9 @@ export class FindByIdHandler
 {
   constructor(
     @Inject(ORGANIZATION_QUERY_REPOSITORY)
-    private readonly organizationRepo: IOrganizationQueryRepository
+    private readonly organizationRepo: IOrganizationQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: FindByIdQuery): Promise<FindByIdQueryResponse> {
@@ -35,8 +41,14 @@ export class FindByIdHandler
     if (!organization) {
       throw new NotFoundException('Organizasyon bulunamadı');
     }
+
+    // Repo zaten sahiplik üzerinden filtreliyor; grup çözümü organizasyon
+    // policy'sinden gelir (kayıt kiracıya değil, sahibe bağlıdır).
+    const { policy } = this.policyFactory.organization(actor, ctx.source);
+
     return {
       data: organization,
+      meta: { serializationOptions: policy.getSerializationOptions() },
     };
   }
 }

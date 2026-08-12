@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { ProviderResponseGroups } from '@modules/clinical/provider/domain/contracts/provider.contracts';
 
-const { INTERNAL, MANAGEMENT, DATA_OWNER, ADMIN } = ProviderResponseGroups;
+const { INTERNAL, MANAGEMENT, DATA_OWNER } = ProviderResponseGroups;
 
 export class ProviderShiftResponseDto {
   @Expose() id: string;
@@ -19,9 +19,9 @@ export class ProviderShiftResponseDto {
   endMinute: number;
 
   // --- Mola Bilgileri (Sadece Klinik İçi, Yönetim veya Personelin Kendisi) ---
-  @Expose({ groups: [ADMIN, INTERNAL, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [INTERNAL, MANAGEMENT, DATA_OWNER] })
   breakStartMinute: number | null;
 
-  @Expose({ groups: [ADMIN, INTERNAL, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [INTERNAL, MANAGEMENT, DATA_OWNER] })
   breakEndMinute: number | null;
 }

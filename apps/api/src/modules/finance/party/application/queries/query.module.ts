@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { GetPartyByIdHandler } from './get-party-by-id/get-party-by-id.handler';
 import { FindPartiesHandler } from './find-parties/find-parties.handler';
 import { PartyRepositoryModule } from '@modules/finance/party/infrastructure/persistence/prisma/repositories/party/party.repository.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 const QueryHandlers = [GetPartyByIdHandler, FindPartiesHandler];
 
 @Module({
-  imports: [PartyRepositoryModule],
+  imports: [PartyRepositoryModule, ClinicDomainServicesModule],
   providers: [...QueryHandlers],
 })
 export class PartyQueryModule {}

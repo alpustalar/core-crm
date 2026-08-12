@@ -4,7 +4,7 @@ import { MarkLeadLostCommand } from './mark-lead-lost.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository';
+} from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';

@@ -12,6 +12,8 @@ import {
   CASH_REGISTER_COMMAND_REPOSITORY,
   ICashRegisterCommandRepository,
 } from '@modules/finance/cash-register/domain/repositories/cash-register/cash-register.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreateCashRegisterCommand)
 export class CreateCashRegisterHandler
@@ -22,6 +24,8 @@ export class CreateCashRegisterHandler
     private readonly cashRegisterRepo: ICashRegisterCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -29,17 +33,15 @@ export class CreateCashRegisterHandler
     const { data, ctx } = command;
     const { actor } = ctx;
 
-    const clinicId = actor.clinicId ?? '';
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .finance(actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(clinicId))
+      .evaluator.check((p) => p.canAccessClinicFinances(data.clinicId))
       .orThrow(CASH_REGISTER_EVENTS.CREATED);
 
     const register = CashRegister.create({
-      clinicId,
+      clinicId: data.clinicId,
       organizationId,
       name: data.name,
       currency: data.currency,

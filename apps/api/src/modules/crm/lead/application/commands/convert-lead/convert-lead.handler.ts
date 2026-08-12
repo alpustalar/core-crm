@@ -4,7 +4,7 @@ import { ConvertLeadCommand } from './convert-lead.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository';
+} from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   LeadConvertMissingTargetException,
@@ -104,9 +104,11 @@ export class ConvertLeadHandler
     const { data: pipeline } = await this.queryBus.execute(
       new GetPipelineByIdQuery(lead.pipelineId, this.internalCtx)
     );
+
     const wonStage = pipeline?.stages.find(
       (pipelineStage) => pipelineStage.type === PipelineStageTypeSchema.enum.WON
     );
+
     if (pipeline && wonStage) {
       lead.assignStage({ pipelineId: pipeline.id, stageId: wonStage.id });
     }

@@ -6,6 +6,10 @@ import {
   CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY,
   IClinicGovernmentSpecsQueryRepository,
 } from '@modules/organization/clinic-governance/domain/repositories/clinic-government-specs.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetClinicGovernmentSpecsQuery)
 export class GetClinicGovernmentSpecsHandler implements IQueryHandler<
@@ -14,14 +18,33 @@ export class GetClinicGovernmentSpecsHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(CLINIC_GOVERNMENT_SPECS_QUERY_REPOSITORY)
-    private readonly specsQueryRepo: IClinicGovernmentSpecsQueryRepository
+    private readonly specsQueryRepo: IClinicGovernmentSpecsQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetClinicGovernmentSpecsQuery
   ): Promise<GetClinicGovernmentSpecsResponse> {
-    const specs = await this.specsQueryRepo.findByClinicId(query.clinicId);
-    if (!specs) return { data: null };
+    const { clinicId, ctx } = query;
+
+    // USS şifresi + vergi no burada tutulur — klinik sınırı zorunlu.
+    const { evaluator, policy } = this.policyFactory.clinic(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanManageTargetClinic(clinicId),
+        'Bu kliniğin resmî kurum bilgilerine erişim yetkiniz yok.'
+      )
+      .orThrow('clinic-governance.detail');
+
+    const serializationOptions = policy.getSerializationOptions({ clinicId });
+
+    const specs = await this.specsQueryRepo.findByClinicId(clinicId);
+    if (!specs) return { data: null, meta: { serializationOptions } };
 
     return {
       data: {
@@ -33,6 +56,7 @@ export class GetClinicGovernmentSpecsHandler implements IQueryHandler<
         createdAt: specs.createdAt,
         updatedAt: specs.updatedAt,
       },
+      meta: { serializationOptions },
     };
   }
 }

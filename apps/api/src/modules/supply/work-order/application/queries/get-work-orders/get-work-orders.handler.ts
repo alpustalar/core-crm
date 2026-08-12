@@ -27,9 +27,13 @@ export class GetWorkOrdersHandler
     const { filter, pagination, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .workOrder(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicWorkOrders(clinicId))
+    const { evaluator, policy } = this.policyFactory.workOrder(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicWorkOrders(clinicId))
       .orThrow('work-order.list');
 
     const result = await this.workOrderRepo.findByClinic({
@@ -44,7 +48,10 @@ export class GetWorkOrdersHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({ clinicId: clinicId }),
+      },
     };
   }
 }

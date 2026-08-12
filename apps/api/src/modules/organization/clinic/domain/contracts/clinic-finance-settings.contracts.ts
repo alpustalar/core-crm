@@ -26,6 +26,7 @@ export const CreateClinicFinanceSettingsPropsSchema = z.object({
   allowNegativeBalance: z.boolean().optional(),
   maxNegativeBalanceAmount: z.instanceof(Decimal).optional(),
   maxInstallmentCount: z.number().int().positive().optional(),
+  maxDiscountPercent: z.instanceof(Decimal).optional(),
   isEInvoiceActive: z.boolean().optional(),
   fiscalYearStartMonth: z.number().int().min(1).max(12).optional(),
 });

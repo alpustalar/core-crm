@@ -27,9 +27,13 @@ export class GetCashSessionsHandler
     const { filter, pagination, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicFinances(clinicId))
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicFinances(clinicId))
       .orThrow('cash-session.list');
 
     const result = await this.cashSessionRepo.findByClinic({
@@ -41,7 +45,10 @@ export class GetCashSessionsHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({ clinicId: clinicId }),
+      },
     };
   }
 }

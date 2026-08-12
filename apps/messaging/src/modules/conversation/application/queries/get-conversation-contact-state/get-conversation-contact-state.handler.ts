@@ -14,13 +14,13 @@ export class GetConversationContactStateHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository
+    private readonly conversationRepo: IConversationQueryRepository
   ) {}
 
   async execute(
     query: GetConversationContactStateQuery
   ): Promise<GetConversationContactStateResponse> {
-    const conversation = await this.conversationQueryRepo.findByContact({
+    const conversation = await this.conversationRepo.findByContact({
       clinicId: query.payload.clinicId,
       channel: query.payload.channel,
       contactPhone: query.payload.contactPhone,

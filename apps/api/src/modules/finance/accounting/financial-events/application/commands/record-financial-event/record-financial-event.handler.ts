@@ -4,8 +4,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { FinancialEventUniqueConstraintException } from '@modules/finance/accounting/financial-events/domain/exceptions/financial-event-unique-constraint.exception';
 import { FinancialEvent } from '@modules/finance/accounting/financial-events/domain/entities/financial-event.entity';
 import { RecordFinancialEventCommand } from './record-financial-event.command';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/contracts/financial-events.contracts';
 import {
   FINANCIAL_EVENT_COMMAND_REPOSITORY,
@@ -19,8 +21,9 @@ export class RecordFinancialEventHandler
   constructor(
     @Inject(FINANCIAL_EVENT_COMMAND_REPOSITORY)
     private readonly financialEventRepo: IFinancialEventCommandRepository,
-    private readonly txManager: TransactionManager,
-    private readonly queryBus: TSQueryBus
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: RecordFinancialEventCommand): Promise<string> {
@@ -33,9 +36,7 @@ export class RecordFinancialEventHandler
       if (existing) return existing.id.value;
     }
 
-    const { data: organizationId } = await this.queryBus.execute(
-      new GetClinicOrganizationIdQuery(data.clinicId)
-    );
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     const recordData: RecordFinancialEventProps = {
       ...data,

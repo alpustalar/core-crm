@@ -6,6 +6,10 @@ import {
   IPartyQueryRepository,
   PARTY_QUERY_REPOSITORY,
 } from '@modules/finance/party/domain/repositories/party/party.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetPartyByIdQuery)
 export class GetPartyByIdHandler
@@ -13,11 +17,36 @@ export class GetPartyByIdHandler
 {
   constructor(
     @Inject(PARTY_QUERY_REPOSITORY)
-    private readonly partyRepo: IPartyQueryRepository
+    private readonly partyRepo: IPartyQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetPartyByIdQuery): Promise<GetPartyByIdResponse> {
-    const party = await this.partyRepo.findById(query.partyId);
-    return { data: party };
+    const { partyId, ctx } = query;
+
+    const party = await this.partyRepo.findById(partyId);
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    // Cari taraf organizasyona aittir — id tahmini kapıda durdurulur.
+    evaluator
+      .check(
+        (p) => !party || p.canAccessClinicFinances(party.clinicId),
+        'Bu cari tarafa erişim yetkiniz yok.'
+      )
+      .orThrow('party.detail');
+
+    return {
+      data: party,
+      meta: {
+        serializationOptions: policy.getOrganizationSerializationOptions({
+          organizationId: party?.organizationId ?? '',
+        }),
+      },
+    };
   }
 }

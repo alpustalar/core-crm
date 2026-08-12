@@ -11,6 +11,10 @@ import {
   IProductCommandRepository,
   PRODUCT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 @CommandHandler(CreateProductCommand)
 export class CreateProductHandler
@@ -21,27 +25,29 @@ export class CreateProductHandler
     private readonly productRepo: IProductCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateProductCommand): Promise<string> {
     const { data, ctx } = command;
 
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(
-          data.clinicId,
-          data.organizationId
-        )
+        p.actorCanAccessClinicAndOrganization(data.clinicId, organizationId)
       )
       .orThrow();
 
     const product = Product.create({
+      ...data,
       vatRate: data.vatRate ?? 0,
       criticalStockQty: data.criticalStockQty ?? 0,
       reorderQty: data.reorderQty ?? 0,
-      ...data,
+      organizationId,
     });
 
     return this.txManager.run(async () => {

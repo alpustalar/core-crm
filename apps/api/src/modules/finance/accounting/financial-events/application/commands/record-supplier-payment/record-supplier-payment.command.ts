@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators';
-import type { RecordSupplierPayment } from '@shared/modules/financial-event/schemas/record-supplier-payment.schema';
+import type { RecordSupplierPayment } from '@shared/modules/financial-event/types/commands';
 
 /**
  * Satıcıya yapılan ödemeyi kaydeder (320'deki cari borcu kapatır).

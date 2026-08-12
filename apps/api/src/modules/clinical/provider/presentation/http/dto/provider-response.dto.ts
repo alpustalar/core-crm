@@ -17,31 +17,31 @@ export class ProviderResponseDto {
 
   // --- İletişim Bilgileri (Klinik İçi veya Yönetim Görebilir) ---
   @Expose({
-    groups: [ADMIN, INTERNAL, MANAGEMENT, DATA_OWNER],
+    groups: [INTERNAL, MANAGEMENT, DATA_OWNER],
   })
   publicPhone: string | null;
 
   @Expose({
-    groups: [ADMIN, INTERNAL, MANAGEMENT, DATA_OWNER],
+    groups: [INTERNAL, MANAGEMENT, DATA_OWNER],
   })
   publicEmail: string | null;
 
   // --- Hassas / Resmi Belgeler (Sadece Yönetim ve Veri Sahibi Görebilir) ---
-  @Expose({ groups: [ADMIN, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [MANAGEMENT, DATA_OWNER] })
   diplomaNo: string | null;
 
-  @Expose({ groups: [ADMIN, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [MANAGEMENT, DATA_OWNER] })
   hlrNo: string | null;
 
   @Expose({ groups: [ADMIN] })
   sectorId: string | null;
 
   // --- Audit Zaman Damgaları ---
-  @Expose({ groups: [ADMIN, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [MANAGEMENT, DATA_OWNER] })
   @Type(() => Date)
   createdAt: Date;
 
-  @Expose({ groups: [ADMIN, MANAGEMENT, DATA_OWNER] })
+  @Expose({ groups: [MANAGEMENT, DATA_OWNER] })
   @Type(() => Date)
   updatedAt: Date;
 }

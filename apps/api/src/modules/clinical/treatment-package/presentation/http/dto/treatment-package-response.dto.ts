@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
 
-const { MANAGEMENT, DATA_OWNER, FINANCIAL, ADMIN } = ResponseGroups;
+const { MANAGEMENT, DATA_OWNER, INTERNAL, ADMIN } = ResponseGroups;
 
 export class TreatmentPackageResponseDto {
   @Expose() id: string;
@@ -16,10 +16,10 @@ export class TreatmentPackageResponseDto {
   @Expose() isActive: boolean;
 
   // --- Finansal Bilgiler (Finans, Yönetim ve Admin Görebilir) ---
-  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
   price: number;
 
-  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Expose({ groups: [INTERNAL, MANAGEMENT, ADMIN] })
   currency: string;
 
   // --- Audit Zaman Damgaları (Yönetim, Sahip ve Admin) ---

@@ -7,9 +7,10 @@ export class GetActivitiesByLeadQuery implements IQuery {
   readonly __responseType!: GetActivitiesByLeadResponse;
   constructor(
     public readonly payload: {
-      leadId: string;
-      pagination: Pagination;
-      ctx: IGetContext;
+      readonly leadId: string;
+      readonly pagination: Pagination;
+      readonly ctx: IGetContext;
+      readonly clinicId: string;
     }
   ) {}
 }

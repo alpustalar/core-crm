@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
 import {
   PipelineStageTypeSchema,
   PipelineStageTypeType,
@@ -85,3 +86,10 @@ export interface PipelineWithStages {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ==========================================
+// Huni cevaplarının alan görünürlüğü; grupları ClinicPolicy üretir.
+export const PipelineResponseGroups = ResponseGroups;
+
+export type PipelineResponseGroup =
+  (typeof PipelineResponseGroups)[keyof typeof PipelineResponseGroups];

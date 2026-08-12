@@ -34,7 +34,7 @@ export class ArchiveBankAccountHandler
 
     this.policyFactory
       .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(account.clinicId.value))
+      .evaluator.check((p) => p.canAccessClinicFinances(account.clinicId.value))
       .orThrow('bank-account.archive');
 
     account.archive();

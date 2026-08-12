@@ -5,5 +5,3 @@ export const UpdateConsentTemplateSchema = z.object({
   content: z.string().min(1).optional(),
   sectorId: z.uuid().nullable().optional(),
 });
-
-export type UpdateConsentTemplate = z.infer<typeof UpdateConsentTemplateSchema>;

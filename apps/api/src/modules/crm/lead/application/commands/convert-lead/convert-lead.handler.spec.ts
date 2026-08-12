@@ -82,7 +82,7 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
     expect(commandBus.execute).toHaveBeenCalledTimes(1);
     const dispatched = commandBus.execute.mock.calls[0][0];
     expect(dispatched).toBeInstanceOf(CreatePatientCommand);
-    expect(dispatched.dto).toMatchObject({
+    expect(dispatched.data).toMatchObject({
       phone: '+905550001122',
       firstName: 'Ada Lovelace',
       organizationId,

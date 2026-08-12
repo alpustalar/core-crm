@@ -11,10 +11,6 @@ import {
 import { ConvertUserToProviderCommand } from '@modules/clinical/provider/application/commands';
 import { CreateUserCommand } from '@modules/identity/user/application/commands/create-user/create-user.command';
 import { CreateUserResponse } from '@modules/identity/user/application/commands/create-user/create-user.response';
-import {
-  IUserEventPublisher,
-  USER_EVENT_PUBLISHER,
-} from '@modules/identity/user/domain/interfaces/user-event-publisher.interface';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateProviderDto, RegisterUserOrProviderAccountDto } from '@shared';
@@ -24,6 +20,7 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { USER_EVENTS } from '@src/domain/constants/events';
 import { RegisterUserOrProviderAccountCommand } from '@modules/identity/auth/registration/application/commands/register-user-or-provider-account/register-user-or-provider-account.command';
 import { RegistrationConfigurationException } from '@modules/identity/auth/registration/domain/registration.exceptions';
+import { EnqueueForceDeleteUserCommand } from '@modules/identity/user/application/commands/enqueue-force-delete-user/enqueue-force-delete-user.command';
 
 @CommandHandler(RegisterUserOrProviderAccountCommand)
 export class RegisterUserOrProviderAccountHandler
@@ -33,8 +30,6 @@ export class RegisterUserOrProviderAccountHandler
   constructor(
     @Inject(POLICY_FACTORY)
     protected readonly policyFactory: IPolicyFactory,
-    @Inject(USER_EVENT_PUBLISHER)
-    private readonly userEventPublisher: IUserEventPublisher,
     @Inject(FIREBASE_SERVICE)
     private readonly firebaseService: IFirebaseService,
     private readonly commandBus: TSCommandBus,
@@ -103,12 +98,16 @@ export class RegisterUserOrProviderAccountHandler
     firebaseUid?: string
   ): never {
     if (firebaseUid) {
-      this.userEventPublisher.enqueueForceDelete({
-        firebaseUid,
-        actorId: actor.userId,
-        source: actor.source,
-        type: LogType.ERROR,
-      });
+      // Telafi, user modülünün kendi command'i üzerinden — publisher'a modül
+      // dışından erişilmez.
+      void this.commandBus.execute(
+        new EnqueueForceDeleteUserCommand({
+          firebaseUid,
+          actorId: actor.userId,
+          source: actor.source,
+          type: LogType.ERROR,
+        })
+      );
     }
     throw error;
   }

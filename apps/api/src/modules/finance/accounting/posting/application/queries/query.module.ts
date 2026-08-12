@@ -9,6 +9,7 @@ import { GetCashFlowHandler } from './get-cash-flow/get-cash-flow.handler';
 import { GetVatDeclarationHandler } from './get-vat-declaration/get-vat-declaration.handler';
 import { GetBankLedgerLinesHandler } from './get-bank-ledger-lines/get-bank-ledger-lines.handler';
 import { JournalRepositoryModule } from '@modules/finance/accounting/posting/infrastructure/persistence/prisma/repositories/journal/journal.repository.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 const QueryHandlers = [
   GetJournalEntriesHandler,
@@ -23,7 +24,7 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [JournalRepositoryModule],
+  imports: [JournalRepositoryModule, ClinicDomainServicesModule],
   providers: [...QueryHandlers],
   exports: [...QueryHandlers],
 })

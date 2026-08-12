@@ -13,6 +13,5 @@ export const LEAD_QUERY_HANDLERS = [
 @Module({
   imports: [LeadRepositoriesModule],
   providers: LEAD_QUERY_HANDLERS,
-  exports: LEAD_QUERY_HANDLERS,
 })
 export class LeadQueryModule {}

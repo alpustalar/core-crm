@@ -27,9 +27,13 @@ export class GetProjectByIdHandler implements IQueryHandler<
     const row = await this.projectQueryRepo.findByIdWithPhases(query.projectId);
     if (!row) return { data: null };
 
-    this.policyFactory
-      .project(query.ctx.actor, query.ctx.source)
-      .evaluator.check((p) => p.canAccessClinicProjects(row.clinicId))
+    const { evaluator, policy } = this.policyFactory.project(
+      query.ctx.actor,
+      query.ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicProjects(row.clinicId))
       .orThrow('project.get');
 
     const taskCounts = await this.projectQueryRepo.taskStatusCounts(
@@ -38,6 +42,13 @@ export class GetProjectByIdHandler implements IQueryHandler<
 
     const { phases, ...project } = row;
 
-    return { data: { project, phases, taskCounts } };
+    return {
+      data: { project, phases, taskCounts },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: row.clinicId,
+        }),
+      },
+    };
   }
 }

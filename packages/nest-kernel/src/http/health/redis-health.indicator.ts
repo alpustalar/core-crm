@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
-import { HealthIndicator } from './health-indicator.interface';
+import { HealthIndicator } from '@src/http';
 
 /**
  * Redis erişilebilir mi. `status` alanına bakmak yetmez — bağlantı "ready"

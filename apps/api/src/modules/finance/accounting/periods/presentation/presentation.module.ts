@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AccountingPeriodController } from '@modules/finance/accounting/periods/presentation/http/controllers/accounting-period.controller';
+import { AccountingPeriodQueryController } from '@modules/finance/accounting/periods/presentation/http/controllers/accounting-period.query.controller';
+import { AccountingPeriodCommandController } from '@modules/finance/accounting/periods/presentation/http/controllers/accounting-period.command.controller';
 
-@Module({ controllers: [AccountingPeriodController] })
+@Module({ controllers: [AccountingPeriodQueryController, AccountingPeriodCommandController] })
 export class AccountingPeriodPresentationModule {}

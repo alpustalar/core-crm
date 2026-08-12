@@ -27,9 +27,29 @@ export class GetInvoiceByIdHandler
   async execute(query: GetInvoiceByIdQuery): Promise<GetInvoiceByIdResponse> {
     const { ctx } = query;
     const invoice = await this.invoiceRepo.findById(query.invoiceId);
-    if (!invoice) return { data: null };
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
 
-    // TODO: policy
+    if (!invoice) {
+      return {
+        data: null,
+        meta: {
+          serializationOptions: policy.getSerializationOptions({
+            clinicId: ctx.actor.clinicId ?? '',
+          }),
+        },
+      };
+    }
+
+    // Fatura başka kliniğe aitse detay sızmaz — klinik bağı kaydın kendisinden çözülür.
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(invoice.clinicId),
+        'Bu faturaya erişim yetkiniz yok.'
+      )
+      .orThrow('invoice.detail');
 
     const tax = taxSpecificationOf(invoice);
     return {
@@ -45,6 +65,11 @@ export class GetInvoiceByIdHandler
         currency: invoice.currency,
         issuedAt: invoice.issuedAt,
         status: invoice.status,
+      },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: invoice.clinicId,
+        }),
       },
     };
   }

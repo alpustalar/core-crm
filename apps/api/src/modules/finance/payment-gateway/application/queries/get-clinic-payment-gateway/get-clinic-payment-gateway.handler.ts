@@ -6,6 +6,10 @@ import {
   CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY,
   IClinicPaymentGatewayQueryRepository,
 } from '@modules/finance/payment-gateway/domain/repositories/clinic-payment-gateway/clinic-payment-gateway.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetClinicPaymentGatewayQuery)
 export class GetClinicPaymentGatewayHandler
@@ -17,16 +21,34 @@ export class GetClinicPaymentGatewayHandler
 {
   constructor(
     @Inject(CLINIC_PAYMENT_GATEWAY_QUERY_REPOSITORY)
-    private readonly clinicPaymentGatewayRepo: IClinicPaymentGatewayQueryRepository
+    private readonly clinicPaymentGatewayRepo: IClinicPaymentGatewayQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetClinicPaymentGatewayQuery
   ): Promise<GetClinicPaymentGatewayResponse> {
-    const gateway = await this.clinicPaymentGatewayRepo.findByClinicId(
-      query.clinicId
+    const { clinicId, ctx } = query;
+
+    // iyzico alt-üye kimliği ödeme sağlayıcı kimlik bilgisidir — klinik sınırı şart.
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
     );
-    if (!gateway) return { data: null };
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin ödeme sağlayıcı ayarlarına erişim yetkiniz yok.'
+      )
+      .orThrow('payment-gateway.detail');
+
+    const serializationOptions = policy.getSerializationOptions({ clinicId });
+
+    const gateway =
+      await this.clinicPaymentGatewayRepo.findByClinicId(clinicId);
+    if (!gateway) return { data: null, meta: { serializationOptions } };
 
     return {
       data: {
@@ -35,6 +57,7 @@ export class GetClinicPaymentGatewayHandler
         createdAt: gateway.createdAt,
         updatedAt: gateway.updatedAt,
       },
+      meta: { serializationOptions },
     };
   }
 }

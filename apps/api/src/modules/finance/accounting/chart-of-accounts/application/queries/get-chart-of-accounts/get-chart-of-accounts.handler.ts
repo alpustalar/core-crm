@@ -6,6 +6,10 @@ import {
   ACCOUNT_QUERY_REPOSITORY,
   IAccountQueryRepository,
 } from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account/account.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetChartOfAccountsQuery)
 export class GetChartOfAccountsHandler
@@ -13,14 +17,25 @@ export class GetChartOfAccountsHandler
 {
   constructor(
     @Inject(ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountRepo: IAccountQueryRepository
+    private readonly accountRepo: IAccountQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetChartOfAccountsQuery
   ): Promise<GetChartOfAccountsResponse> {
-    const accounts = await this.accountRepo.findAllByClinicId(query.clinicId);
+    const { clinicId, ctx } = query;
 
-    return { data: accounts };
+    const { policy } = this.policyFactory.finance(ctx.actor, ctx.source);
+
+    const accounts = await this.accountRepo.findAllByClinicId(clinicId);
+
+    return {
+      data: accounts,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

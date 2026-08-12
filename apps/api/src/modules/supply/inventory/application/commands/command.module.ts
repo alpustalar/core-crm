@@ -10,6 +10,7 @@ import { ReceiveStockHandler } from './receive-stock/receive-stock.handler';
 import { AdjustStockHandler } from './adjust-stock/adjust-stock.handler';
 import { RecordProductUsageHandler } from './record-product-usage/record-product-usage.handler';
 import { InventoryInfrastructureModule } from '@modules/supply/inventory/infrastructure/infrastructure.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 export const INVENTORY_COMMAND_HANDLERS = [
   CreateProductHandler,
@@ -24,7 +25,7 @@ export const INVENTORY_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [InventoryInfrastructureModule],
+  imports: [InventoryInfrastructureModule, ClinicDomainServicesModule],
   providers: [...INVENTORY_COMMAND_HANDLERS],
 })
 export class InventoryCommandModule {}

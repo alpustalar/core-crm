@@ -3,8 +3,6 @@ import ProductConditionSchema from '@shared/generated-zod/inputTypeSchemas/Produ
 import ProductUnitSchema from '@shared/generated-zod/inputTypeSchemas/ProductUnitSchema';
 
 
-
-
 export const CreateProductSchema = z.object({
   name: z.string().min(1).max(200),
   stockCode: z.string().min(1).max(50),
@@ -18,6 +16,6 @@ export const CreateProductSchema = z.object({
   reorderQty: z.number().min(0).optional(),
   categoryId: z.uuid().optional().nullable(),
   supplierId: z.uuid().optional().nullable(),
+  organizationId: z.uuid().optional().nullable(),
   clinicId: z.uuid(),
-  organizationId: z.uuid(),
 });

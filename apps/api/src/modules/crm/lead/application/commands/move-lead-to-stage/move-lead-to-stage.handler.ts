@@ -4,7 +4,7 @@ import { MoveLeadToStageCommand } from './move-lead-to-stage.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository';
+} from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
 import {
   ILeadEventPublisher,
   LEAD_EVENT_PUBLISHER,

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Pagination } from '@shared/common';
 import { MetaLeadStatusSchema } from '@input-type-schemas/MetaLeadStatusSchema';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 
 export const UpsertCampaignMetricDataSchema = z.object({
   id: z.uuid(),
@@ -71,10 +72,24 @@ export const CreateMetaAdAccountPropsSchema = z.object({
 
   // Token süresi yönetimi
   tokenExpiresAt: z.date().nullable().optional(),
+
+  // Audit izi — event entity içinde raise edildiği için aktör bilgisi props ile taşınır
+  actorId: z.string().optional(),
+  logSource: z.enum(LogSource).optional(),
 });
 
 export type CreateMetaAdAccountProps = z.infer<
   typeof CreateMetaAdAccountPropsSchema
+>;
+
+/** Hesap bağlantısını kesme (deactivate) — yalnız audit izi taşır. */
+export const DeactivateMetaAdAccountPropsSchema = z.object({
+  actorId: z.string().optional(),
+  logSource: z.enum(LogSource).optional(),
+});
+
+export type DeactivateMetaAdAccountProps = z.infer<
+  typeof DeactivateMetaAdAccountPropsSchema
 >;
 
 export const oAuthStatePayloadSchema = z.object({

@@ -41,9 +41,9 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
 
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
-    private readonly messageCommandRepo: IMessageCommandRepository,
+    private readonly messageRepo: IMessageCommandRepository,
     @Inject(MESSAGING_CACHE_SERVICE)
     private readonly messagingCache: IMessagingCacheService,
     @Inject(AI_MEMORY_CACHE_SERVICE)
@@ -61,7 +61,7 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
     // yazmayacağımıza karar verdiği için command repo'dan (ana bağlantı) yapılır —
     // replica gecikmesi mükerrer kayıt üretirdi. Yarışın son güvencesi yine de
     // `@@unique(externalId)` kısıtıdır.
-    const existingMessage = await this.messageCommandRepo.findByExternalId(
+    const existingMessage = await this.messageRepo.findByExternalId(
       input.externalId
     );
     if (existingMessage) return existingMessage.id;
@@ -83,7 +83,7 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
       // Kilidi kazanan taraf bu arada commit etmiş olabilir; etmişse gerçek id'yi
       // döndür. Hâlâ uçuştaysa döndürecek bir id yok — webhook zaten sonucu
       // kullanmıyor, Meta'ya 200 dönmesi yeterli.
-      const winner = await this.messageCommandRepo.findByExternalId(
+      const winner = await this.messageRepo.findByExternalId(
         input.externalId
       );
       return winner?.id ?? '';
@@ -156,7 +156,7 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
         replyToExternalId: input.replyToExternalId,
       });
 
-      const savedMessage = await this.messageCommandRepo.create(message);
+      const savedMessage = await this.messageRepo.create(message);
 
       conversation.recordInboundMessage({
         messageId: savedMessage.id,
@@ -173,9 +173,9 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
 
       // Yeni yazışma INSERT, mevcut olan UPDATE.
       if (isNew) {
-        await this.conversationCommandRepo.create(conversation);
+        await this.conversationRepo.create(conversation);
       } else {
-        await this.conversationCommandRepo.update(conversation);
+        await this.conversationRepo.update(conversation);
       }
 
       return { messageId: savedMessage.id, conversationId: conversation.id };
@@ -207,7 +207,7 @@ export class ReceiveInboundMessageHandler implements ICommandHandler<
     // Kilitli okuma: `recordInboundMessage` unreadCount'u okuyup artırdığı için, aynı
     // kontaktan arka arkaya gelen iki mesaj kilitsizken aynı sayıyı okuyup birbirini
     // ezerdi. Yazışma yoksa kilitlenecek satır yok; mükerrerliği @@unique engeller.
-    const existing = await this.conversationCommandRepo.findByContactForUpdate({
+    const existing = await this.conversationRepo.findByContactForUpdate({
       clinicId: input.clinicId,
       channel,
       contactPhone: input.contactPhone,

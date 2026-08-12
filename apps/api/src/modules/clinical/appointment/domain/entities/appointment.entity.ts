@@ -41,7 +41,7 @@ import {
 } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
-import { endTimeCalculator, isDefined } from '@common/utils';
+import { endTimeCalculator } from '@common/utils';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
@@ -825,8 +825,10 @@ export class Appointment extends AggregateRoot {
 
     if (isNotUndefined(props.notes)) this._notes = props.notes;
 
-    if (isDefined(props.treatmentId))
-      this._treatmentId = UUID.create(props.treatmentId).instance ?? null;
+    if (isNotUndefined(props.treatmentId))
+      this._treatmentId = props.treatmentId
+        ? UUID.create(props.treatmentId).orThrow()
+        : null;
   }
 
   private applyCancellation(canceledBy: string, reason?: string): void {

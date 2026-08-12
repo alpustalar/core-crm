@@ -72,10 +72,9 @@ export class PatientResponseDto {
   @Expose({ groups: [DATA_OWNER, INTERNAL, ADMIN] })
   bloodType: BloodType | null;
 
-  // --- Finansal İndirim Hakları (Sadece Finans, Yönetim ve Admin) ---
-  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
-  @Type(() => Number)
-  discountRate: number | null;
+  // NOT: Hastaya bağlı kalıcı `discountRate` kaldırıldı. İndirim işlem bazında
+  // TreatmentCharge satırında yaşıyor; hasta detayında gösterilecek bir "indirim
+  // hakkı" yok.
 
   // --- Sistem ve Kimlik Doğrulama Bağlantıları (Sadece Yönetim ve Admin) ---
   @Expose({ groups: [MANAGEMENT, ADMIN] })

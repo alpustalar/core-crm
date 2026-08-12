@@ -64,7 +64,6 @@ export const CreatePatientPropsSchema = z.object({
   // Hekim ve Finansal İlişkiler
   responsibleProviderId: z.uuid().nullable().optional(),
   checkupDate: z.date().nullable().optional(),
-  discountRate: z.instanceof(Decimal).nullable().optional(),
 });
 
 export type CreatePatientProps = z.infer<typeof CreatePatientPropsSchema>;

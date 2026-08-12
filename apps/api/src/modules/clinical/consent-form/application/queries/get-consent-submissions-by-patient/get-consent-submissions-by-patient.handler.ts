@@ -7,7 +7,6 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { CONSENT_FORM_EVENTS } from '@src/domain/constants/events/consent-form.constant';
 import {
   CONSENT_FORM_SUBMISSION_QUERY_REPOSITORY,
   IConsentFormSubmissionQueryRepository,
@@ -33,10 +32,7 @@ export class GetConsentSubmissionsByPatientHandler
   ): Promise<GetConsentSubmissionsByPatientResponse> {
     const { patientId, pagination, ctx } = query.payload;
 
-    this.policyFactory
-      .consentForm(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessConsentSubmissions(ctx.actor.clinicId))
-      .orThrow(CONSENT_FORM_EVENTS.LIST);
+    const { policy } = this.policyFactory.consentForm(ctx.actor, ctx.source);
 
     const result = await this.consentFormSubmissionRepo.findByPatient({
       patientId,
@@ -45,7 +41,12 @@ export class GetConsentSubmissionsByPatientHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: ctx.actor.clinicId,
+        }),
+      },
     };
   }
 }

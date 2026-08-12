@@ -21,15 +21,15 @@ export class GetConversationMessagesHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
+    private readonly conversationRepo: IConversationQueryRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository
+    private readonly messageRepo: IMessageQueryRepository
   ) {}
 
   async execute(
     query: GetConversationMessagesQuery
   ): Promise<GetConversationMessagesResponse> {
-    const conversation = await this.conversationQueryRepo.findById(
+    const conversation = await this.conversationRepo.findById(
       query.payload.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
@@ -37,7 +37,7 @@ export class GetConversationMessagesHandler implements IQueryHandler<
       throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
     }
 
-    const result = await this.messageQueryRepo.findManyByConversation(
+    const result = await this.messageRepo.findManyByConversation(
       query.payload.conversationId,
       query.payload.pagination
     );

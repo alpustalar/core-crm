@@ -5,7 +5,7 @@ import { GetLeadsResponse } from './get-leads.response';
 import {
   ILeadQueryRepository,
   LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository';
+} from '@modules/crm/lead/domain/repositories/lead/lead.query.repository';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import {
   IPolicyFactory,
@@ -18,7 +18,7 @@ export class GetLeadsHandler
 {
   constructor(
     @Inject(LEAD_QUERY_REPOSITORY)
-    private readonly leadQueryRepo: ILeadQueryRepository,
+    private readonly leadRepo: ILeadQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory
   ) {}
@@ -26,7 +26,7 @@ export class GetLeadsHandler
   async execute(query: GetLeadsQuery): Promise<GetLeadsResponse> {
     const { clinicId, data, pagination, ctx } = query.payload;
 
-    const result = await this.leadQueryRepo.findMany({
+    const result = await this.leadRepo.findMany({
       clinicId,
       status: data.status,
       source: data.source,

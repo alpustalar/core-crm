@@ -9,6 +9,10 @@ import {
 } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
 import { StaffNotification as IStaffNotification } from '@shared';
 import { StaffNotificationListItem } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetMyNotificationsQuery)
 export class GetMyNotificationsHandler implements IQueryHandler<
@@ -17,7 +21,9 @@ export class GetMyNotificationsHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(STAFF_NOTIFICATION_QUERY_REPOSITORY)
-    private readonly staffNotificationQueryRepo: IStaffNotificationQueryRepository
+    private readonly staffNotificationQueryRepo: IStaffNotificationQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -35,6 +41,13 @@ export class GetMyNotificationsHandler implements IQueryHandler<
       data: result.items.map((notification) => this.toListItem(notification)),
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
+        // Liste zaten aktörün kendi userId'sine sabit; alan görünürlüğü
+        // kliniğinden çözülür (paramsJson gibi yapısal alanlar klinik içi).
+        serializationOptions: this.policyFactory
+          .clinic(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({
+            clinicId: ctx.actor.clinicId ?? '',
+          }),
       },
     };
   }

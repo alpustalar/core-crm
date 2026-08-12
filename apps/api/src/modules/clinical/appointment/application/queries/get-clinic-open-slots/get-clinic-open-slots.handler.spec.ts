@@ -1,3 +1,4 @@
+import type { IPolicyFactory } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { GetClinicOpenSlotsHandler } from './get-clinic-open-slots.handler';
 import { GetClinicOpenSlotsQuery } from './get-clinic-open-slots.query';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
@@ -98,7 +99,15 @@ describe('GetClinicOpenSlotsHandler (klinik geneli açık slotlar)', () => {
       }),
     } as unknown as TSQueryBus;
 
-    return new GetClinicOpenSlotsHandler(queryBus);
+    const policyFactory = {
+      appointment: () => ({
+        policy: {
+          getSerializationOptions: () => ({ groups: [], isGroupActive: false }),
+        },
+      }),
+    } as unknown as IPolicyFactory;
+
+    return new GetClinicOpenSlotsHandler(queryBus, policyFactory);
   };
 
   const run = (

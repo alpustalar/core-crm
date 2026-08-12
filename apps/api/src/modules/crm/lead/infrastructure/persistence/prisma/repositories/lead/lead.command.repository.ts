@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead.repository';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
+import { ILeadCommandRepository } from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
 
 @Injectable()
 export class LeadCommandRepository
@@ -15,7 +15,6 @@ export class LeadCommandRepository
   }
 
   async create(entity: Lead): Promise<Lead> {
-    // Entity toPersistence() tüm alanları (attribution dahil) üretir; INSERT edilir.
     const raw = await this.db.lead.create({ data: entity.toPersistence() });
     entity.flushEvents();
     return new Lead(raw);

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AttendanceController } from '@modules/hr/attendance/presentation/http/controllers/attendance.controller';
+import { AttendanceQueryController } from '@modules/hr/attendance/presentation/http/controllers/attendance.query.controller';
+import { AttendanceCommandController } from '@modules/hr/attendance/presentation/http/controllers/attendance.command.controller';
 
-@Module({ controllers: [AttendanceController] })
+@Module({ controllers: [AttendanceQueryController, AttendanceCommandController] })
 export class AttendancePresentationModule {}

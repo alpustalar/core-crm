@@ -1,4 +1,3 @@
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
 import { GetClinicFinanceSummaryHandler } from './get-clinic-finance-summary.handler';
 import { GetClinicFinanceSummaryQuery } from './get-clinic-finance-summary.query';
 
@@ -14,23 +13,30 @@ describe('GetClinicFinanceSummaryHandler', () => {
     const repo = { getClinicSummary: jest.fn().mockResolvedValue(summary) };
     const orThrow = jest.fn();
     const check = jest.fn().mockReturnValue({ orThrow });
+    const serializationOptions = { groups: [], isGroupActive: false };
     const policyFactory = {
-      clinic: jest.fn().mockReturnValue({ evaluator: { check } }),
+      finance: jest.fn().mockReturnValue({
+        evaluator: { check },
+        policy: {
+          getSerializationOptions: jest
+            .fn()
+            .mockReturnValue(serializationOptions),
+        },
+      }),
     };
     const handler = new GetClinicFinanceSummaryHandler(
       repo as never,
       policyFactory as never
     );
-    return { handler, repo, policyFactory, check };
+    return { handler, repo, policyFactory, check, orThrow, serializationOptions };
   };
 
   const ctx = { actor: { id: 'u1' }, source: 'API' } as never;
 
   afterEach(() => jest.restoreAllMocks());
 
-  it('aktör yetkili ise şube özetini döner', async () => {
-    jest.spyOn(ExecutionPolicy, 'isSystemInitiated').mockReturnValue(false);
-    const { handler, repo, check } = make();
+  it('şube özetini yetki kontrolünden sonra döner', async () => {
+    const { handler, repo, check, serializationOptions } = make();
     const from = new Date('2026-01-01');
     const to = new Date('2026-12-31');
 
@@ -43,22 +49,35 @@ describe('GetClinicFinanceSummaryHandler', () => {
       })
     );
 
-    expect(check).toHaveBeenCalledTimes(1); // yetki kontrolü yapıldı
+    expect(check).toHaveBeenCalledTimes(1);
     expect(repo.getClinicSummary).toHaveBeenCalledWith('clinic-1', {
       dateFrom: from,
       dateTo: to,
     });
-    expect(result).toEqual({ data: summary });
+    expect(result).toEqual({
+      data: summary,
+      meta: { serializationOptions },
+    });
   });
 
-  it('sistem tetikli çağrıda yetki kontrolü atlanır', async () => {
-    jest.spyOn(ExecutionPolicy, 'isSystemInitiated').mockReturnValue(true);
-    const { handler, check } = make();
+  it('yetki kontrolü DB sorgusundan önce koşar — ciro okunmadan kapı tutulur', async () => {
+    const { handler, repo, check, orThrow } = make();
 
-    await handler.execute(
-      new GetClinicFinanceSummaryQuery({ clinicId: 'clinic-1', ctx })
-    );
+    orThrow.mockImplementation(() => {
+      throw new Error('yetkisiz');
+    });
 
-    expect(check).not.toHaveBeenCalled();
+    await expect(
+      handler.execute(
+        new GetClinicFinanceSummaryQuery({ clinicId: 'clinic-1', ctx })
+      )
+    ).rejects.toThrow('yetkisiz');
+
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(repo.getClinicSummary).not.toHaveBeenCalled();
   });
+
+  // NOT: Sistem tetikli çağrıların baypası artık handler'da bir `if` ile değil,
+  // `PolicyEvaluator` içinde (policy.isSystem()) yaşıyor — handler her koşulda
+  // check'i çağırır, evaluator sistem bağlamında no-op olur.
 });

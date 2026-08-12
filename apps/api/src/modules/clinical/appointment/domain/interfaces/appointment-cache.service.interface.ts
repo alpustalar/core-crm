@@ -84,7 +84,3 @@ export interface IAppointmentCacheService {
   readonly slotLockTtlSeconds: number;
   readonly slotLock: ISlotLockOperations;
 }
-
-// ----------------------------------------------------------------------
-// Injection Token
-// ----------------------------------------------------------------------

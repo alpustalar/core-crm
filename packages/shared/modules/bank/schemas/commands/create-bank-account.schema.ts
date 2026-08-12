@@ -9,4 +9,6 @@ export const CreateBankAccountSchema = z.object({
   accountNo: z.string().nullable().optional(),
   currency: CurrencySchema.optional(),
   openingBalance: z.number().optional(),
+  clinicId: z.string(),
+  organizationId: z.string().nullable().optional(),
 });

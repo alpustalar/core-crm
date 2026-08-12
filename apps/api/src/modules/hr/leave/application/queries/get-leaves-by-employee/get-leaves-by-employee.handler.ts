@@ -29,9 +29,13 @@ export class GetLeavesByEmployeeHandler
   ): Promise<GetLeavesByEmployeeResponse> {
     const { employeeId, filter, pagination, ctx } = query.payload;
 
-    this.policyFactory
-      .employee(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicHr(ctx.actor.clinicId))
+    const { evaluator, policy } = this.policyFactory.employee(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicHr(ctx.actor.clinicId))
       .orThrow('leave.list');
 
     const result = await this.leaveRepo.findByEmployee({
@@ -42,7 +46,12 @@ export class GetLeavesByEmployeeHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: ctx.actor.clinicId ?? '',
+        }),
+      },
     };
   }
 }

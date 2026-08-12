@@ -12,6 +12,8 @@ import {
   ATTENDANCE_COMMAND_REPOSITORY,
   IAttendanceCommandRepository,
 } from '@modules/hr/attendance/domain/repositories/attendance/attendance.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(RecordAttendanceCommand)
 export class RecordAttendanceHandler
@@ -22,16 +24,17 @@ export class RecordAttendanceHandler
     private readonly attendanceRepo: IAttendanceCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: RecordAttendanceCommand): Promise<void> {
-    const { employeeId, data, ctx } = command.payload;
-    const { actor } = ctx;
+    const { employeeId, data, ctx, clinicId } = command.payload;
 
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
-    const clinicId = actor.clinicId ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(
+      command.payload
+    );
 
     this.policyFactory
       .employee(ctx.actor, ctx.source)

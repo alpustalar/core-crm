@@ -29,9 +29,13 @@ export class GetAttendanceSummaryHandler
   ): Promise<GetAttendanceSummaryResponse> {
     const { employeeId, filter, ctx } = query.payload;
 
-    this.policyFactory
-      .employee(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicHr(ctx.actor.clinicId))
+    const { evaluator, policy } = this.policyFactory.employee(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canManageClinicHr(ctx.actor.clinicId))
       .orThrow(ATTENDANCE_EVENTS.SUMMARY);
 
     const summary = await this.attendanceRepo.getSummary({
@@ -40,6 +44,13 @@ export class GetAttendanceSummaryHandler
       to: filter.to,
     });
 
-    return { data: summary };
+    return {
+      data: summary,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: ctx.actor.clinicId ?? '',
+        }),
+      },
+    };
   }
 }

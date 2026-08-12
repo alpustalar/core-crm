@@ -28,21 +28,31 @@ export class GetLedgerByClinicIdHandler
     query: GetLedgerByClinicIdQuery
   ): Promise<GetLedgerByClinicIdQueryResponse> {
     const { clinicId, pagination, ctx } = query;
+
+    // Yetki kontrolü sorgudan ÖNCE — yetkisiz aktör için DB'ye hiç gidilmez.
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin cari hareketlerine erişim yetkiniz yok.'
+      )
+      .orThrow();
+
     const { items, total } =
       await this.financeLedgerRepository.findManyByClinicId(
         clinicId,
         pagination
       );
 
-    this.policyFactory
-      .clinic(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.actorCanAccessTargetClinic(clinicId))
-      .orThrow();
-
     return {
       data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
       },
     };
   }

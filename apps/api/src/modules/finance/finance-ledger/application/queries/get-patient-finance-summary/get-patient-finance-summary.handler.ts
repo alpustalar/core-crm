@@ -14,6 +14,13 @@ import {
   FINANCE_LEDGER_QUERY_REPOSITORY,
   IFinanceLedgerQueryRepository,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
+import { IGetContext } from '@common/decorators/get-context.decorator';
+
+interface GetSummaryInput {
+  patientId: string;
+  clinicId: string;
+  ctx: IGetContext;
+}
 
 @QueryHandler(GetPatientFinanceSummaryQuery)
 export class GetPatientFinanceSummaryHandler
@@ -40,7 +47,11 @@ export class GetPatientFinanceSummaryHandler
     // system-initiated ise patient.clinicId ulaşıp policye sokmak gereksiz. direkt veriyi çekiyoruz.
 
     if (ExecutionPolicy.isSystemInitiated(source)) {
-      return await this.getSummary(patientId);
+      return await this.getSummary({
+        patientId,
+        clinicId: actor.clinicId ?? '',
+        ctx,
+      });
     }
 
     const { data: patient } = await this.queryBus.execute(
@@ -57,15 +68,28 @@ export class GetPatientFinanceSummaryHandler
       )
       .orThrow(FINANCE_LEDGER_EVENTS.PATIENT_SUMMARY);
 
-    return this.getSummary(patientId);
+    return this.getSummary({
+      patientId,
+      clinicId: patient.clinicId ?? '',
+      ctx,
+    });
   }
 
-  private async getSummary(patientId: string) {
+  private async getSummary({
+    patientId,
+    clinicId,
+    ctx,
+  }: GetSummaryInput) {
     const summary =
       await this.financeLedgerRepository.getPatientSummary(patientId);
 
     return {
       data: summary,
+      meta: {
+        serializationOptions: this.policyFactory
+          .finance(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({ clinicId }),
+      },
     };
   }
 }

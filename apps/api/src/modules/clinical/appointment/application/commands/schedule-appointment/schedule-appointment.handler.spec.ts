@@ -69,6 +69,10 @@ describe('ScheduleAppointmentHandler (walk-in + overbooking ayarı)', () => {
 
     const appointmentCheckerService = { assertNoConflict } as never;
 
+    const tenantScopeResolver = {
+      resolve: jest.fn().mockResolvedValue('org-1'),
+    } as never;
+
     const transactionManager = {
       run: (cb: () => Promise<unknown>) => cb(),
     } as never;
@@ -78,6 +82,7 @@ describe('ScheduleAppointmentHandler (walk-in + overbooking ayarı)', () => {
         appointmentRepo,
         policyFactory,
         appointmentCheckerService,
+        tenantScopeResolver,
         queryBus,
         commandBus,
         transactionManager

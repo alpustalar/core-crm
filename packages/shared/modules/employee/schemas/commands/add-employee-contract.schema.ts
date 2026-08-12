@@ -10,5 +10,3 @@ export const AddEmployeeContractSchema = z.object({
   grossSalary: z.number().nonnegative(),
   currency: CurrencySchema.optional(),
 });
-
-export type AddEmployeeContract = z.infer<typeof AddEmployeeContractSchema>;

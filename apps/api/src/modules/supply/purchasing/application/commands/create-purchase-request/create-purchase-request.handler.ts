@@ -11,6 +11,8 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreatePurchaseRequestCommand)
 export class CreatePurchaseRequestHandler
@@ -21,6 +23,8 @@ export class CreatePurchaseRequestHandler
     private readonly prCommandRepo: IPurchaseRequestCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -28,17 +32,15 @@ export class CreatePurchaseRequestHandler
     const { data, ctx } = command;
     const { actor } = ctx;
 
-    const clinicId = actor.clinicId ?? '';
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .purchasing(actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicPurchasing(clinicId))
+      .evaluator.check((p) => p.canAccessClinicPurchasing(data.clinicId))
       .orThrow('purchase-request.create');
 
     const request = PurchaseRequest.create({
-      clinicId,
+      clinicId: data.clinicId,
       organizationId,
       requestedById: actor.userId,
       neededBy: data.neededBy,

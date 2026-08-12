@@ -7,5 +7,3 @@ export const RecordAttendanceSchema = z.object({
   checkOutAt: z.coerce.date(),
   note: z.string().nullable().optional(),
 });
-
-export type RecordAttendance = z.infer<typeof RecordAttendanceSchema>;

@@ -1,4 +1,5 @@
 import { UpdateLastLoginHandler } from './update-last-login/update-last-login.handler';
+import { EnqueueForceDeleteUserHandler } from './enqueue-force-delete-user/enqueue-force-delete-user.handler';
 import { Module } from '@nestjs/common';
 import { ProviderModule } from '@modules/clinical/provider/provider.module';
 
@@ -31,7 +32,8 @@ const CommandHandlers = [
   SoftDeleteUserByStaffHandler,
   UpdateUserByStaffHandler,
   UpdateUserBySelfHandler,
-];
+
+  EnqueueForceDeleteUserHandler,];
 
 @Module({
   imports: [MailModule, ProviderModule, UserInfrastructureModule],

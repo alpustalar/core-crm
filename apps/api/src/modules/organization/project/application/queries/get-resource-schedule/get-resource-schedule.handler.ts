@@ -33,9 +33,13 @@ export class GetResourceScheduleHandler implements IQueryHandler<
     const { filter, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .project(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicProjects(clinicId))
+    const { evaluator, policy } = this.policyFactory.project(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicProjects(clinicId))
       .orThrow('project-resource.schedule');
 
     const rows = await this.allocationQueryRepo.findSchedule({
@@ -46,6 +50,11 @@ export class GetResourceScheduleHandler implements IQueryHandler<
       to: filter.to,
     });
 
-    return { data: rows };
+    return {
+      data: rows,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

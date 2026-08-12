@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
 import { ActivityTypeSchema } from '@input-type-schemas/ActivityTypeSchema';
 import { ActivityStatusSchema } from '@input-type-schemas/ActivityStatusSchema';
 import { Pagination } from '@shared/common';
@@ -42,6 +43,9 @@ export type UpdateActivityProps = z.infer<typeof UpdateActivitySchema>;
 
 export const FindActivitiesByLeadFilterSchema = z.object({
   leadId: z.uuid(),
+  // Lead zaman çizelgesi klinik sınırına kapatılır — leadId tek başına
+  // kiracılar arası okumaya açık kapı bırakıyordu.
+  clinicId: z.uuid(),
   pagination: z.custom<Pagination>(
     (val) => val !== null && typeof val === 'object'
   ),
@@ -59,3 +63,10 @@ export const FindMyTasksFilterSchema = z.object({
   ),
 });
 export type FindMyTasksFilter = z.infer<typeof FindMyTasksFilterSchema>;
+
+// ==========================================
+// Aktivite cevaplarının alan görünürlüğü; grupları ClinicPolicy üretir.
+export const ActivityResponseGroups = ResponseGroups;
+
+export type ActivityResponseGroup =
+  (typeof ActivityResponseGroups)[keyof typeof ActivityResponseGroups];

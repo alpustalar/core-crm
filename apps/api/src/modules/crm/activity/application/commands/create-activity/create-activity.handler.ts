@@ -3,8 +3,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateActivityCommand } from './create-activity.command';
 import { Activity } from '@modules/crm/activity/domain/entities/activity.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { FindOrganizationIdByClinicIdQuery } from '@modules/organization/organization/application/queries/find-organization-id-by-clinic-id/find-organization-id-by-clinic-id.query';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -14,6 +12,8 @@ import {
   ACTIVITY_COMMAND_REPOSITORY,
   IActivityCommandRepository,
 } from '@modules/crm/activity/domain/repositories/activity/activity.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreateActivityCommand)
 export class CreateActivityHandler
@@ -24,7 +24,8 @@ export class CreateActivityHandler
     private readonly activityRepo: IActivityCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly queryBus: TSQueryBus,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -32,15 +33,7 @@ export class CreateActivityHandler
     const { data, ctx } = command;
     const { actor } = ctx;
 
-    const result = actor.organizationId
-      ? actor
-      : await this.queryBus.execute(
-          new FindOrganizationIdByClinicIdQuery(data.clinicId)
-        );
-
-    const organizationId = result.organizationId;
-
-    if (!organizationId) throw new Error('Organizasyon bulunamadı');
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .clinic(ctx.actor, ctx.source)

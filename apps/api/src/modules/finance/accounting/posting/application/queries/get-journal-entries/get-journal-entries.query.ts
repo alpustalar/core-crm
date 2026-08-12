@@ -8,11 +8,12 @@ export class GetJournalEntriesQuery implements IQuery {
   readonly __responseType!: GetJournalEntriesResponse;
   constructor(
     public readonly payload: {
-      organizationId: string;
-      pagination: Pagination;
-      ctx: IGetContext;
-      status?: JournalEntryStatusType;
-      periodId?: string;
+      readonly clinicId: string;
+      readonly organizationId?: string | null;
+      readonly pagination: Pagination;
+      readonly ctx: IGetContext;
+      readonly status?: JournalEntryStatusType;
+      readonly periodId?: string;
     }
   ) {}
 }

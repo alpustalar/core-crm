@@ -5,6 +5,7 @@ import { ConvertLeadHandler } from './convert-lead/convert-lead.handler';
 import { MarkLeadLostHandler } from './mark-lead-lost/mark-lead-lost.handler';
 import { MoveLeadToStageHandler } from './move-lead-to-stage/move-lead-to-stage.handler';
 import { LeadInfrastructureModule } from '@modules/crm/lead/infrastructure/infrastructure.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 export const LEAD_COMMAND_HANDLERS = [
   CreateLeadHandler,
@@ -15,7 +16,7 @@ export const LEAD_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [LeadInfrastructureModule],
+  imports: [LeadInfrastructureModule, ClinicDomainServicesModule],
   providers: LEAD_COMMAND_HANDLERS,
   exports: LEAD_COMMAND_HANDLERS,
 })

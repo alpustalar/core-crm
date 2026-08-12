@@ -29,9 +29,13 @@ export class GetPendingLeavesHandler
   ): Promise<GetPendingLeavesResponse> {
     const { pagination, ctx, clinicId } = query.payload;
 
-    this.policyFactory
-      .employee(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicHr(clinicId))
+    const { evaluator, policy } = this.policyFactory.employee(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicHr(clinicId))
       .orThrow(LEAVE_EVENTS.PENDING);
 
     const result = await this.leaveRepo.findPendingByClinic({
@@ -41,7 +45,12 @@ export class GetPendingLeavesHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: clinicId,
+        }),
+      },
     };
   }
 }

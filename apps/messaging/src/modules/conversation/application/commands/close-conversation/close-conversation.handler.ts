@@ -15,7 +15,7 @@ export class CloseConversationHandler implements ICommandHandler<
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
     private readonly conversationRepo: IConversationCommandRepository,
-    private readonly txManager: MongoTransactionManager
+    private readonly txManager: MongoTransactionManager,
   ) {}
 
   async execute(command: CloseConversationCommand): Promise<void> {

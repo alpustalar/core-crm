@@ -1,4 +1,5 @@
 import { ICacheOperations } from '@common/interfaces';
+import { TimeZoneType } from '@input-type-schemas/TimeZoneSchema';
 
 export interface IClinicCacheService {
   readonly slotLockTtlSeconds: number;
@@ -9,7 +10,9 @@ export interface IClinicCacheService {
 
   clinicIdByProviderId<T = { clinicId: string }>(): ICacheOperations<T>;
 
-  clinicOrganizationId<T = { clinicId: string }>(): ICacheOperations<T>;
+  clinicOrganizationId<T = { organizationId: string }>(): ICacheOperations<T>;
+
+  clinicTimeZone<T = { timezone: TimeZoneType }>(): ICacheOperations<T>;
 }
 
 export const CLINIC_CACHE_SERVICE = Symbol('IClinicCacheService');

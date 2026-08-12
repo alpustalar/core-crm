@@ -6,6 +6,11 @@ import {
   IMetaLeadQueryRepository,
   META_LEAD_QUERY_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { META_ADS_EVENTS } from '@src/domain/constants/events';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetMetaLeadsQuery)
@@ -15,10 +20,24 @@ export class GetMetaLeadsHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(META_LEAD_QUERY_REPOSITORY)
-    private readonly metaLeadRepo: IMetaLeadQueryRepository
+    private readonly metaLeadRepo: IMetaLeadQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetMetaLeadsQuery): Promise<GetMetaLeadsResponse> {
+    const { evaluator, policy } = this.policyFactory.clinic(
+      query.ctx.actor,
+      query.ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanAccessTargetClinic(query.clinicId),
+        'Bu kliniğin reklam adaylarına erişim yetkiniz yok.'
+      )
+      .orThrow(META_ADS_EVENTS.LEADS_LIST);
+
     const result = await this.metaLeadRepo.findMany({
       clinicId: query.clinicId,
       status: query.status,
@@ -40,7 +59,12 @@ export class GetMetaLeadsHandler implements IQueryHandler<
         matchedAt: lead.matchedAt,
         createdAt: lead.createdAt,
       })),
-      meta: { pagination: buildPaginationMeta(query.pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(query.pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: query.clinicId,
+        }),
+      },
     };
   }
 }

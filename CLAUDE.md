@@ -1993,6 +1993,7 @@ contextService.addEvent(new XEvent(payload));
 | Veri getirme (isim, telefon, liste, read-model) | **QueryBus** |
 | Diğer modülün state'ini değiştirme | **CommandBus** |
 | Senkron invariant kontrolü — veri dönmez, çağıranın yazmasını kapıda durdurur | **Domain servisi** (token ile inject) |
+| Kimlik/kapsam çözümlemesi — skaler id (ör. `clinicId` → `organizationId`) | **Domain servisi** (token ile inject) |
 
 **Domain servisi istisnası — dar sözleşme**:
 
@@ -2002,7 +2003,8 @@ Bir modül, başka modüllerin yazma işlemini doğrulaması için `domain/servi
 1. **Interface + Symbol token sahibi modülün `domain/` katmanında** tanımlanır; tüketen taraf soyutlamaya bağımlıdır
    (repository token deseninin aynısı — Dependency Inversion).
 2. Metotlar **yalnız `assert*`**: `void` döner ya da `DomainException` fırlatır. **Veri döndürmez, yazma yapmaz.**
-   Veri lazımsa QueryBus, yazma lazımsa CommandBus kullanılır.
+   Veri lazımsa QueryBus, yazma lazımsa CommandBus kullanılır. **Tek istisna: kimlik/kapsam çözümlemesi**
+   (aşağıdaki madde).
 3. Okuma **Command Repository**'den yapılır — bu servis bir yazmayı kapıda durdurduğu için Command Context'e aittir
    (bkz. "Command Handler'da Command Repo vs Query Repo").
 4. Servis **yaprak bir modülde** (`domain/services/services.module.ts`) sağlanır ve tüketici **yalnız o modülü**
@@ -2020,6 +2022,37 @@ imports: [ProviderDomainServicesModule, ClinicDomainServicesModule]
 // ❌ Yanlış — tek servis için sahibin tüm modülü
 imports: [ProviderModule, ClinicModule]
 ```
+
+**Kimlik/kapsam çözümlemesi istisnası — `TENANT_SCOPE_RESOLVER`**:
+
+`clinicId → organizationId` gibi **kiracı kapsamı** çözümlemesi iş verisi değil, kaydın kime ait olduğunu belirleyen
+**kimlik bilgisidir**; neredeyse her yazma işleminin başında gerekir. Bu yüzden bus'tan değil, sahibin `domain/services/`
+altındaki token'lı çözücüsünden alınır:
+
+```typescript
+// ✓ Doğru — token'lı çözücü; DTO/payload'ı doğrudan yutar (organizationId doluysa DB'ye gitmez)
+@Inject(TENANT_SCOPE_RESOLVER)
+private readonly tenantScopeResolver: ITenantScopeResolver
+
+const organizationId = await this.tenantScopeResolver.resolve(data);
+// clinicId ayrı bir alandaysa:
+const organizationId = await this.tenantScopeResolver.resolve({ clinicId });
+
+// ❌ Yanlış — her handler'da bus hop'u + elle sarmalayıcı açma + private helper kopyası
+const { data: organizationId } = await this.queryBus.execute(
+  new GetClinicOrganizationIdQuery(data.clinicId)
+);
+```
+
+Kabul koşulları (yukarıdaki 1/3/4 aynen geçerli) + ek iki şart:
+
+- Dönüş **skaler kimlik** olmalı (id). Read-model, isim, liste, tutar dönüyorsa bu istisna geçmez → QueryBus.
+- Sözleşme (`ITenantScopeResolver`, `TenantScopeInput`) **`@shared`'te**, framework-agnostik tanımlanır; token ve adapter
+  sahibin `domain/` katmanında durur. Böylece modül başka bir servise taşındığında tüketici handler'lar değişmez,
+  yalnız token'a bağlanan adapter (in-process → NATS/HTTP) değişir.
+
+DTO tarafı: `clinicId` **zorunlu**, `organizationId` **opsiyonel** (`z.string().nullable().optional()`). `resolve(data)`
+opsiyonel alan doluysa onu kullanır, boşsa cache/DB'den çözer — DTO'ya alan eklendiğinde handler değişmez.
 
 **Akış**:
 

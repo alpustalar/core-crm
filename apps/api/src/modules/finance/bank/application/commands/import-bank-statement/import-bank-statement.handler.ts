@@ -47,7 +47,7 @@ export class ImportBankStatementHandler
 
     this.policyFactory
       .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(account.clinicId.value))
+      .evaluator.check((p) => p.canAccessClinicFinances(account.clinicId.value))
       .orThrow('bank-statement.import');
 
     if (account.status === BankAccountStatusSchema.enum.ARCHIVED) {

@@ -28,9 +28,13 @@ export class GetProjectsHandler implements IQueryHandler<
     const { filter, pagination, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .project(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicProjects(clinicId))
+    const { evaluator, policy } = this.policyFactory.project(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicProjects(clinicId))
       .orThrow('project.list');
 
     const { items, total } = await this.projectQueryRepo.findMany({
@@ -43,7 +47,10 @@ export class GetProjectsHandler implements IQueryHandler<
 
     return {
       data: items,
-      meta: { pagination: buildPaginationMeta(pagination, total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, total),
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
     };
   }
 }

@@ -6,12 +6,11 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
-import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 import {
   FINANCE_LEDGER_QUERY_REPOSITORY,
   IFinanceLedgerQueryRepository,
 } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
+import { FINANCE_LEDGER_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetClinicFinanceSummaryQuery)
 export class GetClinicFinanceSummaryHandler
@@ -34,21 +33,26 @@ export class GetClinicFinanceSummaryHandler
     const { clinicId, ctx, dateFrom, dateTo } = query.payload;
     const { actor, source } = ctx;
 
-    if (!ExecutionPolicy.isSystemInitiated(source)) {
-      this.policyFactory
-        .clinic(actor, source)
-        .evaluator.check(
-          (p) => p.actorCanManageTargetClinic(clinicId),
-          'Bu şubenin finans özetini görüntüleme yetkiniz yok.'
-        )
-        .orThrow(FINANCE_LEDGER_EVENTS.CLINIC_SUMMARY);
-    }
+    const { evaluator, policy } = this.policyFactory.finance(actor, source);
+
+    // Yetki kontrolü sorgudan ÖNCE: şube cirosu okunmadan kapı tutulur.
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu şubenin finans özetini görüntüleme yetkiniz yok.'
+      )
+      .orThrow(FINANCE_LEDGER_EVENTS.CLINIC_SUMMARY);
 
     const summary = await this.financeLedgerRepository.getClinicSummary(
       clinicId,
       { dateFrom, dateTo }
     );
 
-    return { data: summary };
+    return {
+      data: summary,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

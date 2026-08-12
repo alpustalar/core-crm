@@ -2,6 +2,11 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ACCOUNTING_EVENTS } from '@src/domain/constants/events';
+import {
   IJournalQueryRepository,
   JOURNAL_QUERY_REPOSITORY,
 } from '@modules/finance/accounting/posting/domain/repositories/journal.repository';
@@ -26,11 +31,27 @@ export class GetBalanceSheetHandler implements IQueryHandler<
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetBalanceSheetQuery): Promise<GetBalanceSheetResponse> {
     const { clinicId, ctx, dateFrom, dateTo } = query.payload;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin bilançoya erişim yetkiniz yok.'
+      )
+      .orThrow(ACCOUNTING_EVENTS.BALANCE_SHEET);
+
+    const serializationOptions = policy.getSerializationOptions({ clinicId });
 
     const rows = await this.journalQueryRepo.trialBalance({
       clinicId,
@@ -75,6 +96,7 @@ export class GetBalanceSheetHandler implements IQueryHandler<
         totalLiabilitiesAndEquity: r.totalLiabilitiesAndEquity.toFixed(2),
         isBalanced: r.isBalanced,
       },
+      meta: { serializationOptions },
     };
   }
 

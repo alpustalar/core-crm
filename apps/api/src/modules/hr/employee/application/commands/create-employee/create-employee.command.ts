@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateEmployee } from '@shared/modules/employee/schemas/commands/create-employee.schema';
+import type { CreateEmployee } from '@shared/modules/employee/types/commands';
 
 export class CreateEmployeeCommand implements ICommand {
   readonly __responseType!: string;

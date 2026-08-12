@@ -106,6 +106,7 @@ model Appointment {
   eNabizSync      ENabizSync?
   invoice         Invoice?
   posTransactions PosTransaction[]
+  charges         TreatmentCharge[]
 
   @@index([patientPhone])
   @@index([startTime])

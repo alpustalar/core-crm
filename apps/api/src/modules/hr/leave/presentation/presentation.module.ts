@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { LeaveController } from '@modules/hr/leave/presentation/http/controllers/leave.controller';
+import { LeaveQueryController } from '@modules/hr/leave/presentation/http/controllers/leave.query.controller';
+import { LeaveCommandController } from '@modules/hr/leave/presentation/http/controllers/leave.command.controller';
 
-@Module({ controllers: [LeaveController] })
+@Module({ controllers: [LeaveQueryController, LeaveCommandController] })
 export class LeavePresentationModule {}

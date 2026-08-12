@@ -31,11 +31,22 @@ export class GetWorkOrderByIdHandler
     const workOrder = await this.workOrderRepo.findById(workOrderId);
     if (!workOrder) throw new WorkOrderNotFoundException(workOrderId);
 
-    this.policyFactory
-      .workOrder(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicWorkOrders(workOrder.clinicId))
+    const { evaluator, policy } = this.policyFactory.workOrder(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicWorkOrders(workOrder.clinicId))
       .orThrow('work-order.detail');
 
-    return { data: workOrder };
+    return {
+      data: workOrder,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: workOrder.clinicId,
+        }),
+      },
+    };
   }
 }

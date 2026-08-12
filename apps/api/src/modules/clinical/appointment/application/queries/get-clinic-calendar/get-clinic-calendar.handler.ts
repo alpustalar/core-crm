@@ -27,10 +27,9 @@ import {
  * (bounded-context: Prisma join YOK). Yetki, klinik-seviye policy ile korunur.
  */
 @QueryHandler(GetClinicCalendarQuery)
-export class GetClinicCalendarHandler implements IQueryHandler<
-  GetClinicCalendarQuery,
-  GetClinicCalendarResponse
-> {
+export class GetClinicCalendarHandler
+  implements IQueryHandler<GetClinicCalendarQuery, GetClinicCalendarResponse>
+{
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,
@@ -44,10 +43,6 @@ export class GetClinicCalendarHandler implements IQueryHandler<
   ): Promise<GetClinicCalendarResponse> {
     const { data, ctx } = query;
     const { clinicId, startDate, endDate, providerId, status } = data;
-
-    const serializationOptions = this.policyFactory
-      .appointment(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({ clinicId, providerId });
 
     const [{ data: tz }, { data: providers }, rows] = await Promise.all([
       this.queryBus.execute(new GetClinicTimezoneQuery(clinicId)),
@@ -98,6 +93,13 @@ export class GetClinicCalendarHandler implements IQueryHandler<
         ),
       }));
 
-    return { data: days, meta: { serializationOptions } };
+    return {
+      data: days,
+      meta: {
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({ clinicId, providerId }),
+      },
+    };
   }
 }

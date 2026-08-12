@@ -55,6 +55,13 @@ export class FindInvoicesHandler
       data: result.items.map((invoice) => this.toListItem(invoice)),
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: clinicId
+          ? this.policyFactory
+              .finance(ctx.actor, ctx.source)
+              .policy.getSerializationOptions({ clinicId })
+          : this.policyFactory
+              .finance(ctx.actor, ctx.source)
+              .policy.getOrganizationSerializationOptions({ organizationId }),
       },
     };
   }

@@ -27,12 +27,27 @@ export class FindSuppliersHandler
     const { payload } = query;
     const { pagination, ctx, organizationId } = payload;
 
+    const { evaluator, policy } = this.policyFactory.clinic(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanAccessTargetClinic(ctx.actor.clinicId),
+        'Tedarikçi listesine erişim yetkiniz yok.'
+      )
+      .orThrow('supplier.list');
+
     const result = await this.supplierRepo.findMany(organizationId, pagination);
 
     return {
       data: result.items,
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: ctx.actor.clinicId,
+        }),
       },
     };
   }

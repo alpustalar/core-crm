@@ -20,13 +20,12 @@ import { ReceiveStockCommand } from '@modules/supply/inventory/application/comma
  * Hepsi tek transaction içinde (nested run ALS tx'ini paylaşır) → atomik.
  */
 @CommandHandler(ReceivePurchaseOrderCommand)
-export class ReceivePurchaseOrderHandler implements ICommandHandler<
-  ReceivePurchaseOrderCommand,
-  void
-> {
+export class ReceivePurchaseOrderHandler
+  implements ICommandHandler<ReceivePurchaseOrderCommand, void>
+{
   constructor(
     @Inject(PURCHASE_ORDER_COMMAND_REPOSITORY)
-    private readonly poCommandRepo: IPurchaseOrderCommandRepository,
+    private readonly purchaseOrderRepo: IPurchaseOrderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly commandBus: TSCommandBus,
@@ -37,7 +36,7 @@ export class ReceivePurchaseOrderHandler implements ICommandHandler<
     const { orderId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const order = await this.poCommandRepo.findById(orderId);
+      const order = await this.purchaseOrderRepo.findById(orderId);
       if (!order) throw new PurchaseOrderNotFoundException(orderId);
 
       this.policyFactory
@@ -53,7 +52,7 @@ export class ReceivePurchaseOrderHandler implements ICommandHandler<
           quantity: item.quantity,
         }))
       );
-      await this.poCommandRepo.update(order);
+      await this.purchaseOrderRepo.update(order);
 
       // Katalog ürünü satırları → stok girişi. Katalog-dışı (productId yok) atlanır.
       for (const receipt of data.items) {

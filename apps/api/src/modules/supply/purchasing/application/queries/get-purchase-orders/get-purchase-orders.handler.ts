@@ -29,9 +29,13 @@ export class GetPurchaseOrdersHandler
     const { filter, pagination, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .purchasing(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicPurchasing(clinicId))
+    const { evaluator, policy } = this.policyFactory.purchasing(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicPurchasing(clinicId))
       .orThrow('purchase-order.list');
 
     const result = await this.poQueryRepo.findByClinic({
@@ -43,7 +47,10 @@ export class GetPurchaseOrdersHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({ clinicId: clinicId }),
+      },
     };
   }
 }

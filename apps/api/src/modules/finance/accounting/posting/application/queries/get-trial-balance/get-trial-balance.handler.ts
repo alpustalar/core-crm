@@ -1,4 +1,9 @@
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ACCOUNTING_EVENTS } from '@src/domain/constants/events';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 
 import {
@@ -31,11 +36,27 @@ export class GetTrialBalanceHandler implements IQueryHandler<
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetTrialBalanceQuery): Promise<GetTrialBalanceResponse> {
     const { clinicId, ctx, dateFrom, dateTo } = query.payload;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin mizana erişim yetkiniz yok.'
+      )
+      .orThrow(ACCOUNTING_EVENTS.TRIAL_BALANCE);
+
+    const serializationOptions = policy.getSerializationOptions({ clinicId });
 
     const rows = await this.journalQueryRepo.trialBalance({
       clinicId,
@@ -76,6 +97,7 @@ export class GetTrialBalanceHandler implements IQueryHandler<
           totals.totalDebit.equals(totals.totalCredit) &&
           totals.debitBalance.equals(totals.creditBalance),
       },
+      meta: { serializationOptions },
     };
   }
 

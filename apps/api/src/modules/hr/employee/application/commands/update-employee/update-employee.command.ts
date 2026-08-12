@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { UpdateEmployee } from '@shared/modules/employee/schemas/commands/update-employee.schema';
+import type { UpdateEmployee } from '@shared/modules/employee/types/commands';
 
 export class UpdateEmployeeCommand implements ICommand {
   constructor(

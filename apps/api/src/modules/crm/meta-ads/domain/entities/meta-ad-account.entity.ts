@@ -4,7 +4,19 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { Guard } from '@common/domain/guards';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
-import { CreateMetaAdAccountProps } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import {
+  CreateMetaAdAccountProps,
+  DeactivateMetaAdAccountProps,
+} from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import {
+  MetaAccountConnectedEvent,
+  MetaAccountDisconnectedEvent,
+} from '@modules/crm/meta-ads/domain/events';
+import {
+  LogAction,
+  LogSource,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
 
 const TOKEN_EXPIRY_WARNING_DAYS = 7;
 
@@ -101,7 +113,7 @@ export class MetaAdAccount extends AggregateRoot {
   public static create(props: CreateMetaAdAccountProps): MetaAdAccount {
     const now = DateTimeManager.create();
 
-    return new MetaAdAccount({
+    const account = new MetaAdAccount({
       id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
 
@@ -120,20 +132,42 @@ export class MetaAdAccount extends AggregateRoot {
       updatedAt: now,
     });
 
-    // TODO: event pushlanacak ÖRN: {
-    //       metaAdAccountId,
-    //       clinicId,
-    //       adAccountId,
-    //       actorId,
-    //       source,
-    //       action: LogAction.META_ADS_ACCOUNT_CONNECTED,
-    //       type: LogType.INFO,
-    //       details: props.details... `Meta hesap bağlandı: ${metaAdAccountId} | 'Meta Hesap OAuth ile  //        bağlandı: ${metaAdAccountId}'`,
-    //     }
+    account.addDomainEvent(
+      new MetaAccountConnectedEvent({
+        metaAdAccountId: account.id.value,
+        clinicId: account.clinicId.value,
+        adAccountId: account.adAccountId,
+        action: LogAction.META_ADS_ACCOUNT_CONNECTED,
+        type: LogType.INFO,
+        source: props.logSource ?? LogSource.SYSTEM,
+        actorId: props.actorId,
+        details: `Meta reklam hesabı bağlandı: ${account.adAccountId}`,
+      })
+    );
+
+    return account;
   }
 
-  public deactivate(): void {
+  /**
+   * Hesap bağlantısını keser. Kayıt silinmez — geçmiş kampanya metrikleri ve
+   * lead'ler hesaba bağlı kaldığı için yalnız senkronizasyon durdurulur.
+   */
+  public deactivate(props: DeactivateMetaAdAccountProps = {}): void {
     this._isActive = false;
+    this._updatedAt = DateTimeManager.create();
+
+    this.addDomainEvent(
+      new MetaAccountDisconnectedEvent({
+        metaAdAccountId: this.id.value,
+        clinicId: this.clinicId.value,
+        adAccountId: this.adAccountId,
+        action: LogAction.META_ADS_ACCOUNT_DISCONNECTED,
+        type: LogType.INFO,
+        source: props.logSource ?? LogSource.SYSTEM,
+        actorId: props.actorId,
+        details: `Meta reklam hesabı bağlantısı kesildi: ${this.adAccountId}`,
+      })
+    );
   }
 
   public markSynced(): void {

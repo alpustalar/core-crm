@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { IAppointmentCacheService } from '@modules/clinical/appointment/domain/interfaces/appointment-cache.service.interface';
 
 declare module 'ioredis' {
   interface Redis {
@@ -61,7 +62,7 @@ export type SlotRefreshResult =
     };
 
 @Injectable()
-export class AppointmentCacheService {
+export class AppointmentCacheService implements IAppointmentCacheService {
   private readonly slotLockTtl = DateTimeManager.toSeconds({ minutes: 2 });
 
   constructor(@InjectRedis() private readonly redis: Redis) {

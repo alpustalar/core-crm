@@ -29,9 +29,9 @@ export class MarkConversationReadHandler implements ICommandHandler<
 
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository,
+    private readonly messageRepo: IMessageQueryRepository,
     @Inject(MESSAGE_CHANNEL_PORT)
     private readonly channel: MessageChannelPort,
     private readonly txManager: MongoTransactionManager
@@ -43,20 +43,20 @@ export class MarkConversationReadHandler implements ICommandHandler<
     // Kanaldaki okundu işareti için gereken dış id — salt okuma, bir mutasyona
     // karar vermiyor, kilit gerekmez.
     const externalId =
-      await this.messageQueryRepo.findLatestInboundExternalId(conversationId);
+      await this.messageRepo.findLatestInboundExternalId(conversationId);
 
     // `unreadCount` sıfırlaması, eşzamanlı gelen mesajın artırımıyla yarışır:
     // okuma da kilit altında ve aynı transaction'da yapılır.
     const channel = await this.txManager.run(async () => {
       const conversation =
-        await this.conversationCommandRepo.findByIdForUpdate(conversationId);
+        await this.conversationRepo.findByIdForUpdate(conversationId);
       if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
       if (conversation.clinicId !== clinicId) {
         throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
       }
 
       conversation.markAgentRead();
-      await this.conversationCommandRepo.update(conversation);
+      await this.conversationRepo.update(conversation);
 
       return conversation.channel;
     });

@@ -17,6 +17,10 @@ import {
 import { GetBankLedgerLinesQuery } from '@modules/finance/accounting/posting/application/queries/get-bank-ledger-lines/get-bank-ledger-lines.query';
 import { GetLineMatchSuggestionsQuery } from './get-line-match-suggestions.query';
 import { GetLineMatchSuggestionsResponse } from './get-line-match-suggestions.response';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 /**
  * Öneri listesi oto-eşleştirmeyle **aynı motoru** kullanır; tek fark eşiktir:
@@ -35,7 +39,9 @@ export class GetLineMatchSuggestionsHandler
   constructor(
     @Inject(BANK_STATEMENT_LINE_COMMAND_REPOSITORY)
     private readonly bankStatementLineRepo: IBankStatementLineCommandRepository,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -45,6 +51,19 @@ export class GetLineMatchSuggestionsHandler
     if (!line) {
       throw new BankStatementLineNotFoundException(query.lineId);
     }
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      query.ctx.actor,
+      query.ctx.source
+    );
+
+    // Eşleştirme adayları defter hareketidir — satırın kliniğine erişim şart.
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(line.clinicId.value),
+        'Bu ekstre satırının eşleştirme adaylarına erişim yetkiniz yok.'
+      )
+      .orThrow('bank-reconciliation.suggestions');
 
     const tolerance = DEFAULT_MATCH_OPTIONS.dateToleranceDays;
 
@@ -122,6 +141,13 @@ export class GetLineMatchSuggestionsHandler
       };
     });
 
-    return { data: suggestions };
+    return {
+      data: suggestions,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: line.clinicId.value,
+        }),
+      },
+    };
   }
 }

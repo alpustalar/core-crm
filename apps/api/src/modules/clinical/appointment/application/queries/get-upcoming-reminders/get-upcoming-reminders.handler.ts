@@ -8,6 +8,10 @@ import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 /**
  * Resepsiyon hatırlatma listesi. Aktörün kliniğine sabitlenir; repo, hoursAhead
@@ -20,7 +24,9 @@ export class GetUpcomingRemindersHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
-    private readonly appointmentRepo: IAppointmentQueryRepository
+    private readonly appointmentRepo: IAppointmentQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -38,6 +44,9 @@ export class GetUpcomingRemindersHandler implements IQueryHandler<
       data: items,
       meta: {
         pagination: buildPaginationMeta(filter.pagination, total),
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({ clinicId: filter.clinicId }),
       },
     };
   }

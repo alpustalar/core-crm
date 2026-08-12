@@ -5,22 +5,33 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
-import { GetContext, IGetContext } from '@common/decorators';
+import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
+import { GetContext, HasCapability, IGetContext } from '@common/decorators';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetArAgingQuery } from '@modules/finance/payment/application/queries/get-ar-aging/get-ar-aging.query';
 import { GetProviderRevenueQuery } from '@modules/finance/payment/application/queries/get-provider-revenue/get-provider-revenue.query';
+import { Serialize } from '@common/decorators/serialize.decorator';
+import {
+  ArAgingReportResponseDto,
+  ProviderRevenueReportResponseDto,
+} from '@modules/finance/payment/presentation/http/dto/payment-response.dto';
+import type { ArAgingReport } from '@modules/finance/payment/application/queries/get-ar-aging/get-ar-aging.response';
+import type { ProviderRevenueReport } from '@modules/finance/payment/application/queries/get-provider-revenue/get-provider-revenue.response';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 /**
  * Klinik yönetim raporları (tahsilat odaklı, mali tablo dışı): açık taksit
  * riski (AR aging) ve hekim bazında ciro. Kapsam aktörün clinic bağlamıdır.
  */
-@UseGuards(AuthGuard)
+const { PAYMENT } = CAPABILITIES;
+@UseGuards(AuthGuard, CapabilityGuard)
+@HasCapability(PAYMENT.read)
 @Controller('reports')
 export class PaymentReportsController {
   constructor(private readonly queryBus: TSQueryBus) {}
 
   @Get('ar-aging')
+  @Serialize<ArAgingReport, ArAgingReportResponseDto>(ArAgingReportResponseDto)
   arAging(
     @GetContext() ctx: IGetContext,
     @Query('asOf') asOf?: string
@@ -35,6 +46,9 @@ export class PaymentReportsController {
   }
 
   @Get('provider-revenue')
+  @Serialize<ProviderRevenueReport, ProviderRevenueReportResponseDto>(
+    ProviderRevenueReportResponseDto
+  )
   providerRevenue(
     @GetContext() ctx: IGetContext,
     @Query('dateFrom') dateFrom?: string,

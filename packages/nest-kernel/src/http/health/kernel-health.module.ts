@@ -1,9 +1,9 @@
 import { DynamicModule, Module, ModuleMetadata, Type } from '@nestjs/common';
-import { HealthController } from './health.controller';
+import { HealthController } from '@src/http';
 import {
   HEALTH_INDICATORS,
   HealthIndicator,
-} from './health-indicator.interface';
+} from '@src/http';
 
 export interface KernelHealthOptions {
   /**

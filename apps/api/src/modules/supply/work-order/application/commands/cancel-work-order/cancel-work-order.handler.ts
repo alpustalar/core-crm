@@ -11,6 +11,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { WORK_ORDER_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(CancelWorkOrderCommand)
 export class CancelWorkOrderHandler
@@ -34,9 +35,9 @@ export class CancelWorkOrderHandler
       this.policyFactory
         .workOrder(ctx.actor, ctx.source)
         .evaluator.check((p) =>
-          p.canManageClinicWorkOrders(workOrder.clinicId.value)
+          p.canAccessClinicWorkOrders(workOrder.clinicId.value)
         )
-        .orThrow('work-order.cancel');
+        .orThrow(WORK_ORDER_EVENTS.CANCEL);
 
       workOrder.cancel(data.reason);
       await this.workOrderRepo.update(workOrder);
