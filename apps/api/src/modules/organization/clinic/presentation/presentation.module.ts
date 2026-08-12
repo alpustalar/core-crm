@@ -4,5 +4,7 @@ import {
   ClinicCommandController,
 } from '@modules/organization/clinic/presentation/http/controllers';
 
-@Module({ controllers: [ClinicAdminCommandController, ClinicCommandController] })
+@Module({
+  controllers: [ClinicAdminCommandController, ClinicCommandController],
+})
 export class ClinicPresentationModule {}

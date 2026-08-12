@@ -1,5 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
+import { EmailSchema } from '@shared/common/schemas';
 
 export const CheckEmailSchema = z.object({
-  email: z.email({ message: "Geçersiz e-posta formatı" }).trim().toLowerCase(),
+  email: EmailSchema,
 });

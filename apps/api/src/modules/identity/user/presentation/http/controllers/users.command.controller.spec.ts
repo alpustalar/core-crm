@@ -23,10 +23,17 @@ describe('UserCommandController — e-posta doğrulama ucu', () => {
       });
     });
 
-    // CheckEmailSchema `.trim()` taşıyor ama e-posta doğrulaması trim'den ÖNCE
-    // koştuğu için baştaki/sondaki boşluk temizlenmez, istek 400 döner.
-    it('baştaki/sondaki boşluk temizlenmez — `.trim()` etkisiz', () => {
-      expect(() => pipe.transform({ email: 'hasta@klinik.com ' }, meta)).toThrow();
+    // EmailSchema önce trim/lowercase yapıp sonucu doğrular. Ters sıra
+    // (`z.email().trim()`) doğrulamayı ham değere uygular ve yapıştırılan
+    // adresteki boşluk yüzünden isteği 400'e düşürürdü.
+    it('kopyala-yapıştırdan gelen boşluk temizlenir', () => {
+      expect(pipe.transform({ email: '  Hasta@Klinik.COM  ' }, meta)).toEqual({
+        email: 'hasta@klinik.com',
+      });
+    });
+
+    it('boşluk temizlendikten sonra da geçersizse reddedilir', () => {
+      expect(() => pipe.transform({ email: '  hasta@  ' }, meta)).toThrow();
     });
 
     it('çıplak string reddedilir — `@Body(\'email\')` kullanılamayacağının kanıtı', () => {
