@@ -32,7 +32,7 @@ const { INVOICE } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @HasCapability(INVOICE.read)
 @Controller()
-export class InvoiceController {
+export class InvoiceQueryController {
   constructor(private readonly queryBus: TSQueryBus) {}
 
   @Get()

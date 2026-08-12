@@ -27,7 +27,7 @@ const { PAYMENT } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @HasCapability(PAYMENT.read)
 @Controller('reports')
-export class PaymentReportsController {
+export class PaymentReportsQueryController {
   constructor(private readonly queryBus: TSQueryBus) {}
 
   @Get('ar-aging')

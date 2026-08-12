@@ -16,7 +16,7 @@ import {
 
 @UseGuards(AuthGuard, SystemAdminGuard)
 @Controller('')
-export class AdminController {
+export class ClinicAdminCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
   @Delete(':clinicId')

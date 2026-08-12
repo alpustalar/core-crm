@@ -1,2 +1,2 @@
-export * from './admin.controller';
-export * from './clinics.controller';
+export * from './admin.command.controller';
+export * from './clinics.command.controller';

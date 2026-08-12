@@ -23,7 +23,7 @@ import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/module
 const { CLINICIYZICOTERMINALCONFIG, POSDEVICE, POSTRANSACTION } = CAPABILITIES;
 @Controller('pos/iyzico-terminal')
 @UseGuards(AuthGuard, CapabilityGuard)
-export class IyzicoTerminalController {
+export class IyzicoTerminalCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
   @HasCapability(CLINICIYZICOTERMINALCONFIG.update)

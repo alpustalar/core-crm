@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { InvoiceController } from '@modules/finance/invoice/presentation/http/controllers/invoice.controller';
+import { InvoiceQueryController } from '@modules/finance/invoice/presentation/http/controllers/invoice.query.controller';
 
-@Module({ controllers: [InvoiceController] })
+@Module({ controllers: [InvoiceQueryController] })
 export class InvoicePresentationModule {}

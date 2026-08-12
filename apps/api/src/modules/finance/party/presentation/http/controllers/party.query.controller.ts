@@ -23,7 +23,7 @@ const { PARTY } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @HasCapability(PARTY.read)
 @Controller()
-export class PartyController {
+export class PartyQueryController {
   constructor(private readonly queryBus: TSQueryBus) {}
 
   @Get()

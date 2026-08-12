@@ -13,7 +13,7 @@ import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/module
 const { FINANCIALEVENT } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @Controller()
-export class PayrollController {
+export class PayrollCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
   @HasCapability(FINANCIALEVENT.create)

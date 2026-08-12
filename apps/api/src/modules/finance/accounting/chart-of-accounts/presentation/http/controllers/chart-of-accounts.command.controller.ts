@@ -14,7 +14,7 @@ import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/module
 const { ACCOUNT } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @Controller('chart-of-accounts')
-export class ChartOfAccountsController {
+export class ChartOfAccountsCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
   @HasCapability(ACCOUNT.create)

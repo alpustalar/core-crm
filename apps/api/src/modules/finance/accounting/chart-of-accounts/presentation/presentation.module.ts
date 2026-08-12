@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ChartOfAccountsController } from '@modules/finance/accounting/chart-of-accounts/presentation/http/controllers/chart-of-accounts.controller';
+import { ChartOfAccountsCommandController } from '@modules/finance/accounting/chart-of-accounts/presentation/http/controllers/chart-of-accounts.command.controller';
 
-@Module({ controllers: [ChartOfAccountsController] })
+@Module({ controllers: [ChartOfAccountsCommandController] })
 export class ChartOfAccountsPresentationModule {}

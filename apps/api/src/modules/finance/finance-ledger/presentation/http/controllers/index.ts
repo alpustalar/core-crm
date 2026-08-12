@@ -1,1 +1,1 @@
-export * from './finance-ledger.controller';
+export * from './finance-ledger.query.controller';

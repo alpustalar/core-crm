@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PartyController } from '@modules/finance/party/presentation/http/controllers/party.controller';
+import { PartyQueryController } from '@modules/finance/party/presentation/http/controllers/party.query.controller';
 
-@Module({ controllers: [PartyController] })
+@Module({ controllers: [PartyQueryController] })
 export class PartyPresentationModule {}

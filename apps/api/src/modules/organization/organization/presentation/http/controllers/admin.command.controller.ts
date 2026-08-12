@@ -4,7 +4,7 @@ import { SystemAdminGuard } from '@modules/identity/auth/auth/guards/system-admi
 
 @UseGuards(AuthGuard, SystemAdminGuard)
 @Controller()
-export class AdminController {
+export class OrganizationAdminCommandController {
   constructor() {}
 
   @Post()

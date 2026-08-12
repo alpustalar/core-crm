@@ -32,8 +32,14 @@ const { USER } = CAPABILITIES;
 export class UserCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
+  /**
+   * Personelin BAŞKA bir kullanıcıya doğrulama e-postası göndermesi. Kendi
+   * adresine tekrar göndermek isteyen kullanıcı `me/email-verify` ucunu kullanır;
+   * bu uç gövdedeki herhangi bir adrese gönderdiği için yetki ister.
+   */
   @Post('email-verification')
   @Version('1')
+  @HasCapability(USER.update)
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   @HttpCode(HttpStatus.NO_CONTENT)
   sendEmailVerificationLink(@Body('email') { email }: CheckEmailDto) {

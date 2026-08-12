@@ -27,7 +27,7 @@ import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/module
 const { CLINIC, CLINICAPPOINTMENTSETTINGS } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @Controller()
-export class ClinicController {
+export class ClinicCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
   @HasCapability(CLINIC.create)

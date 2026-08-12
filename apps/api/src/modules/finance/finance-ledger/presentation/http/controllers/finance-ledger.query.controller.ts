@@ -35,7 +35,7 @@ const { FINANCELEDGER } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @HasCapability(FINANCELEDGER.read)
 @Controller('finance-ledger')
-export class FinanceLedgerController {
+export class FinanceLedgerQueryController {
   constructor(
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus

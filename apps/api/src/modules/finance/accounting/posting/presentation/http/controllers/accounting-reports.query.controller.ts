@@ -45,7 +45,7 @@ const { JOURNALENTRY } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
 @HasCapability(JOURNALENTRY.read)
 @Controller('reports')
-export class AccountingReportsController {
+export class AccountingReportsQueryController {
   constructor(private readonly queryBus: TSQueryBus) {}
 
   @Get('trial-balance')

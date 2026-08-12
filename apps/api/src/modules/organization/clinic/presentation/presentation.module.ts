@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import {
-  AdminController,
-  ClinicController,
+  ClinicAdminCommandController,
+  ClinicCommandController,
 } from '@modules/organization/clinic/presentation/http/controllers';
 
-@Module({ controllers: [AdminController, ClinicController] })
+@Module({ controllers: [ClinicAdminCommandController, ClinicCommandController] })
 export class ClinicPresentationModule {}
