@@ -42,7 +42,7 @@ export class UserCommandController {
   @HasCapability(USER.update)
   @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
   @HttpCode(HttpStatus.NO_CONTENT)
-  sendEmailVerificationLink(@Body('email') { email }: CheckEmailDto) {
+  sendEmailVerificationLink(@Body() { email }: CheckEmailDto) {
     return this.commandBus.execute(new SendVerificationEmailCommand(email));
   }
   @Patch(':id')
