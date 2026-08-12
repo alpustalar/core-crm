@@ -60,6 +60,12 @@ export class UserQueryRepository
             capabilities: { include: { capability: true } },
           },
         },
+        // Kişiye özel ek yetkiler — rol yetkileriyle ActorContext'te birleşir.
+        grantedCapabilities: {
+          select: {
+            capability: { select: { module: true, action: true } },
+          },
+        },
       },
     });
     if (!raw) return null;
@@ -80,6 +86,7 @@ export class UserQueryRepository
       ownedOrganizations: raw.ownedOrganizations,
       providerProfile: raw.providerProfile,
       role: raw.role as RoleWithCapabilities | null,
+      grantedCapabilities: raw.grantedCapabilities,
     };
   }
 

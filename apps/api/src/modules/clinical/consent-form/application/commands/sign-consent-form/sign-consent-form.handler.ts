@@ -23,6 +23,8 @@ import {
   CONSENT_TEMPLATE_COMMAND_REPOSITORY,
   IConsentTemplateCommandRepository,
 } from '@modules/clinical/consent-form/domain/repositories/consent-template/consent-template.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(SignConsentFormCommand)
 export class SignConsentFormHandler
@@ -35,17 +37,18 @@ export class SignConsentFormHandler
     private readonly consentTemplateRepo: IConsentTemplateCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager,
     private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(command: SignConsentFormCommand): Promise<string> {
-    const { patientId, data, ctx } = command.payload;
-    const { actor } = ctx;
+    const { patientId, data, ctx, clinicId } = command.payload;
 
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
-    const clinicId = actor.clinicId ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(
+      command.payload
+    );
 
     this.policyFactory
       .consentForm(ctx.actor, ctx.source)

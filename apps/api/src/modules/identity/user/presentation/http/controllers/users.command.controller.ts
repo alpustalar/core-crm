@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -25,6 +27,9 @@ import { SoftDeleteUserByStaffCommand } from '@modules/identity/user/application
 import { SendVerificationEmailCommand } from '@modules/identity/user/application/commands/send-verification-email';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { UpdateUserByStaffDto } from '@shared/modules/user/dto/commands/update-user-by-staff.dto';
+import { GrantUserCapabilityDto } from '@shared/modules/user/dto/commands/grant-user-capability.dto';
+import { GrantUserCapabilityCommand } from '@modules/identity/user/application/commands/grant-user-capability/grant-user-capability.command';
+import { RevokeUserCapabilityCommand } from '@modules/identity/user/application/commands/revoke-user-capability/revoke-user-capability.command';
 
 const { USER } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
@@ -67,5 +72,39 @@ export class UserCommandController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(new SoftDeleteUserByStaffCommand(dto, ctx));
+  }
+
+  /**
+   * Personele rolünün üstüne tek bir yetki verir. Platform yetkileri ve aktörün
+   * kendisinde olmayan yetkiler handler'da reddedilir.
+   */
+  @Post(':id/capabilities')
+  @Version('1')
+  @HasCapability(USER.update)
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  grantCapability(
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+    @Body() dto: GrantUserCapabilityDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new GrantUserCapabilityCommand({ targetUserId, data: dto, ctx })
+    );
+  }
+
+  /** Yalnız kişiye özel verilmiş yetkiyi kaldırır; rolden geleni değil. */
+  @Delete(':id/capabilities/:capability')
+  @Version('1')
+  @HasCapability(USER.update)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  revokeCapability(
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+    @Param('capability') capability: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new RevokeUserCapabilityCommand({ targetUserId, capability, ctx })
+    );
   }
 }

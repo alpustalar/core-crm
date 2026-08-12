@@ -41,12 +41,7 @@ export class DbActorContextResolver implements IActorContextResolverPort {
     return {
       userId: user.id,
       email: user.email,
-      capabilities: user.role
-        ? user.role.capabilities.map(
-            (roleCapability) =>
-              `${roleCapability.capability.module}:${roleCapability.capability.action}`
-          )
-        : [],
+      capabilities: this.mergeCapabilities(user),
       rolePriority: user.role?.priority ?? 0,
       source: LogSource.SYSTEM,
       managedClinics: user.managedClinics ?? [],
@@ -56,6 +51,32 @@ export class DbActorContextResolver implements IActorContextResolverPort {
       clinicId: user.clinicId ?? undefined,
       providerId: user.providerProfile?.id ?? undefined,
     };
+  }
+
+  /**
+   * Aktörün etkin yetkileri = rol yetkileri ∪ kişiye özel verilmiş yetkiler.
+   *
+   * İki kaynak da aynı `module:action` dizesini üretebildiği için tekilleştirilir;
+   * aksi hâlde `capabilities` dizisi kopyalar taşır ve "kaç yetkisi var" gibi her
+   * sayım yanlış çıkar. Kişisel yetkiler yalnız EKLER — rolden düşürme yoktur,
+   * o yüzden kesişimi/farkı hesaplamaya gerek kalmaz.
+   */
+  private mergeCapabilities(user: {
+    role?: { capabilities: { capability: { module: string; action: string } }[] } | null;
+    grantedCapabilities?: { capability: { module: string; action: string } }[];
+  }): string[] {
+    const toKey = ({
+      capability,
+    }: {
+      capability: { module: string; action: string };
+    }) => `${capability.module}:${capability.action}`;
+
+    return [
+      ...new Set([
+        ...(user.role?.capabilities ?? []).map(toKey),
+        ...(user.grantedCapabilities ?? []).map(toKey),
+      ]),
+    ];
   }
 
   // TODO: prod'ta create admin kaldır

@@ -88,6 +88,7 @@ export * from './ResourceAvailabilitySchema';
 export * from './RoleSchema';
 export * from './RoleCapabilitySchema';
 export * from './CapabilitySchema';
+export * from './UserCapabilitySchema';
 export * from './SectorSchema';
 export * from './ModuleSchema';
 export * from './PlanSchema';

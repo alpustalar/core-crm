@@ -37,6 +37,15 @@ export const AuthUserResponseSchema = z
     ownedOrganizations: z.array(z.object({ id: z.uuid() })),
     providerProfile: z.object({ id: z.uuid() }).nullable(),
     role: RoleWithCapabilitiesSchema.nullable(),
+    /**
+     * Rolün ÜSTÜNE klinik yöneticisi tarafından kişiye verilmiş ek yetkiler.
+     * ActorContext bunları rol yetkileriyle birleştirir.
+     */
+    grantedCapabilities: z.array(
+      z.object({
+        capability: z.object({ module: z.string(), action: z.string() }),
+      })
+    ),
   })
   .nullable();
 

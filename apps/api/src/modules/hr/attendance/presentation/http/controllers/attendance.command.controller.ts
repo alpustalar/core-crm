@@ -5,6 +5,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
@@ -26,9 +27,13 @@ export class AttendanceCommandController {
   @Post('employees/:employeeId/attendance/check-in')
   checkIn(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @GetContext() ctx: IGetContext
   ) {
-    return this.commandBus.execute(new CheckInCommand(employeeId, ctx));
+    return this.commandBus.execute(
+      new CheckInCommand({ clinicId, ctx, employeeId, organizationId })
+    );
   }
 
   @HasCapability(ATTENDANCERECORD.update)
@@ -47,8 +52,6 @@ export class AttendanceCommandController {
     @Body() dto: RecordAttendanceDto,
     @GetContext() ctx: IGetContext
   ) {
-    // Rota'da :clinicId segmenti yok; kapsam gövdeden gelir (organizationId
-    // opsiyonel — verilmezse handler TENANT_SCOPE_RESOLVER ile çözer).
     return this.commandBus.execute(
       new RecordAttendanceCommand({
         employeeId,

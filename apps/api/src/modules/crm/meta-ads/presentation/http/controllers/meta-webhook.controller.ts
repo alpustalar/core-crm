@@ -17,9 +17,7 @@ import {
   IMetaMarketingApiService,
   META_MARKETING_API_SERVICE,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
-import {
-  ProcessMetaLeadCommand
-} from '@modules/crm/meta-ads/application/commands/process-meta-lead/process-meta-lead.command';
+import { ProcessMetaLeadCommand } from '@modules/crm/meta-ads/application/commands/process-meta-lead/process-meta-lead.command';
 import {
   IMetaAdAccountQueryRepository,
   META_AD_ACCOUNT_QUERY_REPOSITORY,
@@ -53,11 +51,11 @@ export class MetaWebhookController {
   constructor(
     @Inject(META_ADS_PRESENTATION_CONFIG)
     private readonly metaAdsConfig: IMetaAdsPresentationConfig,
-    private readonly commandBus: TSCommandBus,
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
-    private readonly accountQueryRepo: IMetaAdAccountQueryRepository
+    private readonly accountQueryRepo: IMetaAdAccountQueryRepository,
+    private readonly commandBus: TSCommandBus
   ) {}
 
   // Meta webhook doğrulama (GET)

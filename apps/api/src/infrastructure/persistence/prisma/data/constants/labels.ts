@@ -11,6 +11,7 @@ export const MODULE_LABELS = {
   user: 'Kullanıcı',
   role: 'Rol',
   rolecapability: 'Rol Yetkisi',
+  usercapability: 'Kullanıcıya Özel Yetki',
   capability: 'Yetki',
 
   // --- Organizasyon & klinik ---

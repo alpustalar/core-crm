@@ -14,7 +14,8 @@ import {
  */
 @QueryHandler(GetTreatmentPricingQuery)
 export class GetTreatmentPricingHandler
-  implements IQueryHandler<GetTreatmentPricingQuery, GetTreatmentPricingResponse>
+  implements
+    IQueryHandler<GetTreatmentPricingQuery, GetTreatmentPricingResponse>
 {
   constructor(
     @Inject(TREATMENT_QUERY_REPOSITORY)
@@ -24,6 +25,8 @@ export class GetTreatmentPricingHandler
   async execute(
     query: GetTreatmentPricingQuery
   ): Promise<GetTreatmentPricingResponse> {
-    return { data: await this.treatmentRepo.findPricingById(query.treatmentId) };
+    return {
+      data: await this.treatmentRepo.findPricingById(query.treatmentId),
+    };
   }
 }

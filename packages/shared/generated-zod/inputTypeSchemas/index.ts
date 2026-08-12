@@ -89,6 +89,7 @@ export { ResourceAvailabilityScalarFieldEnumSchema } from './ResourceAvailabilit
 export { RoleScalarFieldEnumSchema } from './RoleScalarFieldEnumSchema';
 export { RoleCapabilityScalarFieldEnumSchema } from './RoleCapabilityScalarFieldEnumSchema';
 export { CapabilityScalarFieldEnumSchema } from './CapabilityScalarFieldEnumSchema';
+export { UserCapabilityScalarFieldEnumSchema } from './UserCapabilityScalarFieldEnumSchema';
 export { SectorScalarFieldEnumSchema } from './SectorScalarFieldEnumSchema';
 export { ModuleScalarFieldEnumSchema } from './ModuleScalarFieldEnumSchema';
 export { PlanScalarFieldEnumSchema } from './PlanScalarFieldEnumSchema';

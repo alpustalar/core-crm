@@ -21,6 +21,11 @@ model User {
 
   providerProfile Provider?
 
+  /// Rolün üstüne, klinik yöneticisi tarafından kişiye özel verilen ek yetkiler.
+  grantedCapabilities UserCapability[] @relation("user_capabilities")
+  /// Bu kullanıcının BAŞKALARINA verdiği yetkiler (kim verdi izi).
+  issuedCapabilities  UserCapability[] @relation("capability_granters")
+
   lastLogin      DateTime        @default(now()) @map("last_login")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")

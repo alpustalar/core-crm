@@ -6,6 +6,7 @@ import { FindAllUsersForManagerHandler } from '@modules/identity/user/applicatio
 import { FindOneWithIdOrEmailHandler } from '@modules/identity/user/application/queries/find-one-with-id-or-email';
 import { FindClinicStaffUserIdsHandler } from '@modules/identity/user/application/queries/find-clinic-staff-user-ids/find-clinic-staff-user-ids.handler';
 import { UserRepositoriesModule } from '@modules/identity/user/infrastructure/persistence/prisma/repositories/repositories.module';
+import { GetUserCapabilitiesHandler } from './get-user-capabilities/get-user-capabilities.handler';
 
 const QueryHandlers = [
   FindUserForAuthHandler,
@@ -13,6 +14,7 @@ const QueryHandlers = [
   FindAllUsersForManagerHandler,
   FindOneWithIdOrEmailHandler,
   FindClinicStaffUserIdsHandler,
+  GetUserCapabilitiesHandler,
 ];
 
 @Module({
