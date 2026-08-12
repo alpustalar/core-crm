@@ -67,7 +67,8 @@ model Patient {
   responsibleProviderId String?   @map("responsible_provider_id")
   checkupDate           DateTime? @map("checkup_date")
 
-  discountRate Decimal? @map("discount_rate") @db.Decimal(5, 2)
+  // NOT: `discountRate` kaldırıldı. Kalıcı "indirimli hasta" oranı yerine indirim
+  // artık işlem anında TreatmentCharge satırında donuyor (raporlanabilir, tavana tabi).
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")

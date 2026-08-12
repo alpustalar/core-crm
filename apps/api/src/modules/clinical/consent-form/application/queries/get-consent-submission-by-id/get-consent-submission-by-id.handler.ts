@@ -39,13 +39,22 @@ export class GetConsentSubmissionByIdHandler
       throw new ConsentFormSubmissionNotFoundException(submissionId);
     }
 
-    this.policyFactory
-      .consentForm(ctx.actor, ctx.source)
-      .evaluator.check((p) =>
-        p.canAccessConsentSubmissions(submission.clinicId)
-      )
+    const { evaluator, policy } = this.policyFactory.consentForm(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessConsentSubmissions(submission.clinicId))
       .orThrow(CONSENT_FORM_EVENTS.GET);
 
-    return { data: submission };
+    return {
+      data: submission,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: submission.clinicId,
+        }),
+      },
+    };
   }
 }

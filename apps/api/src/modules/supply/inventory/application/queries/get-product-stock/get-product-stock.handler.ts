@@ -10,6 +10,7 @@ import {
   IProductQueryRepository,
   PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product/product.query.repository';
+import { INVENTORY_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetProductStockQuery)
 export class GetProductStockHandler
@@ -25,11 +26,25 @@ export class GetProductStockHandler
   async execute(query: GetProductStockQuery): Promise<GetProductStockResponse> {
     const { clinicId, ctx } = query;
 
-    const serializationOptions = this.policyFactory
-      .clinic(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({ clinicId });
+    const { evaluator, policy } = this.policyFactory.clinic(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
+        'Bu kliniğin stok seviyelerine erişim yetkiniz yok.'
+      )
+      .orThrow(INVENTORY_EVENTS.STOCK_LEVELS);
 
     const levels = await this.productRepo.getStockLevels(clinicId);
-    return { data: levels, meta: { serializationOptions } };
+
+    return {
+      data: levels,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

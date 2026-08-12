@@ -1,7 +1,4 @@
-import {
-  LayoutDashboard,
-  type LucideIcon,
-} from 'lucide-react';
+import { LayoutDashboard, Users, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -10,18 +7,27 @@ export interface NavItem {
   icon: LucideIcon;
   /** Gizlemek için gereken yetkinlik; yoksa herkese görünür. */
   capability?: string;
+  /** Klinik kapsamlı öğeler aktif klinik yoksa gösterilmez. */
+  requiresClinic?: boolean;
 }
 
 /**
- * Kenar çubuğu backend'in modül gruplarını yansıtır. Liste bilerek **kısa
- * başlıyor**: yalnız gerçekten var olan ekranlar burada. Henüz yazılmamış
- * modülleri şimdiden koymak kullanıcıya 404'e giden ölü bağlantılar göstermek
- * olurdu. Her modül indikçe buraya bir satır eklenir.
+ * Kenar çubuğu backend'in modül gruplarını yansıtır. Liste bilerek **kısa**:
+ * yalnız gerçekten var olan ekranlar burada. Henüz yazılmamış modülleri
+ * şimdiden koymak kullanıcıya 404'e giden ölü bağlantılar göstermek olurdu.
+ * Her modül indikçe buraya bir satır eklenir.
  */
 export const NAV_ITEMS: NavItem[] = [
   {
     label: 'Panel',
     href: () => '/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    label: 'Leadler',
+    href: ({ clinicId }) => `/clinics/${clinicId}/leads`,
+    icon: Users,
+    capability: 'lead:read',
+    requiresClinic: true,
   },
 ];

@@ -4,8 +4,10 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { AccountingPeriod } from '@modules/finance/accounting/periods/domain/entities/accounting-period.entity';
 import { OpenPeriodCommand } from './open-period.command';
 import { PeriodAlreadyExistsException } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import {
   ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
   IAccountingPeriodCommandRepository,
@@ -22,16 +24,17 @@ export class OpenPeriodHandler
   constructor(
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
     private readonly accountingPeriodRepo: IAccountingPeriodCommandRepository,
-    private readonly txManager: TransactionManager,
-    private readonly queryBus: TSQueryBus
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: OpenPeriodCommand): Promise<string> {
     const { clinicId, year, ctx } = command.payload;
 
-    const { data: organizationId } = await this.queryBus.execute(
-      new GetClinicOrganizationIdQuery(clinicId)
-    );
+    const organizationId = await this.tenantScopeResolver.resolve({
+      clinicId,
+    });
 
     const period = AccountingPeriod.create({ clinicId, organizationId, year });
 

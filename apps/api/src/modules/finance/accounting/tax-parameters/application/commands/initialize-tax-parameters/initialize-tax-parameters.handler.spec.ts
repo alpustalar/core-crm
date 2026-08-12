@@ -13,8 +13,12 @@ describe('InitializeTaxParametersHandler', () => {
     const txManager = {
       run: jest.fn().mockImplementation((cb: () => Promise<unknown>) => cb()),
     };
+    const tenantScopeResolver = {
+      resolve: jest.fn().mockResolvedValue('org-1'),
+    };
     const handler = new InitializeTaxParametersHandler(
       commandRepo as never,
+      tenantScopeResolver as never,
       txManager as never
     );
     return { handler, commandRepo };
@@ -24,7 +28,7 @@ describe('InitializeTaxParametersHandler', () => {
     const { handler, commandRepo } = make(false);
 
     await handler.execute(
-      new InitializeTaxParametersCommand('clinic-1', 'org-1', ctx)
+      new InitializeTaxParametersCommand({ clinicId: 'clinic-1', ctx })
     );
 
     expect(commandRepo.createMany).toHaveBeenCalledTimes(1);
@@ -39,7 +43,7 @@ describe('InitializeTaxParametersHandler', () => {
     const { handler, commandRepo } = make(true);
 
     await handler.execute(
-      new InitializeTaxParametersCommand('clinic-1', 'org-1', ctx)
+      new InitializeTaxParametersCommand({ clinicId: 'clinic-1', ctx })
     );
 
     expect(commandRepo.createMany).not.toHaveBeenCalled();

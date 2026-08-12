@@ -9,7 +9,10 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { IGetContext } from '@common/decorators';
 import { GetTaxRateQuery } from '@modules/finance/accounting/tax-parameters/application/queries/get-tax-rate/get-tax-rate.query';
 import { GetClinicGovernmentSpecsQuery } from '@modules/organization/clinic-governance/application/queries/get-clinic-government-specs/get-clinic-government-specs.query';
-import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
@@ -24,6 +27,8 @@ import {
 import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
 import { InvoiceStatusSchema } from '@input-type-schemas/InvoiceStatusSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { Money } from '@src/domain/value-objects/money.vo';
+import { GetAppointmentChargeSummaryQuery } from '@modules/finance/treatment-charge/application/queries/get-appointment-charge-summary/get-appointment-charge-summary.query';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
@@ -42,6 +47,8 @@ export class IssueInvoiceHandler
   constructor(
     @Inject(INVOICE_COMMAND_REPOSITORY)
     private readonly invoiceRepo: IInvoiceCommandRepository,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
@@ -64,14 +71,29 @@ export class IssueInvoiceHandler
 
     const invoiceId = UUID.generate().value;
     // Fatura hem kliniğe hem organizasyona bağlıdır; org, kliniğin sahibi org'undan çözülür.
-    const organizationId = await this.resolveOrganizationId(input.clinicId);
-    // KDV oranı parametriktir: açıkça verilmemişse şubenin geçerli sağlık KDV'sini çöz.
+    const organizationId = await this.tenantScopeResolver.resolve({
+      clinicId: input.clinicId,
+    });
+
+    // Randevunun fiyatlı işlem satırları varsa fatura ONLARDAN türer. Satırlar
+    // liste fiyatı/indirim/KDV'yi zaten donmuş halde taşır; brüt tutarı yeniden
+    // matraha bölmek (fromGrossAmount) kuruş sapması yaratır ve faturayı kendi
+    // satırlarıyla tutarsız kılar. Satır yoksa serbest tutarlı klasik yol işler
+    // (kapora, tedavi dışı tahsilat).
+    const charges = await this.resolveChargeSummary(input.appointmentId);
+
     const vatRate =
-      input.vatRate ?? (await this.resolveVatRate(input.clinicId));
-    const taxSpec = TaxSpecification.fromGrossAmount(
-      input.totalAmount,
-      vatRate
-    );
+      charges?.vatRate ??
+      input.vatRate ??
+      (await this.resolveVatRate(input.clinicId));
+
+    const taxSpec = charges
+      ? TaxSpecification.create(
+          Money.create(charges.netTotal, input.totalAmount.currency).orThrow(),
+          vatRate,
+          Money.create(charges.vatTotal, input.totalAmount.currency).orThrow()
+        )
+      : TaxSpecification.fromGrossAmount(input.totalAmount, vatRate);
 
     // Fatura PENDING oluşturulur ve ekonomik olay (SALES_INVOICE_ISSUED) HER ZAMAN
     // yazılır — e-belge gönderiminden bağımsız. İkisi atomik (outboxRun).
@@ -83,7 +105,9 @@ export class IssueInvoiceHandler
         patientId: input.patientId,
         appointmentId: input.appointmentId,
         paymentId: input.paymentId,
-        amount: input.totalAmount.value.toNumber(),
+        // Satırlardan türediyse genel toplam da satırların toplamıdır; çağıranın
+        // gönderdiği tutar değil (ikisi ayrışırsa satır toplamı esastır).
+        amount: taxSpec.grossAmount.value.toNumber(),
         currency:
           input.totalAmount.currency ?? Currency.fromTrusted(Currency.enum.TRY),
         vatRate,
@@ -127,11 +151,17 @@ export class IssueInvoiceHandler
     }
   }
 
-  /** Kliniğin bağlı olduğu organizasyonun id'sini çözer (bounded context — QueryBus). */
-  private async resolveOrganizationId(clinicId: string): Promise<string> {
+  /**
+   * Randevunun işlem satırı özeti. Satır yoksa `null` döner ve fatura serbest
+   * tutarlı klasik yoldan kesilir.
+   */
+  private async resolveChargeSummary(appointmentId: string | null) {
+    if (!appointmentId) return null;
+
     const { data } = await this.queryBus.execute(
-      new GetClinicOrganizationIdQuery(clinicId)
+      new GetAppointmentChargeSummaryQuery(appointmentId)
     );
+
     return data;
   }
 

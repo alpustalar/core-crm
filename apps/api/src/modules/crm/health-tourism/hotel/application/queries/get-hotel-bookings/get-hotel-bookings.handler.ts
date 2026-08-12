@@ -8,8 +8,10 @@ import {
   HOTELBEDS_BOOKING_QUERY_REPOSITORY,
   IHotelbedsBookingQueryRepository,
 } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.query.repository';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -24,7 +26,8 @@ export class GetHotelBookingsHandler
     private readonly hotelbedsBookingRepo: IHotelbedsBookingQueryRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly queryBus: TSQueryBus
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver
   ) {}
 
   async execute(
@@ -32,9 +35,7 @@ export class GetHotelBookingsHandler
   ): Promise<GetHotelBookingsResponse> {
     const { filter, ctx } = query;
 
-    const { data: organizationId } = await this.queryBus.execute(
-      new GetClinicOrganizationIdQuery(filter.clinicId)
-    );
+    const organizationId = await this.tenantScopeResolver.resolve(filter);
 
     const { total, items: hotelBookings } =
       await this.hotelbedsBookingRepo.findMany(
@@ -48,7 +49,7 @@ export class GetHotelBookingsHandler
 
     const serializationOptions = this.policyFactory
       .clinic(ctx.actor, ctx.source)
-      .policy.getSerializationOptions();
+      .policy.getSerializationOptions({ clinicId: filter.clinicId });
 
     return {
       data: hotelBookings,

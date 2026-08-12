@@ -8,8 +8,10 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import {
   ILeaveCommandRepository,
   LEAVE_COMMAND_REPOSITORY,
@@ -24,16 +26,15 @@ export class RequestLeaveHandler
     private readonly leaveRepo: ILeaveCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly txManager: TransactionManager,
-    private readonly queryBus: TSQueryBus
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: RequestLeaveCommand): Promise<string> {
     const { employeeId, data, ctx } = command.payload;
 
-    const { data: organizationId } = await this.queryBus.execute(
-      new GetClinicOrganizationIdQuery(data.clinicId)
-    );
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .employee(ctx.actor, ctx.source)

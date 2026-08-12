@@ -29,6 +29,12 @@ export class InvoiceQueryRepository
     });
   }
 
+  findByAppointmentId(appointmentId: string): Promise<IInvoice | null> {
+    return this.db.invoice.findFirst({
+      where: { appointmentId, isDeleted: false },
+    });
+  }
+
   findMany(
     filter: FindInvoicesFilter,
     pagination: Pagination

@@ -64,6 +64,5 @@ export async function paginate<T, W>({
   return { items, total };
 }
 
-// Sayfalama üst verisi hesabı DB-bağımsızdır ve çekirdeğe taşındı; mevcut
-// çağrı yerleri değişmesin diye buradan yeniden dışa açılır.
+// Sayfalama üst verisi hesabı DB-bağımsızdır
 export { buildPaginationMeta } from '@common/pagination/pagination-meta';

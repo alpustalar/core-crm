@@ -19,6 +19,11 @@ import {
   GetAccountLedgerResponse,
   LedgerMovement,
 } from './get-account-ledger.response';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ACCOUNTING_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetAccountLedgerQuery)
 export class GetAccountLedgerHandler implements IQueryHandler<
@@ -28,13 +33,29 @@ export class GetAccountLedgerHandler implements IQueryHandler<
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetAccountLedgerQuery
   ): Promise<GetAccountLedgerResponse> {
     const { clinicId, accountCode, ctx, dateFrom, dateTo } = query.payload;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin defter-i kebirine erişim yetkiniz yok.'
+      )
+      .orThrow(ACCOUNTING_EVENTS.ACCOUNT_LEDGER);
+
+    const serializationOptions = policy.getSerializationOptions({ clinicId });
 
     // Hesap şubenin planından çözülür (kod → id/ad/yön)
     const { data: accounts } = await this.queryBus.execute(
@@ -83,6 +104,7 @@ export class GetAccountLedgerHandler implements IQueryHandler<
         totalCredit: totalCredit.toFixed(2),
         closingBalance: closingBalance.toFixed(2),
       },
+      meta: { serializationOptions },
     };
   }
 

@@ -11,6 +11,10 @@ import {
   BANK_ACCOUNT_COMMAND_REPOSITORY,
   IBankAccountCommandRepository,
 } from '@modules/finance/bank/domain/repositories/bank-account/bank-account.command.repository';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 @CommandHandler(CreateBankAccountCommand)
 export class CreateBankAccountHandler
@@ -21,6 +25,8 @@ export class CreateBankAccountHandler
     private readonly bankAccountRepo: IBankAccountCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -28,17 +34,15 @@ export class CreateBankAccountHandler
     const { data, ctx } = command;
     const { actor } = ctx;
 
-    const clinicId = actor.clinicId ?? '';
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .finance(actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(clinicId))
+      .evaluator.check((p) => p.canAccessClinicFinances(data.clinicId))
       .orThrow('bank-account.create');
 
     const account = BankAccount.create({
-      clinicId,
+      clinicId: data.clinicId,
       organizationId,
       name: data.name,
       bankName: data.bankName,

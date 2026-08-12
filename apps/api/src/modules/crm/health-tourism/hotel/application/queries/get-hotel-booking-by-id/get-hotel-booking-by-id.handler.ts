@@ -8,6 +8,10 @@ import {
   HOTELBEDS_BOOKING_QUERY_REPOSITORY,
   IHotelbedsBookingQueryRepository,
 } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetHotelBookingByIdQuery)
 export class GetHotelBookingByIdHandler
@@ -16,7 +20,9 @@ export class GetHotelBookingByIdHandler
 {
   constructor(
     @Inject(HOTELBEDS_BOOKING_QUERY_REPOSITORY)
-    private readonly hotelbedsBookingRepo: IHotelbedsBookingQueryRepository
+    private readonly hotelbedsBookingRepo: IHotelbedsBookingQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -26,6 +32,18 @@ export class GetHotelBookingByIdHandler
 
     if (!booking) throw new HotelbedsBookingNotFoundException();
 
-    return { data: booking };
+    const { policy } = this.policyFactory.clinic(
+      query.ctx.actor,
+      query.ctx.source
+    );
+
+    return {
+      data: booking,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: booking.clinicId,
+        }),
+      },
+    };
   }
 }

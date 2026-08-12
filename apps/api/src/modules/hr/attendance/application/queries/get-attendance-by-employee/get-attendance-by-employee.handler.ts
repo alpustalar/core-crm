@@ -33,9 +33,13 @@ export class GetAttendanceByEmployeeHandler
   ): Promise<GetAttendanceByEmployeeResponse> {
     const { employeeId, filter, pagination, ctx } = query.payload;
 
-    this.policyFactory
-      .employee(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicHr(ctx.actor.clinicId))
+    const { evaluator, policy } = this.policyFactory.employee(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicHr(ctx.actor.clinicId))
       .orThrow(ATTENDANCE_EVENTS.LIST);
 
     const result = await this.attendanceRepo.findByEmployee({
@@ -47,7 +51,12 @@ export class GetAttendanceByEmployeeHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: ctx.actor.clinicId ?? '',
+        }),
+      },
     };
   }
 }

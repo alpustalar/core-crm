@@ -7,7 +7,7 @@ import { PartyRoleType } from '@input-type-schemas/PartyRoleSchema';
 export class FindPartiesQuery implements IQuery {
   readonly __responseType!: FindPartiesResponse;
   constructor(
-    public readonly organizationId: string,
+    public readonly clinicId: string,
     public readonly pagination: PaginationDto,
     public readonly ctx: IGetContext,
     public readonly role?: PartyRoleType

@@ -57,10 +57,20 @@ describe('GetAgencyRoiReportHandler', () => {
       }),
     };
 
+    const policyFactory = {
+      clinic: () => ({
+        evaluator: { check: () => ({ orThrow: () => undefined }) },
+        policy: {
+          getSerializationOptions: () => ({ groups: [], isGroupActive: false }),
+        },
+      }),
+    };
+
     return {
       handler: new GetAgencyRoiReportHandler(
         metricRepo as never,
-        queryBus as never
+        queryBus as never,
+        policyFactory as never
       ),
       metricRepo,
       queryBus,

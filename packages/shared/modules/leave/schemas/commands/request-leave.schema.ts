@@ -9,5 +9,3 @@ export const RequestLeaveSchema = z.object({
   reason: z.string().nullable().optional(),
   clinicId: z.uuid(),
 });
-
-export type RequestLeave = z.infer<typeof RequestLeaveSchema>;

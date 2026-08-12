@@ -120,11 +120,11 @@ export class RegisterClinicAccountHandler
       // Varsayılan vergi parametreleri (KDV/stopaj/kurumlar) — idempotent.
       // Fatura kesimi KDV oranını buradan çözer
       await this.commandBus.execute(
-        new InitializeTaxParametersCommand(
-          generatedClinicUUID.value,
-          generatedOrganizationUUID.value,
-          this.internalCtx
-        )
+        new InitializeTaxParametersCommand({
+          clinicId: generatedClinicUUID.value,
+          organizationId: generatedOrganizationUUID.value,
+          ctx: this.internalCtx,
+        })
       );
     });
 

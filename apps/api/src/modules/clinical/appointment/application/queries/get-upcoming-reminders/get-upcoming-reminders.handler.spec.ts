@@ -34,10 +34,18 @@ describe('GetUpcomingRemindersHandler (yaklaşan hatırlatmalar)', () => {
       }),
     } as any;
 
+    const policyFactory = {
+      appointment: () => ({
+        policy: {
+          getSerializationOptions: () => ({ groups: [], isGroupActive: false }),
+        },
+      }),
+    } as any;
+
     const ctx = { actor: { clinicId: 'clinic-1' } } as any;
 
     return {
-      handler: new GetUpcomingRemindersHandler(appointmentRepo),
+      handler: new GetUpcomingRemindersHandler(appointmentRepo, policyFactory),
       ctx,
     };
   };

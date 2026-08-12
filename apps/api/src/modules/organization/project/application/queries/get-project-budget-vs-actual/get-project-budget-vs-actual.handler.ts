@@ -26,10 +26,13 @@ import {
  * Rapor finans yetkisi ister: proje panosunu gören herkes harcama görmemeli.
  */
 @QueryHandler(GetProjectBudgetVsActualQuery)
-export class GetProjectBudgetVsActualHandler implements IQueryHandler<
-  GetProjectBudgetVsActualQuery,
-  GetProjectBudgetVsActualResponse
-> {
+export class GetProjectBudgetVsActualHandler
+  implements
+    IQueryHandler<
+      GetProjectBudgetVsActualQuery,
+      GetProjectBudgetVsActualResponse
+    >
+{
   constructor(
     @Inject(PROJECT_QUERY_REPOSITORY)
     private readonly projectQueryRepo: IProjectQueryRepository,
@@ -45,9 +48,13 @@ export class GetProjectBudgetVsActualHandler implements IQueryHandler<
     );
     if (!project) return { data: null };
 
-    this.policyFactory
-      .project(query.ctx.actor, query.ctx.source)
-      .evaluator.check((p) => p.canManageProjectFinancials(project.clinicId))
+    const { evaluator, policy } = this.policyFactory.project(
+      query.ctx.actor,
+      query.ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicProjects(project.clinicId))
       .orThrow('project.budget-vs-actual');
 
     const costRows = await this.projectQueryRepo.costTotals(query.projectId);
@@ -72,6 +79,11 @@ export class GetProjectBudgetVsActualHandler implements IQueryHandler<
         phases: this.phaseLines(project.phases, costRows),
         unassigned: this.sumFor(costRows, (r) => r.phaseId === null).toFixed(2),
         bySource: this.sourceLines(costRows),
+      },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: project.clinicId,
+        }),
       },
     };
   }

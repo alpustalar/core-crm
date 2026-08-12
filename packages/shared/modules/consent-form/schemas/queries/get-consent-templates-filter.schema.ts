@@ -5,7 +5,3 @@ export const GetConsentTemplatesFilterSchema = z.object({
   isActive: z.coerce.boolean().optional(),
   sectorId: z.uuid().optional(),
 });
-
-export type GetConsentTemplatesFilter = z.infer<
-  typeof GetConsentTemplatesFilterSchema
->;

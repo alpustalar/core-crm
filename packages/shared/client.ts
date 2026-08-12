@@ -36,6 +36,7 @@ export * from './modules/health-tourism/interfaces';
 export * from './modules/inventory/schemas';
 export * from './modules/lead/schemas';
 export * from './modules/lead/interfaces';
+export * from './modules/lead/contracts';
 export * from './modules/leave/schemas';
 export * from './modules/messaging/schemas';
 export * from './modules/messaging/interfaces';
@@ -115,3 +116,11 @@ export * from './common/pagination/pagination.type';
 // Runtime şema (LeadSchema vb.) buradan alınmaz — 1.3 MB'lık generated-zod
 // bundle'a girer. Tipler ise derlemede silindiği için bedava.
 export type * from './generated-zod/modelSchema';
+//
+// NOT: `generated-zod/inputTypeSchemas` barrel'ı buraya EKLENMEZ. İki sebep:
+// (1) yalnız şema *değerlerini* yeniden dışa açıyor (`export { LeadStatusSchema }`),
+//     `...Type` takma adlarını değil — yani aradığın enum tipini zaten vermez;
+// (2) elle yazılmış modül şemalarıyla isim çakışıyor (`MetaLeadStatusSchema`,
+//     `PipelineStageTypeSchema`) ve barrel'ı belirsizleştiriyor.
+// Enum tipi lazımsa modelden türet: `Lead['status']`, `Lead['source']`. Böylece
+// tip modelle her zaman senkron kalır.

@@ -28,13 +28,33 @@ export class GetCashSessionByIdHandler
     const { sessionId, ctx } = query;
     const data = await this.cashSessionRepo.findByIdWithMovements(sessionId);
 
-    if (!data) return { data: null };
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
 
-    this.policyFactory
-      .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicFinances(data.clinicId))
+    if (!data) {
+      return {
+        data: null,
+        meta: {
+          serializationOptions: policy.getSerializationOptions({
+            clinicId: ctx.actor.clinicId ?? '',
+          }),
+        },
+      };
+    }
+
+    evaluator
+      .check((p) => p.canAccessClinicFinances(data.clinicId))
       .orThrow('cash-session.detail');
 
-    return { data };
+    return {
+      data,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: data.clinicId,
+        }),
+      },
+    };
   }
 }

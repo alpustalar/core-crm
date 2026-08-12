@@ -71,7 +71,7 @@ export class AutoMatchStatementLinesHandler
 
     this.policyFactory
       .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(clinicId))
+      .evaluator.check((p) => p.canAccessClinicFinances(clinicId))
       .orThrow('bank-statement.auto-match');
 
     const options = {

@@ -36,7 +36,7 @@ export class RecordSupplierPaymentHandler
 
     this.policyFactory
       .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(data.clinicId))
+      .evaluator.check((p) => p.canAccessClinicFinances(data.clinicId))
       .orThrow();
 
     const payload: PaymentMadeEventPayload = {

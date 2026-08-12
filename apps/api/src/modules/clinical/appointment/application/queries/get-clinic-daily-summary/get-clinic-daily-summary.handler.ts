@@ -7,8 +7,6 @@ import { ClinicDailySummary } from '@modules/clinical/appointment/domain/contrac
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
-import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
-import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -24,10 +22,13 @@ import {
  * status sayımlarını çeker ve düz özete katlar. Entity sızmaz — okuma-modeli döner.
  */
 @QueryHandler(GetClinicDailySummaryQuery)
-export class GetClinicDailySummaryHandler implements IQueryHandler<
-  GetClinicDailySummaryQuery,
-  GetClinicDailySummaryQueryResponse
-> {
+export class GetClinicDailySummaryHandler
+  implements
+    IQueryHandler<
+      GetClinicDailySummaryQuery,
+      GetClinicDailySummaryQueryResponse
+    >
+{
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,
@@ -39,22 +40,8 @@ export class GetClinicDailySummaryHandler implements IQueryHandler<
   async execute(
     query: GetClinicDailySummaryQuery
   ): Promise<GetClinicDailySummaryQueryResponse> {
-    const { data, ctx } = query;
-    const { date, providerId } = data;
-
-    const { clinicId } = providerId
-      ? await this.queryBus.execute(
-          new FindClinicIdByProviderIdQuery(providerId)
-        )
-      : ctx.actor.clinicId
-        ? ctx.actor
-        : data;
-
-    if (!clinicId) throw new ClinicNotFoundException();
-
-    const serializationOptions = this.policyFactory
-      .appointment(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({ clinicId, providerId });
+    const { filter, ctx } = query;
+    const { date, providerId, clinicId } = filter;
 
     const { data: tz } = await this.queryBus.execute(
       new GetClinicTimezoneQuery(clinicId)
@@ -92,7 +79,9 @@ export class GetClinicDailySummaryHandler implements IQueryHandler<
     return {
       data: summary,
       meta: {
-        serializationOptions,
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({ clinicId, providerId }),
       },
     };
   }

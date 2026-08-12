@@ -16,19 +16,22 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreatePurchaseOrderCommand)
-export class CreatePurchaseOrderHandler implements ICommandHandler<
-  CreatePurchaseOrderCommand,
-  string
-> {
+export class CreatePurchaseOrderHandler
+  implements ICommandHandler<CreatePurchaseOrderCommand, string>
+{
   constructor(
     @Inject(PURCHASE_ORDER_COMMAND_REPOSITORY)
-    private readonly poCommandRepo: IPurchaseOrderCommandRepository,
+    private readonly purchaseOrderRepo: IPurchaseOrderCommandRepository,
     @Inject(PURCHASE_REQUEST_COMMAND_REPOSITORY)
-    private readonly prCommandRepo: IPurchaseRequestCommandRepository,
+    private readonly purchaseRequestRepo: IPurchaseRequestCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -36,17 +39,15 @@ export class CreatePurchaseOrderHandler implements ICommandHandler<
     const { data, ctx } = command;
     const { actor } = ctx;
 
-    const clinicId = actor.clinicId ?? '';
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .purchasing(actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicPurchasing(clinicId))
+      .evaluator.check((p) => p.canManageClinicPurchasing(data.clinicId))
       .orThrow('purchase-order.create');
 
     const order = PurchaseOrder.create({
-      clinicId,
+      clinicId: data.clinicId,
       organizationId,
       supplierId: data.supplierId,
       purchaseRequestId: data.purchaseRequestId,
@@ -58,17 +59,17 @@ export class CreatePurchaseOrderHandler implements ICommandHandler<
     return this.txManager.run(async () => {
       // Onaylı talepten oluşturuluyorsa talebi ORDERED işaretle (atomik).
       if (data.purchaseRequestId) {
-        const request = await this.prCommandRepo.findById(
+        const request = await this.purchaseRequestRepo.findById(
           data.purchaseRequestId
         );
         if (!request) {
           throw new PurchaseRequestNotFoundException(data.purchaseRequestId);
         }
         request.markOrdered();
-        await this.prCommandRepo.update(request);
+        await this.purchaseRequestRepo.update(request);
       }
 
-      const saved = await this.poCommandRepo.create(order);
+      const saved = await this.purchaseOrderRepo.create(order);
       return saved.id.value;
     });
   }

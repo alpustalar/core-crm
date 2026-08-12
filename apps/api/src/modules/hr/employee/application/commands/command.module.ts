@@ -4,6 +4,7 @@ import { UpdateEmployeeHandler } from './update-employee/update-employee.handler
 import { TerminateEmployeeHandler } from './terminate-employee/terminate-employee.handler';
 import { AddEmployeeContractHandler } from './add-employee-contract/add-employee-contract.handler';
 import { EmployeeInfrastructureModule } from '@modules/hr/employee/infrastructure/infrastructure.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 export const EMPLOYEE_COMMAND_HANDLERS = [
   CreateEmployeeHandler,
@@ -13,7 +14,7 @@ export const EMPLOYEE_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [EmployeeInfrastructureModule],
+  imports: [EmployeeInfrastructureModule, ClinicDomainServicesModule],
   providers: EMPLOYEE_COMMAND_HANDLERS,
 })
 export class EmployeeCommandModule {}

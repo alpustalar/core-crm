@@ -23,7 +23,6 @@ import { PatientModule } from '@modules/crm/patient/patient.module';
 import { TreatmentModule } from '@modules/clinical/treatment/treatment.module';
 import { OrganizationModule } from '@modules/organization/organization/organization.module';
 import { MedicalFilesModule } from '@modules/clinical/medical-files/medical-files.module';
-import { LookupModule } from '@modules/platform/lookup/lookup.module';
 import { AuthModule } from '@modules/identity/auth/auth/auth.module';
 import { RegistrationModule } from '@modules/identity/auth/registration/registration.module';
 import { RoleModule } from '@modules/identity/role/role.module';
@@ -39,6 +38,7 @@ import { PatientAuthModule } from '@modules/identity/auth/patient-auth/patient-a
 import { ContextModule } from '@src/infrastructure/context/context.module';
 import { TSCqrsModule } from '@common/cqrs/type-safe-cqrs.module';
 import { CryptoModule } from '@src/infrastructure/security/crypto/crypto.module';
+import { TreatmentChargeModule } from '@modules/finance/treatment-charge/treatment-charge.module';
 import { InvoiceModule } from '@modules/finance/invoice/invoice.module';
 import { PosModule } from '@modules/finance/pos/pos.module';
 import { PaymentModule } from '@modules/finance/payment/payment.module';
@@ -100,10 +100,10 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     ProviderModule,
     OrganizationModule,
     MedicalFilesModule,
-    LookupModule,
     RoleModule,
     RegistrationModule,
     InvoiceModule,
+    TreatmentChargeModule,
     PosModule,
     PaymentModule,
     AccountingModule,

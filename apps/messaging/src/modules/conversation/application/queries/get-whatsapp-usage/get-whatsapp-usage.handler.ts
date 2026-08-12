@@ -14,14 +14,14 @@ export class GetWhatsappUsageHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository
+    private readonly messageRepo: IMessageQueryRepository
   ) {}
 
   async execute(
     query: GetWhatsappUsageQuery
   ): Promise<GetWhatsappUsageResponse> {
     const { payload } = query;
-    const byCategory = await this.messageQueryRepo.aggregateUsageByCategory({
+    const byCategory = await this.messageRepo.aggregateUsageByCategory({
       clinicId: payload.clinicId,
       from: payload.from,
       to: payload.to,

@@ -8,15 +8,25 @@ import { VisitTypeType } from '@input-type-schemas/VisitTypeSchema';
 import { ExaminationTypeType as ExaminationType } from '@input-type-schemas/ExaminationTypeSchema';
 import { AppointmentCreatorTypeType as AppointmentCreatorType } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 
-const {
-  MANAGEMENT,
-  PROVIDER_DATA_OWNER,
-  PATIENT_DATA_OWNER,
-  INTERNAL,
-  FINANCIAL,
-} = AppointmentsResponseGroups;
+const { PROVIDER_DATA_OWNER, PATIENT_DATA_OWNER, INTERNAL, ADMIN, MANAGEMENT } =
+  AppointmentsResponseGroups;
 
-// İlişkili modeller için yalın alt DTO'lar
+const PATIENT_SHARED = {
+  groups: [
+    INTERNAL,
+    PROVIDER_DATA_OWNER,
+    PATIENT_DATA_OWNER,
+    ADMIN,
+    MANAGEMENT,
+  ],
+};
+
+const INTERNAL_ONLY = {
+  groups: [INTERNAL, PROVIDER_DATA_OWNER, ADMIN, MANAGEMENT],
+};
+
+const MANAGEMENT_ONLY = { groups: [MANAGEMENT, ADMIN] };
+
 export class AppointmentRelationalDto {
   @Expose() id: string;
 }
@@ -46,82 +56,76 @@ export class AppointmentResponseDto {
   // --------------------
   // Patient Info (Hasta, Hekim ve Klinik Personeli Görebilir)
   // --------------------
-  @Expose({
-    groups: [PATIENT_DATA_OWNER, PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT],
-  })
+  @Expose(PATIENT_SHARED)
   patientName: string;
 
-  @Expose({
-    groups: [PATIENT_DATA_OWNER, PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT],
-  })
+  @Expose(PATIENT_SHARED)
   patientPhone: string;
 
-  @Expose({
-    groups: [PATIENT_DATA_OWNER, PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT],
-  })
+  @Expose(PATIENT_SHARED)
   patientEmail?: string;
 
   // --------------------
   // Operational Details (Klinik İçi, Hekim ve Yönetim)
   // --------------------
-  @Expose({ groups: [PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   source: AppointmentSourceType;
 
-  @Expose({ groups: [PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   treatmentType?: string;
 
-  @Expose({ groups: [PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   examinationType?: ExaminationType;
 
-  @Expose({ groups: [PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   visitType?: VisitTypeType;
 
-  @Expose({ groups: [PROVIDER_DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   notes?: string;
 
   // --------------------
   // Audit & Creation Logs (Sadece Personel ve Yönetim)
   // --------------------
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   creatorType: AppointmentCreatorType;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   createdById?: string;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   createdByRealName?: string;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   approvedAt?: Date;
 
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose({ groups: [ADMIN] })
   approvedBy?: string;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   checkedInAt?: Date;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   reminderSentAt?: Date;
 
   // --------------------
   // Cancellation Logs (Sadece Klinik İçi ve Yönetim)
   // --------------------
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   canceledAt?: Date;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   canceledBy?: string;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   cancelReason?: string;
 
   // --------------------
   // System Timestamps
   // --------------------
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose()
   createdAt: Date;
 
-  @Expose({ groups: [MANAGEMENT] })
+  @Expose()
   updatedAt: Date;
 
   // --------------------
@@ -131,10 +135,10 @@ export class AppointmentResponseDto {
   @Expose() providerId: string;
   @Expose() patientId: string;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] }) treatmentId?: string;
-  @Expose({ groups: [INTERNAL, MANAGEMENT] }) resourceId?: string;
-  @Expose({ groups: [MANAGEMENT] }) externalId?: string;
-  @Expose({ groups: [MANAGEMENT] }) externalSystem?: string;
+  @Expose(INTERNAL_ONLY) treatmentId?: string;
+  @Expose(INTERNAL_ONLY) resourceId?: string;
+  @Expose({ groups: [INTERNAL, ADMIN] }) externalId?: string;
+  @Expose({ groups: [INTERNAL, ADMIN] }) externalSystem?: string;
 
   // --------------------
   // Relational Object Hydrations (İlişkili Sınıflar)
@@ -147,27 +151,27 @@ export class AppointmentResponseDto {
   @Type(() => AppointmentRelationalDto)
   provider: AppointmentRelationalDto;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   @Type(() => AppointmentRelationalDto)
   patient: AppointmentRelationalDto;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   @Type(() => AppointmentRelationalDto)
   treatment?: AppointmentRelationalDto;
 
-  @Expose({ groups: [INTERNAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   @Type(() => AppointmentRelationalDto)
   resource?: AppointmentRelationalDto;
 
-  @Expose({ groups: [FINANCIAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   @Type(() => AppointmentRelationalDto)
   payment?: AppointmentRelationalDto[];
 
-  @Expose({ groups: [FINANCIAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   @Type(() => AppointmentRelationalDto)
   invoice?: AppointmentRelationalDto[];
 
-  @Expose({ groups: [FINANCIAL, MANAGEMENT] })
+  @Expose(INTERNAL_ONLY)
   @Type(() => AppointmentRelationalDto)
   posTransactions?: AppointmentRelationalDto[];
 }

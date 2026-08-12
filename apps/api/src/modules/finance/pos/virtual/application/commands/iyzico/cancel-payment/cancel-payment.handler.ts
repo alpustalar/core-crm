@@ -29,10 +29,6 @@ import {
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
-import {
-  IPolicyFactory,
-  POLICY_FACTORY,
-} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 
 @CommandHandler(CancelPaymentCommand)
@@ -40,6 +36,7 @@ export class CancelPaymentHandler
   implements
     ICommandHandler<CancelPaymentCommand, CancelPaymentCommandResponse>
 {
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
     private readonly txManager: TransactionManager,
     @Inject(IYZICO_PROVIDER)
@@ -48,8 +45,6 @@ export class CancelPaymentHandler
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
-    @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory,
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus
   ) {}
@@ -60,10 +55,7 @@ export class CancelPaymentHandler
     const {
       dto: { paymentId },
       ip,
-      ctx,
     } = command;
-
-    const internalCtx = ExecutionContextFactory.createInternal();
 
     const { data: payment } = await this.queryBus.execute(
       new GetPaymentWithInstallmentsQuery(paymentId)
@@ -108,7 +100,7 @@ export class CancelPaymentHandler
       await this.commandBus.execute(
         new MarkInstallmentAsCancelledCommand(
           completedInstallment.id,
-          internalCtx
+          this.internalCtx
         )
       );
 

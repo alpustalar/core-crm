@@ -74,3 +74,88 @@ export class InvoiceResponseDto {
   @Type(() => Date)
   updatedAt: Date;
 }
+
+/**
+ * Fatura liste satırı (InvoiceListItem read-model). Fatura no/durum resepsiyonun
+ * takip ettiği bilgidir; tutar finans tier'ındadır.
+ */
+export class InvoiceListItemResponseDto {
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  id: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  clinicId: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  patientId: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  status: InvoiceStatus;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  invoiceNumber: string | null;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  issuedAt: Date | null;
+
+  // --- Tutar (finans) ---
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  grandTotal: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  currency: string;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  organizationId: string;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  createdAt: Date;
+}
+
+/**
+ * Fatura detay okuma modeli (InvoiceView). KDV kırılımı tamamen finans tier'ında;
+ * resepsiyon yalnız faturanın varlığını/durumunu görür.
+ */
+export class InvoiceViewResponseDto {
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  id: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  clinicId: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  patientId: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  status: InvoiceStatus;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  issuedAt: Date | null;
+
+  // --- KDV kırılımı ve tutarlar (finans) ---
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  netTotal: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  vatTotal: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  grandTotal: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  vatRate: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  currency: string;
+
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  organizationId: string;
+}

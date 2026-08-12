@@ -6,7 +6,11 @@ import { PaginationDto } from '@shared';
 export class FindProductsQuery implements IQuery {
   readonly __responseType!: FindProductsResponse;
   constructor(
-    public readonly pagination: PaginationDto,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      readonly pagination: PaginationDto;
+      readonly clinicId: string;
+      readonly organizationId?: string | null;
+      readonly ctx: IGetContext;
+    }
   ) {}
 }

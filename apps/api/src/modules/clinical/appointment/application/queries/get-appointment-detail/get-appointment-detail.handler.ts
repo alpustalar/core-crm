@@ -13,10 +13,10 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetAppointmentDetailQuery)
-export class GetAppointmentDetailHandler implements IQueryHandler<
-  GetAppointmentDetailQuery,
-  GetAppointmentDetailQueryResponse
-> {
+export class GetAppointmentDetailHandler
+  implements
+    IQueryHandler<GetAppointmentDetailQuery, GetAppointmentDetailQueryResponse>
+{
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,
@@ -34,16 +34,16 @@ export class GetAppointmentDetailHandler implements IQueryHandler<
 
     if (!appointment) throw new AppointmentNotFoundException();
 
-    const serializationOptions = this.policyFactory
-      .appointment(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({
-        clinicId: appointment.clinicId,
-        providerId: appointment.providerId,
-      });
-
     return {
       data: appointment,
-      meta: { serializationOptions },
+      meta: {
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({
+            clinicId: appointment.clinicId,
+            providerId: appointment.providerId,
+          }),
+      },
     };
   }
 }

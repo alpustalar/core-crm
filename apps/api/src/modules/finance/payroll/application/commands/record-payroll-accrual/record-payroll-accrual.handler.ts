@@ -5,7 +5,7 @@ import { TransactionManager } from '@src/infrastructure/persistence/prisma/trans
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { EnsurePartyForEmployeeCommand } from '@modules/finance/party/application/commands/ensure-party-for-employee/ensure-party-for-employee.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
-import { FinancialEventTypeSchema } from '@shared';
+import { FinancialEventTypeSchema, ITenantScopeResolver } from '@shared';
 import { RecordPayrollAccrualCommand } from './record-payroll-accrual.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import {
@@ -15,6 +15,7 @@ import {
 import { PayrollBreakdown } from '@modules/finance/shared/domain/value-objects/payroll-breakdown.vo';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 @CommandHandler(RecordPayrollAccrualCommand)
 export class RecordPayrollAccrualHandler
@@ -24,19 +25,20 @@ export class RecordPayrollAccrualHandler
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver
   ) {}
 
   async execute(command: RecordPayrollAccrualCommand): Promise<string> {
     const { data, ctx } = command;
 
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(
-          data.clinicId,
-          data.organizationId
-        )
+        p.actorCanAccessClinicAndOrganization(data.clinicId, organizationId)
       )
       .orThrow();
 
@@ -54,14 +56,12 @@ export class RecordPayrollAccrualHandler
     // yok; köprü hatası komutu hataya düşürür (kısmi durum oluşmaz).
     return this.txManager.outboxRun(async () => {
       const { partyId } = await this.commandBus.execute(
-        new EnsurePartyForEmployeeCommand(
-          {
-            clinicId: data.clinicId,
-            organizationId: data.organizationId,
-            userId: data.employeeUserId,
-          },
-          internalCtx
-        )
+        new EnsurePartyForEmployeeCommand({
+          clinicId: data.clinicId,
+          organizationId,
+          userId: data.employeeUserId,
+          ctx: internalCtx,
+        })
       );
 
       const monthKey = DateTimeManager.toMonthKey(data.accrualDate);

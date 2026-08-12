@@ -9,7 +9,7 @@ import {
   HEALTH_INDICATORS,
   HealthIndicator,
   HealthReport,
-} from './health-indicator.interface';
+} from '@src/http';
 
 /**
  * Orkestratör probe'ları. **Sürümsüz** (`VERSION_NEUTRAL`) — adres `/health`

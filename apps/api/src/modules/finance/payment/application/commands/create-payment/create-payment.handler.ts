@@ -10,6 +10,9 @@ import {
   IPaymentCommandRepository,
   PAYMENT_COMMAND_REPOSITORY,
 } from '@modules/finance/payment/domain/repositories/payment/payment.command.repository';
+import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
+import { GetAppointmentChargeSummaryQuery } from '@modules/finance/treatment-charge/application/queries/get-appointment-charge-summary/get-appointment-charge-summary.query';
+import { PaymentAmountUnresolvableException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 
 @CommandHandler(CreatePaymentCommand)
 export class CreatePaymentHandler
@@ -18,7 +21,8 @@ export class CreatePaymentHandler
 {
   constructor(
     @Inject(PAYMENT_COMMAND_REPOSITORY)
-    private readonly paymentRepo: IPaymentCommandRepository
+    private readonly paymentRepo: IPaymentCommandRepository,
+    private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(
@@ -30,7 +34,7 @@ export class CreatePaymentHandler
       internalRelations?.installmentId
     );
 
-    const totalAmount = Money.create(data.amount, data.currency).orThrow();
+    const totalAmount = await this.resolveAmount(data);
 
     const payment = Payment.create({
       id: paymentId.value,
@@ -53,5 +57,35 @@ export class CreatePaymentHandler
 
     const savedPayment = await this.paymentRepo.create(payment);
     return savedPayment.id.value;
+  }
+
+  /**
+   * Tahsilat tutarını çözer.
+   *
+   * Tutar açıkça verilmişse o esastır (kapora, kısmi ödeme, tedavi dışı gelir).
+   * Verilmemişse randevunun fiyatlı işlem satırlarından türetilir — asıl yol
+   * budur: personelin serbestçe tutar yazması yerine, tahsil edilen para
+   * yapılan işlerin ve verilen indirimlerin toplamına eşitlenir.
+   */
+  private async resolveAmount(
+    data: CreatePaymentCommand['data']
+  ): Promise<Money> {
+    if (data.amount !== undefined) {
+      return Money.create(data.amount, data.currency).orThrow();
+    }
+
+    if (!data.appointmentId) {
+      throw new PaymentAmountUnresolvableException();
+    }
+
+    const { data: summary } = await this.queryBus.execute(
+      new GetAppointmentChargeSummaryQuery(data.appointmentId)
+    );
+
+    if (!summary) {
+      throw new PaymentAmountUnresolvableException(data.appointmentId);
+    }
+
+    return Money.create(summary.grandTotal, data.currency).orThrow();
   }
 }

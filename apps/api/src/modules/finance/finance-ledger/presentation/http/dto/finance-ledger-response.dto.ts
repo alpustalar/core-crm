@@ -67,3 +67,71 @@ export class FinanceLedgerResponseDto {
   @Type(() => Date)
   updatedAt: Date;
 }
+
+/**
+ * Klinik finans özeti (LedgerSummary). Ciro/gider toplamı yönetim verisidir —
+ * resepsiyonun göreceği bir alan yok, tamamı finans tier'ında.
+ */
+export class LedgerSummaryResponseDto {
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  totalIncome: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  totalExpenses: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  balance: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  entryCount: number;
+}
+
+/**
+ * Hasta cari özeti (PatientFinanceSummary). Kalan bakiye tahsilat yapan
+ * resepsiyonun da görmesi gereken bilgidir → INTERNAL'a açık.
+ */
+export class PatientFinanceSummaryResponseDto {
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  balance: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  totalServiceAmount: string;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  totalPayments: string;
+}
+
+/** Hasta cari hareketi (PatientLedgerItem read-model). */
+export class PatientLedgerItemResponseDto {
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  id: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  category: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => Date)
+  entryDate: Date;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  status: string;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  description: string | null;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  paymentMethod: string | null;
+
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  providerName: string | null;
+
+  @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  amount: string;
+}

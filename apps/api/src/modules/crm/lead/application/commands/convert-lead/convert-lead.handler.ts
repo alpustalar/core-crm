@@ -4,7 +4,7 @@ import { ConvertLeadCommand } from './convert-lead.command';
 import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository';
+} from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import {
   LeadConvertMissingTargetException,
@@ -27,6 +27,7 @@ export class ConvertLeadHandler
   implements ICommandHandler<ConvertLeadCommand, void>
 {
   private readonly internalCtx = ExecutionContextFactory.createInternal();
+
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadRepo: ILeadCommandRepository,
@@ -53,6 +54,7 @@ export class ConvertLeadHandler
       // (idempotent). Ne hasta ne de randevu bağlanamıyorsa dönüşecek hedef yoktur.
       const patientId =
         data.patientId ?? (await this.resolvePatientFromLead(lead));
+
       if (!patientId && !data.appointmentId) {
         throw new LeadConvertMissingTargetException(leadId);
       }
@@ -87,6 +89,7 @@ export class ConvertLeadHandler
     const firstName = lead.name?.value;
     if (!phone || !firstName) return undefined;
 
+    // TODO: sadece isimden çözümlemek pek mümkün değil. burayı sadece telefon numarasına çevirmek daha mantıklı.
     return this.commandBus.execute(
       new CreatePatientCommand({
         phone,
@@ -104,9 +107,11 @@ export class ConvertLeadHandler
     const { data: pipeline } = await this.queryBus.execute(
       new GetPipelineByIdQuery(lead.pipelineId, this.internalCtx)
     );
+
     const wonStage = pipeline?.stages.find(
       (pipelineStage) => pipelineStage.type === PipelineStageTypeSchema.enum.WON
     );
+
     if (pipeline && wonStage) {
       lead.assignStage({ pipelineId: pipeline.id, stageId: wonStage.id });
     }

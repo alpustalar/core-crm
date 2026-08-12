@@ -20,6 +20,7 @@ export class MetaAdAccountCommandRepository
     const raw = await this.db.metaAdAccount.create({
       data: toPersistence,
     });
+    data.flushEvents();
     return new MetaAdAccount(raw);
   }
 

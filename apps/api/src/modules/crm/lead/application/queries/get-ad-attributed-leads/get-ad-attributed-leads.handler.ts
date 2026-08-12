@@ -5,7 +5,7 @@ import { GetAdAttributedLeadsResponse } from './get-ad-attributed-leads.response
 import {
   ILeadQueryRepository,
   LEAD_QUERY_REPOSITORY,
-} from '@modules/crm/lead/domain/repositories/lead.repository';
+} from '@modules/crm/lead/domain/repositories/lead/lead.query.repository';
 
 @QueryHandler(GetAdAttributedLeadsQuery)
 export class GetAdAttributedLeadsHandler

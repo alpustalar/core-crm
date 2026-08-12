@@ -7,6 +7,10 @@ import {
   HOTELBEDS_TRANSFER_BOOKING_QUERY_REPOSITORY,
   IHotelbedsTransferBookingQueryRepository,
 } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetTransferBookingByIdQuery)
 export class GetTransferBookingByIdHandler
@@ -15,7 +19,9 @@ export class GetTransferBookingByIdHandler
 {
   constructor(
     @Inject(HOTELBEDS_TRANSFER_BOOKING_QUERY_REPOSITORY)
-    private readonly hotelbedsTransferBookingRepo: IHotelbedsTransferBookingQueryRepository
+    private readonly hotelbedsTransferBookingRepo: IHotelbedsTransferBookingQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -23,8 +29,19 @@ export class GetTransferBookingByIdHandler
   ): Promise<GetTransferBookingByIdResponse> {
     const result = await this.hotelbedsTransferBookingRepo.findById(query.id);
     if (!result) throw new HotelbedsTransferNotFound();
+
+    const { policy } = this.policyFactory.clinic(
+      query.ctx.actor,
+      query.ctx.source
+    );
+
     return {
       data: result,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: result.clinicId,
+        }),
+      },
     };
   }
 }

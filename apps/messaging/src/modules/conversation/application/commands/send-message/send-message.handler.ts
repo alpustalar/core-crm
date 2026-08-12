@@ -31,9 +31,9 @@ export class SendMessageHandler implements ICommandHandler<
 > {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
-    private readonly messageCommandRepo: IMessageCommandRepository,
+    private readonly messageRepo: IMessageCommandRepository,
     @Inject(AI_MEMORY_CACHE_SERVICE)
     private readonly aiMemoryCache: IAiMemoryCacheService,
     private readonly sendMessageProducer: SendMessageProducer
@@ -46,7 +46,7 @@ export class SendMessageHandler implements ICommandHandler<
     // okuma command repo'dan (ana bağlantı). Pencere bitişini başka bir akış
     // (teslim webhook'u) yazdığı için replica'dan okumak kapalı pencereyi açık
     // gösterebilirdi. Yazışma mutasyona uğramadığından kilit gerekmez.
-    const conversation = await this.conversationCommandRepo.findById(
+    const conversation = await this.conversationRepo.findById(
       input.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
@@ -78,7 +78,7 @@ export class SendMessageHandler implements ICommandHandler<
       mediaType: input.mediaType,
       sentByUserId: ctx.actor.userId,
     });
-    const saved = await this.messageCommandRepo.create(message);
+    const saved = await this.messageRepo.create(message);
 
     // Giden metin AI bağlam penceresine de yazılır — personelin araya girdiği mesajı
     // AI bir sonraki turda görsün (aksi halde cache DB'den sapardı).

@@ -6,6 +6,11 @@ import {
   ACCOUNTING_PERIOD_QUERY_REPOSITORY,
   IAccountingPeriodQueryRepository,
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ACCOUNTING_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetAccountingPeriodsQuery)
 export class GetAccountingPeriodsHandler
@@ -14,16 +19,36 @@ export class GetAccountingPeriodsHandler
 {
   constructor(
     @Inject(ACCOUNTING_PERIOD_QUERY_REPOSITORY)
-    private readonly accountingPeriodRepo: IAccountingPeriodQueryRepository
+    private readonly accountingPeriodRepo: IAccountingPeriodQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetAccountingPeriodsQuery
   ): Promise<GetAccountingPeriodsResponse> {
-    const periods = await this.accountingPeriodRepo.findAllByClinicId(
-      query.clinicId
+    const { clinicId, ctx } = query;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
     );
 
-    return { data: periods };
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin muhasebe dönemlerine erişim yetkiniz yok.'
+      )
+      .orThrow(ACCOUNTING_EVENTS.PERIODS);
+
+    const periods =
+      await this.accountingPeriodRepo.findAllByClinicId(clinicId);
+
+    return {
+      data: periods,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

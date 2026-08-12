@@ -14,6 +14,7 @@ export {
 } from './actor-context-resolver.port';
 export { ActorAuthenticator } from './actor-authenticator.service';
 export { TokenAuthGuard } from './token-auth.guard';
+export { CapabilityGuard } from './capability.guard';
 export {
   KernelAuthModule,
   type KernelAuthOptions,

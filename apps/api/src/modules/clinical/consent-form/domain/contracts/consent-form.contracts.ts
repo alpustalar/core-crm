@@ -1,5 +1,14 @@
 import { z } from 'zod';
 import { Pagination } from '@shared/common';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
+
+// ==========================================
+// Onam cevaplarının alan görünürlüğü. İmza görseli ve sözleşme metni hassastır;
+// grupları ConsentFormPolicy üretir.
+export const ConsentFormResponseGroups = ResponseGroups;
+
+export type ConsentFormResponseGroup =
+  (typeof ConsentFormResponseGroups)[keyof typeof ConsentFormResponseGroups];
 
 // ==========================================
 // CONSENT FORM TEMPLATE — oluşturma/güncelleme

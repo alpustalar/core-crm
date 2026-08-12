@@ -24,7 +24,11 @@ export interface ApiResult<T> {
 
 type EnvelopeShape = {
   data: unknown;
-  meta?: { pagination?: PaginationMeta; [key: string]: unknown };
+  meta?: {
+    pagination?: PaginationMeta;
+    serializationOptions?: { groups?: string[] };
+    [key: string]: unknown;
+  };
   serialization?: { groups?: string[] };
 };
 
@@ -53,6 +57,15 @@ export function normalizeEnvelope<T>(payload: unknown): ApiResult<T> {
   return {
     data: payload.data as T,
     pagination: payload.meta?.pagination,
-    groups: payload.serialization?.groups,
+    /*
+     * Gruplar iki ayrı yerde olabiliyor: `@Serialize` uygulanmış endpoint'lerde
+     * interceptor onları sadeleştirip `serialization` altına taşıyor; uygulanmamış
+     * olanlarda (ör. lead controller'ı) handler'ın koyduğu hâliyle
+     * `meta.serializationOptions` altında kalıyor. İkisine de bakılmazsa
+     * serileştirme uygulanmayan ekranlarda gruplar sessizce kaybolur.
+     */
+    groups:
+      payload.serialization?.groups ??
+      payload.meta?.serializationOptions?.groups,
   };
 }

@@ -49,8 +49,8 @@ export class EmployeePolicy extends ClinicPolicy {
 
     const groups: EmployeeResponseGroup[] = [];
 
-    if (isSameClinic) groups.push(INTERNAL);
-    if (isManager) groups.push(MANAGEMENT, FINANCIAL);
+    if (isSameClinic) groups.push(INTERNAL, FINANCIAL);
+    if (isManager) groups.push(MANAGEMENT);
     if (isSystem) groups.push(ADMIN);
 
     return {

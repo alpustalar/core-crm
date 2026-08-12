@@ -15,7 +15,7 @@ import { GetClinicAppointmentSettingsQuery } from '@modules/organization/clinic/
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { TimeZoneSchema } from '@shared';
+import { ITenantScopeResolver, TimeZoneSchema } from '@shared';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
@@ -24,6 +24,7 @@ import {
   APPOINTMENT_CHECKER_SERVICE,
   IAppointmentCheckerService,
 } from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -44,6 +45,8 @@ export class ScheduleAppointmentHandler
     private readonly policyFactory: IPolicyFactory,
     @Inject(APPOINTMENT_CHECKER_SERVICE)
     private readonly appointmentCheckerService: IAppointmentCheckerService,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly queryBus: TSQueryBus,
     private readonly commandBus: TSCommandBus,
     private readonly transactionManager: TransactionManager
@@ -62,6 +65,8 @@ export class ScheduleAppointmentHandler
       )
       .orThrow(APPOINTMENT_EVENTS.SCHEDULE);
 
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
     const {
       patientId,
       patientName: dtoPatientName,
@@ -75,7 +80,6 @@ export class ScheduleAppointmentHandler
       notes,
       isConsultation,
       clinicId,
-      organizationId,
     } = data;
 
     // Çakışma (overbooking) kuralı klinik ayarından gelir (Redis'te cache'li — sık

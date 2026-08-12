@@ -32,16 +32,37 @@ export class GetReconciliationSummaryHandler
     const { statementId, ctx } = query;
 
     const statement = await this.statementQueryRepo.findById(statementId);
-    if (!statement) return { data: null };
 
-    this.policyFactory
-      .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicFinances(statement.clinicId))
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    if (!statement) {
+      return {
+        data: null,
+        meta: {
+          serializationOptions: policy.getSerializationOptions({
+            clinicId: ctx.actor.clinicId ?? '',
+          }),
+        },
+      };
+    }
+
+    evaluator
+      .check((p) => p.canAccessClinicFinances(statement.clinicId))
       .orThrow('bank-reconciliation.summary');
 
     const data =
       await this.statementQueryRepo.reconciliationSummary(statementId);
 
-    return { data };
+    return {
+      data,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: statement.clinicId,
+        }),
+      },
+    };
   }
 }

@@ -19,6 +19,7 @@ import {
   META_ADS_CONFIG,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-config.interface';
 import { isOAuthStatePayload } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(HandleMetaOAuthCallbackCommand)
 export class HandleMetaOAuthCallbackHandler implements ICommandHandler<
@@ -64,7 +65,7 @@ export class HandleMetaOAuthCallbackHandler implements ICommandHandler<
       );
     }
 
-    const { clinicId } = oAuthState;
+    const { clinicId, userId } = oAuthState;
     const { appSecret, appId, redirectUri } = this.metaAdsConfig;
 
     const shortLived = await this.metaMarketingApi.exchangeCodeForToken(
@@ -103,6 +104,9 @@ export class HandleMetaOAuthCallbackHandler implements ICommandHandler<
         tokenExpiresAt: longLived.expiresAt,
         pageId: firstPage?.id ?? null,
         businessName: adAccount.name ?? null,
+        // OAuth akışında ctx yok; aktör state payload'ında taşınıyor.
+        actorId: userId,
+        logSource: LogSource.WEB,
       });
 
       await this.txManager.run(async () => {

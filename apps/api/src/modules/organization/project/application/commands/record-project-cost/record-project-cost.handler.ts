@@ -35,10 +35,9 @@ import { RecordProjectCostCommand } from './record-project-cost.command';
  * kayıt yalnız bütçe-vs-fiili raporunu besleyen bir etikettir.
  */
 @CommandHandler(RecordProjectCostCommand)
-export class RecordProjectCostHandler implements ICommandHandler<
-  RecordProjectCostCommand,
-  string
-> {
+export class RecordProjectCostHandler
+  implements ICommandHandler<RecordProjectCostCommand, string>
+{
   constructor(
     @Inject(PROJECT_COMMAND_REPOSITORY)
     private readonly projectCommandRepo: IProjectCommandRepository,
@@ -61,7 +60,7 @@ export class RecordProjectCostHandler implements ICommandHandler<
       this.policyFactory
         .project(ctx.actor, ctx.source)
         .evaluator.check((p) =>
-          p.canManageProjectFinancials(project.clinicId.value)
+          p.canAccessClinicProjects(project.clinicId.value)
         )
         .orThrow('project-cost.record');
 

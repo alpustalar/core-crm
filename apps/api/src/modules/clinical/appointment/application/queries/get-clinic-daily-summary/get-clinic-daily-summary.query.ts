@@ -12,7 +12,7 @@ export class GetClinicDailySummaryQuery implements IQuery {
   readonly __responseType!: GetClinicDailySummaryQueryResponse;
 
   constructor(
-    public readonly data: GetClinicDailySummary,
+    public readonly filter: GetClinicDailySummary,
     public readonly ctx: IGetContext
   ) {}
 }

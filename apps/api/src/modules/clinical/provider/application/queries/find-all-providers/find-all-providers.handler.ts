@@ -9,6 +9,10 @@ import {
   IProviderQueryRepository,
   PROVIDER_QUERY_REPOSITORY,
 } from '@modules/clinical/provider/domain/repositories/provider/provider.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(FindAllProvidersQuery)
 export class FindAllProvidersHandler
@@ -17,14 +21,16 @@ export class FindAllProvidersHandler
 {
   constructor(
     @Inject(PROVIDER_QUERY_REPOSITORY)
-    private readonly providerRepo: IProviderQueryRepository
+    private readonly providerRepo: IProviderQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: FindAllProvidersQuery
   ): Promise<FindAllProvidersQueryResponse> {
     const {
-      ctx: { actor },
+      ctx: { actor, source },
       pagination,
     } = query;
 
@@ -36,7 +42,12 @@ export class FindAllProvidersHandler
       );
       return {
         data: items,
-        meta: { pagination: buildPaginationMeta(pagination, total) },
+        meta: {
+          pagination: buildPaginationMeta(pagination, total),
+          serializationOptions: this.policyFactory
+            .organization(actor, source)
+            .policy.getSerializationOptions(),
+        },
       };
     }
 
@@ -58,7 +69,14 @@ export class FindAllProvidersHandler
 
       return {
         data: paginatedItems,
-        meta: { pagination: buildPaginationMeta(pagination, total) },
+        meta: {
+          pagination: buildPaginationMeta(pagination, total),
+          // Tüm satırlar aktörün yönettiği kliniklerden geliyor; yönetim grupları
+          // liste genelinde tekdüze geçerli — temsilci klinik üzerinden çözülür.
+          serializationOptions: this.policyFactory
+            .clinic(actor, source)
+            .policy.getSerializationOptions({ clinicId: clinicIds[0] }),
+        },
       };
     }
 
@@ -72,7 +90,12 @@ export class FindAllProvidersHandler
     );
     return {
       data: items,
-      meta: { pagination: buildPaginationMeta(pagination, total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, total),
+        serializationOptions: this.policyFactory
+          .clinic(actor, source)
+          .policy.getSerializationOptions({ clinicId: actor.clinicId }),
+      },
     };
   }
 }

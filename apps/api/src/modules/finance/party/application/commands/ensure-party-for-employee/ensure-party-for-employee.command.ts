@@ -1,12 +1,6 @@
 import { IGetContext } from '@common/decorators';
 import { EnsurePartyForEmployeeResponse } from '@modules/finance/party/application/commands/ensure-party-for-employee/ensure-party-for-employee.response';
 
-export interface EnsurePartyForEmployeeData {
-  userId: string;
-  clinicId: string;
-  organizationId: string;
-}
-
 /**
  * Bir personel (User) için verilen şubenin (clinicId) finans carisini garanti eder
  * ve {partyId, organizationId} döner. Bordro tahakkuku posting öncesi bu komutu
@@ -17,7 +11,11 @@ export interface EnsurePartyForEmployeeData {
 export class EnsurePartyForEmployeeCommand {
   readonly __responseType!: EnsurePartyForEmployeeResponse;
   constructor(
-    public readonly data: EnsurePartyForEmployeeData,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      readonly userId: string;
+      readonly clinicId: string;
+      readonly organizationId?: string | null;
+      readonly ctx: IGetContext;
+    }
   ) {}
 }

@@ -38,27 +38,17 @@ export class ClinicPolicy extends BasePolicy {
     );
   }
 
-  /**
-   * Alt policy'ler kendi imzalarıyla override eder (ör. UserPolicy, AppointmentPolicy,
-   * PatientPolicy — farklı payload/grup tipleriyle). Taban imza kasıtlı olarak geniştir:
-   * değişken sayıda argüman + `string` grup — böylece farklı sayıda/tipte parametreyle
-   * yapılan override'lar geçerli kalır ve taban yine argümansız çağrılabilir
-   * (ör. ClinicPolicy'nin doğrudan kullanımı: inventory).
-   *
-   * Varsayılan gövde `clinicId` payload'ı verilirse klinik-bazlı grupları üretir.
-   */
   getSerializationOptions(...args: unknown[]): SerializationOptionsResponse {
     const payload = (args[0] ?? {}) as { clinicId?: string };
     const isSameClinic = this.actorCanAccessTargetClinic(payload.clinicId);
     const isManager = this.actorCanManageTargetClinic(payload.clinicId);
     const isSystem = this.isSystem();
 
-    const { ADMIN, INTERNAL, FINANCIAL, MANAGEMENT } = ResponseGroups;
+    const { ADMIN, INTERNAL } = ResponseGroups;
 
     const groups: ResponseGroup[] = [];
 
     if (isSameClinic) groups.push(INTERNAL);
-    if (isManager) groups.push(MANAGEMENT, FINANCIAL);
     if (isSystem) groups.push(ADMIN);
 
     return {

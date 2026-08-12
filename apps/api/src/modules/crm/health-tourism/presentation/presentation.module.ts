@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { HealthTourismController } from '@modules/crm/health-tourism/presentation/http/controllers/health-tourism.controller';
+import { HealthTourismQueryController } from '@modules/crm/health-tourism/presentation/http/controllers/health-tourism.query.controller';
+import { HealthTourismCommandController } from '@modules/crm/health-tourism/presentation/http/controllers/health-tourism.command.controller';
 import { HotelModule } from '../hotel/hotel.module';
 import { TransferModule } from '../transfer/transfer.module';
 
 @Module({
   imports: [HotelModule, TransferModule],
-  controllers: [HealthTourismController],
+  controllers: [HealthTourismQueryController, HealthTourismCommandController],
 })
 export class HealthTourismPresentationModule {}

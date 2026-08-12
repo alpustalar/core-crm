@@ -8,8 +8,10 @@ import { IGetContext } from '@common/decorators';
 export class InitializeTaxParametersCommand implements ICommand {
   readonly __responseType!: void;
   constructor(
-    public readonly clinicId: string,
-    public readonly organizationId: string,
-    public readonly ctx: IGetContext
+    public readonly payload: {
+      readonly clinicId: string;
+      readonly ctx: IGetContext;
+      readonly organizationId?: string | null;
+    }
   ) {}
 }

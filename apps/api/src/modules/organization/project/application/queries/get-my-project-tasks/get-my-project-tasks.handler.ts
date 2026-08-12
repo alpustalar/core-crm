@@ -7,6 +7,10 @@ import {
 } from '@modules/organization/project/domain/repositories/project-task/project-task.query.repository';
 import { GetMyProjectTasksQuery } from './get-my-project-tasks.query';
 import { GetMyProjectTasksResponse } from './get-my-project-tasks.response';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 /**
  * "Bana atanan işler". Policy kontrolü yok — sorgu zaten aktörün kendi
@@ -19,7 +23,9 @@ export class GetMyProjectTasksHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(PROJECT_TASK_QUERY_REPOSITORY)
-    private readonly taskQueryRepo: IProjectTaskQueryRepository
+    private readonly taskQueryRepo: IProjectTaskQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -36,7 +42,15 @@ export class GetMyProjectTasksHandler implements IQueryHandler<
 
     return {
       data: items,
-      meta: { pagination: buildPaginationMeta(pagination, total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, total),
+        // Liste zaten aktörün kendi userId'sine sabit; yalnız alan görünürlüğü çözülür.
+        serializationOptions: this.policyFactory
+          .project(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({
+            clinicId: ctx.actor.clinicId ?? '',
+          }),
+      },
     };
   }
 }

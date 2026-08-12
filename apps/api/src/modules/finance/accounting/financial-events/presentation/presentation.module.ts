@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FinancialEventController } from '@modules/finance/accounting/financial-events/presentation/http/controllers/financial-event.controller';
+import { FinancialEventQueryController } from '@modules/finance/accounting/financial-events/presentation/http/controllers/financial-event.query.controller';
+import { FinancialEventCommandController } from '@modules/finance/accounting/financial-events/presentation/http/controllers/financial-event.command.controller';
 
-@Module({ controllers: [FinancialEventController] })
+@Module({ controllers: [FinancialEventQueryController, FinancialEventCommandController] })
 export class FinancialEventPresentationModule {}

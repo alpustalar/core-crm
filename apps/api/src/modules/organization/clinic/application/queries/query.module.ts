@@ -7,9 +7,11 @@ import { FindClinicAvailabilityByDayHandler } from './find-clinic-availability-b
 
 import { GetClinicTimezoneHandler } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.handler';
 import { GetClinicCurrencyHandler } from '@modules/organization/clinic/application/queries/get-clinic-currency/get-clinic-currency.handler';
+import { GetClinicFinanceSettingsHandler } from '@modules/organization/clinic/application/queries/get-clinic-finance-settings/get-clinic-finance-settings.handler';
 import { GetClinicOrganizationIdHandler } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.handler';
 import { GetClinicAppointmentSettingsHandler } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.handler';
 import { ClinicInfrastructureModule } from '@modules/organization/clinic/infrastructure/infrastructure.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 const QueryHandlers = [
   FindClinicIdByProviderIdHandler,
@@ -19,12 +21,13 @@ const QueryHandlers = [
   FindClinicAvailabilityByDayHandler,
   GetClinicTimezoneHandler,
   GetClinicCurrencyHandler,
+  GetClinicFinanceSettingsHandler,
   GetClinicOrganizationIdHandler,
   GetClinicAppointmentSettingsHandler,
 ];
 
 @Module({
-  imports: [ClinicInfrastructureModule],
+  imports: [ClinicInfrastructureModule, ClinicDomainServicesModule],
   providers: [...QueryHandlers],
 })
 export class ClinicQueryModule {}

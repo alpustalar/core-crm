@@ -6,7 +6,6 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { CONSENT_TEMPLATE_EVENTS } from '@src/domain/constants/events/consent-form.constant';
 import { ConsentTemplateNotFoundException } from '@modules/clinical/consent-form/domain/exceptions/consent-form.exceptions';
 import {
   CONSENT_TEMPLATE_QUERY_REPOSITORY,
@@ -33,11 +32,15 @@ export class GetConsentTemplateByIdHandler
     const template = await this.consentTemplateRepo.findById(templateId);
     if (!template) throw new ConsentTemplateNotFoundException(templateId);
 
-    this.policyFactory
-      .consentForm(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessConsentTemplates(template.clinicId))
-      .orThrow(CONSENT_TEMPLATE_EVENTS.GET);
+    const { policy } = this.policyFactory.consentForm(ctx.actor, ctx.source);
 
-    return { data: template };
+    return {
+      data: template,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: template.clinicId,
+        }),
+      },
+    };
   }
 }

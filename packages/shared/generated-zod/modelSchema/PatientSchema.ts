@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { decimalSchema } from '../../common/decimal';
 import { GenderSchema } from '../inputTypeSchemas/GenderSchema'
 import { BloodTypeSchema } from '../inputTypeSchemas/BloodTypeSchema'
 import { PatientStatusSchema } from '../inputTypeSchemas/PatientStatusSchema'
@@ -36,7 +35,6 @@ export const PatientSchema = z.object({
   chronicDiseases: z.string().nullable(),
   responsibleProviderId: z.string().nullable(),
   checkupDate: z.coerce.date().nullable(),
-  discountRate: decimalSchema("Field 'discountRate' must be a Decimal. Location: ['Models', 'Patient']").nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),

@@ -11,6 +11,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { WORK_ORDER_EVENTS } from '@src/domain/constants/events';
 
 /**
  * Klinik iş emrini tedarikçiden teslim aldı. Maliyet burada kesinleştiği için
@@ -39,9 +40,9 @@ export class ReceiveWorkOrderHandler
       this.policyFactory
         .workOrder(ctx.actor, ctx.source)
         .evaluator.check((p) =>
-          p.canManageClinicWorkOrders(workOrder.clinicId.value)
+          p.canAccessClinicWorkOrders(workOrder.clinicId.value)
         )
-        .orThrow('work-order.receive');
+        .orThrow(WORK_ORDER_EVENTS.RECEIVED);
 
       workOrder.receive(data.actualCost);
       await this.workOrderRepo.update(workOrder);

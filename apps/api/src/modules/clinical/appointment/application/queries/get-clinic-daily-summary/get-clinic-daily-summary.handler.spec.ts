@@ -3,19 +3,20 @@ import { GetClinicDailySummaryQuery } from './get-clinic-daily-summary.query';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { ClinicStatusCount } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
 
 /**
  * Resepsiyon günlük özeti. status sayımlarının düz özete katlandığı (eksik status = 0),
- * gün sınırlarının klinik saat dilimiyle hesaplanıp repo'ya geçtiği, klinik atanmama ve
- * yetki reddi doğrulanır.
+ * gün sınırlarının klinik saat dilimiyle hesaplanıp repo'ya geçtiği ve yetki reddinde
+ * serileştirme gruplarının pasifleştiği doğrulanır.
+ *
+ * NOT: `clinicId` artık aktör bağlamından değil sorgu filtresinden gelir — "klinik
+ * atanmamış" senaryosu bu handler'ın sorumluluğu değildir (DTO doğrulaması yakalar).
  */
 describe('GetClinicDailySummaryHandler (günlük özet)', () => {
   const build = (options: {
     counts?: ClinicStatusCount[];
     canAccess?: boolean;
     capture?: (data: unknown) => void;
-    clinicId?: string | null;
   }) => {
     const canAccess = options.canAccess ?? true;
 
@@ -47,12 +48,7 @@ describe('GetClinicDailySummaryHandler (günlük özet)', () => {
       }),
     } as unknown as TSQueryBus;
 
-    const ctx = {
-      actor: {
-        clinicId:
-          options.clinicId === undefined ? 'clinic-1' : options.clinicId,
-      },
-    } as never;
+    const ctx = { actor: { clinicId: 'clinic-1' }, source: 'API' } as never;
 
     return {
       handler: new GetClinicDailySummaryHandler(
@@ -77,7 +73,10 @@ describe('GetClinicDailySummaryHandler (günlük özet)', () => {
 
     const { data } = await handler.execute(
       new GetClinicDailySummaryQuery(
-        { date: new Date('2026-05-03T00:00:00Z') } as never,
+        {
+          clinicId: 'clinic-1',
+          date: new Date('2026-05-03T00:00:00Z'),
+        } as never,
         ctx
       )
     );
@@ -96,23 +95,14 @@ describe('GetClinicDailySummaryHandler (günlük özet)', () => {
     expect(captured.dayEnd).toBeInstanceOf(Date);
   });
 
-  it('klinik atanmamışsa ClinicNotFoundException fırlatır', async () => {
-    const { handler, ctx } = build({ clinicId: null });
-    await expect(
-      handler.execute(
-        new GetClinicDailySummaryQuery(
-          { date: new Date('2026-05-03T00:00:00Z') } as never,
-          ctx
-        )
-      )
-    ).rejects.toBeInstanceOf(ClinicNotFoundException);
-  });
-
   it('yetki yoksa serializationOptions pasif döner (alan filtreleme transform interceptor katmanında yapılır)', async () => {
     const { handler, ctx } = build({ canAccess: false });
     const { meta } = await handler.execute(
       new GetClinicDailySummaryQuery(
-        { date: new Date('2026-05-03T00:00:00Z') } as never,
+        {
+          clinicId: 'clinic-1',
+          date: new Date('2026-05-03T00:00:00Z'),
+        } as never,
         ctx
       )
     );

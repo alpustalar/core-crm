@@ -5,6 +5,7 @@ import { FindOneWithIdOrEmailQuery } from '@modules/identity/user/application/qu
 import { EnsurePartyCommand } from '@modules/finance/party/application/commands/ensure-party/ensure-party.command';
 import { EnsurePartyForEmployeeCommand } from './ensure-party-for-employee.command';
 import {
+  ITenantScopeResolver,
   PartyOriginTypeSchema,
   PartyRoleSchema,
   PartyTypeSchema,
@@ -16,6 +17,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { Inject } from '@nestjs/common';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 @CommandHandler(EnsurePartyForEmployeeCommand)
 export class EnsurePartyForEmployeeHandler
@@ -29,14 +31,19 @@ export class EnsurePartyForEmployeeHandler
     private readonly commandBus: TSCommandBus,
     private readonly queryBus: TSQueryBus,
     @Inject(POLICY_FACTORY)
-    private readonly policyFactory: IPolicyFactory
+    private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver
   ) {}
 
   async execute(
     command: EnsurePartyForEmployeeCommand
   ): Promise<EnsurePartyForEmployeeResponse> {
-    const { data, ctx } = command;
-    const { userId, clinicId, organizationId } = data;
+    const { clinicId, userId, ctx } = command.payload;
+
+    const organizationId = await this.tenantScopeResolver.resolve(
+      command.payload
+    );
 
     this.policyFactory
       .clinic(ctx.actor, ctx.source)

@@ -6,8 +6,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
-import { GetContext, IGetContext } from '@common/decorators';
+import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
+import { GetContext, HasCapability, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import {
   CancelWorkOrderDto,
@@ -25,12 +25,15 @@ import { ReceiveWorkOrderCommand } from '@modules/supply/work-order/application/
 import { FitWorkOrderCommand } from '@modules/supply/work-order/application/commands/fit-work-order/fit-work-order.command';
 import { CancelWorkOrderCommand } from '@modules/supply/work-order/application/commands/cancel-work-order/cancel-work-order.command';
 import { OpenRemakeWorkOrderCommand } from '@modules/supply/work-order/application/commands/open-remake-work-order/open-remake-work-order.command';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
-@UseGuards(AuthGuard)
+const { EXTERNALWORKORDER } = CAPABILITIES;
+@UseGuards(AuthGuard, CapabilityGuard)
 @Controller('orders')
 export class WorkOrderCommandController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
+  @HasCapability(EXTERNALWORKORDER.create)
   @Post()
   create(
     @Body() dto: CreateExternalWorkOrderDto,
@@ -41,6 +44,7 @@ export class WorkOrderCommandController {
     );
   }
 
+  @HasCapability(EXTERNALWORKORDER.update)
   @Post(':id/send')
   send(
     @Param('id', ParseUUIDPipe) workOrderId: string,
@@ -52,6 +56,7 @@ export class WorkOrderCommandController {
     );
   }
 
+  @HasCapability(EXTERNALWORKORDER.update)
   @Post(':id/progress')
   updateProgress(
     @Param('id', ParseUUIDPipe) workOrderId: string,
@@ -63,6 +68,7 @@ export class WorkOrderCommandController {
     );
   }
 
+  @HasCapability(EXTERNALWORKORDER.update)
   @Post(':id/receive')
   receive(
     @Param('id', ParseUUIDPipe) workOrderId: string,
@@ -74,6 +80,7 @@ export class WorkOrderCommandController {
     );
   }
 
+  @HasCapability(EXTERNALWORKORDER.update)
   @Post(':id/fit')
   fit(
     @Param('id', ParseUUIDPipe) workOrderId: string,
@@ -85,6 +92,7 @@ export class WorkOrderCommandController {
     );
   }
 
+  @HasCapability(EXTERNALWORKORDER.update)
   @Post(':id/cancel')
   cancel(
     @Param('id', ParseUUIDPipe) workOrderId: string,
@@ -96,6 +104,7 @@ export class WorkOrderCommandController {
     );
   }
 
+  @HasCapability(EXTERNALWORKORDER.create)
   @Post(':id/remake')
   openRemake(
     @Param('id', ParseUUIDPipe) workOrderId: string,

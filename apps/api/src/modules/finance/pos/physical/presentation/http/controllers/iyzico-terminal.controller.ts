@@ -1,5 +1,5 @@
 import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
 import {
   GetContext,
   IGetContext,
@@ -17,12 +17,16 @@ import { IyzicoTerminalRefundCommand } from '@modules/finance/pos/physical/appli
 import { IyzicoTerminalEodCommand } from '@modules/finance/pos/physical/application/commands/iyzico-terminal-eod/iyzico-terminal-eod.command';
 import { RegisterClinicIyzicoTerminalConfigCommand } from '@modules/finance/pos/physical/application/commands/register-clinic-iyzico-terminal-config/register-clinic-iyzico-terminal-config.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { HasCapability } from '@common/decorators';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
+const { CLINICIYZICOTERMINALCONFIG, POSDEVICE, POSTRANSACTION } = CAPABILITIES;
 @Controller('pos/iyzico-terminal')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, CapabilityGuard)
 export class IyzicoTerminalController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
+  @HasCapability(CLINICIYZICOTERMINALCONFIG.update)
   @Post('config')
   registerConfig(
     @Body() body: RegisterClinicIyzicoTerminalConfigDto,
@@ -33,16 +37,19 @@ export class IyzicoTerminalController {
     );
   }
 
+  @HasCapability(POSTRANSACTION.create)
   @Post('sale')
   sale(@Body() body: IyzicoTerminalSaleDto, @GetContext() ctx: IGetContext) {
     return this.commandBus.execute(new IyzicoTerminalSaleCommand(body, ctx));
   }
 
+  @HasCapability(POSTRANSACTION.update)
   @Post('void')
   void(@Body() body: IyzicoTerminalVoidDto, @GetContext() ctx: IGetContext) {
     return this.commandBus.execute(new IyzicoTerminalVoidCommand(body, ctx));
   }
 
+  @HasCapability(POSTRANSACTION.create)
   @Post('refund')
   refund(
     @Body() body: IyzicoTerminalRefundDto,
@@ -51,6 +58,7 @@ export class IyzicoTerminalController {
     return this.commandBus.execute(new IyzicoTerminalRefundCommand(body, ctx));
   }
 
+  @HasCapability(POSDEVICE.update)
   @Post('devices/:deviceId/eod')
   eod(
     @Param('deviceId') posDeviceId: string,

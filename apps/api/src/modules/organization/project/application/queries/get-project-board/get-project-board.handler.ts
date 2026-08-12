@@ -37,9 +37,13 @@ export class GetProjectBoardHandler implements IQueryHandler<
     const project = await this.projectQueryRepo.findByIdWithPhases(projectId);
     if (!project) throw new ProjectNotFoundException(projectId);
 
-    this.policyFactory
-      .project(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicProjects(project.clinicId))
+    const { evaluator, policy } = this.policyFactory.project(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicProjects(project.clinicId))
       .orThrow('project-board.get');
 
     const tasks = await this.taskQueryRepo.findByProject({
@@ -49,6 +53,13 @@ export class GetProjectBoardHandler implements IQueryHandler<
       phaseId: filter.phaseId,
     });
 
-    return { data: tasks };
+    return {
+      data: tasks,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: project.clinicId,
+        }),
+      },
+    };
   }
 }

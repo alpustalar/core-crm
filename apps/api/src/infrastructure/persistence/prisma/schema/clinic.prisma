@@ -190,6 +190,12 @@ model ClinicFinanceSettings {
   maxNegativeBalanceAmount Decimal @default(0) @map("max_negative_balance_amount") @db.Decimal(12, 2) // Maksimum borçlanma limiti
   maxInstallmentCount      Int     @default(12) @map("max_installment_count") // Maksimum taksit sayısı (Klinik sınırı)
 
+  // --- İndirim Kuralı ---
+  // İşlem satırında verilebilecek maksimum indirim yüzdesi. Aşan indirimi yalnız
+  // kliniği yöneten aktör (klinik sahibi / şube müdürü) onaylayabilir; personel
+  // için mutlak sınırdır. 0 = indirim verilemez (varsayılan: kapalı).
+  maxDiscountPercent Decimal @default(0) @map("max_discount_percent") @db.Decimal(5, 2)
+
   // --- Entegrasyon/Raporlama ---
 
   isEInvoiceActive Boolean @default(false) @map("is_e_invoice_active") // E-Fatura/E-Arşiv entegrasyonu aktif mi?

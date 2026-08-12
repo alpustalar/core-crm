@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { GovernanceController } from './controllers/governance.controller';
+import { GovernanceQueryController } from './controllers/governance.query.controller';
+import { GovernanceCommandController } from './controllers/governance.command.controller';
 import { ClinicGovernmentSpecsCommandModule } from '@modules/organization/clinic-governance/application/commands/command.module';
 import { ClinicGovernmentSpecsQueryModule } from '@modules/organization/clinic-governance/application/queries/query.module';
 
@@ -8,6 +9,6 @@ import { ClinicGovernmentSpecsQueryModule } from '@modules/organization/clinic-g
     ClinicGovernmentSpecsCommandModule,
     ClinicGovernmentSpecsQueryModule,
   ],
-  controllers: [GovernanceController],
+  controllers: [GovernanceQueryController, GovernanceCommandController],
 })
 export class GovernancePresentationModule {}

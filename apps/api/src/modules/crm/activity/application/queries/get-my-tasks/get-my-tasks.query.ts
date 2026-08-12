@@ -8,9 +8,10 @@ export class GetMyTasksQuery implements IQuery {
   readonly __responseType!: GetMyTasksResponse;
   constructor(
     public readonly payload: {
-      data: GetMyTasks;
+      filter: GetMyTasks;
       pagination: Pagination;
       ctx: IGetContext;
+      clinicId: string;
     }
   ) {}
 }

@@ -1,8 +1,15 @@
 import { Module } from '@nestjs/common';
 import {
   AdminController,
-  OrganizationController,
+  OrganizationCommandController,
+  OrganizationQueryController,
 } from '@modules/organization/organization/presentation/http/controllers';
 
-@Module({ controllers: [OrganizationController, AdminController] })
+@Module({
+  controllers: [
+    OrganizationQueryController,
+    OrganizationCommandController,
+    AdminController,
+  ],
+})
 export class OrganizationPresentationModule {}

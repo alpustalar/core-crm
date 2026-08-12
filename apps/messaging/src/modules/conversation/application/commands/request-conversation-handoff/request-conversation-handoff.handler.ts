@@ -14,7 +14,7 @@ export class RequestConversationHandoffHandler implements ICommandHandler<
 > {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     private readonly txManager: MongoTransactionManager
   ) {}
 
@@ -22,7 +22,7 @@ export class RequestConversationHandoffHandler implements ICommandHandler<
     // Devir talebi AI akışıyla yarışır (aynı yazışmaya eşzamanlı yazım) — okuma
     // kilit altında ve transaction içinde yapılır.
     await this.txManager.run(async () => {
-      const conversation = await this.conversationCommandRepo.findByIdForUpdate(
+      const conversation = await this.conversationRepo.findByIdForUpdate(
         command.payload.conversationId
       );
       if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
@@ -31,7 +31,7 @@ export class RequestConversationHandoffHandler implements ICommandHandler<
       }
 
       conversation.requestHumanHandoff();
-      await this.conversationCommandRepo.update(conversation);
+      await this.conversationRepo.update(conversation);
     });
   }
 }

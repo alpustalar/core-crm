@@ -29,9 +29,9 @@ export class SendTemplateMessageHandler implements ICommandHandler<
 > {
   constructor(
     @Inject(CONVERSATION_COMMAND_REPOSITORY)
-    private readonly conversationCommandRepo: IConversationCommandRepository,
+    private readonly conversationRepo: IConversationCommandRepository,
     @Inject(MESSAGE_COMMAND_REPOSITORY)
-    private readonly messageCommandRepo: IMessageCommandRepository,
+    private readonly messageRepo: IMessageCommandRepository,
     @Inject(AI_MEMORY_CACHE_SERVICE)
     private readonly aiMemoryCache: IAiMemoryCacheService,
     private readonly sendMessageProducer: SendMessageProducer
@@ -43,7 +43,7 @@ export class SendTemplateMessageHandler implements ICommandHandler<
     // Opt-out kontrolü gönderimi engelleyen bir iş kararı → okuma command repo'dan.
     // Opt-out'u gelen mesaj akışı yazdığı için replica gecikmesi, çıkmış kontağa
     // pazarlama şablonu göndermeye (uyum ihlali) yol açabilirdi.
-    const conversation = await this.conversationCommandRepo.findById(
+    const conversation = await this.conversationRepo.findById(
       input.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
@@ -61,7 +61,6 @@ export class SendTemplateMessageHandler implements ICommandHandler<
       );
     }
 
-    // şablon mesajı 24 saat penceresine tabii değil
 
     const message = Message.createOutbound({
       conversationId: conversation.id,
@@ -80,7 +79,7 @@ export class SendTemplateMessageHandler implements ICommandHandler<
         },
       },
     });
-    const saved = await this.messageCommandRepo.create(message);
+    const saved = await this.messageRepo.create(message);
 
     // Cache, DB'den yeniden kurulacak pencerenin birebir aynısını taşımalı; aksi halde
     // AI'ın gördüğü geçmiş cache'in sıcak/soğuk olmasına göre değişirdi. DB yolu

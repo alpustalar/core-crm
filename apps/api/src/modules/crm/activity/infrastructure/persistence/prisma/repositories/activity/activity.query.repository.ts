@@ -29,7 +29,7 @@ export class ActivityQueryRepository
     return paginate({
       delegate: this.db.activity,
       pagination: filter.pagination,
-      where: { leadId: filter.leadId },
+      where: { leadId: filter.leadId, clinicId: filter.clinicId },
     });
   }
 

@@ -34,7 +34,7 @@ export class ReconcileStatementLineHandler
 
     this.policyFactory
       .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canManageClinicFinances(line.clinicId.value))
+      .evaluator.check((p) => p.canAccessClinicFinances(line.clinicId.value))
       .orThrow('bank-statement-line.reconcile');
 
     line.reconcile({

@@ -6,11 +6,8 @@ import {
   IMetaAdAccountCommandRepository,
   META_AD_ACCOUNT_COMMAND_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-ad-account.repository';
-import {
-  IMetaAdsEventPublisher,
-  META_ADS_EVENT_PUBLISHER,
-} from '@modules/crm/meta-ads/domain/interfaces/meta-ads-event-publisher.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { META_ADS_EVENTS } from '@src/domain/constants/events';
 import {
   IPolicyFactory,
@@ -26,11 +23,10 @@ export class ConnectMetaAccountHandler implements ICommandHandler<
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
     private readonly metaAdAccountRepo: IMetaAdAccountCommandRepository,
-    @Inject(META_ADS_EVENT_PUBLISHER)
-    private readonly eventPublisher: IMetaAdsEventPublisher,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly tokenCipher: TokenCipherService
+    private readonly tokenCipher: TokenCipherService,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(
@@ -65,9 +61,14 @@ export class ConnectMetaAccountHandler implements ICommandHandler<
       accessToken: encryptedToken,
       pageId: data.pageId,
       businessName: data.businessName,
+      actorId: ctx.actor.userId,
+      logSource: ctx.actor.source,
     });
 
-    const savedAccount = await this.metaAdAccountRepo.create(account);
+    // Bağlantı event'i entity içinde raise edilir; yayınlanması için transaction şart.
+    const savedAccount = await this.txManager.run(() =>
+      this.metaAdAccountRepo.create(account)
+    );
 
     return {
       id: savedAccount.id.value,

@@ -9,11 +9,12 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
-import { HotelbedsBookingStatusSchema } from '@shared';
+import { HotelbedsBookingStatusSchema, ITenantScopeResolver } from '@shared';
 import {
   HOTELBEDS_BOOKING_COMMAND_REPOSITORY,
   IHotelbedsBookingCommandRepository,
 } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 
 @CommandHandler(BookHotelCommand)
 export class BookHotelHandler
@@ -24,6 +25,8 @@ export class BookHotelHandler
     private readonly hotelbedsApi: IHotelbedsApiService,
     @Inject(HOTELBEDS_BOOKING_COMMAND_REPOSITORY)
     private readonly hotelbedsBookingRepo: IHotelbedsBookingCommandRepository,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -39,6 +42,8 @@ export class BookHotelHandler
       clientReference: generatedBookingUUID.value,
       remarks: data.remarks,
     });
+
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     const bookingHotel = HotelbedsBooking.create({
       id: generatedBookingUUID.value,
@@ -56,9 +61,9 @@ export class BookHotelHandler
       leadId: data.leadId,
       remarks: data.remarks,
       serviceFee: data.serviceFee,
-      organizationId: data.organizationId,
       clinicId: data.clinicId,
       status: HotelbedsBookingStatusSchema.enum.PENDING,
+      organizationId,
     });
 
     await this.txManager.run(async () => {

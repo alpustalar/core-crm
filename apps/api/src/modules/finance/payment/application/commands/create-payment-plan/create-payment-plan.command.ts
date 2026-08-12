@@ -20,8 +20,10 @@ export type CreatePaymentPlanDto = {
   installments: InstallmentDto[];
 };
 
+// TODO: dtolar shareda geçirilecek
+
 export class CreatePaymentPlanCommand implements ICommand {
   readonly __responseType!: CreatePaymentPlanCommandResponse;
 
-  constructor(public readonly dto: CreatePaymentPlanDto) {}
+  constructor(public readonly data: CreatePaymentPlanDto) {}
 }

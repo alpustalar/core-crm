@@ -21,7 +21,7 @@ export class AppointmentPatientPolicy extends PatientBasePolicy {
     const groups: AppointmentResponseGroup[] = [];
 
     if (this.isSelf(appointment)) groups.push(PATIENT_DATA_OWNER);
-    if (this.isSystem()) groups.push(ADMIN);
+    if (this.isSystem()) groups.push(PATIENT_DATA_OWNER, ADMIN);
 
     return {
       isGroupActive: groups.length > 0,

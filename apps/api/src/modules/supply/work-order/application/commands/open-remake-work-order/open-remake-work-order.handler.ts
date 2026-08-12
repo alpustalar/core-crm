@@ -12,6 +12,7 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { WORK_ORDER_EVENTS } from '@src/domain/constants/events';
 
 /**
  * Yeniden yapım — kaynak iş emri değişmez; satırları kopyalanmış, `remakeOfId` ile
@@ -39,9 +40,9 @@ export class OpenRemakeWorkOrderHandler
       this.policyFactory
         .workOrder(ctx.actor, ctx.source)
         .evaluator.check((p) =>
-          p.canManageClinicWorkOrders(source.clinicId.value)
+          p.canAccessClinicWorkOrders(source.clinicId.value)
         )
-        .orThrow('work-order.remake');
+        .orThrow(WORK_ORDER_EVENTS.REMAKE);
 
       const remake = ExternalWorkOrder.openRemake(source, {
         reason: data.reason,

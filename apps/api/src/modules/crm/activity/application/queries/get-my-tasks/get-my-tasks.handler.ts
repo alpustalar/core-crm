@@ -7,6 +7,10 @@ import {
   ACTIVITY_QUERY_REPOSITORY,
   IActivityQueryRepository,
 } from '@modules/crm/activity/domain/repositories/activity/activity.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetMyTasksQuery)
 export class GetMyTasksHandler
@@ -14,23 +18,29 @@ export class GetMyTasksHandler
 {
   constructor(
     @Inject(ACTIVITY_QUERY_REPOSITORY)
-    private readonly activityRepo: IActivityQueryRepository
+    private readonly activityRepo: IActivityQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: GetMyTasksQuery): Promise<GetMyTasksResponse> {
-    const { data, pagination, ctx } = query.payload;
-    const { actor } = ctx;
+    const { filter, pagination, ctx, clinicId } = query.payload;
 
     const result = await this.activityRepo.findMyTasks({
-      assignedToId: actor.userId,
-      clinicId: actor.clinicId,
-      status: data.status,
+      assignedToId: ctx.actor.userId,
+      status: filter.status,
+      clinicId,
       pagination,
     });
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: this.policyFactory
+          .clinic(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({ clinicId }),
+      },
     };
   }
 }

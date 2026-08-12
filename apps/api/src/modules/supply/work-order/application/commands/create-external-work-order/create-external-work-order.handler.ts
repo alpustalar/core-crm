@@ -11,6 +11,8 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreateExternalWorkOrderCommand)
 export class CreateExternalWorkOrderHandler
@@ -21,6 +23,8 @@ export class CreateExternalWorkOrderHandler
     private readonly workOrderRepo: IExternalWorkOrderCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -28,17 +32,15 @@ export class CreateExternalWorkOrderHandler
     const { data, ctx } = command;
     const { actor } = ctx;
 
-    const clinicId = actor.clinicId ?? '';
-    const organizationId =
-      actor.organizationId ?? actor.ownedOrganizations?.[0]?.id ?? '';
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .workOrder(actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicWorkOrders(clinicId))
+      .evaluator.check((p) => p.canAccessClinicWorkOrders(data.clinicId))
       .orThrow('work-order.create');
 
     const workOrder = ExternalWorkOrder.create({
-      clinicId,
+      clinicId: data.clinicId,
       organizationId,
       supplierId: data.supplierId,
       patientId: data.patientId,

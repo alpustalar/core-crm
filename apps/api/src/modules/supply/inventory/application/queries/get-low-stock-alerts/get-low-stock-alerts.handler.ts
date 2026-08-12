@@ -10,6 +10,7 @@ import {
   IProductQueryRepository,
   PRODUCT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product/product.query.repository';
+import { INVENTORY_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetLowStockAlertsQuery)
 export class GetLowStockAlertsHandler
@@ -27,7 +28,25 @@ export class GetLowStockAlertsHandler
   ): Promise<GetLowStockAlertsResponse> {
     const { clinicId, ctx } = query;
 
+    const { evaluator, policy } = this.policyFactory.clinic(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
+        'Bu kliniğin stok uyarılarına erişim yetkiniz yok.'
+      )
+      .orThrow(INVENTORY_EVENTS.LOW_STOCK_ALERTS);
+
     const alerts = await this.productRepo.getLowStockAlerts(clinicId);
-    return { data: alerts };
+
+    return {
+      data: alerts,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

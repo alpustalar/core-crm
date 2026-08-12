@@ -51,7 +51,7 @@ export class CloseCashSessionHandler
       this.policyFactory
         .finance(ctx.actor, ctx.source)
         .evaluator.check((p) =>
-          p.canManageClinicFinances(session.clinicId.value)
+          p.canAccessClinicFinances(session.clinicId.value)
         )
         .orThrow(CASH_REGISTER_EVENTS.CLOSED);
 

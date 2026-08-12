@@ -1,6 +1,7 @@
 import type {
   AnyEndpoint,
   BodyOf,
+  PaginationInput,
   ParamsOf,
   QueryOf,
   ResponseOf,
@@ -29,6 +30,14 @@ interface BaseRequestOptions {
   /** Sunucu tarafında zorunlu: cookie'den okunan Firebase ID token. */
   token?: string;
   signal?: AbortSignal;
+  /**
+   * Sayfalama birinci sınıf bir seçenek, endpoint şemasının parçası değil —
+   * çünkü backend de öyle: controller `@Query() dto` (filtre) ve
+   * `@Query() pagination` (PaginationDto) olarak **iki ayrı** DTO alıyor, ikisi
+   * de aynı sorgu dizesinden çözülüyor. Şemaya gömseydik her liste endpoint'inde
+   * aynı yedi alanı tekrar yazmak gerekirdi.
+   */
+  pagination?: PaginationInput;
 }
 
 /**
@@ -55,37 +64,41 @@ type ApiArgs<E> = [ParamsOf<E>] extends [never]
     : [options: RequestOptions<E>]
   : [options: RequestOptions<E>];
 
+function appendSearchParams(url: URL, source: unknown): void {
+  if (!source || typeof source !== 'object') return;
+
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined || value === null || value === '') continue;
+
+    // Dizi filtreleri tekrarlı anahtar olarak gider (`?status=NEW&status=WON`) —
+    // NestJS'in varsayılan sorgu ayrıştırıcısının beklediği biçim.
+    if (Array.isArray(value)) {
+      value.forEach((item) => url.searchParams.append(key, String(item)));
+      continue;
+    }
+
+    url.searchParams.append(
+      key,
+      value instanceof Date ? value.toISOString() : String(value)
+    );
+  }
+}
+
 function buildUrl(
   endpoint: AnyEndpoint,
   params: unknown,
-  query: unknown
+  query: unknown,
+  pagination: PaginationInput | undefined
 ): string {
   const path =
     typeof endpoint.path === 'function'
       ? endpoint.path(params as never)
       : endpoint.path;
 
-  const url = new URL(
-    `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
-  );
+  const url = new URL(`${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`);
 
-  if (query && typeof query === 'object') {
-    for (const [key, value] of Object.entries(query)) {
-      if (value === undefined || value === null || value === '') continue;
-
-      // Dizi filtreleri tekrarlı anahtar olarak gider (`?status=NEW&status=WON`) —
-      // NestJS'in varsayılan sorgu ayrıştırıcısının beklediği biçim.
-      if (Array.isArray(value)) {
-        value.forEach((item) => url.searchParams.append(key, String(item)));
-        continue;
-      }
-
-      url.searchParams.append(
-        key,
-        value instanceof Date ? value.toISOString() : String(value)
-      );
-    }
-  }
+  appendSearchParams(url, query);
+  appendSearchParams(url, pagination);
 
   return url.toString();
 }
@@ -106,7 +119,12 @@ async function execute<E extends AnyEndpoint>(
   endpoint: E,
   options: RequestOptions<AnyEndpoint>
 ): Promise<ApiResult<ResponseOf<E>>> {
-  const url = buildUrl(endpoint, options.params, options.query);
+  const url = buildUrl(
+    endpoint,
+    options.params,
+    options.query,
+    options.pagination
+  );
   const provider = getTokenProvider();
 
   const send = async (token: string | null): Promise<Response> => {

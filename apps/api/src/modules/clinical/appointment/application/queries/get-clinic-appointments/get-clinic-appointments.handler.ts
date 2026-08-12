@@ -14,10 +14,13 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetClinicAppointmentsQuery)
-export class GetClinicAppointmentsHandler implements IQueryHandler<
-  GetClinicAppointmentsQuery,
-  GetClinicAppointmentsQueryResponse
-> {
+export class GetClinicAppointmentsHandler
+  implements
+    IQueryHandler<
+      GetClinicAppointmentsQuery,
+      GetClinicAppointmentsQueryResponse
+    >
+{
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,
@@ -29,13 +32,6 @@ export class GetClinicAppointmentsHandler implements IQueryHandler<
     query: GetClinicAppointmentsQuery
   ): Promise<GetClinicAppointmentsQueryResponse> {
     const { ctx, filter, pagination } = query.payload;
-
-    const serializationOptions = this.policyFactory
-      .appointment(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({
-        clinicId: filter.clinicId,
-        providerId: filter.providerId,
-      });
 
     const { items, total } = await this.appointmentRepo.findClinicCalendar({
       clinicId: filter.clinicId,
@@ -50,7 +46,12 @@ export class GetClinicAppointmentsHandler implements IQueryHandler<
       data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
-        serializationOptions,
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({
+            clinicId: filter.clinicId,
+            providerId: filter.providerId,
+          }),
       },
     };
   }

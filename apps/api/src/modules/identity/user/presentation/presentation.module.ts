@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
-import { MeController } from '@modules/identity/user/presentation/http/controllers/me.controller';
-import { UserController } from '@modules/identity/user/presentation/http/controllers/users.controller';
+import { MeQueryController } from '@modules/identity/user/presentation/http/controllers/me.query.controller';
+import { MeCommandController } from '@modules/identity/user/presentation/http/controllers/me.command.controller';
+import { UserQueryController } from '@modules/identity/user/presentation/http/controllers/users.query.controller';
+import { UserCommandController } from '@modules/identity/user/presentation/http/controllers/users.command.controller';
 
-@Module({ controllers: [MeController, UserController] })
+@Module({ controllers: [MeQueryController, MeCommandController, UserQueryController, UserCommandController] })
 export class UserPresentationModule {}

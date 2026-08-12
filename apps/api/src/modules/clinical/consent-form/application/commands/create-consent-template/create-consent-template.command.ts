@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateConsentTemplate } from '@shared/modules/consent-form/schemas/commands/create-consent-template.schema';
+import type { CreateConsentTemplate } from '@shared/modules/consent-form/types/commands';
 
 export class CreateConsentTemplateCommand implements ICommand {
   readonly __responseType!: string;

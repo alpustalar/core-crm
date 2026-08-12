@@ -6,6 +6,10 @@ import {
   IPosDeviceQueryRepository,
   POS_DEVICE_QUERY_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.query.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(FindPosDevicesQuery)
 export class FindPosDevicesHandler
@@ -13,11 +17,28 @@ export class FindPosDevicesHandler
 {
   constructor(
     @Inject(POS_DEVICE_QUERY_REPOSITORY)
-    private readonly posDeviceRepo: IPosDeviceQueryRepository
+    private readonly posDeviceRepo: IPosDeviceQueryRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(query: FindPosDevicesQuery): Promise<FindPosDevicesResponse> {
-    const devices = await this.posDeviceRepo.findByClinicId(query.clinicId);
+    const { clinicId, ctx } = query;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    // Terminal/merchant kimlikleri ödeme altyapısı kimlik bilgisidir.
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin POS cihazlarına erişim yetkiniz yok.'
+      )
+      .orThrow('pos-device.list');
+
+    const devices = await this.posDeviceRepo.findByClinicId(clinicId);
     return {
       data: devices.map((d) => ({
         id: d.id,
@@ -29,6 +50,9 @@ export class FindPosDevicesHandler
         deviceUniqueId: d.deviceUniqueId,
         isActive: d.isActive,
       })),
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
     };
   }
 }

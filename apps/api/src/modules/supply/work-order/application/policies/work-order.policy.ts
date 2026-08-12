@@ -1,6 +1,11 @@
 import { ActorContext } from '@common/interfaces';
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import { SerializationOptionsResponse } from '@common/interfaces/serialization-policy.interface';
+import {
+  ResponseGroup,
+  ResponseGroups,
+} from '@common/constants/response-groups.constant';
 
 /**
  * Dış iş emri staff policy'si. İş emri açma, görüntüleme ve tedarikçideki ilerlemeyi
@@ -12,13 +17,29 @@ export class WorkOrderPolicy extends ClinicPolicy {
     super(actor, source);
   }
 
-  /** İş emri açma + görüntüleme + ara ilerleme (aynı klinik). */
   canAccessClinicWorkOrders(clinicId: string | undefined): boolean {
-    return this.isSystem() || this.actorCanAccessTargetClinic(clinicId);
+    return this.actorCanAccessTargetClinic(clinicId);
   }
 
-  /** Teslim alma, iptal, yeniden yapım — maliyet etkisi olan adımlar (yönetici). */
-  canManageClinicWorkOrders(clinicId: string | undefined | null): boolean {
-    return this.isSystem() || this.actorCanManageTargetClinic(clinicId);
+  override getSerializationOptions(payload: {
+    clinicId: string | undefined | null;
+  }): SerializationOptionsResponse<ResponseGroup> {
+    const canAccess = this.canAccessClinicWorkOrders(
+      payload.clinicId ?? undefined
+    );
+    const isManager = this.actorCanManageTargetClinic(payload.clinicId);
+    const isSystem = this.isSystem();
+
+    const { ADMIN, INTERNAL } = ResponseGroups;
+
+    const groups: ResponseGroup[] = [];
+
+    if (canAccess) groups.push(INTERNAL);
+    if (isSystem) groups.push(ADMIN);
+
+    return {
+      isGroupActive: canAccess || isManager || isSystem,
+      groups,
+    };
   }
 }

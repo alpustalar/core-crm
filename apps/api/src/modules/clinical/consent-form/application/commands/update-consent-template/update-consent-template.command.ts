@@ -1,6 +1,6 @@
 import { ICommand } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { UpdateConsentTemplate } from '@shared/modules/consent-form/schemas/commands/update-consent-template.schema';
+import type { UpdateConsentTemplate } from '@shared/modules/consent-form/types/commands';
 
 export class UpdateConsentTemplateCommand implements ICommand {
   constructor(

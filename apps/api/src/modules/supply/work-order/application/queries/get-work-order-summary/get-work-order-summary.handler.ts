@@ -31,9 +31,13 @@ export class GetWorkOrderSummaryHandler
     const { ctx } = query;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .workOrder(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicWorkOrders(clinicId))
+    const { evaluator, policy } = this.policyFactory.workOrder(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicWorkOrders(clinicId))
       .orThrow('work-order.summary');
 
     const summary = await this.workOrderRepo.summarizeByClinic(
@@ -41,6 +45,11 @@ export class GetWorkOrderSummaryHandler
       DateTimeManager.create()
     );
 
-    return { data: summary };
+    return {
+      data: summary,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
+    };
   }
 }

@@ -35,7 +35,9 @@ export class ContactRpcService {
     private readonly queryBus: TSQueryBus
   ) {}
 
-  async findPatientId(payload: FindPatientRequest): Promise<FindPatientResponse> {
+  async findPatientId(
+    payload: FindPatientRequest
+  ): Promise<FindPatientResponse> {
     // Telegram/Instagram'da contactPhone bir kimlik numarasıdır; telefon olarak
     // sorgulamak yanlış hastayla eşleşmeye yol açardı.
     const phone =
@@ -79,7 +81,10 @@ export class ContactRpcService {
         new CreateLeadCommand({
           data: dto,
           clinicId: payload.clinicId,
-          ctx: this.buildSystemContext(payload.clinicId, payload.organizationId),
+          ctx: this.buildSystemContext(
+            payload.clinicId,
+            payload.organizationId
+          ),
         })
       );
     } catch (err) {

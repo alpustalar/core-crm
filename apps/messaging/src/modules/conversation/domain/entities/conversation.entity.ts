@@ -140,6 +140,7 @@ export class Conversation extends AggregateRoot implements IConversation {
   /** Yeni yazışma başlığı (status OPEN). */
   public static start(props: StartConversationProps): Conversation {
     const now = DateTimeManager.create();
+
     return new Conversation({
       id: UUID.createOrGenerate(props.id).value,
       clinicId: props.clinicId,
@@ -168,6 +169,7 @@ export class Conversation extends AggregateRoot implements IConversation {
    * açar ve MessageReceivedEvent fırlatır (bağlam Conversation'da olduğu için event
    * burada üretilir).
    */
+
   public recordInboundMessage(input: {
     messageId: string;
     body: string | null;
@@ -183,13 +185,13 @@ export class Conversation extends AggregateRoot implements IConversation {
     this.addDomainEvent(
       new MessageReceivedEvent({
         messageId: input.messageId,
-        conversationId: this._id,
-        clinicId: this._clinicId,
-        organizationId: this._organizationId,
-        contactPhone: this._contactPhone,
+        conversationId: this.id,
+        clinicId: this.clinicId,
+        organizationId: this.organizationId,
+        contactPhone: this.contactPhone,
         body: input.body,
-        patientId: this._patientId,
-        leadId: this._leadId,
+        patientId: this.patientId,
+        leadId: this.leadId,
       })
     );
   }
@@ -278,24 +280,24 @@ export class Conversation extends AggregateRoot implements IConversation {
 
   public toPersistence(): IConversation {
     return {
-      id: this._id,
-      clinicId: this._clinicId,
-      organizationId: this._organizationId,
-      channel: this._channel,
-      contactPhone: this._contactPhone,
-      contactName: this._contactName,
-      patientId: this._patientId,
-      leadId: this._leadId,
-      status: this._status,
-      assignedUserId: this._assignedUserId,
-      lastMessageAt: this._lastMessageAt,
-      lastInboundAt: this._lastInboundAt,
-      unreadCount: this._unreadCount,
-      agentReadAt: this._agentReadAt,
-      windowExpiresAt: this._windowExpiresAt,
-      marketingOptOut: this._marketingOptOut,
-      optOutAt: this._optOutAt,
-      createdAt: this._createdAt,
+      id: this.id,
+      clinicId: this.clinicId,
+      organizationId: this.organizationId,
+      channel: this.channel,
+      contactPhone: this.contactPhone,
+      contactName: this.contactName,
+      patientId: this.patientId,
+      leadId: this.leadId,
+      status: this.status,
+      assignedUserId: this.assignedUserId,
+      lastMessageAt: this.lastMessageAt,
+      lastInboundAt: this.lastInboundAt,
+      unreadCount: this.unreadCount,
+      agentReadAt: this.agentReadAt,
+      windowExpiresAt: this.windowExpiresAt,
+      marketingOptOut: this.marketingOptOut,
+      optOutAt: this.optOutAt,
+      createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
     };
   }

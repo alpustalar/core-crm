@@ -23,23 +23,21 @@ export class AppointmentPolicy extends ClinicPolicy {
     const isProviderDataOwner = !!(
       this.actor.providerId && payload.providerId === this.actor.providerId
     );
-    const isAdmin = this.isSystemAdmin();
+    const isSystem = this.isSystem();
     const isSameClinic = this.actorCanAccessTargetClinic(payload.clinicId);
     const isManager = this.actorCanManageTargetClinic(payload.clinicId);
-
-    const { ADMIN, INTERNAL, FINANCIAL, MANAGEMENT, PROVIDER_DATA_OWNER } =
+    const { ADMIN, INTERNAL, PROVIDER_DATA_OWNER, MANAGEMENT } =
       AppointmentsResponseGroups;
 
     const groups: AppointmentResponseGroup[] = [];
 
     if (isSameClinic) groups.push(INTERNAL);
     if (isProviderDataOwner) groups.push(PROVIDER_DATA_OWNER);
-    if (isManager) groups.push(MANAGEMENT, FINANCIAL);
-    if (isAdmin) groups.push(ADMIN);
+    if (isManager) groups.push(MANAGEMENT);
+    if (isSystem) groups.push(ADMIN);
 
     return {
-      isGroupActive:
-        isManager || isSameClinic || isAdmin || isProviderDataOwner,
+      isGroupActive: isSameClinic || isSystem,
       groups,
     };
   }

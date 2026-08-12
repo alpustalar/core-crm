@@ -22,10 +22,14 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetProviderAvailabilityQuery)
-export class GetProviderAvailabilityHandler implements IQueryHandler<
-  GetProviderAvailabilityQuery,
-  GetProviderAvailabilityQueryResponse
-> {
+export class GetProviderAvailabilityHandler
+  implements
+    IQueryHandler<
+      GetProviderAvailabilityQuery,
+      GetProviderAvailabilityQueryResponse
+    >
+{
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
     private readonly queryBus: TSQueryBus,
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
@@ -39,8 +43,6 @@ export class GetProviderAvailabilityHandler implements IQueryHandler<
   ): Promise<GetProviderAvailabilityQueryResponse> {
     const { actor, source } = query.ctx;
     const { providerId, startDate, endDate } = query.filter;
-
-    const internalCtx = ExecutionContextFactory.createInternal();
 
     const { clinicId } = await this.queryBus.execute(
       new FindClinicIdByProviderIdQuery(providerId)
@@ -72,7 +74,7 @@ export class GetProviderAvailabilityHandler implements IQueryHandler<
           providerId,
           startDate: providerAvailabilityQueryDateRange.startDate,
           endDate: providerAvailabilityQueryDateRange.endDate,
-          ctx: internalCtx,
+          ctx: this.internalCtx,
         })
       ),
       this.appointmentQueryRepository.findProviderOccupiedSlots(

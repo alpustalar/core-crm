@@ -92,3 +92,20 @@ export class PaymentProviderFailedException extends DomainException<{
     super(`İşlem gerçekleştirilemedi: 'Bilinmeyen hata`, { sdkErrorMessage });
   }
 }
+
+/**
+ * Tahsilat tutarı ne açıkça verildi ne de randevunun işlem satırlarından
+ * türetilebildi. Sessizce 0 yazmak yerine akış durdurulur — tutarsız bir
+ * tahsilat kaydı, mutabakatı sonradan çözülemez hale getirir.
+ */
+export class PaymentAmountUnresolvableException extends DomainException {
+  public readonly errorCode = ERROR_CODES.PAYMENT.AMOUNT_UNRESOLVABLE;
+
+  constructor(appointmentId?: string) {
+    super(
+      appointmentId
+        ? `Tahsilat tutarı çözülemedi: randevunun ücretlendirilmiş işlem satırı yok (${appointmentId}). Tutarı açıkça gönderin ya da işlem satırı ekleyin.`
+        : 'Tahsilat tutarı çözülemedi: tutar veya tutarın türetileceği randevu gönderilmelidir.'
+    );
+  }
+}

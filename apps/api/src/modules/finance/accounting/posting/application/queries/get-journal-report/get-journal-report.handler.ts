@@ -16,6 +16,11 @@ import {
   JournalReportEntry,
 } from './get-journal-report.response';
 import { Account } from '@shared';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { ACCOUNTING_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetJournalReportQuery)
 export class GetJournalReportHandler implements IQueryHandler<
@@ -25,13 +30,29 @@ export class GetJournalReportHandler implements IQueryHandler<
   constructor(
     @Inject(JOURNAL_QUERY_REPOSITORY)
     private readonly journalQueryRepo: IJournalQueryRepository,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetJournalReportQuery
   ): Promise<GetJournalReportResponse> {
     const { clinicId, pagination, ctx, dateFrom, dateTo } = query.payload;
+
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.canAccessClinicFinances(clinicId),
+        'Bu kliniğin yevmiye defterine erişim yetkiniz yok.'
+      )
+      .orThrow(ACCOUNTING_EVENTS.JOURNAL_REPORT);
+
+    const serializationOptions = policy.getSerializationOptions({ clinicId });
 
     const { items, total } = await this.journalQueryRepo.journalReport(
       { clinicId, dateFrom, dateTo },
@@ -48,7 +69,10 @@ export class GetJournalReportHandler implements IQueryHandler<
 
     return {
       data: items.map((entry) => this.toEntry(entry, accountById)),
-      meta: { pagination: buildPaginationMeta(pagination, total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, total),
+        serializationOptions,
+      },
     };
   }
 

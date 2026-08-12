@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { SubscriptionController } from '@modules/platform/subscription/presentation/http/controllers/subscription.controller';
-import { SubscriptionAdminController } from '@modules/platform/subscription/presentation/http/controllers/subscription-admin.controller';
+import { SubscriptionAdminQueryController } from '@modules/platform/subscription/presentation/http/controllers/subscription-admin.query.controller';
+import { SubscriptionAdminCommandController } from '@modules/platform/subscription/presentation/http/controllers/subscription-admin.command.controller';
 import { ModuleEntitlementGuard } from '@modules/platform/subscription/presentation/guards/module-entitlement.guard';
 
 @Module({
-  controllers: [SubscriptionController, SubscriptionAdminController],
+  controllers: [SubscriptionController, SubscriptionAdminQueryController, SubscriptionAdminCommandController],
   providers: [ModuleEntitlementGuard],
   exports: [ModuleEntitlementGuard],
 })

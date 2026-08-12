@@ -33,8 +33,21 @@ describe('GetVatDeclarationHandler (doc 06 §1)', () => {
       execute: jest.fn().mockResolvedValue({ data: chart }),
     } as unknown as TSQueryBus;
 
+    const policyFactory = {
+      finance: () => ({
+        evaluator: { check: () => ({ orThrow: () => undefined }) },
+        policy: {
+          getSerializationOptions: () => ({ groups: [], isGroupActive: false }),
+        },
+      }),
+    } as never;
+
     return {
-      handler: new GetVatDeclarationHandler(journalQueryRepo, queryBus),
+      handler: new GetVatDeclarationHandler(
+        journalQueryRepo,
+        queryBus,
+        policyFactory
+      ),
       journalQueryRepo,
     };
   };

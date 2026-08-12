@@ -3,9 +3,9 @@ import { IGetContext } from '@common/decorators';
 export class InitializeChartOfAccountsCommand {
   constructor(
     public readonly payload: {
-      clinicId: string;
-      organizationId: string;
-      ctx: IGetContext;
+      readonly clinicId: string;
+      readonly organizationId?: string | null;
+      readonly ctx: IGetContext;
     }
   ) {}
 }

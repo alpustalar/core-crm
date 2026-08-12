@@ -102,6 +102,7 @@ export { TreatmentCategoryTranslationScalarFieldEnumSchema } from './TreatmentCa
 export { MasterTreatmentScalarFieldEnumSchema } from './MasterTreatmentScalarFieldEnumSchema';
 export { TreatmentTranslationScalarFieldEnumSchema } from './TreatmentTranslationScalarFieldEnumSchema';
 export { TreatmentScalarFieldEnumSchema } from './TreatmentScalarFieldEnumSchema';
+export { TreatmentChargeScalarFieldEnumSchema } from './TreatmentChargeScalarFieldEnumSchema';
 export { TreatmentPackageScalarFieldEnumSchema } from './TreatmentPackageScalarFieldEnumSchema';
 export { TreatmentPackageItemScalarFieldEnumSchema } from './TreatmentPackageItemScalarFieldEnumSchema';
 export { TreatmentPackageProviderScalarFieldEnumSchema } from './TreatmentPackageProviderScalarFieldEnumSchema';

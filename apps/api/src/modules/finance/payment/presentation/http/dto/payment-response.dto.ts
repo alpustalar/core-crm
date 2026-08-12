@@ -80,3 +80,80 @@ export class PaymentResponseDto {
   @Type(() => Date)
   updatedAt: Date;
 }
+
+// ─────────────────── ALACAK YAŞLANDIRMA (AR aging) ───────────────────
+// Tahsilat riski tamamen finansal bir görünümdür — tabansız tutulur.
+
+const FIN_ONLY = { groups: [FINANCIAL, MANAGEMENT, ADMIN] };
+
+/** Yaşlandırma kovası — açık taksitlerin vade yaşına göre dağılımı. */
+export class ArAgingBucketResponseDto {
+  @Expose(FIN_ONLY) label: string;
+  @Expose(FIN_ONLY) count: number;
+  @Expose(FIN_ONLY) amount: string;
+}
+
+/** Hasta bazlı açık taksit riski. */
+export class ArAgingPatientRiskResponseDto {
+  @Expose(FIN_ONLY) patientId: string;
+  @Expose(FIN_ONLY) outstanding: string;
+  @Expose(FIN_ONLY) overdue: string;
+
+  @Expose(FIN_ONLY)
+  @Type(() => Date)
+  oldestDueDate: Date | null;
+}
+
+export class ArAgingSummaryResponseDto {
+  @Expose(FIN_ONLY) totalOutstanding: string;
+  @Expose(FIN_ONLY) totalOverdue: string;
+  @Expose(FIN_ONLY) totalCollected: string;
+  @Expose(FIN_ONLY) collectionRate: string;
+}
+
+export class ArAgingReportResponseDto {
+  @Expose(FIN_ONLY) clinicId: string;
+
+  @Expose(FIN_ONLY)
+  @Type(() => Date)
+  asOf: Date;
+
+  @Expose(FIN_ONLY)
+  @Type(() => ArAgingBucketResponseDto)
+  buckets: ArAgingBucketResponseDto[];
+
+  @Expose(FIN_ONLY)
+  @Type(() => ArAgingPatientRiskResponseDto)
+  patients: ArAgingPatientRiskResponseDto[];
+
+  @Expose(FIN_ONLY)
+  @Type(() => ArAgingSummaryResponseDto)
+  summary: ArAgingSummaryResponseDto;
+}
+
+// ─────────────────────── HEKİM BAZINDA CİRO ──────────────────────────
+
+/** Hekim bazında tahsil edilmiş ciro satırı. */
+export class ProviderRevenueLineResponseDto {
+  @Expose(FIN_ONLY) providerId: string | null;
+  @Expose(FIN_ONLY) collected: string;
+  @Expose(FIN_ONLY) count: number;
+}
+
+export class ProviderRevenueReportResponseDto {
+  @Expose(FIN_ONLY) clinicId: string;
+
+  @Expose(FIN_ONLY)
+  @Type(() => Date)
+  dateFrom: Date | null;
+
+  @Expose(FIN_ONLY)
+  @Type(() => Date)
+  dateTo: Date | null;
+
+  @Expose(FIN_ONLY)
+  @Type(() => ProviderRevenueLineResponseDto)
+  lines: ProviderRevenueLineResponseDto[];
+
+  @Expose(FIN_ONLY) totalCollected: string;
+}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { LeadController } from '@modules/crm/lead/presentation/http/controllers/lead.controller';
+import { LeadQueryController } from '@modules/crm/lead/presentation/http/controllers/lead.query.controller';
+import { LeadCommandController } from '@modules/crm/lead/presentation/http/controllers/lead.command.controller';
 
-@Module({ controllers: [LeadController] })
+@Module({ controllers: [LeadQueryController, LeadCommandController] })
 export class LeadPresentationModule {}

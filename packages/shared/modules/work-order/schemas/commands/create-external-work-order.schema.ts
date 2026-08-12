@@ -23,4 +23,6 @@ export const CreateExternalWorkOrderSchema = z.object({
   currency: CurrencySchema.optional(),
   note: z.string().nullable().optional(),
   items: z.array(WorkOrderItemInputSchema).min(1),
+  clinicId: z.uuid(),
+  organizationId: z.uuid().nullable().optional(),
 });

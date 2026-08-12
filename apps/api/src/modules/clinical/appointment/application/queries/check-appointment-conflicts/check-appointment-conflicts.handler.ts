@@ -20,10 +20,13 @@ import {
  * demektir; dolu olması personeli uyarır ama randevu eklemeyi ENGELLEMEZ.
  */
 @QueryHandler(CheckAppointmentConflictsQuery)
-export class CheckAppointmentConflictsHandler implements IQueryHandler<
-  CheckAppointmentConflictsQuery,
-  CheckAppointmentConflictsResponse
-> {
+export class CheckAppointmentConflictsHandler
+  implements
+    IQueryHandler<
+      CheckAppointmentConflictsQuery,
+      CheckAppointmentConflictsResponse
+    >
+{
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,
@@ -55,13 +58,16 @@ export class CheckAppointmentConflictsHandler implements IQueryHandler<
       new FindClinicIdByProviderIdQuery(filter.providerId)
     );
 
-    const serializationOptions = this.policyFactory
-      .appointment(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({
-        clinicId,
-        providerId: filter.providerId,
-      });
-
-    return { data: conflicts, meta: { serializationOptions } };
+    return {
+      data: conflicts,
+      meta: {
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({
+            clinicId,
+            providerId: filter.providerId,
+          }),
+      },
+    };
   }
 }

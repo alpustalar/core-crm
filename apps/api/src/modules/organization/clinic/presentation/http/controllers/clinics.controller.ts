@@ -7,7 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
+import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
 import {
   CreateClinicDto,
   UpdateClinicAppointmentSettingsDto,
@@ -21,17 +21,22 @@ import {
 import { UpdateClinicCommand } from '@modules/organization/clinic/application/commands/update-clinic/update-clinic.command';
 import { UpdateClinicAppointmentSettingsCommand } from '@modules/organization/clinic/application/commands/update-clinic-appointment-settings/update-clinic-appointment-settings.command';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { HasCapability } from '@common/decorators';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
-@UseGuards(AuthGuard)
+const { CLINIC, CLINICAPPOINTMENTSETTINGS } = CAPABILITIES;
+@UseGuards(AuthGuard, CapabilityGuard)
 @Controller()
 export class ClinicController {
   constructor(private readonly commandBus: TSCommandBus) {}
 
+  @HasCapability(CLINIC.create)
   @Post('')
   create(@Body() dto: CreateClinicDto, @GetContext() ctx: IGetContext) {
     return this.commandBus.execute(new CreateClinicCommand({ data: dto, ctx }));
   }
 
+  @HasCapability(CLINIC.update)
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -43,6 +48,7 @@ export class ClinicController {
     );
   }
 
+  @HasCapability(CLINICAPPOINTMENTSETTINGS.update)
   @Patch(':id/appointment-settings')
   updateAppointmentSettings(
     @Param('id', ParseUUIDPipe) id: string,

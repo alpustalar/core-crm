@@ -6,6 +6,11 @@ import {
   IMetaCampaignMetricQueryRepository,
   META_CAMPAIGN_METRIC_QUERY_REPOSITORY,
 } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { META_ADS_EVENTS } from '@src/domain/constants/events';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetAdAttributedLeadsQuery } from '@modules/crm/lead/application/queries/get-ad-attributed-leads/get-ad-attributed-leads.query';
 import { GetRevenueByPatientsQuery } from '@modules/finance/finance-ledger/application/queries/get-revenue-by-patients/get-revenue-by-patients.query';
@@ -36,13 +41,27 @@ export class GetAgencyRoiReportHandler implements IQueryHandler<
   constructor(
     @Inject(META_CAMPAIGN_METRIC_QUERY_REPOSITORY)
     private readonly metaCampaignMetricRepo: IMetaCampaignMetricQueryRepository,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     query: GetAgencyRoiReportQuery
   ): Promise<GetAgencyRoiReportResponse> {
     const { clinicId, from, to, campaignId, ctx } = query.payload;
+
+    const { evaluator, policy } = this.policyFactory.clinic(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check(
+        (p) => p.actorCanAccessTargetClinic(clinicId),
+        'Bu kliniğin ROI raporuna erişim yetkiniz yok.'
+      )
+      .orThrow(META_ADS_EVENTS.ROI_REPORT);
 
     // Önceki eşit uzunlukta dönem: [from - span, from].
     const spanMinutes = DateTimeManager.diffInMinutes(to, from);
@@ -68,6 +87,9 @@ export class GetAgencyRoiReportHandler implements IQueryHandler<
           roasPct: this.pctChange(previous.totals.roas, current.totals.roas),
         },
         campaigns: current.campaigns,
+      },
+      meta: {
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
       },
     };
   }

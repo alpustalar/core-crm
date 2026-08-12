@@ -7,6 +7,7 @@ export const INVOICE_QUERY_REPOSITORY = Symbol('IInvoiceQueryRepository');
 export interface IInvoiceQueryRepository {
   findById(id: string): Promise<Invoice | null>;
   findByPaymentId(paymentId: string): Promise<Invoice | null>;
+  findByAppointmentId(appointmentId: string): Promise<Invoice | null>;
   findMany(
     filter: FindInvoicesFilter,
     pagination: Pagination

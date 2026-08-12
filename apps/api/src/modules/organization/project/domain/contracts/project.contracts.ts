@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ResponseGroups } from '@common/constants/response-groups.constant';
 import { Decimal } from 'decimal.js';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { ProjectStatusSchema } from '@input-type-schemas/ProjectStatusSchema';
@@ -252,3 +253,10 @@ export interface FindResourceScheduleFilter {
 }
 
 export type ProjectPhaseStatusType = z.infer<typeof ProjectPhaseStatusSchema>;
+
+// ==========================================
+// Proje cevaplarının alan görünürlüğü; grupları ProjectPolicy üretir.
+export const ProjectResponseGroups = ResponseGroups;
+
+export type ProjectResponseGroup =
+  (typeof ProjectResponseGroups)[keyof typeof ProjectResponseGroups];

@@ -4,6 +4,7 @@ import { AddPipelineStageHandler } from './add-pipeline-stage/add-pipeline-stage
 import { UpdatePipelineStageHandler } from './update-pipeline-stage/update-pipeline-stage.handler';
 import { DeletePipelineStageHandler } from './delete-pipeline-stage/delete-pipeline-stage.handler';
 import { PipelineInfrastructureModule } from '@modules/crm/pipeline/infrastructure/infrastructure.module';
+import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 const PIPELINE_COMMAND_HANDLERS = [
   CreatePipelineHandler,
@@ -13,7 +14,7 @@ const PIPELINE_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [PipelineInfrastructureModule],
+  imports: [PipelineInfrastructureModule, ClinicDomainServicesModule],
   providers: PIPELINE_COMMAND_HANDLERS,
   exports: PIPELINE_COMMAND_HANDLERS,
 })

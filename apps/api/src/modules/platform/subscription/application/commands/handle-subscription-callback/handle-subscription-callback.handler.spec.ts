@@ -3,8 +3,10 @@ import { HandleSubscriptionCallbackCommand } from './handle-subscription-callbac
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
 import {
   ISubscriptionCommandRepository,
-} from '@modules/platform/subscription/domain/repositories/subscription.repository.interface';
-import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method.repository.interface';
+} from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  ISubscriptionPaymentMethodCommandRepository,
+} from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 import {
   CapturedSavedCard,
   IBillingAdapter,

@@ -17,8 +17,10 @@ import {
   LogSource,
   LogType,
 } from '@src/domain/constants/log-action.constant';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetClinicOrganizationIdQuery } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.query';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import { isDefined } from '@common/utils';
 import { EMPLOYEE_EVENTS } from '@src/domain/constants/events/employee.constant';
 import {
@@ -43,16 +45,15 @@ export class CreateEmployeeHandler
     private readonly policyFactory: IPolicyFactory,
     @Inject(EMPLOYEE_EVENT_PUBLISHER)
     private readonly eventPublisher: IEmployeeEventPublisher,
-    private readonly txManager: TransactionManager,
-    private readonly queryBus: TSQueryBus
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
+    private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateEmployeeCommand): Promise<string> {
     const { data, ctx } = command;
 
-    const { data: organizationId } = await this.queryBus.execute(
-      new GetClinicOrganizationIdQuery(data.clinicId)
-    );
+    const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .employee(ctx.actor, ctx.source)

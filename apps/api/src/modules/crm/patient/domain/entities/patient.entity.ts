@@ -67,7 +67,6 @@ export class Patient extends AggregateRoot {
     this._patientType = data.patientType;
     this._responsibleProviderId = data.responsibleProviderId;
     this._checkupDate = data.checkupDate;
-    this._discountRate = data.discountRate;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._deletedAt = data.deletedAt;
@@ -218,12 +217,9 @@ export class Patient extends AggregateRoot {
     return this._checkupDate;
   }
 
-  // TODO: discountRate alanı kaldırmak lazım. sürekli indirimli bi müşteri olamaz. onun yerine kampanya kupon gibi bi şey yapabiliriz
-  private _discountRate: Decimal | null;
-
-  get discountRate(): Decimal | null {
-    return this._discountRate;
-  }
+  // NOT: Kalıcı `discountRate` kaldırıldı — "sürekli indirimli hasta" ticari
+  // olarak savunulamaz ve raporlanamazdı. İndirim artık işlem anında
+  // TreatmentCharge satırında donuyor (gerekçesi, tavanı ve onaylayanıyla).
 
   private _createdAt: Date;
 
@@ -325,7 +321,6 @@ export class Patient extends AggregateRoot {
       patientType: props.patientType ?? null,
       responsibleProviderId: props.responsibleProviderId ?? null,
       checkupDate: props.checkupDate ?? null,
-      discountRate: props.discountRate ?? null,
       status: PatientStatusSchema.enum.ACTIVE,
       createdAt: now,
       updatedAt: now,
@@ -401,7 +396,6 @@ export class Patient extends AggregateRoot {
       patientType: this.patientType,
       responsibleProviderId: this.responsibleProviderId,
       checkupDate: this.checkupDate,
-      discountRate: this.discountRate,
       createdAt: this.createdAt,
       updatedAt: DateTimeManager.create(),
       deletedAt: this.deletedAt,

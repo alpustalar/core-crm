@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { EmployeeController } from '@modules/hr/employee/presentation/http/controllers/employee.controller';
+import { EmployeeQueryController } from '@modules/hr/employee/presentation/http/controllers/employee.query.controller';
+import { EmployeeCommandController } from '@modules/hr/employee/presentation/http/controllers/employee.command.controller';
 
-@Module({ controllers: [EmployeeController] })
+@Module({ controllers: [EmployeeQueryController, EmployeeCommandController] })
 export class EmployeePresentationModule {}

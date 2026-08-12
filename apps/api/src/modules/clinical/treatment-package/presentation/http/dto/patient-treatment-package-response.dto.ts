@@ -2,7 +2,11 @@ import { Expose, Type } from 'class-transformer';
 import { PatientPackageStatus } from '@shared';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
 
-const { INTERNAL, MANAGEMENT, DATA_OWNER, FINANCIAL, ADMIN } = ResponseGroups;
+const { INTERNAL, MANAGEMENT, DATA_OWNER, ADMIN } = ResponseGroups;
+
+const OPS_SHARED_GROUPS = { groups: [ADMIN, DATA_OWNER, INTERNAL, MANAGEMENT] };
+
+const MANAGEMENT_GROUPS = { groups: [ADMIN, MANAGEMENT] };
 
 export class PatientTreatmentPackageResponseDto {
   @Expose() id: string;
@@ -21,26 +25,26 @@ export class PatientTreatmentPackageResponseDto {
   endDate: Date;
 
   // --- Kullanım Sayaçları (Hasta Kendisi, Klinik İçi ve Yönetim Görebilir) ---
-  @Expose({ groups: [ADMIN, DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(OPS_SHARED_GROUPS)
   usedExaminationCount: number;
 
-  @Expose({ groups: [ADMIN, DATA_OWNER, INTERNAL, MANAGEMENT] })
+  @Expose(OPS_SHARED_GROUPS)
   usedControlCount: number;
 
   // --- Klinik Notlar (Sadece Klinik İçi Personel, Yönetim ve Veri Sahibi) ---
-  @Expose({ groups: [ADMIN, INTERNAL, MANAGEMENT, DATA_OWNER] })
+  @Expose(OPS_SHARED_GROUPS)
   notes: string | null;
 
   // --- Finansal Bağlantı ID'si (Sadece Finans ve Yönetim Görebilir, Hasta Göremez) ---
-  @Expose({ groups: [ADMIN, FINANCIAL, MANAGEMENT] })
+  @Expose({ groups: [ADMIN, INTERNAL, MANAGEMENT] })
   paymentId: string | null;
 
   // --- Audit Zaman Damgaları ---
-  @Expose({ groups: [ADMIN, MANAGEMENT] })
+  @Expose(MANAGEMENT_GROUPS)
   @Type(() => Date)
   createdAt: Date;
 
-  @Expose({ groups: [ADMIN, MANAGEMENT] })
+  @Expose(MANAGEMENT_GROUPS)
   @Type(() => Date)
   updatedAt: Date;
 }

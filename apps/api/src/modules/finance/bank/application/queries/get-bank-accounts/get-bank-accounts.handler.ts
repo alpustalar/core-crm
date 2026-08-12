@@ -27,9 +27,13 @@ export class GetBankAccountsHandler
     const { filter, pagination, ctx } = query.payload;
     const clinicId = ctx.actor.clinicId ?? '';
 
-    this.policyFactory
-      .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicFinances(clinicId))
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+
+    evaluator
+      .check((p) => p.canAccessClinicFinances(clinicId))
       .orThrow('bank-account.list');
 
     const result = await this.bankAccountRepo.findByClinic({
@@ -40,7 +44,10 @@ export class GetBankAccountsHandler
 
     return {
       data: result.items,
-      meta: { pagination: buildPaginationMeta(pagination, result.total) },
+      meta: {
+        pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
+      },
     };
   }
 }

@@ -48,6 +48,11 @@ export class ClinicFinanceSettingsResponseDto {
   @Expose({ groups: [MANAGEMENT, ADMIN] })
   maxInstallmentCount: number;
 
+  /** İşlem satırında verilebilecek maksimum indirim yüzdesi. */
+  @Expose({ groups: [MANAGEMENT, ADMIN] })
+  @Type(() => String)
+  maxDiscountPercent: string;
+
   // --- Regülasyon ve Resmi Entegrasyon Durumları (Kesinlikle Sadece Admin) ---
   @Expose({ groups: [ADMIN] })
   isEInvoiceActive: boolean;

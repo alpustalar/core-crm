@@ -44,7 +44,7 @@ export class RecordCashMovementHandler
       this.policyFactory
         .finance(ctx.actor, ctx.source)
         .evaluator.check((p) =>
-          p.canManageClinicFinances(session.clinicId.value)
+          p.canAccessClinicFinances(session.clinicId.value)
         )
         .orThrow(CASH_REGISTER_EVENTS.MOVEMENT_RECORD);
 

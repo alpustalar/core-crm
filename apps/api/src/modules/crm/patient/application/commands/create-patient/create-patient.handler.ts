@@ -7,6 +7,8 @@ import {
   IPatientCommandRepository,
   PATIENT_COMMAND_REPOSITORY,
 } from '@modules/crm/patient/domain/repositories/patient/patient.command.repository';
+import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreatePatientCommand)
 export class CreatePatientHandler
@@ -14,25 +16,29 @@ export class CreatePatientHandler
 {
   constructor(
     @Inject(PATIENT_COMMAND_REPOSITORY)
-    private readonly patientRepo: IPatientCommandRepository
+    private readonly patientRepo: IPatientCommandRepository,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver
   ) {}
 
   async execute(command: CreatePatientCommand): Promise<CreatePatientResponse> {
-    const { dto } = command;
+    const { data } = command;
 
-    if (dto.phone) {
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
+    if (data.phone) {
       const existing = await this.patientRepo.findByContact({
-        organizationId: dto.organizationId,
-        phone: dto.phone,
+        organizationId,
+        phone: data.phone,
       });
 
       if (existing) return existing.id.value;
     }
 
     const patient = Patient.create({
-      organizationId: dto.organizationId,
-      phone: dto.phone,
-      firstName: dto.firstName,
+      organizationId,
+      phone: data.phone,
+      firstName: data.firstName,
     });
 
     const saved = await this.patientRepo.create(patient);

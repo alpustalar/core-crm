@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   MetaAccountConnectedListener,
+  MetaAccountDisconnectedListener,
   MetaLeadConversionListener,
   MetaLeadReceivedListener,
 } from './listeners';
@@ -13,6 +14,7 @@ import { MetaLeadRepositoryModule } from '@modules/crm/meta-ads/infrastructure/p
   imports: [AuditLogModule, MetaLeadRepositoryModule],
   providers: [
     MetaAccountConnectedListener,
+    MetaAccountDisconnectedListener,
     MetaLeadReceivedListener,
     MetaLeadConversionListener,
     {

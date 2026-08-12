@@ -19,6 +19,7 @@ interface FinanceSettingsInvariants {
   maxNegativeBalanceAmount: Decimal;
   maxInstallmentCount: number;
   fiscalYearStartMonth: number;
+  maxDiscountPercent: Decimal;
 }
 
 /**
@@ -42,6 +43,7 @@ export class ClinicFinanceSettings {
     this._allowNegativeBalance = data.allowNegativeBalance;
     this._maxNegativeBalanceAmount = new Decimal(data.maxNegativeBalanceAmount);
     this._maxInstallmentCount = data.maxInstallmentCount;
+    this._maxDiscountPercent = new Decimal(data.maxDiscountPercent);
     this._isEInvoiceActive = data.isEInvoiceActive;
     this._fiscalYearStartMonth = data.fiscalYearStartMonth;
     this._updatedAt = data.updatedAt;
@@ -55,8 +57,14 @@ export class ClinicFinanceSettings {
           input.fiscalYearStartMonth < 1 || input.fiscalYearStartMonth > 12;
         const installmentInvalid = input.maxInstallmentCount < 1;
         const negativeLimitInvalid = input.maxNegativeBalanceAmount.isNeg();
+        const discountLimitInvalid =
+          input.maxDiscountPercent.isNeg() ||
+          input.maxDiscountPercent.greaterThan(100);
         const isInvalid =
-          monthInvalid || installmentInvalid || negativeLimitInvalid;
+          monthInvalid ||
+          installmentInvalid ||
+          negativeLimitInvalid ||
+          discountLimitInvalid;
 
         return {
           isValid: !isInvalid,
@@ -69,6 +77,9 @@ export class ClinicFinanceSettings {
             }
             if (negativeLimitInvalid) {
               throw new Error('Maksimum borçlanma limiti negatif olamaz.');
+            }
+            if (discountLimitInvalid) {
+              throw new Error('İndirim tavanı 0-100 aralığında olmalı.');
             }
           },
         };
@@ -153,6 +164,16 @@ export class ClinicFinanceSettings {
     return this._maxNegativeBalanceAmount;
   }
 
+  /**
+   * İşlem satırında verilebilecek maksimum indirim yüzdesi. Personel için mutlak
+   * sınırdır; yalnız kliniği yöneten aktör aşabilir (bkz. TreatmentCharge).
+   */
+  private _maxDiscountPercent: Decimal;
+
+  get maxDiscountPercent(): Decimal {
+    return this._maxDiscountPercent;
+  }
+
   private _maxInstallmentCount: number;
 
   get maxInstallmentCount(): number {
@@ -215,12 +236,15 @@ export class ClinicFinanceSettings {
       props.maxNegativeBalanceAmount ?? new Decimal(0);
     const maxInstallmentCount = props.maxInstallmentCount ?? 12;
     const fiscalYearStartMonth = props.fiscalYearStartMonth ?? 1;
+    // Varsayılan 0: indirim açıkça tanımlanana kadar verilemez (güvenli taraf).
+    const maxDiscountPercent = props.maxDiscountPercent ?? new Decimal(0);
 
     ClinicFinanceSettings.businessRulesValidator
       .create({
         maxNegativeBalanceAmount,
         maxInstallmentCount,
         fiscalYearStartMonth,
+        maxDiscountPercent,
       })
       .orThrow();
 
@@ -239,6 +263,7 @@ export class ClinicFinanceSettings {
       allowNegativeBalance: props.allowNegativeBalance ?? false,
       maxNegativeBalanceAmount,
       maxInstallmentCount,
+      maxDiscountPercent,
       isEInvoiceActive: props.isEInvoiceActive ?? false,
       fiscalYearStartMonth,
       updatedAt: DateTimeManager.create(),
@@ -260,6 +285,7 @@ export class ClinicFinanceSettings {
       allowNegativeBalance: this.allowNegativeBalance,
       maxNegativeBalanceAmount: this.maxNegativeBalanceAmount,
       maxInstallmentCount: this.maxInstallmentCount,
+      maxDiscountPercent: this.maxDiscountPercent,
       isEInvoiceActive: this.isEInvoiceActive,
       fiscalYearStartMonth: this.fiscalYearStartMonth,
       updatedAt: this.updatedAt,

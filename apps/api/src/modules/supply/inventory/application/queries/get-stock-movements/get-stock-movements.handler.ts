@@ -11,6 +11,7 @@ import {
   IStockMovementQueryRepository,
   STOCK_MOVEMENT_QUERY_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.query.repository';
+import { INVENTORY_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetStockMovementsQuery)
 export class GetStockMovementsHandler
@@ -30,13 +31,14 @@ export class GetStockMovementsHandler
     const { clinicId, data, ctx, pagination } = payload;
     const { actor, source } = ctx;
 
-    this.policyFactory
-      .clinic(actor, source)
-      .evaluator.check(
+    const { evaluator, policy } = this.policyFactory.clinic(actor, source);
+
+    evaluator
+      .check(
         (p) => p.actorCanAccessTargetClinic(clinicId),
         'Bu kliniğin stok hareketlerine erişim yetkiniz yok.'
       )
-      .orThrow();
+      .orThrow(INVENTORY_EVENTS.STOCK_MOVEMENTS);
 
     const result = data.productId
       ? await this.stockMovementRepo.findManyByProduct(
@@ -50,6 +52,7 @@ export class GetStockMovementsHandler
       data: result.items,
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
+        serializationOptions: policy.getSerializationOptions({ clinicId }),
       },
     };
   }

@@ -4,7 +4,7 @@ import { Plan } from '@modules/platform/subscription/domain/entities/plan.entity
 import { SubscriptionPlanNotFoundException } from '@modules/platform/subscription/domain/exceptions/subscription.exceptions';
 import {
   IPlanCommandRepository,
-} from '@modules/platform/subscription/domain/repositories/plan.repository.interface';
+} from '@modules/platform/subscription/domain/repositories/plan/plan.command.repository';
 
 describe('SetPlanModulesHandler', () => {
   const build = (plan: Plan | null) => {

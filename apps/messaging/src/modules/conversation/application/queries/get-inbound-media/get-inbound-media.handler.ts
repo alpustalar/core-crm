@@ -21,20 +21,20 @@ export class GetInboundMediaHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(CONVERSATION_QUERY_REPOSITORY)
-    private readonly conversationQueryRepo: IConversationQueryRepository,
+    private readonly conversationRepo: IConversationQueryRepository,
     @Inject(MESSAGE_QUERY_REPOSITORY)
-    private readonly messageQueryRepo: IMessageQueryRepository,
+    private readonly messageRepo: IMessageQueryRepository,
     private readonly queryBus: TSQueryBus
   ) {}
 
   async execute(query: GetInboundMediaQuery): Promise<GetInboundMediaResponse> {
     const { payload } = query;
-    const message = await this.messageQueryRepo.findById(payload.messageId);
+    const message = await this.messageRepo.findById(payload.messageId);
     if (!message || message.conversationId !== payload.conversationId) {
       throw new NotFoundException('Mesaj bulunamadı.');
     }
 
-    const conversation = await this.conversationQueryRepo.findById(
+    const conversation = await this.conversationRepo.findById(
       payload.conversationId
     );
     if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { MetaAdsController } from '@modules/crm/meta-ads/presentation/http/controllers/meta-ads.controller';
+import { MetaAdsQueryController } from '@modules/crm/meta-ads/presentation/http/controllers/meta-ads.query.controller';
+import { MetaAdsCommandController } from '@modules/crm/meta-ads/presentation/http/controllers/meta-ads.command.controller';
 import { MetaWebhookController } from '@modules/crm/meta-ads/presentation/http/controllers/meta-webhook.controller';
 import { MetaOAuthController } from '@modules/crm/meta-ads/presentation/http/controllers/meta-oauth.controller';
 import { MetaAdsInfrastructureModule } from '@modules/crm/meta-ads/infrastructure/infrastructure.module';
@@ -12,7 +13,7 @@ import { ENV } from '@common/constants';
 
 @Module({
   imports: [MetaAdsInfrastructureModule],
-  controllers: [MetaAdsController, MetaWebhookController, MetaOAuthController],
+  controllers: [MetaAdsQueryController, MetaAdsCommandController, MetaWebhookController, MetaOAuthController],
   providers: [
     {
       provide: META_ADS_PRESENTATION_CONFIG,

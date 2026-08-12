@@ -2,7 +2,7 @@ import { IQuery } from '@nestjs/cqrs';
 import { IGetContext } from '@common/decorators/get-context.decorator';
 import { Pagination } from '@shared/common';
 import { GetAttendanceByEmployeeResponse } from './get-attendance-by-employee.response';
-import { GetAttendanceFilter } from '@shared/modules/attendance/schemas/queries/get-attendance-filter.schema';
+import type { GetAttendanceFilter } from '@shared/modules/attendance/types/queries';
 
 export class GetAttendanceByEmployeeQuery implements IQuery {
   readonly __responseType!: GetAttendanceByEmployeeResponse;

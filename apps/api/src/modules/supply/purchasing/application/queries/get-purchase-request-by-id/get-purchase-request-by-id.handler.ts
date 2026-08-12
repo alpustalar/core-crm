@@ -29,13 +29,33 @@ export class GetPurchaseRequestByIdHandler
     const { requestId, ctx } = query;
     const data = await this.prQueryRepo.findById(requestId);
 
-    if (!data) return { data: null };
+    const { evaluator, policy } = this.policyFactory.purchasing(
+      ctx.actor,
+      ctx.source
+    );
 
-    this.policyFactory
-      .purchasing(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicPurchasing(data.clinicId))
+    if (!data) {
+      return {
+        data: null,
+        meta: {
+          serializationOptions: policy.getSerializationOptions({
+            clinicId: ctx.actor.clinicId ?? '',
+          }),
+        },
+      };
+    }
+
+    evaluator
+      .check((p) => p.canAccessClinicPurchasing(data.clinicId))
       .orThrow('purchase-request.detail');
 
-    return { data };
+    return {
+      data,
+      meta: {
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: data.clinicId,
+        }),
+      },
+    };
   }
 }
