@@ -4,7 +4,6 @@ import { UpdateConsentTemplateHandler } from './update-consent-template/update-c
 import { ArchiveConsentTemplateHandler } from './archive-consent-template/archive-consent-template.handler';
 import { SignConsentFormHandler } from './sign-consent-form/sign-consent-form.handler';
 import { ConsentFormInfrastructureModule } from '@modules/clinical/consent-form/infrastructure/infrastructure.module';
-import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 export const CONSENT_FORM_COMMAND_HANDLERS = [
   CreateConsentTemplateHandler,
@@ -14,7 +13,7 @@ export const CONSENT_FORM_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [ConsentFormInfrastructureModule, ClinicDomainServicesModule],
+  imports: [ConsentFormInfrastructureModule],
   providers: CONSENT_FORM_COMMAND_HANDLERS,
   exports: CONSENT_FORM_COMMAND_HANDLERS,
 })

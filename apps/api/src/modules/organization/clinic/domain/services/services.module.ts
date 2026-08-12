@@ -3,15 +3,20 @@ import { ClinicRepositoriesModule } from '@modules/organization/clinic/infrastru
 import { ClinicCacheModule } from '@modules/organization/clinic/infrastructure/cache/clinic-cache.module';
 import { CLINIC_BOOKING_SERVICE } from '@modules/organization/clinic/domain/services/clinic-booking/clinic-booking.service.interface';
 import { ClinicBookingService } from '@modules/organization/clinic/domain/services/clinic-booking/clinic-booking.service';
-import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
-import { LocalTenantScopeResolver } from '@modules/organization/clinic/domain/services/tenant-scope/local-tenant-scope.resolver';
 
+/**
+ * Klinik domain servisleri.
+ *
+ * `TENANT_SCOPE_RESOLVER` buradan ÇIKARILDI: kesitsel bir kimlik çözümlemesi
+ * olduğu için `TenantScopeModule` üzerinden `@Global` sağlanıyor. Aynı token'ı
+ * burada da sağlamak ikinci bir örnek üretir ve hangisinin bağlandığı modül
+ * import sırasına kalırdı.
+ */
 @Module({
   imports: [ClinicRepositoriesModule, ClinicCacheModule],
   providers: [
     { provide: CLINIC_BOOKING_SERVICE, useClass: ClinicBookingService },
-    { provide: TENANT_SCOPE_RESOLVER, useClass: LocalTenantScopeResolver },
   ],
-  exports: [CLINIC_BOOKING_SERVICE, TENANT_SCOPE_RESOLVER],
+  exports: [CLINIC_BOOKING_SERVICE],
 })
 export class ClinicDomainServicesModule {}

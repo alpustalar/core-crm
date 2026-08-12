@@ -5,7 +5,6 @@ import { ImportBankStatementHandler } from './import-bank-statement/import-bank-
 import { ReconcileStatementLineHandler } from './reconcile-statement-line/reconcile-statement-line.handler';
 import { AutoMatchStatementLinesHandler } from './auto-match-statement-lines/auto-match-statement-lines.handler';
 import { BankInfrastructureModule } from '@modules/finance/bank/infrastructure/infrastructure.module';
-import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 export const BANK_COMMAND_HANDLERS = [
   CreateBankAccountHandler,
@@ -17,7 +16,7 @@ export const BANK_COMMAND_HANDLERS = [
 
 @Module({
   // PostingQueryModule: oto-eşleştirme 102 adaylarını QueryBus üzerinden çeker.
-  imports: [BankInfrastructureModule, ClinicDomainServicesModule],
+  imports: [BankInfrastructureModule],
   providers: BANK_COMMAND_HANDLERS,
   exports: BANK_COMMAND_HANDLERS,
 })

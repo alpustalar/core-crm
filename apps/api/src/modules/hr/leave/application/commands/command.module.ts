@@ -4,7 +4,6 @@ import { ApproveLeaveHandler } from './approve-leave/approve-leave.handler';
 import { RejectLeaveHandler } from './reject-leave/reject-leave.handler';
 import { CancelLeaveHandler } from './cancel-leave/cancel-leave.handler';
 import { LeaveInfrastructureModule } from '@modules/hr/leave/infrastructure/infrastructure.module';
-import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 export const LEAVE_COMMAND_HANDLERS = [
   RequestLeaveHandler,
@@ -14,7 +13,7 @@ export const LEAVE_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [LeaveInfrastructureModule, ClinicDomainServicesModule],
+  imports: [LeaveInfrastructureModule],
   providers: LEAVE_COMMAND_HANDLERS,
 })
 export class LeaveCommandModule {}
