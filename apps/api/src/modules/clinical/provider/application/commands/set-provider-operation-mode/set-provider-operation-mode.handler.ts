@@ -27,6 +27,7 @@ export class SetProviderOperationModeHandler
     const { providerId, data, ctx } = command.payload;
 
     const provider = await this.providerRepo.findById(providerId);
+
     if (!provider) throw new ProviderNotFoundException();
 
     this.policyFactory

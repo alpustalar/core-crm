@@ -7,8 +7,6 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { CreateProviderAvailabilityCommand } from './create-provider-availability.command';
-
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { ProviderNotFoundException } from '@modules/clinical/provider/domain/exceptions/provider.exceptions';
 import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
@@ -38,8 +36,7 @@ export class CreateProviderAvailabilityHandler
     private readonly policyFactory: IPolicyFactory,
     @Inject(CLINIC_BOOKING_SERVICE)
     private readonly clinicBookingService: IClinicBookingService,
-    private readonly transactionManager: TransactionManager,
-    private readonly queryBus: TSQueryBus
+    private readonly transactionManager: TransactionManager
   ) {}
 
   async execute(command: CreateProviderAvailabilityCommand): Promise<void> {

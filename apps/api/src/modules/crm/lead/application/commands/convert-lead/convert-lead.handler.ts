@@ -12,9 +12,7 @@ import {
 } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import {
-  GetPipelineByIdQuery
-} from '@modules/crm/pipeline/application/queries/get-pipeline-by-id/get-pipeline-by-id.query';
+import { GetPipelineByIdQuery } from '@modules/crm/pipeline/application/queries/get-pipeline-by-id/get-pipeline-by-id.query';
 import { CreatePatientCommand } from '@modules/crm/patient/application/commands/create-patient/create-patient.command';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 import {
@@ -29,6 +27,7 @@ export class ConvertLeadHandler
   implements ICommandHandler<ConvertLeadCommand, void>
 {
   private readonly internalCtx = ExecutionContextFactory.createInternal();
+
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadRepo: ILeadCommandRepository,
@@ -90,6 +89,7 @@ export class ConvertLeadHandler
     const firstName = lead.name?.value;
     if (!phone || !firstName) return undefined;
 
+    // TODO: sadece isimden çözümlemek pek mümkün değil. burayı sadece telefon numarasına çevirmek daha mantıklı.
     return this.commandBus.execute(
       new CreatePatientCommand({
         phone,
