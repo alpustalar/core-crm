@@ -9,12 +9,18 @@ import {
 import { ProviderCalendarDayResponse, ProviderException } from '@shared';
 import { DateTimeManager } from '@common/utils';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetProviderScheduleQuery } from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.query';
-import { GetClinicScheduleQuery } from '@modules/organization/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.query';
+import {
+  GetProviderScheduleQuery
+} from '@modules/clinical/provider/application/queries/get-provider-schedule/get-provider-schedule.query';
+import {
+  GetClinicScheduleQuery
+} from '@modules/organization/clinic/application/queries/get-clinic-schedule/get-clinic-schedule.query';
 import { OperationModeSchema } from '@input-type-schemas/OperationModeSchema';
 import { ExceptionTypeSchema } from '@input-type-schemas/ExceptionTypeSchema';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
-import { FindClinicIdByProviderIdQuery } from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
+import {
+  FindClinicIdByProviderIdQuery
+} from '@modules/organization/clinic/application/queries/find-clinic-id-by-provider-id/find-clinic-id-by-provider-id.query';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import {
   APPOINTMENT_QUERY_REPOSITORY,
@@ -22,10 +28,14 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetProviderAvailabilityQuery)
-export class GetProviderAvailabilityHandler implements IQueryHandler<
-  GetProviderAvailabilityQuery,
-  GetProviderAvailabilityQueryResponse
-> {
+export class GetProviderAvailabilityHandler
+  implements
+    IQueryHandler<
+      GetProviderAvailabilityQuery,
+      GetProviderAvailabilityQueryResponse
+    >
+{
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
   constructor(
     private readonly queryBus: TSQueryBus,
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
@@ -39,8 +49,6 @@ export class GetProviderAvailabilityHandler implements IQueryHandler<
   ): Promise<GetProviderAvailabilityQueryResponse> {
     const { actor, source } = query.ctx;
     const { providerId, startDate, endDate } = query.filter;
-
-    const internalCtx = ExecutionContextFactory.createInternal();
 
     const { clinicId } = await this.queryBus.execute(
       new FindClinicIdByProviderIdQuery(providerId)
@@ -72,7 +80,7 @@ export class GetProviderAvailabilityHandler implements IQueryHandler<
           providerId,
           startDate: providerAvailabilityQueryDateRange.startDate,
           endDate: providerAvailabilityQueryDateRange.endDate,
-          ctx: internalCtx,
+          ctx: this.internalCtx,
         })
       ),
       this.appointmentQueryRepository.findProviderOccupiedSlots(

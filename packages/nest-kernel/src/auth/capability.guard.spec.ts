@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CapabilityGuard } from './capability.guard';
@@ -28,16 +27,14 @@ describe('CapabilityGuard', () => {
   let guard: CapabilityGuard;
   let reflector: jest.Mocked<Reflector>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CapabilityGuard,
-        { provide: Reflector, useValue: { getAllAndOverride: jest.fn() } },
-      ],
-    }).compile();
+  // Guard'ın tek bağımlılığı Reflector; DI konteyneri kurmaya gerek yok
+  // (kernel paketi @nestjs/testing'e bağımlı değildir).
+  beforeEach(() => {
+    reflector = {
+      getAllAndOverride: jest.fn(),
+    } as unknown as jest.Mocked<Reflector>;
 
-    guard = module.get(CapabilityGuard);
-    reflector = module.get(Reflector);
+    guard = new CapabilityGuard(reflector);
   });
 
   afterEach(() => jest.clearAllMocks());

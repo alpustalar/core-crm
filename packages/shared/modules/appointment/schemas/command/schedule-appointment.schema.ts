@@ -33,7 +33,7 @@ export const ScheduleAppointmentSchema = z
     notes: z.string().optional(),
     isConsultation: z.boolean(),
     clinicId: z.string(),
-    organizationId: z.string()
+    organizationId: z.string().optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (!data.patientId && !data.patientName) {

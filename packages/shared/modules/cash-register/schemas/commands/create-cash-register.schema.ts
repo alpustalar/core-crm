@@ -5,4 +5,6 @@ import CurrencySchema from '@shared/generated-zod/inputTypeSchemas/CurrencySchem
 export const CreateCashRegisterSchema = z.object({
   name: z.string().min(1),
   currency: CurrencySchema.optional(),
+  clinicId: z.string(),
+  organizationId: z.string().nullable().optional(),
 });

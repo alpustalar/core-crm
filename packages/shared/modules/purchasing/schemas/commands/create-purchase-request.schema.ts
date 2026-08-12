@@ -12,7 +12,9 @@ export const CreatePurchaseRequestSchema = z.object({
         quantity: z.number().positive(),
         estimatedUnitPrice: z.number().nonnegative().nullable().optional(),
         unit: z.string().nullable().optional(),
-      })
+      }),
     )
     .min(1),
+  clinicId: z.uuid(),
+  organizationId: z.uuid().nullable().optional(),
 });

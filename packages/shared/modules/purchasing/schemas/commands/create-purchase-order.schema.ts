@@ -17,4 +17,6 @@ export const CreatePurchaseOrderSchema = z.object({
       })
     )
     .min(1),
+  clinicId: z.uuid(),
+  organizationId: z.uuid().nullable().optional(),
 });

@@ -101,6 +101,7 @@ export * from './TreatmentCategoryTranslationSchema';
 export * from './MasterTreatmentSchema';
 export * from './TreatmentTranslationSchema';
 export * from './TreatmentSchema';
+export * from './TreatmentChargeSchema';
 export * from './TreatmentPackageSchema';
 export * from './TreatmentPackageItemSchema';
 export * from './TreatmentPackageProviderSchema';

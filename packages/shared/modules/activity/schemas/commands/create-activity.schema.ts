@@ -12,5 +12,6 @@ export const CreateActivitySchema = z.object({
   notes: z.string().nullable().optional(),
   assignedToId: z.string().nullable().optional(),
   dueAt: z.coerce.date().nullable().optional(),
-  clinicId: z.uuid()
+  clinicId: z.uuid(),
+  organizationId: z.uuid().nullable().optional(),
 });

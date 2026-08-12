@@ -6,4 +6,6 @@ export const RecordAttendanceSchema = z.object({
   checkInAt: z.coerce.date(),
   checkOutAt: z.coerce.date(),
   note: z.string().nullable().optional(),
+  clinicId: z.uuid(),
+  organizationId: z.uuid().nullable().optional(),
 });

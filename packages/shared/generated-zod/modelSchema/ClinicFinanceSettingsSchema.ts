@@ -22,6 +22,7 @@ export const ClinicFinanceSettingsSchema = z.object({
   allowNegativeBalance: z.boolean(),
   maxNegativeBalanceAmount: decimalSchema("Field 'maxNegativeBalanceAmount' must be a Decimal. Location: ['Models', 'ClinicFinanceSettings']"),
   maxInstallmentCount: z.number().int(),
+  maxDiscountPercent: decimalSchema("Field 'maxDiscountPercent' must be a Decimal. Location: ['Models', 'ClinicFinanceSettings']"),
   isEInvoiceActive: z.boolean(),
   fiscalYearStartMonth: z.number().int(),
   updatedAt: z.coerce.date(),

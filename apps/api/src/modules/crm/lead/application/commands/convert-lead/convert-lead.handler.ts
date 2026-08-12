@@ -12,7 +12,9 @@ import {
 } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
-import { GetPipelineByIdQuery } from '@modules/crm/pipeline/application/queries/get-pipeline-by-id/get-pipeline-by-id.query';
+import {
+  GetPipelineByIdQuery
+} from '@modules/crm/pipeline/application/queries/get-pipeline-by-id/get-pipeline-by-id.query';
 import { CreatePatientCommand } from '@modules/crm/patient/application/commands/create-patient/create-patient.command';
 import { Lead } from '@modules/crm/lead/domain/entities/lead.entity';
 import {
@@ -53,6 +55,7 @@ export class ConvertLeadHandler
       // (idempotent). Ne hasta ne de randevu bağlanamıyorsa dönüşecek hedef yoktur.
       const patientId =
         data.patientId ?? (await this.resolvePatientFromLead(lead));
+
       if (!patientId && !data.appointmentId) {
         throw new LeadConvertMissingTargetException(leadId);
       }
