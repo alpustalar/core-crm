@@ -2003,8 +2003,8 @@ Bir modül, başka modüllerin yazma işlemini doğrulaması için `domain/servi
 1. **Interface + Symbol token sahibi modülün `domain/` katmanında** tanımlanır; tüketen taraf soyutlamaya bağımlıdır
    (repository token deseninin aynısı — Dependency Inversion).
 2. Metotlar **yalnız `assert*`**: `void` döner ya da `DomainException` fırlatır. **Veri döndürmez, yazma yapmaz.**
-   Veri lazımsa QueryBus, yazma lazımsa CommandBus kullanılır. **Tek istisna: kimlik/kapsam çözümlemesi**
-   (aşağıdaki madde).
+   Veri lazımsa QueryBus, yazma lazımsa CommandBus kullanılır. **İki istisna: kimlik/kapsam çözümlemesi** ve
+   **kilitli skaler okuma** (aşağıdaki maddeler).
 3. Okuma **Command Repository**'den yapılır — bu servis bir yazmayı kapıda durdurduğu için Command Context'e aittir
    (bkz. "Command Handler'da Command Repo vs Query Repo").
 4. Servis **yaprak bir modülde** (`domain/services/services.module.ts`) sağlanır ve tüketici **yalnız o modülü**
@@ -2021,6 +2021,31 @@ imports: [ProviderDomainServicesModule, ClinicDomainServicesModule]
 
 // ❌ Yanlış — tek servis için sahibin tüm modülü
 imports: [ProviderModule, ClinicModule]
+```
+
+**Kilitli skaler okuma istisnası — `lockAndGet*`**:
+
+Domain servisleri DTO / composite read-model döndüremez. **Tek istisna**: bir yazma kararını besleyen **kilitli**
+domain durumunu, kilidi alan çağrıyla **aynı metotta** döndürmek. Koşullar:
+
+- Metot adı kilidi görünür kılar: **`lockAndGet*`**.
+- Dönüş tipi tek bir **skaler ya da Value Object**'tir — read-model, liste, entity değil.
+- Okuma **Command Repository**'den ve kilit kapsamı içinden yapılır (yukarıdaki 3. madde).
+- **Kilit ile okumayı ayrı metotlara bölmek yasaktır.** Bölünürse sırayı bozmak ya da kilidi atlamak derleyicinin
+  göremediği bir hata olur; bakiye/sayaç kararı sessizce kilitsiz veriyle verilir. Tek atomik metot bu ihtimali
+  sıfırlar.
+- Yetki kontrolü **çağıran handler'ın** işidir; servis yetki değerlendirmez.
+
+```typescript
+// ✓ Doğru — kilit + okuma tek atomik metot, dönüş bir VO
+@Inject(EMPLOYEE_LEAVE_ENTITLEMENT_SERVICE)
+private readonly entitlementService: IEmployeeLeaveEntitlementService
+
+const entitlement = await this.entitlementService.lockAndGetAnnualEntitlement(employeeId);
+
+// ❌ Yanlış — kilit ve okuma ayrı; çağrı sırası derleyiciye görünmez
+await this.employeeService.lockEmployee(employeeId);
+const entitlement = await this.employeeService.getEntitlement(employeeId);
 ```
 
 **Kimlik/kapsam çözümlemesi istisnası — `TENANT_SCOPE_RESOLVER`**:
@@ -2051,8 +2076,26 @@ Kabul koşulları (yukarıdaki 1/3/4 aynen geçerli) + ek iki şart:
   sahibin `domain/` katmanında durur. Böylece modül başka bir servise taşındığında tüketici handler'lar değişmez,
   yalnız token'a bağlanan adapter (in-process → NATS/HTTP) değişir.
 
-DTO tarafı: `clinicId` **zorunlu**, `organizationId` **opsiyonel** (`z.string().nullable().optional()`). `resolve(data)`
-opsiyonel alan doluysa onu kullanır, boşsa cache/DB'den çözer — DTO'ya alan eklendiğinde handler değişmez.
+DTO tarafı: `clinicId` **zorunlu**, `organizationId` **DTO'da yer almaz** — kiracı kimliği istemciden alınmaz,
+`resolve()` her zaman `clinicId`'den çözer (Redis önbellekli).
+
+`TenantScopeInput.organizationId` alanı yalnız **iç çağrılar** için durur (org zaten elde olan registration/saga
+akışları) ve **kısa devre değil, doğrulama** yolundan geçer: gönderilen değer kliniğin gerçek organizasyonuyla
+karşılaştırılır, uyuşmazsa `TenantScopeMismatchException` (403) fırlar.
+
+**Neden kısa devre değil:** bu alan bir DTO'ya eklendiği anda istemci kontrolüne geçer. Gelen değer doğrudan
+kabul edilseydi aktör, kendi kliniğinin `clinicId`'siyle **başka bir kiracının** `organizationId`'sini eşleştirip
+kaydı o kiracının org-kapsamlı listelerine enjekte edebilirdi (yetki kontrolü klinik yarısından geçtiği için fark
+edilmezdi). Doğrulamanın maliyeti önbellekli bir okumadır; kısa devrenin kazandırdığından düşüktür.
+
+```typescript
+// ✓ Doğru — org clinicId'den türetilir ve kayda O damgalanır
+const organizationId = await this.tenantScopeResolver.resolve(data);
+entity.create({ ...data, organizationId });
+
+// ❌ Yanlış — istemcinin gönderdiği org kayda damgalanıyor
+entity.create({ ...data, organizationId: data.organizationId });
+```
 
 **Akış**:
 

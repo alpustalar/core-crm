@@ -22,8 +22,8 @@
 | 3.2 | Ajans ROI takibi | ✅ (klinik-bazlı — tasarım gereği) |
 | 4.1 | Muhasebe (ledger + çift taraflı) | ✅ (kasa+köprü ✅; banka mutabakatı ✅ manuel + oto-eşleştirme ✅) |
 | 4.2 | E-Fatura/E-SMM | 🟡 (port/queue var, gerçek adapter 🔴) |
-| 4.3 | Vergi/raporlama (KDV/P&L) | ✅ (rapor paketi tam; dönem karşılaştırması opsiyonel) |
-| 5.1 | Satın alma (talep/onay/PO/mal-kabul) | ✅ (fatura eşleştirme 🟡) |
+| 4.3 | Vergi/raporlama (KDV/P&L) | ✅ (rapor paketi tam + P&L dönem karşılaştırması ✅ 2026-08-13) |
+| 5.1 | Satın alma (talep/onay/PO/mal-kabul) | ✅ (PO↔fatura eşleştirme ✅ 2026-08-13) |
 | 5.2 | Stok (inventory) | ✅ |
 | 6.1 | Personel (Employee/Contract) | ✅ (EmployeePolicy authz + alan serileştirme + hire/terminate/salary audit event) |
 | 6.2 | İzin (request/approve/balance) + Devam/mesai | ✅ (authz + bakiye guard; attendance check-in/out + fazla mesai) |
@@ -100,6 +100,7 @@ hunisine aittir (lead/hasta bağlı); ProjectTask iç iş takibidir ve lead/hast
 > Tamamlandı: ✅ HR (6.1 tam + 6.2 + attendance), ✅ Onam Formu (1.3), ✅ Ajans ROI (3.2), ✅ Satın alma (5.1), ✅ Raporlama/P&L (4.3), ✅ Kasa + kasa→muhasebe köprüsü + Banka + ekstre mutabakatı (4.1 — Grup 4 finans tamam). **Grup 6 İK artık tamamen bitti.** Son güncelleme: 2026-07-22.
 
 1. ~~**Banka oto-eşleştirme** (4.1)~~ ✅ 2026-08-07.
-2. Opsiyonel: **P&L dönem karşılaştırması** (4.3) — mevcut `income-statement`'a önceki-dönem kıyas + delta (Ajans ROI deseni).
+2. ~~**P&L dönem karşılaştırması** (4.3)~~ ✅ 2026-08-13 — `income-statement?compare=true`; önceki dönem **takvim ayı farkındadır** (`previous-period.calculator`: 1 Nisan–1 Mayıs → 1 Mart–1 Nisan, hizalı değilse eşit uzunluk).
 3. ~~**Üretim** (Grup 7)~~ → dış iş emri ✅ (2026-08-05); ~~**Proje yönetimi** (Grup 8)~~ ✅ 2026-08-07.
+3b. ~~**PO ↔ alış faturası eşleştirme** (5.1)~~ ✅ 2026-08-13 — `PurchaseInvoice.purchaseOrderId` bağı + `PurchaseOrder.invoicedTotal`/`billingStatus` sayacı (kilit altında, kümülatif; sipariş tutarı aşılamaz), fatura kaydında veya sonradan (`PUT purchase-invoices/:id/match|unmatch`) eşleştirme, `GET purchasing/orders/:id/match-summary` (sipariş/teslim/fatura + sapma), `billingStatus` liste filtresi. Fatura satır bazlı olmadığı için eşleştirme **başlık seviyesindedir**; mal gelmeden faturalama engellenmez, sapma raporlanır.
 4. Dış-kimlik gerektirenler (E-Fatura gerçek adapter, E-nabız/E-reçete, Messenger, **Onam formu nitelikli e-imza**) — kimlik/erişim geldiğinde.
