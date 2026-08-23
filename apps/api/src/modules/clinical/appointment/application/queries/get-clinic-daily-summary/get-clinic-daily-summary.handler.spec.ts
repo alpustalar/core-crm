@@ -2,7 +2,7 @@ import { GetClinicDailySummaryHandler } from './get-clinic-daily-summary.handler
 import { GetClinicDailySummaryQuery } from './get-clinic-daily-summary.query';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { ClinicStatusCount } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { ClinicStatusCount } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Resepsiyon günlük özeti. status sayımlarının düz özete katlandığı (eksik status = 0),

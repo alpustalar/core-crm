@@ -3,7 +3,7 @@ import { GetClinicCalendarQuery } from './get-clinic-calendar.query';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { FindProvidersDirectoryQuery } from '@modules/clinical/provider/application/queries/find-providers-directory/find-providers-directory.query';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { ClinicCalendarEventRow } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { ClinicCalendarEventRow } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Klinik tam takvimi. Repo projeksiyonu + doktor directory mock'lanır; güne gruplama
