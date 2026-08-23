@@ -7,6 +7,7 @@ import { ProviderModule } from '@modules/clinical/provider/provider.module';
 import { ChangePasswordHandler } from './change-password/change-password.handler';
 import { ChangeAllUsersStatusInClinicHandler } from '@modules/identity/user/application/commands/change-all-users-status-in-clinic';
 import { CreateUserHandler } from './create-user/create-user.handler';
+import { AttachClinicToOrganizationOwnersHandler } from './attach-clinic-to-organization-owners/attach-clinic-to-organization-owners.handler';
 import { SendUserPasswordResetLinkByStaffHandler } from '@modules/identity/user/application/commands/send-user-password-reset-link-by-staff';
 import { SendUserPasswordResetLinkBySelfHandler } from '@modules/identity/user/application/commands/send-user-password-reset-link-by-self';
 import { SendVerificationEmailHandler } from './send-verification-email/send-verification-email.handler';
@@ -26,6 +27,7 @@ const CommandHandlers = [
   ChangePasswordHandler,
   ChangeAllUsersStatusInClinicHandler,
   CreateUserHandler,
+  AttachClinicToOrganizationOwnersHandler,
   SendUserPasswordResetLinkByStaffHandler,
   SendUserPasswordResetLinkBySelfHandler,
   SendVerificationEmailHandler,

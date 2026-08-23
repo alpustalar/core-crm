@@ -9,6 +9,8 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TimeZoneSchema } from '@shared';
 import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+import { AttachClinicToOrganizationOwnersCommand } from '@modules/identity/user/application/commands/attach-clinic-to-organization-owners/attach-clinic-to-organization-owners.command';
 import { CLINIC_EVENTS } from '@src/domain/constants/events';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { CreateClinicCommand } from './create-clinic.command';
@@ -18,14 +20,16 @@ import {
 } from '@modules/organization/clinic/domain/repositories/clinic/clinic.command.repository';
 
 @CommandHandler(CreateClinicCommand)
-export class CreateClinicHandler
-  implements ICommandHandler<CreateClinicCommand, string>
-{
+export class CreateClinicHandler implements ICommandHandler<
+  CreateClinicCommand,
+  string
+> {
   constructor(
     @Inject(CLINIC_COMMAND_REPOSITORY)
     private readonly clinicCommandRepo: IClinicCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    private readonly commandBus: TSCommandBus,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -60,6 +64,19 @@ export class CreateClinicHandler
 
     return this.txManager.run(async () => {
       const saved = await this.clinicCommandRepo.create(clinic);
+
+      // Sahiplik organizasyon seviyesinde durur, `managedClinics` ise açık bir
+      // atamadır: yeni klinik oraya girmezse sahip kendi açtığı klinikte
+      // klinik-seviye kontrollerin ve "yönettiğim klinikler" listelerinin dışında
+      // kalır. Aynı transaction içinde: klinik yaratılıp bağ kurulmadan kalırsa
+      // boşluk sessizce geri döner.
+      await this.commandBus.execute(
+        new AttachClinicToOrganizationOwnersCommand(
+          clinic.organizationId.value,
+          saved.id.value
+        )
+      );
+
       return saved.id.value;
     });
   }

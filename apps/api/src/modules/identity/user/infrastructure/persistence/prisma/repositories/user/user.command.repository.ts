@@ -116,6 +116,35 @@ export class UserCommandRepository
     });
   }
 
+  async addManagedClinicToOrganizationOwners(
+    organizationId: string,
+    clinicId: string
+  ): Promise<{ attachedCount: number }> {
+    // `managedClinics: { none: ... }` filtresi metodu idempotent yapar: bağı zaten
+    // olan sahip sorguya hiç girmez, ikinci çağrı sessizce 0 döner.
+    const owners = await this.db.user.findMany({
+      where: {
+        ownedOrganizations: { some: { id: organizationId } },
+        managedClinics: { none: { id: clinicId } },
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!owners.length) return { attachedCount: 0 };
+
+    await Promise.all(
+      owners.map((owner) =>
+        this.db.user.update({
+          where: { id: owner.id },
+          data: { managedClinics: { connect: { id: clinicId } } },
+        })
+      )
+    );
+
+    return { attachedCount: owners.length };
+  }
+
   updateLastLogin(id: string) {
     return this.db.user.update({
       where: { id },
