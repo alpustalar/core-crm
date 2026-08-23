@@ -1,4 +1,12 @@
-import { LayoutDashboard, Users, type LucideIcon } from 'lucide-react';
+import {
+  CalendarDays,
+  Contact,
+  LayoutDashboard,
+  MessageSquare,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -28,6 +36,37 @@ export const NAV_ITEMS: NavItem[] = [
     href: ({ clinicId }) => `/clinics/${clinicId}/leads`,
     icon: Users,
     capability: 'lead:read',
+    requiresClinic: true,
+  },
+  {
+    label: 'Randevular',
+    href: ({ clinicId }) => `/clinics/${clinicId}/appointments`,
+    icon: CalendarDays,
+    capability: 'appointment:read',
+    requiresClinic: true,
+  },
+  {
+    label: 'Hastalar',
+    href: ({ clinicId }) => `/clinics/${clinicId}/patients`,
+    icon: Contact,
+    capability: 'patient:read',
+    requiresClinic: true,
+  },
+  {
+    label: 'Mesajlar',
+    href: ({ clinicId }) => `/clinics/${clinicId}/messages`,
+    icon: MessageSquare,
+    // messaging servisi yetkinlik (capability) kontrolü yapmıyor; erişim
+    // kapsamı klinik bazlı (`assertActorCanAccessClinic`). Bu yüzden menüde
+    // yetkinlik koşulu yok — klinik bağlamı yeterli.
+    requiresClinic: true,
+  },
+  {
+    label: 'Finans',
+    href: ({ clinicId }) => `/clinics/${clinicId}/finance`,
+    icon: Wallet,
+    // Cari defter girişi; fatura sekmesi kendi yetkinliğiyle ayrıca korunur.
+    capability: 'financeledger:read',
     requiresClinic: true,
   },
 ];

@@ -433,6 +433,46 @@ detay). Diğer her şeyin kopyalanacağı şablon burada oturur. Tek modülde t�
 **Faz 3 — yatay yayılım.** Appointment (takvim), Patient, Finance, Messages (inbox). Faz 2
 şablonu tekrarlanır.
 
+| Dilim | Durum | Ekranlar |
+| --- | --- | --- |
+| Appointment | ✅ | Günlük ajanda (`/clinics/:id/appointments`) — gün/doktor/durum filtresi URL'de, durum geçişleri, çakışma `meta`sı |
+| Patient | ✅ | Liste + detay. **Backend okuma yüzeyi yoktu, bu dilimde yazıldı** (`findMany`, `GetPatientsQuery`, policy'li `GetPatientByIdQuery`, query controller) |
+| Finance | ✅ | Cari defter + dönem özeti (`/clinics/:id/finance`), fatura listesi (`/finance/invoices`), hasta detayında cari kart |
+| Messages | ✅ | Gelen kutusu (`/clinics/:id/messages`) — konuşma listesi + mesaj akışı + gönderim, çok kanallı (WhatsApp/Telegram/Instagram) |
+
+**Finance diliminde not edilen iki sınır** (kod yorumlarında da var):
+
+1. **Tarih aralığı yalnız özete uygulanır.** `GetLedgerByClinicIdQuery` yalnız sayfalama
+   alıyor, tarih filtresi almıyor. Arayüz bunu gizlemek yerine aralık seçiliyken kullanıcıya
+   söylüyor — aksi hâlde listenin de filtrelendiği sanılırdı. Uca tarih filtresi eklemek
+   ayrı bir iş.
+2. **Fatura listesi `organizationId`'yi zorunlu istiyor** (`@Query('organizationId',
+   ParseUUIDPipe)`), oysa aktörün organizasyonu bağlamda zaten var. Sözleşme uydurmak yerine
+   olduğu gibi yansıtıldı; aktör yüklenene kadar istek `enabled: false` ile bekletiliyor.
+
+**Messages dilimi — messaging ayrı serviste.** Yollar `/messaging` önekiyle yazılır ve ters
+vekil (`infra/nginx/core-crm.conf`) onları :8081'e yönlendirir; istemci tek origin görür.
+Yerel geliştirmede vekil kapalı olduğu için `NEXT_PUBLIC_MESSAGING_API_URL` verilirse
+`/messaging` önekli yollar doğrudan messaging'e gider (`lib/api/client.ts`). Üretimde bu
+değişken boş bırakılır ve kod yolu hiç devreye girmez.
+
+**Bu dilimde iki backend eksiği kapatıldı** (ayrıntı: `apps/api/documents/messaging-microservice.md`):
+
+1. **Cross-tenant veri sızıntısı (kritik).** Conversation handler'ları `clinicId`'yi URL'den
+   alıp doğrudan sorguya geçiriyordu; var olan kontroller kaydı **URL parametresiyle**
+   karşılaştırıyordu, aktörle değil. Oturum açmış herhangi bir kullanıcı başka kliniğin
+   id'sini yazarak o kliniğin tüm yazışmalarını okuyabiliyor ve o klinik adına mesaj
+   gönderebiliyordu. `assertActorCanAccessClinic` eklendi (9 handler).
+2. **24s servis penceresi düz 400 dönüyordu.** Arayüzün bu duruma özel davranması gerekiyor
+   (kutuyu kilitle, şablona yönlendir); `MESSAGING.SERVICE_WINDOW_CLOSED` tipli domain
+   exception'ına çevrildi, `meta` sözleşmesi `@shared`'te.
+
+**Serileştirme tier'ı arayüz kararıdır.** Finans alanları (`amount`, `grandTotal`,
+`totalIncome`) yetkisi olmayan aktörün cevabından **silinerek** gelir. Bu yüzden `shared`
+interface'lerinde `?:` yazılıdır ve arayüz `undefined`ı "—" ile göstermez: "boş" ile "görme
+yetkin yok" farklı şeyler. Özet kartlarında blok tamamen gizlenir, tablo hücresinde "gizli"
+yazar.
+
 ---
 
 ## 12. Özet

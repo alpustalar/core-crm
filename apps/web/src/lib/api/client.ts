@@ -19,6 +19,25 @@ const BASE_URL = (
 ).replace(/\/$/, '');
 
 /**
+ * Messaging ayrı bir serviste (:8081) yaşıyor ama dışarıya **tek origin** olarak
+ * görünür: ters vekil `/api/v1/messaging/*` isteklerini oraya, kalanını api'ye
+ * yönlendirir (`infra/nginx/core-crm.conf`). Üretimde bu değişken boş bırakılır ve
+ * her şey tek adresten gider.
+ *
+ * Yerel geliştirmede vekil varsayılan olarak kapalı (`--profile proxy`), servislere
+ * doğrudan gidiliyor. O yüzden bu değişken verilirse `/messaging` önekli yollar
+ * doğrudan messaging'e gönderilir. Verilmezse davranış değişmez — yani vekil
+ * kurulumunda bu kod yolu hiç devreye girmez.
+ */
+const MESSAGING_BASE_URL = process.env.NEXT_PUBLIC_MESSAGING_API_URL?.replace(
+  /\/$/,
+  ''
+);
+
+/** Ters vekilin de baktığı önek; tek kaynakta dursun diye sabit. */
+const MESSAGING_PATH_PREFIX = '/messaging/';
+
+/**
  * `AuthGuard` bu başlığı okuyup `actor.source`a yazıyor; audit log'un "bu işlem
  * nereden geldi" sorusunun cevabı bu. Gönderilmezse SYSTEM'e düşer.
  * (Backend'deki `LogSource` enum'ı nest-kernel'de yaşıyor ve `shared`'a açık
@@ -95,7 +114,13 @@ function buildUrl(
       ? endpoint.path(params as never)
       : endpoint.path;
 
-  const url = new URL(`${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`);
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const base =
+    MESSAGING_BASE_URL && normalized.startsWith(MESSAGING_PATH_PREFIX)
+      ? MESSAGING_BASE_URL
+      : BASE_URL;
+
+  const url = new URL(`${base}${normalized}`);
 
   appendSearchParams(url, query);
   appendSearchParams(url, pagination);
