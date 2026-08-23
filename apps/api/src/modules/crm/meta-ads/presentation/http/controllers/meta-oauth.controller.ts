@@ -7,12 +7,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AuthGuard } from '@modules/identity/auth/auth/guards';
-import { GetContext, IGetContext } from '@common/decorators';
+import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
+import { GetContext, HasCapability, IGetContext } from '@common/decorators';
+import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 import { HandleMetaOAuthCallbackCommand } from '@modules/crm/meta-ads/application/commands/handle-meta-oauth-callback/handle-meta-oauth-callback.command';
 import { InitiateMetaOAuthCommand } from '@modules/crm/meta-ads/application/commands/initiate-meta-oauth/initiate-meta-oauth.command';
 import { ENV } from '@common/constants/env.constant';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
+
+const { METAADACCOUNT } = CAPABILITIES;
 
 @Controller('oauth')
 export class MetaOAuthController {
@@ -21,7 +24,14 @@ export class MetaOAuthController {
     private readonly config: ConfigService
   ) {}
 
-  @UseGuards(AuthGuard)
+  /**
+   * Yetenek `METAADACCOUNT.create` — bu akışın sonunda klinik adına reklam hesabı
+   * bağlanıyor; `POST clinics/:clinicId/accounts` ile aynı yetki aranır. Kapsam
+   * (hangi kliniğe) kontrolü handler'da yapılır: callback aktörsüz çalıştığı için
+   * kliniğin doğrulanabildiği tek nokta burasıdır.
+   */
+  @UseGuards(AuthGuard, CapabilityGuard)
+  @HasCapability(METAADACCOUNT.create)
   @Get('authorize')
   async authorize(
     @Query('clinicId') clinicId: string,
