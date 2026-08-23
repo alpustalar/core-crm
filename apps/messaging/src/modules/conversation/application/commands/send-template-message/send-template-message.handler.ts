@@ -1,10 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
+  ConversationNotFoundException,
+  MarketingOptOutException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
   IConversationCommandRepository,
@@ -21,6 +20,7 @@ import {
 } from '@modules/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
 import { SendTemplateMessageCommand } from './send-template-message.command';
 import { MessageTypeSchema } from '@shared';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @CommandHandler(SendTemplateMessageCommand)
 export class SendTemplateMessageHandler implements ICommandHandler<
@@ -40,15 +40,18 @@ export class SendTemplateMessageHandler implements ICommandHandler<
   async execute(command: SendTemplateMessageCommand): Promise<string> {
     const { clinicId, input, ctx } = command.payload;
 
+    assertActorCanAccessClinic(ctx.actor, clinicId);
+
     // Opt-out kontrolü gönderimi engelleyen bir iş kararı → okuma command repo'dan.
     // Opt-out'u gelen mesaj akışı yazdığı için replica gecikmesi, çıkmış kontağa
     // pazarlama şablonu göndermeye (uyum ihlali) yol açabilirdi.
     const conversation = await this.conversationRepo.findById(
       input.conversationId
     );
-    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== clinicId) {
-      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+    // Başka kliniğe ait yazışma da "bulunamadı" sayılır: aktörün bu kliniğe
+    // erişimi yukarıda doğrulandı, kaydın varlığını sızdırmanın anlamı yok.
+    if (!conversation || conversation.clinicId !== clinicId) {
+      throw new ConversationNotFoundException();
     }
 
     // Pazarlama uyumu: kontak opt-out yaptıysa MARKETING kategorili şablon gönderilemez.
@@ -56,9 +59,7 @@ export class SendTemplateMessageHandler implements ICommandHandler<
       input.category?.toUpperCase() === 'MARKETING' &&
       conversation.marketingOptOut
     ) {
-      throw new BadRequestException(
-        'Kontak pazarlama mesajlarından çıkmış; MARKETING şablonu gönderilemez.'
-      );
+      throw new MarketingOptOutException();
     }
 
 

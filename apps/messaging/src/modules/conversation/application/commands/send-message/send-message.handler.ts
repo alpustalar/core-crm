@@ -1,10 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  NotFoundException,
-} from '@nestjs/common';
+  ConversationNotFoundException,
+  ServiceWindowClosedException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 
 import {
   CONVERSATION_COMMAND_REPOSITORY,
@@ -23,6 +22,7 @@ import {
 import { SendMessageCommand } from './send-message.command';
 import { MessageTypeSchema } from '@shared';
 import { MessageChannel } from '@shared';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @CommandHandler(SendMessageCommand)
 export class SendMessageHandler implements ICommandHandler<
@@ -42,6 +42,8 @@ export class SendMessageHandler implements ICommandHandler<
   async execute(command: SendMessageCommand): Promise<string> {
     const { clinicId, input, ctx } = command.payload;
 
+    assertActorCanAccessClinic(ctx.actor, clinicId);
+
     // Servis penceresi kontrolü mesajın yazılıp yazılmayacağına karar veriyor →
     // okuma command repo'dan (ana bağlantı). Pencere bitişini başka bir akış
     // (teslim webhook'u) yazdığı için replica'dan okumak kapalı pencereyi açık
@@ -49,9 +51,10 @@ export class SendMessageHandler implements ICommandHandler<
     const conversation = await this.conversationRepo.findById(
       input.conversationId
     );
-    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== clinicId) {
-      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+    // Başka kliniğe ait yazışma da "bulunamadı" sayılır: aktörün bu kliniğe
+    // erişimi yukarıda doğrulandı, kaydın varlığını sızdırmanın anlamı yok.
+    if (!conversation || conversation.clinicId !== clinicId) {
+      throw new ConversationNotFoundException();
     }
 
     // WhatsApp 24s servis penceresi: pencere kapalıyken serbest (TEXT/MEDIA) mesaj
@@ -63,9 +66,10 @@ export class SendMessageHandler implements ICommandHandler<
       type !== MessageTypeSchema.enum.TEMPLATE &&
       !conversation.isWithinServiceWindow()
     ) {
-      throw new BadRequestException(
-        '24 saatlik servis penceresi kapalı; yalnızca onaylı şablon mesaj gönderilebilir.'
-      );
+      throw new ServiceWindowClosedException({
+        conversationId: conversation.id,
+        lastInboundAt: conversation.lastInboundAt?.toISOString() ?? null,
+      });
     }
 
     // OUTBOUND mesaj QUEUED olarak persist edilir; gönderim kuyruğa düşer

@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { ChannelNotConnectedException } from '@modules/channel-config/domain/exceptions/channel-config.exceptions';
 import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CLINIC_WHATSAPP_CHANNEL_COMMAND_REPOSITORY,
@@ -24,7 +25,10 @@ export class DisconnectClinicWhatsappChannelHandler implements ICommandHandler<
     const channel = await this.channelCommandRepo.findByClinicId(
       command.clinicId
     );
-    if (!channel) throw new NotFoundException('WhatsApp kanalı bulunamadı.');
+    if (!channel) throw new ChannelNotConnectedException(
+        'WHATSAPP',
+        command.clinicId
+      );
 
     channel.deactivate();
     await this.txManager.run(() =>

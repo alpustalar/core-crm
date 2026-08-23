@@ -1,5 +1,8 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  ConversationNotFoundException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 import { MessageResponse } from '@shared/modules/messaging/interfaces';
 import { buildPaginationMeta } from '@common/pagination/pagination-meta';
 import {
@@ -13,6 +16,7 @@ import {
 import { Message as IMessage } from '@shared';
 import { GetConversationMessagesQuery } from './get-conversation-messages.query';
 import { GetConversationMessagesResponse } from './get-conversation-messages.response';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @QueryHandler(GetConversationMessagesQuery)
 export class GetConversationMessagesHandler implements IQueryHandler<
@@ -29,12 +33,15 @@ export class GetConversationMessagesHandler implements IQueryHandler<
   async execute(
     query: GetConversationMessagesQuery
   ): Promise<GetConversationMessagesResponse> {
+    assertActorCanAccessClinic(query.payload.ctx.actor, query.payload.clinicId);
+
     const conversation = await this.conversationRepo.findById(
       query.payload.conversationId
     );
-    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== query.payload.clinicId) {
-      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+    // Başka kliniğe ait yazışma da "bulunamadı" sayılır: aktörün bu kliniğe
+    // erişimi yukarıda doğrulandı, kaydın varlığını sızdırmanın anlamı yok.
+    if (!conversation || conversation.clinicId !== query.payload.clinicId) {
+      throw new ConversationNotFoundException();
     }
 
     const result = await this.messageRepo.findManyByConversation(

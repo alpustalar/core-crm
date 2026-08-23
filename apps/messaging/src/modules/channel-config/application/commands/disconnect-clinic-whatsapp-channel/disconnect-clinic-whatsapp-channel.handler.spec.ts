@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ChannelNotConnectedException } from '@modules/channel-config/domain/exceptions/channel-config.exceptions';
 import { DisconnectClinicWhatsappChannelHandler } from './disconnect-clinic-whatsapp-channel.handler';
 import { DisconnectClinicWhatsappChannelCommand } from './disconnect-clinic-whatsapp-channel.command';
 import { ClinicWhatsappChannel } from '@modules/channel-config/domain/entities/clinic-whatsapp-channel.entity';
@@ -31,13 +31,13 @@ describe('DisconnectClinicWhatsappChannelHandler', () => {
     return { handler, getSaved: () => saved };
   };
 
-  it('kanal yoksa NotFoundException', async () => {
+  it('kanal yoksa ChannelNotConnectedException', async () => {
     const { handler } = build(null);
     await expect(
       handler.execute(
         new DisconnectClinicWhatsappChannelCommand('clinic-1', ctx)
       )
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ChannelNotConnectedException);
   });
 
   it('kanal pasifleştirilir (isActive=false) ve kaydedilir', async () => {

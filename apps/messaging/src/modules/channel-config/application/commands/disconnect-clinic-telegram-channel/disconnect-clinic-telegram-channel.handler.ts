@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { ChannelNotConnectedException } from '@modules/channel-config/domain/exceptions/channel-config.exceptions';
 import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
@@ -32,7 +33,10 @@ export class DisconnectClinicTelegramChannelHandler implements ICommandHandler<
     const channel = await this.channelCommandRepo.findByClinicId(
       command.clinicId
     );
-    if (!channel) throw new NotFoundException('Telegram kanalı bulunamadı.');
+    if (!channel) throw new ChannelNotConnectedException(
+        'TELEGRAM',
+        command.clinicId
+      );
 
     // Bot webhook'unu Telegram'dan kaldır (best-effort — deleteWebhook hatayı yutar).
     if (channel.botTokenEnc) {

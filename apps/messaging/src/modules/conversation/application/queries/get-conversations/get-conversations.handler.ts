@@ -9,6 +9,7 @@ import {
 import { Conversation as IConversation } from '@shared';
 import { GetConversationsQuery } from './get-conversations.query';
 import { GetConversationsResponse } from './get-conversations.response';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @QueryHandler(GetConversationsQuery)
 export class GetConversationsHandler implements IQueryHandler<
@@ -23,7 +24,9 @@ export class GetConversationsHandler implements IQueryHandler<
   async execute(
     query: GetConversationsQuery
   ): Promise<GetConversationsResponse> {
-    const { clinicId, filter, pagination } = query.payload;
+    const { clinicId, filter, pagination, ctx } = query.payload;
+
+    assertActorCanAccessClinic(ctx.actor, clinicId);
 
     const result = await this.conversationRepo.findMany({
       clinicId,

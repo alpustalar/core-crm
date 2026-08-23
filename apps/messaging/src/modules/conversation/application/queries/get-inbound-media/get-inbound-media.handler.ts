@@ -1,5 +1,9 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  ConversationNotFoundException,
+  MessageNotFoundException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FetchWhatsappMediaQuery } from '@modules/channel-config/application/queries/fetch-whatsapp-media/fetch-whatsapp-media.query';
 import {
@@ -13,6 +17,7 @@ import {
 import { parseWhatsappMediaRef } from '@modules/conversation/domain/media-reference';
 import { GetInboundMediaQuery } from './get-inbound-media.query';
 import { GetInboundMediaResponse } from './get-inbound-media.response';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @QueryHandler(GetInboundMediaQuery)
 export class GetInboundMediaHandler implements IQueryHandler<
@@ -29,17 +34,21 @@ export class GetInboundMediaHandler implements IQueryHandler<
 
   async execute(query: GetInboundMediaQuery): Promise<GetInboundMediaResponse> {
     const { payload } = query;
+
+    assertActorCanAccessClinic(payload.ctx.actor, payload.clinicId);
+
     const message = await this.messageRepo.findById(payload.messageId);
     if (!message || message.conversationId !== payload.conversationId) {
-      throw new NotFoundException('Mesaj bulunamadı.');
+      throw new MessageNotFoundException();
     }
 
     const conversation = await this.conversationRepo.findById(
       payload.conversationId
     );
-    if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-    if (conversation.clinicId !== payload.clinicId) {
-      throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+    // Başka kliniğe ait yazışma da "bulunamadı" sayılır: aktörün bu kliniğe
+    // erişimi yukarıda doğrulandı, kaydın varlığını sızdırmanın anlamı yok.
+    if (!conversation || conversation.clinicId !== payload.clinicId) {
+      throw new ConversationNotFoundException();
     }
 
     const mediaId = parseWhatsappMediaRef(message.mediaUrl);

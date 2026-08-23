@@ -1,10 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject, Logger } from '@nestjs/common';
 import {
-  ForbiddenException,
-  Inject,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+  ConversationNotFoundException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
@@ -19,6 +17,7 @@ import {
   MessageChannelPort,
 } from '@modules/conversation/domain/ports/message-channel.port';
 import { MarkConversationReadCommand } from './mark-conversation-read.command';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @CommandHandler(MarkConversationReadCommand)
 export class MarkConversationReadHandler implements ICommandHandler<
@@ -38,7 +37,9 @@ export class MarkConversationReadHandler implements ICommandHandler<
   ) {}
 
   async execute(command: MarkConversationReadCommand): Promise<void> {
-    const { clinicId, conversationId } = command.payload;
+    const { clinicId, conversationId, ctx } = command.payload;
+
+    assertActorCanAccessClinic(ctx.actor, clinicId);
 
     // Kanaldaki okundu işareti için gereken dış id — salt okuma, bir mutasyona
     // karar vermiyor, kilit gerekmez.
@@ -50,9 +51,10 @@ export class MarkConversationReadHandler implements ICommandHandler<
     const channel = await this.txManager.run(async () => {
       const conversation =
         await this.conversationRepo.findByIdForUpdate(conversationId);
-      if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-      if (conversation.clinicId !== clinicId) {
-        throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+      // Başka kliniğe ait yazışma da "bulunamadı" sayılır: aktörün bu kliniğe
+      // erişimi yukarıda doğrulandı, kaydın varlığını sızdırmanın anlamı yok.
+      if (!conversation || conversation.clinicId !== clinicId) {
+        throw new ConversationNotFoundException();
       }
 
       conversation.markAgentRead();

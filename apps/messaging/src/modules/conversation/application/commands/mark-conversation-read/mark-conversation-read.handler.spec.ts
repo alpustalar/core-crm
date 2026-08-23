@@ -1,4 +1,3 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MarkConversationReadHandler } from './mark-conversation-read.handler';
 import { MarkConversationReadCommand } from './mark-conversation-read.command';
 import { Conversation } from '@modules/conversation/domain/entities/conversation.entity';
@@ -7,9 +6,16 @@ import { IMessageQueryRepository } from '@modules/conversation/domain/repositori
 import { MessageChannelPort } from '@modules/conversation/domain/ports/message-channel.port';
 import { MessageChannel } from '@shared';
 import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
+import {
+  ConversationAccessDeniedException,
+  ConversationNotFoundException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 
 describe('MarkConversationReadHandler', () => {
-  const ctx = { actor: { userId: 'u1' } } as never;
+  // Aktör bu kliniğe ait — `assertActorCanAccessClinic` kapıda bunu doğruluyor.
+  const ctx = {
+    actor: { userId: 'u1', clinicId: 'clinic-1', rolePriority: 10 },
+  } as never;
 
   const conversation = () => {
     const c = Conversation.start({
@@ -147,7 +153,7 @@ describe('MarkConversationReadHandler', () => {
     expect(order).toEqual(['tx-bitti', 'markRead']);
   });
 
-  it('yazışma yoksa NotFoundException', async () => {
+  it('yazışma yoksa ConversationNotFoundException', async () => {
     const { handler } = build({ conversation: null });
     await expect(
       handler.execute(
@@ -157,10 +163,10 @@ describe('MarkConversationReadHandler', () => {
           ctx,
         })
       )
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ConversationNotFoundException);
   });
 
-  it('başka kliniğe aitse ForbiddenException', async () => {
+  it('aktör başka kliniğin id\'siyle çağırırsa kapıda reddedilir', async () => {
     const { handler } = build({ conversation: conversation() });
     await expect(
       handler.execute(
@@ -170,6 +176,6 @@ describe('MarkConversationReadHandler', () => {
           ctx,
         })
       )
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(ConversationAccessDeniedException);
   });
 });
