@@ -42,6 +42,27 @@ export class ClinicPolicy extends BasePolicy {
     );
   }
 
+  /**
+   * Bir kliniği BAŞKASINA atayabilmek için gereken seviye.
+   *
+   * `actorCanAccessClinicOrOwnsOrganization`'ın "erişim" değil "yönetim" sürümü:
+   * bir kliniğe erişebilmek onu başkasına dağıtabilmek anlamına gelmez. Yetki
+   * devrinde ölçüt, aktörün o kliniği fiilen yönetiyor ya da kliniğin bağlı
+   * olduğu organizasyona sahip olmasıdır.
+   */
+  actorCanManageClinicOrOwnsOrganization(
+    targetClinicId: string | undefined,
+    targetOrganizationId: string
+  ): boolean {
+    if (this.actorCanManageTargetClinic(targetClinicId)) return true;
+
+    const organizationPolicy = new OrganizationPolicy(this.actor, this.source);
+
+    return organizationPolicy.actorCanManageTargetOrganization(
+      targetOrganizationId
+    );
+  }
+
   actorCanAccessTargetClinic(targetClinicId: string | undefined): boolean {
     if (this.actorCanManageTargetClinic(targetClinicId)) return true;
     if (!targetClinicId || !this.actor.clinicId) return false;

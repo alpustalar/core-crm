@@ -271,6 +271,19 @@ export class User extends AggregateRoot {
     if (isDefined(props.clinicId))
       this._clinicId = UUID.create(props.clinicId).orThrow();
 
+    // Kapsam atamaları: `undefined` dokunulmaz, `[]` listeyi temizler. Bu alanlar
+    // yetki devridir — hangi kliniğin/organizasyonun atanabileceği kararı çağıran
+    // handler'da verilir; entity yalnız kimlik formatını doğrular.
+    if (isNotUndefined(props.managedClinicIds))
+      this._managedClinicIds = props.managedClinicIds.map((id) =>
+        UUID.create(id).orThrow()
+      );
+
+    if (isNotUndefined(props.ownedOrganizationIds))
+      this._ownedOrganizationIds = props.ownedOrganizationIds.map((id) =>
+        UUID.create(id).orThrow()
+      );
+
     this._updatedAt = DateTimeManager.create();
 
     this.addDomainEvent(
