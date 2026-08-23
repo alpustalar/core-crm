@@ -392,3 +392,23 @@ export class AppointmentInvalidTimeRangeException extends DomainException<{
     });
   }
 }
+
+/**
+ * Hasta, kendi organizasyonu dışındaki bir kliniğe randevu almaya çalıştı.
+ *
+ * Organizasyon İÇİNDE çok-klinikli portal bilinçli olarak serbesttir (hangi
+ * kliniklerin listeleneceği bir ürün/iş kararıdır ve kiracıya göre değişir);
+ * kiracı sınırı ise her senaryoda geçerlidir — başka bir organizasyonun
+ * takvimine randevu düşürmek hastanın verisini o kiracıya taşır.
+ */
+export class AppointmentClinicOutsideOrganizationException extends DomainException<{
+  clinicId: string;
+}> {
+  public readonly errorCode =
+    ERROR_CODES.APPOINTMENT.CLINIC_OUTSIDE_ORGANIZATION;
+  public override readonly httpStatus = HttpStatus.FORBIDDEN;
+
+  constructor(clinicId: string) {
+    super('Bu klinik için randevu alma yetkiniz yok.', { clinicId });
+  }
+}

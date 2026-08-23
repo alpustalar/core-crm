@@ -14,16 +14,23 @@ import {
   ITenantScopeResolver,
   TENANT_SCOPE_RESOLVER,
 } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CreateLeadCommand)
-export class CreateLeadHandler
-  implements ICommandHandler<CreateLeadCommand, string>
-{
+export class CreateLeadHandler implements ICommandHandler<
+  CreateLeadCommand,
+  string
+> {
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadRepo: ILeadCommandRepository,
     @Inject(TENANT_SCOPE_RESOLVER)
     private readonly tenantScopeResolver: ITenantScopeResolver,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -34,6 +41,15 @@ export class CreateLeadHandler
     const organizationId = await this.tenantScopeResolver.resolve({
       clinicId,
     });
+
+    // `clinicId` URL parametresinden geliyor; CapabilityGuard yalnız aktörde
+    // lead:create var mı diye bakar, hangi kiracının kliniği olduğuna bakmaz.
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicOrOwnsOrganization(clinicId, organizationId)
+      )
+      .orThrow('lead.create');
 
     // Kliniğin varsayılan hunisinin ilk aşamasına yerleştir (best-effort; huni yoksa atla).
     const seed = await this.resolveDefaultStage(clinicId, ctx);

@@ -59,6 +59,11 @@ export const ENV = {
   FX_EUR_TRY: 'FX_EUR_TRY',
   FX_USD_TRY: 'FX_USD_TRY',
   FX_GBP_TRY: 'FX_GBP_TRY',
+  // OPS UYARI KANALI — yutulmuş kritik hatalar (CriticalFailureEvent) buraya düşer.
+  // Tanımlı değilse uyarılar yapılandırılmış log'a yazılır (yerel/test).
+  SLACK_OPS_WEBHOOK_URL: 'SLACK_OPS_WEBHOOK_URL',
+  /** CRITICAL uyarıları ayrı bir kanala ayırmak için (opsiyonel). */
+  SLACK_OPS_WEBHOOK_URL_CRITICAL: 'SLACK_OPS_WEBHOOK_URL_CRITICAL',
   // Sağlık turizmi (otel + transfer) satış komisyonu % — PLATFORM geliri (klinik değil).
   // Satış = net × (1 + oran/100). Tek platform-global oran; klinik başına ayarlanamaz.
   HEALTH_TOURISM_SERVICE_FEE_PERCENT: 'HEALTH_TOURISM_SERVICE_FEE_PERCENT',

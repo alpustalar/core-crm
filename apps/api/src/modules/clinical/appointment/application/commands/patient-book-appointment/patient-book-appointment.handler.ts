@@ -17,6 +17,12 @@ import {
   PatientBookingDisabledException,
 } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import { ExecutionPolicy } from '@src/domain/common/execution/execution.policy';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { AppointmentClinicOutsideOrganizationException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import {
   APPOINTMENT_COMMAND_REPOSITORY,
   IAppointmentCommandRepository,
@@ -35,9 +41,10 @@ import {
 } from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 
 @CommandHandler(PatientBookAppointmentCommand)
-export class PatientBookAppointmentHandler
-  implements ICommandHandler<PatientBookAppointmentCommand, string>
-{
+export class PatientBookAppointmentHandler implements ICommandHandler<
+  PatientBookAppointmentCommand,
+  string
+> {
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
@@ -47,6 +54,8 @@ export class PatientBookAppointmentHandler
     private readonly providerBookingService: IProviderBookingService,
     @Inject(CLINIC_BOOKING_SERVICE)
     private readonly clinicBookingService: IClinicBookingService,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly queryBus: TSQueryBus,
     private readonly transactionManager: TransactionManager
   ) {}
@@ -66,6 +75,29 @@ export class PatientBookAppointmentHandler
       notes,
       isConsultation,
     } = data;
+
+    // Kiracı sınırı: hasta yalnız kendi organizasyonunun kliniklerinde randevu
+    // alabilir. Organizasyon İÇİNDE çok-klinikli portal bilinçli olarak serbest
+    // (hangi kliniklerin listeleneceği kiracıya göre değişen bir ürün kararı);
+    // başka bir kiracının takvimine randevu düşürmek ise her senaryoda yanlış.
+    //
+    // Sistem/AI kaynaklı çağrılar muaf: orada aktör SYSTEM_PATIENT_ACTOR'dır,
+    // hasta kimliği `aiConversationPatient` ile taşınır ve klinik zaten
+    // konuşmanın bağlandığı kliniktir.
+    if (!ExecutionPolicy.isSystemInitiated(ctx.source)) {
+      const organizationId = await this.tenantScopeResolver.resolve({
+        clinicId,
+      });
+
+      // Fail-closed: aktör bağlamı beklenen kiracı kimliğini taşımıyorsa kontrol
+      // sessizce devre dışı kalmaz, istek reddedilir.
+      if (
+        !ctx.actor?.organizationId ||
+        organizationId !== ctx.actor.organizationId
+      ) {
+        throw new AppointmentClinicOutsideOrganizationException(clinicId);
+      }
+    }
 
     const endTime = Appointment.calculateEndTime({
       startTime,
