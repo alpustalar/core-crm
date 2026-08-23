@@ -209,6 +209,13 @@ export class UserPolicy extends ClinicPolicy {
   private getTargetPriority(
     target: Priority | number | undefined | null | string
   ): Priority {
+    // İmza `Priority` kabul ediyordu ama onu karşılayan dal yoktu: VO tüm
+    // kontrollerden düşüp `priorityNumber = 0` ile devam ediyor, `Priority`
+    // şeması 1..100 aralığı istediği için de InvalidPriorityException fırlıyordu.
+    // `update-user-by-staff` hedef kullanıcının rol önceliğini VO olarak geçirdiği
+    // için bu uç fiilen hiç çalışmıyordu.
+    if (target instanceof Priority) return target;
+
     let priorityNumber: number | undefined;
     if (!target) {
       priorityNumber = 0;

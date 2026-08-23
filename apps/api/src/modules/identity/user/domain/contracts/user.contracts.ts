@@ -110,6 +110,12 @@ export const UpdateDetailsSchema = z.object({
   status: GlobalStatusSchema.optional(),
   roleId: z.uuid().optional(),
   clinicId: z.uuid().nullable().optional(),
+  /**
+   * Kapsam atamaları. `undefined` = dokunma, `[]` = tümünü kaldır.
+   * Yetki devri olduğu için handler her kimliği ayrıca doğrular.
+   */
+  managedClinicIds: z.array(z.uuid()).optional(),
+  ownedOrganizationIds: z.array(z.uuid()).optional(),
 });
 export type UpdateDetailsProps = z.infer<typeof UpdateDetailsSchema>;
 

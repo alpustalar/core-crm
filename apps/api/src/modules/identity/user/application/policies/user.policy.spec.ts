@@ -1,6 +1,11 @@
+import { LogSource } from '@src/domain/constants/log-action.constant';
+import { Priority } from '@src/domain/value-objects/priority.vo';
 import { UserPolicy } from './user.policy';
 import { ActorContext } from '@common/interfaces';
-import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import {
+  ExecutionSource,
+  ExecutionSources,
+} from '@src/domain/constants/execution-source.constant';
 
 /**
  * Yetki devrinin iki kuralı burada sabitlenir. İkisi de güvenlik kuralıdır:
@@ -67,6 +72,36 @@ describe('UserPolicy — yetki devri', () => {
 
     it('yetkisiz aktörde boş liste güvenle çalışır', () => {
       expect(policyOf([]).actorHasCapability('patient:read')).toBe(false);
+    });
+  });
+
+  /**
+   * `getTargetPriority` imzası `Priority` kabul ediyordu ama onu karşılayan dal
+   * yoktu: VO tüm kontrollerden düşüp 0'a iniyor, şema 1..100 istediği için
+   * InvalidPriorityException fırlıyordu. `update-user-by-staff` hedefin rol
+   * önceliğini VO olarak geçirdiği için o uç hiç çalışmıyordu.
+   */
+  describe('hedef önceliği Priority VO olarak geldiğinde', () => {
+    it('VO doğrudan kullanılır, sıfıra düşüp patlamaz', () => {
+      const policy = new UserPolicy(
+        {
+          userId: 'actor',
+          email: 'a@b.c',
+          source: LogSource.WEB,
+          capabilities: [],
+          rolePriority: 80,
+          managedClinics: [],
+          ownedOrganizations: [],
+        } as never,
+        ExecutionSources.USER_ACTION
+      );
+
+      expect(() =>
+        policy.actorCanUpdateTargetUser(Priority.fromTrusted(10), undefined)
+      ).not.toThrow();
+      expect(
+        policy.actorCanUpdateTargetUser(Priority.fromTrusted(10), undefined)
+      ).toBe(true);
     });
   });
 });

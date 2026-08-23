@@ -98,7 +98,28 @@ export class UserCommandRepository
     const { id, ...update } = create;
     const raw = await this.db.user.update({
       where: { id },
-      data: update,
+      data: {
+        ...update,
+        // `toPersistence()` yalnız skaler kolonları üretir; kapsam atamaları M2M
+        // ilişkidir ve ayrıca yazılmalıdır — yazılmazsa handler'ın uyguladığı
+        // değişiklik sessizce düşer. `set` tam liste anlamına gelir: entity
+        // yüklenirken bu diziler `findById` ile dolduğu için aynı değerlerin
+        // yeniden yazılması etkisizdir, boş dizi ise atamayı kaldırır.
+        ...(entity.managedClinicIds && {
+          managedClinics: {
+            set: entity.managedClinicIds.map((clinicId) => ({
+              id: clinicId.value,
+            })),
+          },
+        }),
+        ...(entity.ownedOrganizationIds && {
+          ownedOrganizations: {
+            set: entity.ownedOrganizationIds.map((organizationId) => ({
+              id: organizationId.value,
+            })),
+          },
+        }),
+      },
     });
     entity.flushEvents();
     return new User({
