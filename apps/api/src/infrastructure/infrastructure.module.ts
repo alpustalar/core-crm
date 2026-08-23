@@ -40,6 +40,11 @@ import { MESSAGING_MONGO_CONNECTION } from '@src/infrastructure/persistence/mong
         // Observability / Logging
         [ENV.BETTERSTACK_TOKEN]: Joi.string().required(),
 
+        // Ops uyarı kanalı opsiyoneldir: tanımsızsa uyarılar log'a düşer, uygulama
+        // ayağa kalkmayı reddetmez (yerel geliştirme ve test bu yolda çalışır).
+        [ENV.SLACK_OPS_WEBHOOK_URL]: Joi.string().uri().optional(),
+        [ENV.SLACK_OPS_WEBHOOK_URL_CRITICAL]: Joi.string().uri().optional(),
+
         // Security & Encryption
         [ENV.TOKEN_CIPHER_KEY]: Joi.string().hex().length(64).required(), // 32 byte hex = 64 karakter
 

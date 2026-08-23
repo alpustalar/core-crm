@@ -11,7 +11,31 @@ import { NotificationRealtimeModule } from '@modules/platform/notification/infra
 import { MailModule } from '@src/infrastructure/mail/mail.module';
 import { CriticalFailureListener } from '@modules/platform/notification/infrastructure/messaging/events/listeners/critical-failure.listener';
 import { LogOpsAlertAdapter } from '@modules/platform/notification/infrastructure/delivery/log-ops-alert.adapter';
-import { OPS_ALERT_PORT } from '@common/observability/ops-alert.port';
+import { SlackOpsAlertAdapter } from '@modules/platform/notification/infrastructure/delivery/slack-ops-alert.adapter';
+import {
+  OPS_ALERT_PORT,
+  OpsAlertPort,
+} from '@common/observability/ops-alert.port';
+import { ConfigService } from '@nestjs/config';
+import { ENV } from '@common/constants/env.constant';
+
+/**
+ * Slack webhook'u tanımlıysa uyarılar kanala, değilse yapılandırılmış log'a gider.
+ * Seçim ayağa kalkarken bir kez yapılır; log adaptörü Slack'in erişilemediği
+ * anlarda yedek olarak da kullanılır (bkz. `SlackOpsAlertAdapter`).
+ *
+ * Modül dışına alınmasının sebebi test edilebilirlik: yanlış dallanma, uyarıların
+ * sessizce log'da kalması demek olurdu ve bunu ancak üretimde fark ederdik.
+ */
+export const opsAlertPortFactory = (
+  config: ConfigService,
+  slack: SlackOpsAlertAdapter,
+  log: LogOpsAlertAdapter
+): OpsAlertPort =>
+  config.get<string>(ENV.SLACK_OPS_WEBHOOK_URL) ||
+  config.get<string>(ENV.SLACK_OPS_WEBHOOK_URL_CRITICAL)
+    ? slack
+    : log;
 
 /**
  * Bildirim yan etkilerini bağlar: domain event dinleyicileri (seam) + merkezi
@@ -34,8 +58,13 @@ import { OPS_ALERT_PORT } from '@common/observability/ops-alert.port';
       provide: PATIENT_NOTIFICATION_PORT,
       useClass: MailPatientNotificationAdapter,
     },
-    // Slack adaptörü bağlanana kadar uyarılar yapılandırılmış log'a düşer.
-    { provide: OPS_ALERT_PORT, useClass: LogOpsAlertAdapter },
+    LogOpsAlertAdapter,
+    SlackOpsAlertAdapter,
+    {
+      provide: OPS_ALERT_PORT,
+      inject: [ConfigService, SlackOpsAlertAdapter, LogOpsAlertAdapter],
+      useFactory: opsAlertPortFactory,
+    },
   ],
 })
 export class NotificationEventModule {}
