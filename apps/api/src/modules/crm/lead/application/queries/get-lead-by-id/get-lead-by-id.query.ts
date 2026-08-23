@@ -6,6 +6,6 @@ export class GetLeadByIdQuery implements IQuery {
   readonly __responseType!: GetLeadByIdResponse;
   constructor(
     public readonly leadId: string,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

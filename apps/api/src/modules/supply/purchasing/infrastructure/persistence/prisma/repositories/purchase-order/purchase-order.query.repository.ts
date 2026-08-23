@@ -32,6 +32,7 @@ export class PurchaseOrderQueryRepository
     const where: Record<string, unknown> = { clinicId: filter.clinicId };
     if (filter.status) where.status = filter.status;
     if (filter.supplierId) where.supplierId = filter.supplierId;
+    if (filter.billingStatus) where.billingStatus = filter.billingStatus;
 
     const result = await paginate({
       delegate: this.db.purchaseOrder,

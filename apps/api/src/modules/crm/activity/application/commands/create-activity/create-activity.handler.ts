@@ -31,14 +31,13 @@ export class CreateActivityHandler
 
   async execute(command: CreateActivityCommand): Promise<string> {
     const { data, ctx } = command;
-    const { actor } = ctx;
 
     const organizationId = await this.tenantScopeResolver.resolve(data);
 
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(data.clinicId, organizationId)
+        p.actorCanAccessClinicOrOwnsOrganization(data.clinicId, organizationId)
       )
       .orThrow(ACTIVITY_EVENTS.CREATED);
 
@@ -51,7 +50,7 @@ export class CreateActivityHandler
       subject: data.subject,
       notes: data.notes,
       assignedToId: data.assignedToId,
-      createdById: actor.userId,
+      createdById: ctx.actor.userId,
       dueAt: data.dueAt,
     });
 

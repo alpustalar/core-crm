@@ -8,7 +8,7 @@ export class HotelContentSyncProducer implements OnModuleInit {
   private readonly logger = new Logger(HotelContentSyncProducer.name);
 
   constructor(
-    @InjectQueue(QUEUES.HEALTH_TOURISM) private readonly queue: Queue,
+    @InjectQueue(QUEUES.HEALTH_TOURISM) private readonly queue: Queue
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -19,7 +19,7 @@ export class HotelContentSyncProducer implements OnModuleInit {
         repeat: { pattern: '0 3 * * *' }, // her gece 03:00
         removeOnComplete: true,
         removeOnFail: true,
-      },
+      }
     );
     this.logger.log('Hotelbeds otel içerik sync görevi zamanlandı (03:00)');
   }

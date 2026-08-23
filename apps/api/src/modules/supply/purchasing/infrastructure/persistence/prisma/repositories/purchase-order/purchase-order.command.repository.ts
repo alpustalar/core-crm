@@ -85,6 +85,13 @@ export class PurchaseOrderCommandRepository
     return raw ? this.toEntity(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<PurchaseOrder | null> {
+    // Kilit başlık satırında: kalemler yalnız bu başlık üzerinden güncellenir,
+    // dolayısıyla başlığı kilitleyen tüm sipariş üzerinde tekil yazardır.
+    await this.lockRowForUpdate('purchase_orders', id);
+    return this.findById(id);
+  }
+
   private toEntity(
     raw: IPurchaseOrder & { items: RawOrderItem[] }
   ): PurchaseOrder {

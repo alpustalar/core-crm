@@ -1,12 +1,12 @@
 import { Expose, Type } from 'class-transformer';
 
-import { AppointmentsResponseGroups } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { TimeZone } from '@src/domain/value-objects/timezone.vo';
 import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSchema';
 import { AppointmentSourceType } from '@input-type-schemas/AppointmentSourceSchema';
 import { VisitTypeType } from '@input-type-schemas/VisitTypeSchema';
 import { ExaminationTypeType as ExaminationType } from '@input-type-schemas/ExaminationTypeSchema';
 import { AppointmentCreatorTypeType as AppointmentCreatorType } from '@input-type-schemas/AppointmentCreatorTypeSchema';
+import { AppointmentsResponseGroups } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 const { PROVIDER_DATA_OWNER, PATIENT_DATA_OWNER, INTERNAL, ADMIN, MANAGEMENT } =
   AppointmentsResponseGroups;

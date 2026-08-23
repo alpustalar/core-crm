@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import {
-  AdminController,
+  OrganizationAdminCommandController,
   OrganizationCommandController,
   OrganizationQueryController,
 } from '@modules/organization/organization/presentation/http/controllers';
@@ -9,7 +9,7 @@ import {
   controllers: [
     OrganizationQueryController,
     OrganizationCommandController,
-    AdminController,
+    OrganizationAdminCommandController,
   ],
 })
 export class OrganizationPresentationModule {}

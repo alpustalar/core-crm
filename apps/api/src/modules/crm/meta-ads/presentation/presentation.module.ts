@@ -13,7 +13,12 @@ import { ENV } from '@common/constants';
 
 @Module({
   imports: [MetaAdsInfrastructureModule],
-  controllers: [MetaAdsQueryController, MetaAdsCommandController, MetaWebhookController, MetaOAuthController],
+  controllers: [
+    MetaAdsQueryController,
+    MetaAdsCommandController,
+    MetaWebhookController,
+    MetaOAuthController,
+  ],
   providers: [
     {
       provide: META_ADS_PRESENTATION_CONFIG,

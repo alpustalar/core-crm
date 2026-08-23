@@ -3,10 +3,6 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import InstallmentStatusSchema from '@input-type-schemas/InstallmentStatusSchema';
 import { MarkInstallmentAsRefundedCommand } from '@modules/finance/payment/application/commands/mark-installment-as-refunded/mark-installment-as-refunded.command';
 import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
-import {
-  IPaymentEventPublisher,
-  PAYMENT_EVENT_PUBLISHER,
-} from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import { IyzicoResultGuard } from '@src/domain/value-objects/iyzico-result-guard.vo';
 import {
   IIyzicoTransactionCommandRepository,
@@ -19,7 +15,6 @@ import {
   PaymentNotFoundException,
 } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { IyzicoPaymentRecordNotFoundException } from '@modules/finance/pos/virtual/domain/exceptions/iyzico.exceptions';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
@@ -29,6 +24,10 @@ import { RefundPaymentCommand } from './refund-payment.command';
 import { RefundPaymentCommandResponse } from './refund-payment.response';
 import { Currency, UUID } from '@src/domain/value-objects';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(RefundPaymentCommand)
 export class RefundPaymentHandler
@@ -40,11 +39,11 @@ export class RefundPaymentHandler
     private readonly iyzicoProvider: IIyzicoProvider,
     @Inject(IYZICO_TRANSACTION_COMMAND_REPOSITORY)
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
-    @Inject(PAYMENT_EVENT_PUBLISHER)
-    private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -58,6 +57,13 @@ export class RefundPaymentHandler
       new GetPaymentWithInstallmentsQuery(paymentId)
     );
     if (!payment) throw new PaymentNotFoundException(paymentId);
+
+    // `paymentId` istekten geliyor; kapsam kaydın KENDİ kliniğinden doğrulanır.
+    // Kontrol dış SDK çağrısından ÖNCE — sonra olsaydı para çoktan hareket etmişti.
+    this.policyFactory
+      .finance(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(payment.clinicId))
+      .orThrow('payment.iyzico.refund');
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED
@@ -120,16 +126,10 @@ export class RefundPaymentHandler
         })
       );
 
-      // TODO: event entity içinde addDomainEvent ile pushlanacak save ile flush edilecek. payment event publisherı çağrılmayacak. buraya başka bir listener ve duruma göre producer ve processor yazılacak ve işlem öyle tamamlanacak
-      this.paymentEventPublisher.paymentRefund({
-        installmentId: completedInstallment?.id,
-        paymentId: payment.id,
-        appointmentId: payment.appointmentId ?? null,
-        clinicId: payment.clinicId,
-        action: LogAction.PAYMENT_REFUNDED,
-        type: LogType.INFO,
-        details: '',
-      });
+      // PaymentRefundedEvent burada YAYINLANMAZ: yukarıdaki
+      // MarkInstallmentAsRefundedCommand → Payment.refundInstallment() zaten
+      // raise ediyor. İkinci kez yayınlamak muhasebe ters kaydını
+      // (RefundLedgerEntriesCommand) iki kez tetikliyordu.
     });
   }
 }

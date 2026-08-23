@@ -4,12 +4,13 @@ import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import {
+  AI_TOOL_NAMES,
+  AiTool,
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
+  IAiSubToolHandler,
 } from '@common/ai-tools';
-import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
-import { AI_TOOL_NAMES } from '@common/ai-tools';
 import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { GetHotelRateOptionQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-rate-option/get-hotel-rate-option.query';
 import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';

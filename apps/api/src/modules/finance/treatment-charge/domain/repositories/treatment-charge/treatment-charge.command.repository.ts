@@ -10,6 +10,14 @@ export interface ITreatmentChargeCommandRepository
   create(entity: TreatmentCharge): Promise<TreatmentCharge>;
 
   /**
+   * Satırı `FOR UPDATE` kilitleyerek yükler — yalnız aktif transaction içinde.
+   * İptal ve indirim güncellemesi aynı satırın parasal durumunu değiştirir;
+   * kilitsiz okumada iki eşzamanlı istek birbirinin yazmasını ezer (lost update)
+   * ve "faturalanmış mı" kontrolü ile yazma arasındaki pencere açık kalır.
+   */
+  findByIdForUpdate(id: string): Promise<TreatmentCharge | null>;
+
+  /**
    * Randevunun iptal edilmemiş satırları. Command Context'te okunur çünkü
    * fatura/tahsilat tutarı bu satırlardan türer ve karar besler.
    */

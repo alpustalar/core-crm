@@ -83,6 +83,14 @@ export class AllocateProjectResourceHandler implements ICommandHandler<
         data.allocationPercent
       );
 
+      // Kapasite birçok tahsis satırından türer; kilitlenecek tek satır yok.
+      // Kaynağın kendi satırı çapa olarak kilitlenir — aynı transaction'da olmak
+      // tek başına yetmez, iki eşzamanlı istek de "yer var" görebilirdi.
+      await this.projectResourceAllocationRepo.lockResourceCapacity({
+        kind: data.kind,
+        resourceId: data.resourceId,
+      });
+
       const overlapping =
         await this.projectResourceAllocationRepo.findOverlapping({
           clinicId,

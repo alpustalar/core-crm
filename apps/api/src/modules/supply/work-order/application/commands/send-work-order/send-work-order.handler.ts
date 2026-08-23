@@ -28,7 +28,7 @@ export class SendWorkOrderHandler
     const { workOrderId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const workOrder = await this.workOrderRepo.findById(workOrderId);
+      const workOrder = await this.workOrderRepo.findByIdForUpdate(workOrderId);
       if (!workOrder) throw new WorkOrderNotFoundException(workOrderId);
 
       this.policyFactory

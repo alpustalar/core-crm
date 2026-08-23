@@ -16,14 +16,15 @@ import {
 } from '@modules/crm/meta-ads/domain/interfaces/meta-marketing-api.interface';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import { ENV } from '@common/constants/env.constant';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 const REFRESH_WITHIN_DAYS = 7;
 
 @CommandHandler(RefreshMetaTokensCommand)
-export class RefreshMetaTokensHandler implements ICommandHandler<
-  RefreshMetaTokensCommand,
-  RefreshMetaTokensResponse
-> {
+export class RefreshMetaTokensHandler
+  implements
+    ICommandHandler<RefreshMetaTokensCommand, RefreshMetaTokensResponse>
+{
   private readonly logger = new Logger(RefreshMetaTokensHandler.name);
 
   constructor(
@@ -33,7 +34,8 @@ export class RefreshMetaTokensHandler implements ICommandHandler<
     private readonly metaApi: IMetaMarketingApiService,
     private readonly tokenCipher: TokenCipherService,
     private readonly config: ConfigService,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   async execute(): Promise<RefreshMetaTokensResponse> {
@@ -79,6 +81,21 @@ export class RefreshMetaTokensHandler implements ICommandHandler<
           err
         );
         failed++;
+        // Token yenilenmezse süresi dolar ve reklam entegrasyonu (lead akışı +
+        // metrikler) sessizce durur; tarama her gün aynı hatayı tekrarlar.
+        this.criticalFailure.publish({
+          operation: 'meta-ads.token-refresh',
+          severity: 'CRITICAL',
+          summary:
+            'Meta erişim jetonu yenilenemedi; süresi dolunca lead akışı durur.',
+          errorMessage: err instanceof Error ? err.message : String(err),
+          context: {
+            adAccountId: candidate.adAccountId,
+            metaAdAccountId: candidate.id.value,
+          },
+          clinicId: candidate.clinicId.value,
+          dedupeKey: `meta-token-refresh-failed:${candidate.id.value}`,
+        });
       }
     }
 

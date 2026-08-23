@@ -15,9 +15,10 @@ import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/servi
 import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreatePurchaseRequestCommand)
-export class CreatePurchaseRequestHandler
-  implements ICommandHandler<CreatePurchaseRequestCommand, string>
-{
+export class CreatePurchaseRequestHandler implements ICommandHandler<
+  CreatePurchaseRequestCommand,
+  string
+> {
   constructor(
     @Inject(PURCHASE_REQUEST_COMMAND_REPOSITORY)
     private readonly prCommandRepo: IPurchaseRequestCommandRepository,

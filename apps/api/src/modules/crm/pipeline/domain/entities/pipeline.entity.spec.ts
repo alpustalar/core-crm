@@ -71,7 +71,11 @@ describe('PipelineStage entity', () => {
   const pipelineId = randomUUID();
 
   it('create → type varsayılan OPEN, isWon/isLost false', () => {
-    const stage = PipelineStage.create({ pipelineId, name: 'Yeni Lead', order: 0 });
+    const stage = PipelineStage.create({
+      pipelineId,
+      name: 'Yeni Lead',
+      order: 0,
+    });
 
     expect(stage.type).toBe('OPEN');
     expect(stage.order).toBe(0);
@@ -94,7 +98,11 @@ describe('PipelineStage entity', () => {
   });
 
   it('update → yalnız sağlanan alanlar değişir', () => {
-    const stage = PipelineStage.create({ pipelineId, name: 'Teklif', order: 3 });
+    const stage = PipelineStage.create({
+      pipelineId,
+      name: 'Teklif',
+      order: 3,
+    });
 
     stage.update({ name: 'Teklif Gönderildi' });
     expect(stage.name).toBe('Teklif Gönderildi');

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Query,
   UseGuards,
   Version,
@@ -18,8 +19,13 @@ import {
 import { FindOneWithIdOrEmailQuery } from '@modules/identity/user/application/queries/find-one-with-id-or-email';
 import { FindAllUsersForManagerQuery } from '@modules/identity/user/application/queries/find-all-users-for-manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { UserResponseDto } from '@modules/identity/user/presentation/http/dto';
+import {
+  EffectiveCapabilityResponseDto,
+  UserResponseDto,
+} from '@modules/identity/user/presentation/http/dto';
 import { Serialize } from '@common/decorators/serialize.decorator';
+import { GetUserCapabilitiesQuery } from '@modules/identity/user/application/queries/get-user-capabilities/get-user-capabilities.query';
+import { EffectiveCapability } from '@modules/identity/user/domain/contracts/user-capability.contracts';
 
 const { USER } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
@@ -49,6 +55,24 @@ export class UserQueryController {
   ) {
     return this.queryBus.execute(
       new FindAllUsersForManagerQuery(paginationDto, ctx)
+    );
+  }
+
+  /**
+   * Kullanıcının etkin yetkileri, kaynağı (`ROLE` / `GRANT`) işaretli. Yönetim
+   * ekranı hangi satırın kaldırılabilir olduğunu buradan bilir.
+   */
+  @Get(':id/capabilities')
+  @Version('1')
+  @Serialize<EffectiveCapability, EffectiveCapabilityResponseDto>(
+    EffectiveCapabilityResponseDto
+  )
+  getCapabilities(
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.queryBus.execute(
+      new GetUserCapabilitiesQuery(targetUserId, ctx)
     );
   }
 }

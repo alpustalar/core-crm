@@ -3,17 +3,15 @@ import { AppointmentStatusSchema } from '@shared';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Appointment } from '@modules/clinical/appointment/domain/entities/appointment.entity';
-import {
-  IAppointmentCommandRepository
-} from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command.repository';
-import {
-  CancelProviderAppointmentsData,
-  FindDueForReminderData,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { IAppointmentCommandRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.command.repository';
 import { BatchPayload } from '@common/interfaces/batch-payload.type';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
+import {
+  CancelProviderAppointmentsData,
+  FindDueForReminderData,
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 @Injectable()
 export class AppointmentCommandRepository

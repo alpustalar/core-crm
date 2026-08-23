@@ -1,11 +1,11 @@
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
 import { ActorContext } from '@common/interfaces';
+import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import { SerializationOptionsResponse } from '@common/interfaces/serialization-policy.interface';
 import {
   AppointmentResponseGroup,
   AppointmentsResponseGroups,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
-import { SerializationOptionsResponse } from '@common/interfaces/serialization-policy.interface';
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 export class AppointmentPolicy extends ClinicPolicy {
   constructor(actor: ActorContext, source: ExecutionSource) {
@@ -26,18 +26,21 @@ export class AppointmentPolicy extends ClinicPolicy {
     const isSystem = this.isSystem();
     const isSameClinic = this.actorCanAccessTargetClinic(payload.clinicId);
     const isManager = this.actorCanManageTargetClinic(payload.clinicId);
+
     const { ADMIN, INTERNAL, PROVIDER_DATA_OWNER, MANAGEMENT } =
       AppointmentsResponseGroups;
 
-    const groups: AppointmentResponseGroup[] = [];
+    const _groups = new Set<AppointmentResponseGroup>();
 
-    if (isSameClinic) groups.push(INTERNAL);
-    if (isProviderDataOwner) groups.push(PROVIDER_DATA_OWNER);
-    if (isManager) groups.push(MANAGEMENT);
-    if (isSystem) groups.push(ADMIN);
+    if (isSameClinic) _groups.add(INTERNAL);
+    if (isProviderDataOwner) _groups.add(PROVIDER_DATA_OWNER);
+    if (isManager) _groups.add(MANAGEMENT);
+    if (isSystem) _groups.add(ADMIN);
+
+    const groups = Array.from(_groups);
 
     return {
-      isGroupActive: isSameClinic || isSystem,
+      isGroupActive: groups.length > 0,
       groups,
     };
   }

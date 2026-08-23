@@ -7,6 +7,10 @@ import {
   ISubscriptionCommandRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CancelSubscriptionCommand)
 export class CancelSubscriptionHandler
@@ -15,6 +19,8 @@ export class CancelSubscriptionHandler
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionRepo: ISubscriptionCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -22,12 +28,19 @@ export class CancelSubscriptionHandler
     const subscription = await this.subscriptionRepo.findById(
       command.payload.subscriptionId
     );
+
     if (!subscription) throw new SubscriptionNotFoundException();
+
+    const validateOptions = this.policyFactory
+      .entity(command.payload.ctx.actor, command.payload.ctx.source)
+      .policy.getValidateOptions();
 
     await this.txManager.run(async () => {
       if (command.payload.immediate) {
-        subscription.cancel(); // anında CANCELED
+        subscription.rules(validateOptions).cancel().orThrow();
+        subscription.cancel(); // anında iptal
       } else {
+        subscription.rules(validateOptions).scheduleCancellation().orThrow();
         subscription.scheduleCancellation(); // dönem sonunda iptal
       }
       await this.subscriptionRepo.update(subscription);

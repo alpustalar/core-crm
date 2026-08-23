@@ -1,4 +1,3 @@
-import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import {
   IProductBatchCommandRepository,
   PRODUCT_BATCH_COMMAND_REPOSITORY,
@@ -14,21 +13,28 @@ import {
   PRODUCT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product/product.command.repository';
 import {
-  IStockMovementCommandRepository,
-  STOCK_MOVEMENT_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.command.repository';
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(RecordProductUsageCommand)
-export class RecordProductUsageHandler
-  implements ICommandHandler<RecordProductUsageCommand, void>
-{
+export class RecordProductUsageHandler implements ICommandHandler<
+  RecordProductUsageCommand,
+  void
+> {
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
     private readonly productBatchRepo: IProductBatchCommandRepository,
-    @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
-    private readonly stockMovementRepo: IStockMovementCommandRepository,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -38,10 +44,25 @@ export class RecordProductUsageHandler
 
     const quantity = new Decimal(dto.quantity);
 
+    // Kapsam kontrolü: `CapabilityGuard` yalnız yeteneğe bakar (stockmovement:create),
+    // kiracıya bakmaz — `clinicId` URL'den geldiği için başka bir kiracının stoğu
+    // bu uçtan düşülebilirdi. İşlem izni yetenekte, kiracı sınırı burada.
+    const organizationId = await this.tenantScopeResolver.resolve({ clinicId });
+
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicOrOwnsOrganization(clinicId, organizationId)
+      )
+      .orThrow('inventory.stock.usage');
+
     // Ürün satırı FOR UPDATE ile kilitlenir, partiler kilit altında okunup düşülür:
     // aksi halde aynı ürüne eşzamanlı iki kullanım aynı parti bakiyesini okuyup
     // ayrı ayrı düşer → lost update (stok olduğundan fazla görünür).
-    await this.txManager.run(async () => {
+    //
+    // outboxRun: stok hareketi kaydı düşümün defteridir; olay kaybolursa bakiye
+    // düşer ama izi kalmaz. Olay, miktarla aynı transaction'da outbox'a mühürlenir.
+    await this.txManager.outboxRun(async () => {
       const product = await this.productRepo.findByIdForUpdate(dto.productId);
       if (!product) throw new ProductNotFoundException();
 
@@ -61,16 +82,14 @@ export class RecordProductUsageHandler
         throw new BadRequestException('Kullanılabilir stok bulunamadı.');
       }
 
-      const stockMovementProps = batch.deductQuantity({
+      batch.deductQuantity({
         qty: quantity,
         performedById: actor.userId,
         notes: dto.notes,
       });
 
-      const stockMovement = StockMovement.create(stockMovementProps);
-
+      // Hareket kaydı yan etkidir: batch yazılırken olay boşalır, dinleyici yazar.
       await this.productBatchRepo.update(batch);
-      await this.stockMovementRepo.create(stockMovement);
     });
   }
 }

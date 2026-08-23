@@ -5,16 +5,11 @@ import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
 } from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
-import {
-  ILeadEventPublisher,
-  LEAD_EVENT_PUBLISHER,
-} from '@modules/crm/lead/domain/interfaces/lead-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPipelineStageByIdQuery } from '@modules/crm/pipeline/application/queries/get-pipeline-stage-by-id/get-pipeline-stage-by-id.query';
 import { PipelineStageNotFoundException } from '@modules/crm/pipeline/domain/exceptions/pipeline.exceptions';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(MoveLeadToStageCommand)
 export class MoveLeadToStageHandler
@@ -23,8 +18,6 @@ export class MoveLeadToStageHandler
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadRepo: ILeadCommandRepository,
-    @Inject(LEAD_EVENT_PUBLISHER)
-    private readonly eventPublisher: ILeadEventPublisher,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -40,33 +33,22 @@ export class MoveLeadToStageHandler
     if (!stage) throw new PipelineStageNotFoundException(data.stageId);
 
     await this.txManager.run(async () => {
-      const lead = await this.leadRepo.findById(leadId);
+      const lead = await this.leadRepo.findByIdForUpdate(leadId);
       if (!lead) throw new LeadNotFoundException();
 
-      const previousStatus = lead.status;
-
+      // "Statü değişti mi" kararı entity'nin: aşama taşıma statüyü değiştirmeyebilir
+      // (OPEN→OPEN) ve o durumda event fırlatılmaz.
       lead.moveToStage({
         pipelineId: stage.pipelineId,
         stageId: stage.id,
         stageType: stage.type,
+        stageName: stage.name,
         reason: data.reason,
+        actorId: actor.userId,
+        logSource: actor.source,
       });
 
-      const saved = await this.leadRepo.update(lead);
-
-      if (saved.status !== previousStatus) {
-        this.eventPublisher.leadStatusChanged({
-          leadId: saved.id.value,
-          clinicId: saved.clinicId.value,
-          previousStatus,
-          newStatus: saved.status,
-          actorId: actor.userId,
-          source: actor.source,
-          action: LogAction.LEAD_STATUS_CHANGED,
-          type: LogType.INFO,
-          details: `Lead aşama taşındı (${stage.name}): ${previousStatus} -> ${saved.status}`,
-        });
-      }
+      await this.leadRepo.update(lead);
     });
   }
 }

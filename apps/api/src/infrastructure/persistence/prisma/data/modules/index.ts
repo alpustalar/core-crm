@@ -7,3 +7,4 @@ export * from '../constants';
 export * from '../utils';
 export * from './sectors';
 export * from './language';
+export * from './platform-capabilities';

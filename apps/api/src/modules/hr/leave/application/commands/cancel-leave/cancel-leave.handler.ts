@@ -29,7 +29,7 @@ export class CancelLeaveHandler
     const { leaveId, ctx } = command;
 
     await this.txManager.run(async () => {
-      const leave = await this.leaveRepo.findById(leaveId);
+      const leave = await this.leaveRepo.findByIdForUpdate(leaveId);
       if (!leave) throw new LeaveNotFoundException(leaveId);
 
       this.policyFactory

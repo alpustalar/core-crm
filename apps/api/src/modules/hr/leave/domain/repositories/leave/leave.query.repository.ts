@@ -1,5 +1,6 @@
 import { LeaveRequest as ILeaveRequest } from '@shared';
 import {
+  AnnualLeavePeriod,
   FindLeavesByEmployeeFilter,
   FindPendingLeavesFilter,
 } from '@modules/hr/leave/domain/contracts/leave.contracts';
@@ -14,10 +15,13 @@ export interface ILeaveQueryRepository {
   findPendingByClinic(
     filter: FindPendingLeavesFilter
   ): Promise<Paginated<ILeaveRequest>>;
-  /** Çalışanın dönem içi onaylı ANNUAL izin gün toplamı (yıllık bakiye için). */
-  sumApprovedAnnualDays(
+  /**
+   * Çalışanın aralıkla kesişen onaylı ANNUAL izinleri (yıllık bakiye için). Gün
+   * toplamı domain'de hesaplanır — yıl aşan izinler yıllara bölünmeli.
+   */
+  findApprovedAnnualLeaves(
     employeeId: string,
     from: Date,
     to: Date
-  ): Promise<number>;
+  ): Promise<AnnualLeavePeriod[]>;
 }

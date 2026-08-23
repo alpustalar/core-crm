@@ -7,8 +7,10 @@ import {
   HOTELBEDS_TRANSFER_API_SERVICE,
   IHotelbedsTransferApiService,
 } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
-import { TransferAvailabilityItem } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
-import { TransferCacheService } from '@modules/crm/health-tourism/transfer/infrastructure/cache/transfer-cache.service';
+import {
+  ITransferCacheService,
+  TRANSFER_CACHE_SERVICE,
+} from '@modules/crm/health-tourism/transfer/domain/interfaces/transfer-cache.service.interface';
 
 @QueryHandler(SearchTransferAvailabilityQuery)
 export class SearchTransferAvailabilityHandler
@@ -21,7 +23,8 @@ export class SearchTransferAvailabilityHandler
   constructor(
     @Inject(HOTELBEDS_TRANSFER_API_SERVICE)
     private readonly transferApi: IHotelbedsTransferApiService,
-    private readonly cacheService: TransferCacheService
+    @Inject(TRANSFER_CACHE_SERVICE)
+    private readonly cacheService: ITransferCacheService
   ) {}
 
   async execute(
@@ -36,7 +39,7 @@ export class SearchTransferAvailabilityHandler
     const cached = await this.cacheService.transferAvailability.get(paramsHash);
     if (cached) {
       return {
-        data: cached as TransferAvailabilityItem[],
+        data: cached,
         meta: {
           fromCache: true,
         },

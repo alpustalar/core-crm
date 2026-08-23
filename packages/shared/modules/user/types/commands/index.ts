@@ -4,3 +4,4 @@ export type { SendUserPasswordResetByActor } from './send-user-password-reset-by
 export type { UpdateUserByStaff } from './update-user-by-staff.type';
 export type { UserSoftDeleteByActor } from './user-soft-delete-by-actor.type';
 export type { UserUpdateBySelf } from './user-update-by-self.type';
+export type { GrantUserCapability } from './grant-user-capability.type';

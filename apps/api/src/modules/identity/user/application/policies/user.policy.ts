@@ -3,6 +3,7 @@ import { ClinicPolicy } from '@modules/organization/clinic/application/policies'
 import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
+import { isPlatformCapability } from '@src/infrastructure/persistence/prisma/data/modules';
 
 type HasPriority = {
   priority: number;
@@ -32,6 +33,29 @@ export class UserPolicy extends ClinicPolicy {
    */
   isSelf(targetUserId: string): boolean {
     return this.actor.userId === targetUserId;
+  }
+
+  /**
+   * Aktör bu yetkiyi kendisi taşıyor mu? (rol + kişisel yetkiler birleşimi)
+   */
+  actorHasCapability(capability: string): boolean {
+    return this.actorCapabilities.includes(capability);
+  }
+
+  /**
+   * Aktör bu yetkiyi BAŞKA bir kullanıcıya devredebilir mi?
+   *
+   * İki kural birlikte işler:
+   * 1. Platform kapsamındaki yetkiler kimseye devredilemez — sistem yöneticisine
+   *    bile. Onlar zaten rolle gelir; kişisel devir yolunu açmak, global rolleri
+   *    değiştirebilecek bir personel üretme riskini kalıcı kılardı.
+   * 2. Aktör yalnız KENDİ taşıdığı yetkiyi devredebilir. Aksi hâlde bir yönetici,
+   *    kendisinde olmayan yetkiyi personeline verip o hesapla kullanarak kendi
+   *    tavanını dolaylı yoldan aşabilirdi.
+   */
+  actorCanGrantCapability(capability: string): boolean {
+    if (isPlatformCapability(capability)) return false;
+    return this.actorHasCapability(capability);
   }
 
   /**

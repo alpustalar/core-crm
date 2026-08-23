@@ -12,7 +12,18 @@ import { Money } from '@src/domain/value-objects/money.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { LastName } from '@src/domain/value-objects/last-name.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
-import { CreateHotelbedsBookingProps } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import {
+  CancelHotelbedsBookingProps,
+  CreateHotelbedsBookingProps,
+} from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import {
+  HotelBookingCancelledEvent,
+  HotelBookingCreatedEvent,
+} from '@modules/crm/health-tourism/hotel/domain/events';
+import {
+  LogAction,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { HotelbedsBookingRules } from '@modules/crm/health-tourism/hotel/domain/rules/hotelbeds-booking.rules';
@@ -195,8 +206,23 @@ export class HotelbedsBooking extends AggregateRoot {
       updatedAt: DateTimeManager.create(),
     });
 
-    // TODO: Yeni bir rezervasyon başarıyla ayağa kalktığında event fırlat
-    // instance.addDomainEvent();
+    instance.addDomainEvent(
+      new HotelBookingCreatedEvent({
+        bookingId: instance.id.value,
+        reference: instance.reference,
+        clinicId: instance.clinicId.value,
+        organizationId: instance.organizationId.value,
+        patientId: instance.patientId?.value ?? null,
+        leadId: instance.leadId?.value ?? null,
+        totalNet: instance.totalNet.toApiFormat(),
+        currency: instance.totalNet.currency,
+        actorId: props.actorId,
+        source: props.logSource,
+        action: LogAction.HOTEL_BOOKING_CREATED,
+        type: LogType.INFO,
+        details: `Otel rezervasyonu oluşturuldu: ${instance.reference} (${instance.hotelCode})`,
+      })
+    );
 
     return instance;
   }
@@ -205,14 +231,32 @@ export class HotelbedsBooking extends AggregateRoot {
     return new HotelbedsBookingRules(this, validateOptions);
   }
 
-  public cancel(): void {
+  /**
+   * Zaten iptalliyse sessizce çıkar ve **event üretmez** — çağıran taraf
+   * (iptal handler'ı) bu yolu idempotent kabul ediyor; ikinci kez event
+   * fırlatmak denetim kaydını ve dinleyicileri gereksiz tetiklerdi.
+   */
+  public cancel(props: CancelHotelbedsBookingProps): void {
     if (this._status === HotelbedsBookingStatusSchema.enum.CANCELLED) {
       return;
     }
 
-    // TODO: domain event pushlanacak
     this._status = HotelbedsBookingStatusSchema.enum.CANCELLED;
     this._updatedAt = DateTimeManager.create();
+
+    this.addDomainEvent(
+      new HotelBookingCancelledEvent({
+        bookingId: this.id.value,
+        reference: this.reference,
+        clinicId: this.clinicId.value,
+        organizationId: this.organizationId.value,
+        actorId: props.actorId,
+        source: props.logSource,
+        action: LogAction.HOTEL_BOOKING_CANCELLED,
+        type: LogType.INFO,
+        details: `Otel rezervasyonu iptal edildi: ${this.reference}${props.reason ? ` — ${props.reason}` : ''}`,
+      })
+    );
   }
 
   toPersistence(): IHotelbedsBooking {

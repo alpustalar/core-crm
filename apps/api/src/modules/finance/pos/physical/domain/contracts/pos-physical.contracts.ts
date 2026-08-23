@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { Decimal } from 'decimal.js';
 import PosProviderSchema from '@input-type-schemas/PosProviderSchema'; // Katı tip güvenliği için standardizasyon
+import PosTransactionKindSchema from '@input-type-schemas/PosTransactionKindSchema';
 
 // ==========================================
 // 1. POS DEVICE & SNAPSHOT SÖZLEŞMELERI
@@ -104,6 +105,21 @@ export type PendingTransactionForReconcile = z.infer<
   typeof PendingTransactionForReconcileSchema
 >;
 
+/**
+ * Bir satışın CANLI (PENDING/SUCCESS) ters kayıtlarının özeti. İptal/iade kararını
+ * besler: iptal en fazla bir kez yapılabilir, iadeler kümülatif olarak satışı aşamaz.
+ * Command Context'e aittir — orijinal satır `FOR UPDATE` kilitliyken okunur.
+ */
+export const PosTransactionReversalSummarySchema = z.object({
+  hasActiveVoid: z.boolean(),
+  refundedAmount: z.custom<Decimal>(
+    (val) => val instanceof Decimal || Decimal.isDecimal(val)
+  ),
+});
+export type PosTransactionReversalSummary = z.infer<
+  typeof PosTransactionReversalSummarySchema
+>;
+
 export const CreatePosTransactionPropsSchema = z.object({
   // Kimlik bilgileri
   id: z.uuid('Geçersiz işlem ID formatı').optional(),
@@ -118,6 +134,12 @@ export const CreatePosTransactionPropsSchema = z.object({
   // Finansal veriler
   amount: z.number().positive("İşlem tutarı 0'dan büyük olmalıdır"),
   currency: CurrencySchema,
+
+  // Ters kayıt bilgisi — SALE dışındaki türler orijinal satışa bağlanmak zorundadır
+  kind: PosTransactionKindSchema.optional(), // verilmezse SALE
+  originalPosTransactionId: z
+    .uuid('Geçersiz orijinal işlem ID formatı')
+    .optional(),
 
   // Teknik veriler
   externalRef: z.string().nullable().optional(), // Banka veya ödeme kuruluşunun verdiği referans

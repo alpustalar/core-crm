@@ -6,8 +6,8 @@ import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment';
-import { CheckConflictProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { AppointmentSlotConflictException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
+import { CheckConflictProps } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 @Injectable()
 export class AppointmentCheckerService implements IAppointmentCheckerService {

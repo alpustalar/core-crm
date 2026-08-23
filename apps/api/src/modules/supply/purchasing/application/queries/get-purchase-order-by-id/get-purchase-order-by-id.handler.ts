@@ -12,10 +12,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetPurchaseOrderByIdQuery)
-export class GetPurchaseOrderByIdHandler
-  implements
-    IQueryHandler<GetPurchaseOrderByIdQuery, GetPurchaseOrderByIdResponse>
-{
+export class GetPurchaseOrderByIdHandler implements IQueryHandler<
+  GetPurchaseOrderByIdQuery,
+  GetPurchaseOrderByIdResponse
+> {
   constructor(
     @Inject(PURCHASE_ORDER_QUERY_REPOSITORY)
     private readonly poQueryRepo: IPurchaseOrderQueryRepository,

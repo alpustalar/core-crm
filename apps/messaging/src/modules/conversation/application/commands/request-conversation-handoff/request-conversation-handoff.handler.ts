@@ -1,5 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ForbiddenException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  ConversationNotFoundException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 import { MongoTransactionManager } from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
   CONVERSATION_COMMAND_REPOSITORY,
@@ -25,9 +28,10 @@ export class RequestConversationHandoffHandler implements ICommandHandler<
       const conversation = await this.conversationRepo.findByIdForUpdate(
         command.payload.conversationId
       );
-      if (!conversation) throw new NotFoundException('Yazışma bulunamadı.');
-      if (conversation.clinicId !== command.payload.clinicId) {
-        throw new ForbiddenException('Bu yazışmaya erişim yetkiniz yok.');
+      // Başka kliniğe ait yazışma da "bulunamadı" sayılır: aktörün bu kliniğe
+      // erişimi yukarıda doğrulandı, kaydın varlığını sızdırmanın anlamı yok.
+      if (!conversation || conversation.clinicId !== command.payload.clinicId) {
+        throw new ConversationNotFoundException();
       }
 
       conversation.requestHumanHandoff();

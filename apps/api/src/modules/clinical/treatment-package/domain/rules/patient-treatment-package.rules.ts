@@ -24,4 +24,40 @@ export class PatientTreatmentPackageRules extends BaseRules {
       this.validateOptions
     );
   }
+
+  suspend() {
+    const valid =
+      this.patientTreatmentPackage.validate.status.isActive.value &&
+      !this.patientTreatmentPackage.validate.status.isExpired.value;
+
+    return this.evaluate(
+      valid,
+      () =>
+        new Error('Sadece aktif veya süresi geçmiş paketler askıya alınabilir')
+    );
+  }
+
+  cancel() {
+    const valid =
+      !this.patientTreatmentPackage.validate.status.isCompleted.value &&
+      !this.patientTreatmentPackage.validate.status.isCancelled.value;
+
+    return this.evaluate(
+      valid,
+      () =>
+        new Error(
+          'Sadece tamamlanmamış ve daha önce iptal edilmemiş paketler iptal edilebilir'
+        )
+    );
+  }
+
+  complete() {
+    const valid =
+      this.patientTreatmentPackage.validate.status.isActive.value &&
+      !this.patientTreatmentPackage.validate.status.isExpired.value;
+    return this.evaluate(
+      valid,
+      () => new Error('Bu paket tamamlanabilir değil')
+    );
+  }
 }

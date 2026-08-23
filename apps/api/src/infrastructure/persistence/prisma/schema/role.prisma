@@ -34,6 +34,35 @@ model Capability {
   action String
 
   roles RoleCapability[]
+  users UserCapability[]
 
   @@unique([module, action])
+}
+
+/// Rolün ÜSTÜNE, tek bir kullanıcıya verilen ek yetki.
+///
+/// Roller global (kiracı kolonu yok) olduğu için bir rolün yetkisini değiştirmek
+/// sistemdeki tüm klinikleri etkiler. Klinik yöneticisinin kendi personeline
+/// yetki verebilmesi bu yüzden rol üzerinden değil, kişi bazında yürür.
+/// Yetki kaldırma satırın silinmesidir; "negatif yetki" (rolden düşürme) yoktur.
+model UserCapability {
+  id           String @id
+  userId       String @map("user_id")
+  capabilityId String @map("capability_id")
+
+  /// Yetkiyi veren yönetici — denetim izi. Veren hesap silinirse iz null'a düşer,
+  /// yetki ayakta kalır (personelin erişimi yöneticinin ayrılmasıyla kesilmez).
+  grantedById String? @map("granted_by_id")
+  /// Yöneticinin gerekçesi (ör. "nöbet dönemi kasa devri").
+  reason String?
+
+  user       User       @relation("user_capabilities", fields: [userId], references: [id], onDelete: Cascade)
+  capability Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  grantedBy  User?      @relation("capability_granters", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, capabilityId])
+  @@index([userId])
+  @@map("user_capabilities")
 }

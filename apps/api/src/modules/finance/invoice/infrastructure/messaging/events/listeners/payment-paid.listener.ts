@@ -13,6 +13,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPaymentWithInstallmentsQuery } from '@modules/finance/payment/application/queries/get-payment-with-installments/get-payment-with-installments.query';
 import { InvoiceTriggers } from '@modules/finance/invoice/domain/constants/invoice-triggers';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @Injectable()
 export class PaymentPaidInvoiceListener {
@@ -20,7 +21,8 @@ export class PaymentPaidInvoiceListener {
 
   constructor(
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   @OnEvent(PAYMENT_EVENTS.PAID, { async: true })
@@ -65,6 +67,19 @@ export class PaymentPaidInvoiceListener {
         `Ödeme sonrası fatura kesilemedi: paymentId=${event.paymentId}`,
         error
       );
+      // Tahsilat yapıldı ama faturası kesilmedi — yasal belge eksiği.
+      this.criticalFailure.publish({
+        operation: 'finance.invoice.issue-on-payment-paid',
+        severity: 'CRITICAL',
+        summary: 'Tahsilat alındı ancak faturası kesilemedi.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: {
+          paymentId: event.paymentId,
+          installmentId: event.installmentId,
+        },
+        clinicId: event.clinicId,
+        dedupeKey: `invoice-failed:payment:${event.paymentId}`,
+      });
     }
   }
 }

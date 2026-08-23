@@ -20,6 +20,14 @@ enum PurchaseOrderStatus {
   CANCELLED // iptal
 }
 
+/// Siparişin fatura eşleştirme (matching) durumu. Teslimattan bağımsız yürür:
+/// mal gelmiş ama fatura gelmemiş ya da tersi olabilir.
+enum PurchaseOrderBillingStatus {
+  NOT_BILLED // hiç fatura eşleşmedi
+  PARTIALLY_BILLED // kısmen faturalandı
+  FULLY_BILLED // sipariş tutarının tamamı faturalandı
+}
+
 model PurchaseRequest {
   id             String @id
   clinicId       String @map("clinic_id")
@@ -76,6 +84,13 @@ model PurchaseOrder {
   vatTotal   Decimal @map("vat_total") @db.Decimal(14, 2)
   grandTotal Decimal @map("grand_total") @db.Decimal(14, 2)
 
+  /// Bu siparişe eşleştirilmiş alış faturalarının KDV dahil toplamı. Kaynak-doğru
+  /// veri `purchase_invoices.purchase_order_id`'dir; bu kolon o toplamın sayacıdır
+  /// ve eşleştirme/eşleştirme-kaldırma ile AYNI transaction'da (sipariş satırı
+  /// FOR UPDATE kilitliyken) güncellenir — bu yüzden sapmaz.
+  invoicedTotal Decimal                    @default(0) @map("invoiced_total") @db.Decimal(14, 2)
+  billingStatus PurchaseOrderBillingStatus @default(NOT_BILLED) @map("billing_status")
+
   note String? @db.Text
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -84,6 +99,7 @@ model PurchaseOrder {
   items PurchaseOrderItem[]
 
   @@index([clinicId, status])
+  @@index([clinicId, billingStatus])
   @@index([organizationId])
   @@index([supplierId])
   @@map("purchase_orders")

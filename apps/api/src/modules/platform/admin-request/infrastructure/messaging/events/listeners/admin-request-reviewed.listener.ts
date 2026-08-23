@@ -5,12 +5,14 @@ import { AdminRequestReviewedEvent } from '@modules/platform/admin-request/domai
 import { ADMIN_REQUEST_EVENTS } from '@src/domain/constants/events/admin-request.constant';
 
 import { SoftDeleteClinicCommand } from '@modules/organization/clinic/application/commands/soft-delete-clinic/soft-delete-clinic.command';
+import { SoftDeleteOrganizationCommand } from '@modules/organization/organization/application/commands/soft-delete-organization/soft-delete-organization.command';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import { AdminRequestStatusSchema, AdminRequestTypeSchema } from '@shared';
 
 @Injectable()
 export class AdminRequestReviewedListener {
   private readonly logger = new Logger(AdminRequestReviewedListener.name);
+  private readonly internalCtx = ExecutionContextFactory.createInternal();
 
   constructor(private readonly commandBus: CommandBus) {}
 
@@ -19,18 +21,17 @@ export class AdminRequestReviewedListener {
     if (event.status !== AdminRequestStatusSchema.enum.APPROVED) return;
 
     try {
-      const internalCtx = ExecutionContextFactory.createInternal();
-
       switch (event.type) {
         case AdminRequestTypeSchema.enum.CLINIC_DELETION:
           await this.commandBus.execute(
-            new SoftDeleteClinicCommand(event.targetId, internalCtx)
+            new SoftDeleteClinicCommand(event.targetId, this.internalCtx)
           );
           break;
         case AdminRequestTypeSchema.enum.ORGANIZATION_DELETION:
-          // TODO: SoftDeleteOrganizationCommand dispatch edilecek
-          this.logger.warn(
-            `ORGANIZATION_DELETION henüz implement edilmedi: targetId=${event.targetId}`
+          // `internalCtx` sistem kaynaklı: handler bu durumda yeni bir onay
+          // talebi açmaz, doğrudan siler (talep zaten onaylandı).
+          await this.commandBus.execute(
+            new SoftDeleteOrganizationCommand(event.targetId, this.internalCtx)
           );
           break;
       }

@@ -8,6 +8,6 @@ export class SearchHotelsQuery implements IQuery {
 
   constructor(
     public readonly dto: SearchHotelsDto,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

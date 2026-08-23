@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { HotelbedsBookingStatusSchema } from '@shared';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 
 // ==========================================
 // 1. YARDIMCI VE ALT ŞEMALAR
@@ -61,6 +62,16 @@ export type CreateHotelbedsBookingData = z.infer<
   typeof CreateHotelbedsBookingSchema
 >;
 
+/** Rezervasyon iptali — entity iptal event'ini kendisi raise eder. */
+export const CancelHotelbedsBookingSchema = z.object({
+  actorId: z.string(),
+  logSource: z.nativeEnum(LogSource),
+  reason: z.string().optional(),
+});
+export type CancelHotelbedsBookingProps = z.infer<
+  typeof CancelHotelbedsBookingSchema
+>;
+
 // --- FILTERS ---
 export const FindHotelBookingsFilterSchema = z.object({
   organizationId: z.uuid(),
@@ -118,6 +129,11 @@ export const CreateHotelbedsBookingPropsSchema = z
 
     organizationId: z.uuid(),
     clinicId: z.uuid(),
+
+    // Event entity içinde raise edildiği için "kim/nereden" bilgisi entity'ye
+    // buradan taşınır (bkz. CLAUDE.md — event entity'de raise edilir).
+    actorId: z.string(),
+    logSource: z.nativeEnum(LogSource),
   })
   .refine((data) => data.checkOut > data.checkIn, {
     message: 'Check-out tarihi, Check-in tarihinden sonra olmalıdır',

@@ -14,6 +14,11 @@ import {
 import { Project } from '@modules/organization/project/domain/entities/project.entity';
 import { ProjectCodeTakenException } from '@modules/organization/project/domain/exceptions/project.exceptions';
 import { CreateProjectCommand } from './create-project.command';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { ClinicScopeRequiredException } from '@common/domain/exceptions/clinic-scope-required.exception';
 
 @CommandHandler(CreateProjectCommand)
 export class CreateProjectHandler implements ICommandHandler<
@@ -25,14 +30,23 @@ export class CreateProjectHandler implements ICommandHandler<
     private readonly projectCommandRepo: IProjectCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateProjectCommand): Promise<string> {
     const { data, ctx } = command.payload;
-    // Boş bırakılırsa entity'deki UUID.create(...).orThrow() kapıda durdurur.
-    const clinicId = ctx.actor.clinicId ?? '';
-    const organizationId = ctx.actor.organizationId ?? '';
+
+    // Klinik kapsamı yoksa işlem yapılamaz: proje bir kliniğe aittir ve çok
+    // klinikli aktörde (organizasyon sahibi / şube müdürü) hangisi olduğu
+    // aktörün kimliğinden çıkarılamaz.
+    const clinicId = ctx.actor.clinicId;
+    if (!clinicId) throw new ClinicScopeRequiredException('project.create');
+
+    // Kiracı kimliği kliniğin kendisinden türetilir — aktörün organizasyonuyla
+    // kliniğinki ayrışırsa kayıt tutarsız kalırdı.
+    const organizationId = await this.tenantScopeResolver.resolve({ clinicId });
 
     this.policyFactory
       .project(ctx.actor, ctx.source)

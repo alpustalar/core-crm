@@ -16,10 +16,13 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @CommandHandler(ConfirmAppointmentCommand)
-export class ConfirmAppointmentHandler implements ICommandHandler<
-  ConfirmAppointmentCommand,
-  ConfirmAppointmentCommandResponse
-> {
+export class ConfirmAppointmentHandler
+  implements
+    ICommandHandler<
+      ConfirmAppointmentCommand,
+      ConfirmAppointmentCommandResponse
+    >
+{
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
@@ -45,11 +48,13 @@ export class ConfirmAppointmentHandler implements ICommandHandler<
       )
       .orThrow(APPOINTMENT_EVENTS.CONFIRMED);
 
-    const validateOptions = this.policyFactory
-      .entity(ctx.actor, ctx.source)
-      .policy.getValidateOptions();
-
-    appointment.rules(validateOptions).confirm.orThrow();
+    appointment
+      .rules(
+        this.policyFactory
+          .entity(ctx.actor, ctx.source)
+          .policy.getValidateOptions()
+      )
+      .confirm.orThrow();
 
     appointment.confirm();
 

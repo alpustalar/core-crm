@@ -22,10 +22,13 @@ import { isOAuthStatePayload } from '@modules/crm/meta-ads/domain/contracts/meta
 import { LogSource } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(HandleMetaOAuthCallbackCommand)
-export class HandleMetaOAuthCallbackHandler implements ICommandHandler<
-  HandleMetaOAuthCallbackCommand,
-  HandleMetaOAuthCallbackResponse
-> {
+export class HandleMetaOAuthCallbackHandler
+  implements
+    ICommandHandler<
+      HandleMetaOAuthCallbackCommand,
+      HandleMetaOAuthCallbackResponse
+    >
+{
   private readonly logger = new Logger(HandleMetaOAuthCallbackHandler.name);
 
   constructor(

@@ -10,7 +10,6 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { PIPELINE_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetPipelinesQuery)
 export class GetPipelinesHandler

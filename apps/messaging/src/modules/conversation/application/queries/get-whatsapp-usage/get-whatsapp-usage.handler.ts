@@ -6,6 +6,7 @@ import {
 } from '@modules/conversation/domain/repositories/message.repository';
 import { GetWhatsappUsageQuery } from './get-whatsapp-usage.query';
 import { GetWhatsappUsageResponse } from './get-whatsapp-usage.response';
+import { assertActorCanAccessClinic } from '@modules/conversation/domain/guards/clinic-access.guard-fn';
 
 @QueryHandler(GetWhatsappUsageQuery)
 export class GetWhatsappUsageHandler implements IQueryHandler<
@@ -21,6 +22,9 @@ export class GetWhatsappUsageHandler implements IQueryHandler<
     query: GetWhatsappUsageQuery
   ): Promise<GetWhatsappUsageResponse> {
     const { payload } = query;
+
+    assertActorCanAccessClinic(payload.ctx.actor, payload.clinicId);
+
     const byCategory = await this.messageRepo.aggregateUsageByCategory({
       clinicId: payload.clinicId,
       from: payload.from,

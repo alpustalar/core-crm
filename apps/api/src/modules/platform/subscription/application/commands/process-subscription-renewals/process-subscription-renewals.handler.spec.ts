@@ -82,10 +82,15 @@ describe('ProcessSubscriptionRenewalsHandler', () => {
       outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
     } as unknown as TransactionManager;
 
+    // Zamanlanmış yenileme sistem aktörüyle koşar; handler bugün policy'yi
+    // kullanmıyor (enjekte edilmiş ama çağrılmıyor), mock yalnız imzayı karşılar.
+    const policyFactory = {} as never;
+
     const handler = new ProcessSubscriptionRenewalsHandler(
       subscriptionCommandRepo,
       paymentMethodCommandRepo,
       billingAdapter,
+      policyFactory,
       txManager
     );
     return { handler, subscriptionCommandRepo, chargeSavedCard };

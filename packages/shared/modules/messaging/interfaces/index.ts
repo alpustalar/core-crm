@@ -8,3 +8,5 @@ export * from './whatsapp-business-profile-response.interface';
 export * from './ai-agent-config-response.interface';
 export * from './telegram-channel-response.interface';
 export * from './instagram-channel-response.interface';
+export type { ServiceWindowClosedMeta } from './service-window-meta.interface';
+export type { ChannelNotConnectedMeta } from './channel-not-connected-meta.interface';

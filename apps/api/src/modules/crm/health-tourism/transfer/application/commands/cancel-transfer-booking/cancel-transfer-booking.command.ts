@@ -4,6 +4,6 @@ import { IGetContext } from '@common/decorators/get-context.decorator';
 export class CancelTransferBookingCommand {
   constructor(
     public readonly dto: CancelTransferBookingDto,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

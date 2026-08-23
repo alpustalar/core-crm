@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
 
-const { INTERNAL, MANAGEMENT, FINANCIAL, ADMIN } = ResponseGroups;
+const { INTERNAL, MANAGEMENT, ADMIN } = ResponseGroups;
 
 export class ClinicHealthTourismConfigResponseDto {
   @Expose() id: string;

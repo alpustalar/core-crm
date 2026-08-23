@@ -11,7 +11,15 @@ import {
   InstallmentTotalMismatchException,
   InvalidInstallmentPlanException,
 } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
-import { CreatePaymentProps } from '@modules/finance/payment/domain/contracts/payment.contracts';
+import {
+  CreatePaymentProps,
+  RefundInstallmentProps,
+} from '@modules/finance/payment/domain/contracts/payment.contracts';
+import { PaymentRefundedEvent } from '@modules/finance/payment/domain/events/payment-refunded.event';
+import {
+  LogAction,
+  LogType,
+} from '@src/domain/constants/log-action.constant';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 import { Guard } from '@common/domain/guards';
@@ -230,12 +238,51 @@ export class Payment extends AggregateRoot {
     }
   }
 
-  refundInstallment(installmentId: string): void {
+  refundInstallment({
+    installmentId,
+    actorId,
+    logSource,
+    details,
+  }: RefundInstallmentProps): void {
     this.validateAndFindInstallment(installmentId).orThrow();
     this.mutateInstallment(installmentId, {
       status: InstallmentStatusSchema.enum.REFUNDED,
     });
-    this._status = PaymentStatusSchema.enum.REFUNDED;
+
+    // Ödeme durumu TÜM taksitlerden türetilir — kardeş metodlarla (markAsPaid,
+    // cancelInstallment) aynı mantık. Önceden tek taksitin iadesi ödemenin
+    // tamamını REFUNDED yapıyordu: 3 taksitli planda 1 taksit iade edilince
+    // diğer ikisi hâlâ tahsil edilmiş olduğu halde ödeme "tamamen iade" görünüyor,
+    // buna bağlı cari/rapor sorguları geliri sıfırlıyordu.
+    const activeInstallments = this._installments.filter(
+      (i) => i.status !== InstallmentStatusSchema.enum.CANCELLED
+    );
+    const allRefunded =
+      activeInstallments.length > 0 &&
+      activeInstallments.every(
+        (i) => i.status === InstallmentStatusSchema.enum.REFUNDED
+      );
+
+    this._status = allRefunded
+      ? PaymentStatusSchema.enum.REFUNDED
+      : PaymentStatusSchema.enum.PARTIAL;
+
+    // Event burada raise edilir; muhasebe ters kaydını (RefundLedgerEntries)
+    // tetikleyen tek kaynak budur. Handler'ların ayrıca publish etmesi ters
+    // kaydın iki kez çalışmasına yol açıyordu.
+    this.addDomainEvent(
+      new PaymentRefundedEvent({
+        installmentId,
+        paymentId: this._id.value,
+        appointmentId: this._appointmentId?.value ?? null,
+        clinicId: this._clinicId.value,
+        actorId,
+        source: logSource,
+        action: LogAction.PAYMENT_REFUNDED,
+        type: LogType.INFO,
+        details: details ?? 'Ödeme iade edildi',
+      })
+    );
   }
 
   failInstallment(installmentId: string): void {

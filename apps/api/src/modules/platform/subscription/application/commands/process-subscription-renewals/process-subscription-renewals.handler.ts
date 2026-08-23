@@ -23,6 +23,10 @@ import {
   ISubscriptionPaymentMethodCommandRepository,
   SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 const RENEWAL_LABEL = 'Abonelik yenileme';
 const BILLING_PERIOD_MONTHS = 1;
@@ -40,6 +44,8 @@ export class ProcessSubscriptionRenewalsHandler
     private readonly paymentMethodRepo: ISubscriptionPaymentMethodCommandRepository,
     @Inject(BILLING_ADAPTER)
     private readonly billingAdapter: IBillingAdapter,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 

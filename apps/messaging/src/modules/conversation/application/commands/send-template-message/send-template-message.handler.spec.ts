@@ -7,9 +7,17 @@ import { IConversationCommandRepository } from '@modules/conversation/domain/rep
 import { IMessageCommandRepository } from '@modules/conversation/domain/repositories/message.repository';
 import { SendMessageProducer } from '@modules/conversation/infrastructure/queue/producers/send-message.producer';
 import { IAiMemoryCacheService } from '@modules/ai-agent/domain/interfaces/ai-memory-cache.service.interface';
+import {
+  ConversationAccessDeniedException,
+  ConversationNotFoundException,
+  MarketingOptOutException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 
 describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () => {
-  const ctx = { actor: { userId: 'user-1' } } as never;
+  // Aktör bu kliniğe ait — `assertActorCanAccessClinic` kapıda bunu doğruluyor.
+  const ctx = {
+    actor: { userId: 'user-1', clinicId: 'clinic-1', rolePriority: 10 },
+  } as never;
 
   const build = (conversation: Conversation | null) => {
     let savedMessage: Message | undefined;
@@ -110,4 +118,62 @@ describe('SendTemplateMessageHandler (HSM — 24s penceresine tabi değil)', () 
     expect(components.headerMediaType).toBe('image');
     expect(components.urlButtonParams).toEqual(['promo123']);
   });
+
+  it('opt-out kontağa MARKETING şablonu gönderilemez ve HİÇBİR ŞEY yazılmaz', async () => {
+    // Uyum (compliance) kuralı: hata fırlatmak yetmez — mesaj kaydı açılmış ya da
+    // kuyruğa düşmüş olsaydı gönderim yine gerçekleşirdi. Bu test kontrolün
+    // yazmadan ÖNCE olduğunu sabitler.
+    const conv = Conversation.start({
+      clinicId: 'clinic-1',
+      organizationId: 'org-1',
+      contactPhone: '+905550001122',
+    });
+    conv.optOutMarketing();
+
+    const { handler, sendMessageProducer, getSavedMessage } = build(conv);
+
+    await expect(
+      handler.execute(
+        new SendTemplateMessageCommand({
+          clinicId: 'clinic-1',
+          input: {
+            conversationId: conv.id,
+            templateName: 'kampanya_duyuru',
+            languageCode: 'tr',
+            category: 'marketing',
+          },
+          ctx,
+        })
+      )
+    ).rejects.toBeInstanceOf(MarketingOptOutException);
+
+    expect(getSavedMessage()).toBeUndefined();
+    expect(sendMessageProducer.enqueueSend).not.toHaveBeenCalled();
+  });
+
+  it('başka kliniğin yazışması "bulunamadı" döner (varlık sızdırılmaz)', async () => {
+    // Aktör kendi kliniğinin URL'ini kullanıyor, yazışma başka kliniğin.
+    // 403 DEĞİL 404: aksi halde kiracılar arası yazışma id'si doğrulanabilirdi.
+    const foreign = Conversation.start({
+      clinicId: 'clinic-OTHER',
+      organizationId: 'org-1',
+      contactPhone: '+905550009988',
+    });
+    const { handler } = build(foreign);
+
+    await expect(
+      handler.execute(
+        new SendTemplateMessageCommand({
+          clinicId: 'clinic-1',
+          input: {
+            conversationId: foreign.id,
+            templateName: 'randevu_hatirlatma',
+            languageCode: 'tr',
+          },
+          ctx,
+        })
+      )
+    ).rejects.toBeInstanceOf(ConversationNotFoundException);
+  });
+
 });

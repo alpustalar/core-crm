@@ -5,6 +5,7 @@ import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.en
 import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
 import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';
 import { ILeaveCommandRepository } from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
+import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave.contracts';
 
 @Injectable()
 export class LeaveRequestCommandRepository
@@ -15,21 +16,32 @@ export class LeaveRequestCommandRepository
     super(prisma);
   }
 
-  async sumApprovedAnnualDays(
+  async findByIdForUpdate(id: string): Promise<LeaveRequest | null> {
+    await this.lockRowForUpdate('leave_requests', id);
+    return this.findById(id);
+  }
+
+  /**
+   * Aralıkla **kesişen** izinler: `startDate <= to AND endDate >= from`. Eski
+   * `startDate: { gte: from, lte: to }` filtresi yıl aşan izinleri yanlış sayıyordu —
+   * 30 Aralık'ta başlayıp ertesi yıla sarkan bir izin, sonraki yılın sorgusunda hiç
+   * görünmüyordu.
+   */
+  findApprovedAnnualLeaves(
     employeeId: string,
     from: Date,
     to: Date
-  ): Promise<number> {
-    const result = await this.db.leaveRequest.aggregate({
-      _sum: { days: true },
+  ): Promise<AnnualLeavePeriod[]> {
+    return this.db.leaveRequest.findMany({
       where: {
         employeeId,
         type: LeaveTypeSchema.enum.ANNUAL,
         status: LeaveStatusSchema.enum.APPROVED,
-        startDate: { gte: from, lte: to },
+        startDate: { lte: to },
+        endDate: { gte: from },
       },
+      select: { startDate: true, endDate: true },
     });
-    return result._sum.days ?? 0;
   }
 
   async create(entity: LeaveRequest): Promise<LeaveRequest> {

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PayrollController } from '@modules/finance/payroll/presentation/http/controllers/payroll.controller';
+import { PayrollCommandController } from '@modules/finance/payroll/presentation/http/controllers/payroll.command.controller';
 
-@Module({ controllers: [PayrollController] })
+@Module({ controllers: [PayrollCommandController] })
 export class PayrollPresentationModule {}

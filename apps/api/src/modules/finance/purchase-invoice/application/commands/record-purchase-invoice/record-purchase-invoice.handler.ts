@@ -18,6 +18,7 @@ import {
   PartyTypeSchema,
 } from '@shared';
 import { RecordPurchaseInvoiceCommand } from './record-purchase-invoice.command';
+import { ApplyInvoiceToPurchaseOrderCommand } from '@modules/supply/purchasing/application/commands/apply-invoice-to-purchase-order/apply-invoice-to-purchase-order.command';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
@@ -25,13 +26,19 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import { PriceBreakdown } from '@modules/finance/shared/domain/value-objects/price-breakdown.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @CommandHandler(RecordPurchaseInvoiceCommand)
-export class RecordPurchaseInvoiceHandler
-  implements ICommandHandler<RecordPurchaseInvoiceCommand, string>
-{
+export class RecordPurchaseInvoiceHandler implements ICommandHandler<
+  RecordPurchaseInvoiceCommand,
+  string
+> {
   private readonly logger = new Logger(RecordPurchaseInvoiceHandler.name);
   private internalCtx = ExecutionContextFactory.createInternal();
 
@@ -40,20 +47,24 @@ export class RecordPurchaseInvoiceHandler
     private readonly purchaseInvoiceCommandRepo: IPurchaseInvoiceCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager,
-    private readonly commandBus: TSCommandBus
+    private readonly commandBus: TSCommandBus,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   async execute(command: RecordPurchaseInvoiceCommand): Promise<string> {
     const { data, ctx } = command;
 
+    // Kiracı kimliği istekten alınmaz, klinikten türetilir — DTO'da böyle bir
+    // alan yok (bkz. RecordPurchaseInvoiceSchema).
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(
-          data.clinicId,
-          data.organizationId
-        )
+        p.actorCanAccessClinicOrOwnsOrganization(data.clinicId, organizationId)
       )
       .orThrow();
 
@@ -68,10 +79,11 @@ export class RecordPurchaseInvoiceHandler
     const invoice = PurchaseInvoice.create({
       id: generatedPurchaseInvoiceId.value,
       clinicId: data.clinicId,
-      organizationId: data.organizationId,
+      organizationId,
       supplierId: data.supplierId,
       invoiceNumber: data.invoiceNumber ?? null,
       invoiceDate: data.invoiceDate,
+      purchaseOrderId: data.purchaseOrderId ?? null,
       lineAccountCode: data.lineAccountCode,
       vatRate: data.vatRate,
       netTotal: priceBreakdown.netAmount.value,
@@ -82,12 +94,31 @@ export class RecordPurchaseInvoiceHandler
 
     // Belge kaydı + muhasebe köprüsü aynı outboxRun içinde; köprü hatası try/catch ile
     // yutulur (belge kaydı geri alınmaz, olay dedupeKey ile sonradan üretilebilir).
+
     await this.txManager.outboxRun(async () => {
       await this.purchaseInvoiceCommandRepo.create(invoice);
+
+      // Sipariş eşleştirmesi köprüden ÖNCE ve aynı transaction'da: tutar/tedarikçi
+      // uyuşmazlığı faturayı hiç yazmadan (rollback) reddedilmeli — muhasebeye
+      // düşmüş bir faturayı geri almak çok daha pahalıdır.
+      if (data.purchaseOrderId) {
+        await this.commandBus.execute(
+          new ApplyInvoiceToPurchaseOrderCommand({
+            orderId: data.purchaseOrderId,
+            invoiceId: generatedPurchaseInvoiceId.value,
+            clinicId: data.clinicId,
+            supplierId: data.supplierId,
+            grandTotal: priceBreakdown.grandTotal.value.toNumber(),
+            currency: priceBreakdown.grandTotal.currency,
+            ctx,
+          })
+        );
+      }
+
       await this.recordPurchaseInvoiceReceived({
         purchaseInvoiceId: generatedPurchaseInvoiceId.value,
         clinicId: data.clinicId,
-        organizationId: data.organizationId,
+        organizationId,
         supplierId: data.supplierId,
         supplierName: data.supplierName,
         supplierTaxNumber: data.supplierTaxNumber,
@@ -158,6 +189,17 @@ export class RecordPurchaseInvoiceHandler
         `Muhasebe köprüsü başarısız: purchaseInvoiceId=${input.purchaseInvoiceId}`,
         error
       );
+      // Alış faturası kaydedildi ama 320 Satıcılar borcu yazılmadı: ödenecek
+      // tutar defterde eksik görünür, mutabakat da bunu göstermez.
+      this.criticalFailure.publish({
+        operation: 'finance.purchase-invoice.accounting-bridge',
+        severity: 'CRITICAL',
+        summary: 'Alış faturası kaydedildi ancak muhasebe köprüsü çalışmadı.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: { purchaseInvoiceId: input.purchaseInvoiceId },
+        clinicId: input.clinicId ?? null,
+        dedupeKey: `purchase-bridge-failed:${input.purchaseInvoiceId}`,
+      });
     }
   }
 }

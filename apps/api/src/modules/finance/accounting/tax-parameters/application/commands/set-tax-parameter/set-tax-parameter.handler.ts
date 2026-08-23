@@ -8,6 +8,10 @@ import {
   ITaxParameterCommandRepository,
   TAX_PARAMETER_COMMAND_REPOSITORY,
 } from '@modules/finance/accounting/tax-parameters/domain/repositories/tax-parameter/tax-parameter.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(SetTaxParameterCommand)
 export class SetTaxParameterHandler
@@ -16,11 +20,19 @@ export class SetTaxParameterHandler
   constructor(
     @Inject(TAX_PARAMETER_COMMAND_REPOSITORY)
     private readonly taxParameterRepo: ITaxParameterCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: SetTaxParameterCommand): Promise<string> {
     const { input } = command;
+
+    // Vergi parametresi klinik-seviye; `input.clinicId` istek gövdesinden geliyor.
+    this.policyFactory
+      .finance(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.actorCanManageTargetClinic(input.clinicId))
+      .orThrow('accounting.tax-parameter.set');
     const validFrom = input.validFrom ?? DateTimeManager.create();
 
     return this.txManager.run(async () => {

@@ -20,9 +20,10 @@ import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/servi
 import { ITenantScopeResolver } from '@shared';
 
 @CommandHandler(CreatePurchaseOrderCommand)
-export class CreatePurchaseOrderHandler
-  implements ICommandHandler<CreatePurchaseOrderCommand, string>
-{
+export class CreatePurchaseOrderHandler implements ICommandHandler<
+  CreatePurchaseOrderCommand,
+  string
+> {
   constructor(
     @Inject(PURCHASE_ORDER_COMMAND_REPOSITORY)
     private readonly purchaseOrderRepo: IPurchaseOrderCommandRepository,
@@ -59,7 +60,7 @@ export class CreatePurchaseOrderHandler
     return this.txManager.run(async () => {
       // Onaylı talepten oluşturuluyorsa talebi ORDERED işaretle (atomik).
       if (data.purchaseRequestId) {
-        const request = await this.purchaseRequestRepo.findById(
+        const request = await this.purchaseRequestRepo.findByIdForUpdate(
           data.purchaseRequestId
         );
         if (!request) {

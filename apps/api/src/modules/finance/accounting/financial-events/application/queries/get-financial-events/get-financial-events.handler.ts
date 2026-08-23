@@ -32,7 +32,19 @@ export class GetFinancialEventsHandler
   async execute(
     query: GetFinancialEventsQuery
   ): Promise<GetFinancialEventsResponse> {
-    const { pagination, type, sourceModule, sourceRefId, ctx } = query.payload;
+    const { pagination, type, sourceModule, sourceRefId, clinicId, ctx } =
+      query.payload;
+    // `clinicId` sorgu dizesinden geliyor — aktörün kendi kliniği DEĞİL. Kontrol
+    // yokken bu yetkiye sahip herhangi bir personel başka bir organizasyonun
+    // finansal olaylarını okuyabiliyordu; `getOrganizationSerializationOptions`
+    // yalnız ALAN maskeler, SATIR erişimini kısıtlamaz.
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+    evaluator
+      .check((p) => p.canAccessClinicFinances(clinicId))
+      .orThrow('accounting.financial-events.list');
 
     const organizationId = await this.tenantScopeResolver.resolve(
       query.payload
@@ -47,11 +59,9 @@ export class GetFinancialEventsHandler
       data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
-        serializationOptions: this.policyFactory
-          .finance(ctx.actor, ctx.source)
-          .policy.getOrganizationSerializationOptions({
-            organizationId,
-          }),
+        serializationOptions: policy.getOrganizationSerializationOptions({
+          organizationId,
+        }),
       },
     };
   }

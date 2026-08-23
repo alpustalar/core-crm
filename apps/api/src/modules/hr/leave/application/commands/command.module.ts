@@ -4,7 +4,7 @@ import { ApproveLeaveHandler } from './approve-leave/approve-leave.handler';
 import { RejectLeaveHandler } from './reject-leave/reject-leave.handler';
 import { CancelLeaveHandler } from './cancel-leave/cancel-leave.handler';
 import { LeaveInfrastructureModule } from '@modules/hr/leave/infrastructure/infrastructure.module';
-import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
+import { EmployeeDomainServicesModule } from '@modules/hr/employee/domain/services/services.module';
 
 export const LEAVE_COMMAND_HANDLERS = [
   RequestLeaveHandler,
@@ -14,7 +14,9 @@ export const LEAVE_COMMAND_HANDLERS = [
 ];
 
 @Module({
-  imports: [LeaveInfrastructureModule, ClinicDomainServicesModule],
+  // Yaprak domain-servis modülü — `EmployeeModule` DEĞİL (controller'ları ve tüm
+  // handler'ları da beraberinde çekerdi).
+  imports: [LeaveInfrastructureModule, EmployeeDomainServicesModule],
   providers: LEAVE_COMMAND_HANDLERS,
 })
 export class LeaveCommandModule {}

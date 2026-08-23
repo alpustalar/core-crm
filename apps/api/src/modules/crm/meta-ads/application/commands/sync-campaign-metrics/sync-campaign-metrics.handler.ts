@@ -20,10 +20,10 @@ import { TokenCipherService } from '@src/infrastructure/security/crypto/token-ci
 import { DateTimeManager } from '@common/utils';
 
 @CommandHandler(SyncCampaignMetricsCommand)
-export class SyncCampaignMetricsHandler implements ICommandHandler<
-  SyncCampaignMetricsCommand,
-  SyncCampaignMetricsResponse
-> {
+export class SyncCampaignMetricsHandler
+  implements
+    ICommandHandler<SyncCampaignMetricsCommand, SyncCampaignMetricsResponse>
+{
   private readonly logger = new Logger(SyncCampaignMetricsHandler.name);
 
   constructor(

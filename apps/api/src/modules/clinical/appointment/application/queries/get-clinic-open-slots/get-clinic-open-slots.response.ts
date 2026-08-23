@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { ClinicOpenSlotsDay } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { ClinicOpenSlotsDay } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Klinik geneli açık slotlar, güne göre gruplanmış olarak döner (yalnız en az bir

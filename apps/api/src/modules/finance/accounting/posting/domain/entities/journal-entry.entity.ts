@@ -7,7 +7,12 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { JournalLine } from './journal-line.entity';
 import { JournalEntrySequence } from '@modules/finance/shared/domain/value-objects/journal-entry-sequence.vo';
 import { JournalLines } from '@modules/finance/accounting/posting/domain/value-objects/journal-lines.vo';
-import { BadRequestException } from '@nestjs/common';
+import {
+  JournalEntryAlreadyReversedException,
+  JournalEntryNonPositiveTotalException,
+  JournalEntryNotDraftException,
+  JournalEntryNotPostedException,
+} from '@modules/finance/accounting/posting/domain/exceptions/journal-entry.exceptions';
 import { JournalEntryStatusType as JournalEntryStatus } from '@input-type-schemas/JournalEntryStatusSchema';
 import {
   BuildReversalDraftProps,
@@ -161,14 +166,14 @@ export class JournalEntry extends AggregateRoot {
     this._lines.validateBalance();
 
     if (this.totalDebit.lte(0)) {
-      throw new BadRequestException('Fiş toplamı sıfır veya negatif olamaz.');
+      throw new JournalEntryNonPositiveTotalException();
     }
   }
 
   /** Taslak fişi POSTED yapar ve yevmiye sıra numarası atar. */
   public post(entryNo: bigint): void {
     if (this._status !== JournalEntryStatusSchema.enum.DRAFT) {
-      throw new BadRequestException('Yalnızca taslak fişler POST edilebilir.');
+      throw new JournalEntryNotDraftException();
     }
 
     // Fişi POST etmeden önce son kez invariant kontrolü
@@ -245,12 +250,10 @@ export class JournalEntry extends AggregateRoot {
 
   private ensureReversible(): void {
     if (!this.isPosted()) {
-      throw new BadRequestException(
-        'Yalnızca POSTED fişler storno edilebilir.'
-      );
+      throw new JournalEntryNotPostedException();
     }
     if (this._reversedById) {
-      throw new BadRequestException('Fiş zaten storno edilmiş.');
+      throw new JournalEntryAlreadyReversedException();
     }
   }
 }

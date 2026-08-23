@@ -29,7 +29,7 @@ export class CancelPurchaseOrderHandler implements ICommandHandler<
     const { orderId, ctx } = command;
 
     await this.txManager.run(async () => {
-      const order = await this.poCommandRepo.findById(orderId);
+      const order = await this.poCommandRepo.findByIdForUpdate(orderId);
       if (!order) throw new PurchaseOrderNotFoundException(orderId);
 
       this.policyFactory

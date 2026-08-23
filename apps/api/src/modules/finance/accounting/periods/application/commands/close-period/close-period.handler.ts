@@ -12,6 +12,10 @@ import {
   ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
   IAccountingPeriodCommandRepository,
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ClosePeriodCommand)
 export class ClosePeriodHandler
@@ -21,12 +25,25 @@ export class ClosePeriodHandler
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
     private readonly accountingPeriodRepo: IAccountingPeriodCommandRepository,
     private readonly commandBus: TSCommandBus,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: ClosePeriodCommand): Promise<void> {
     const period = await this.accountingPeriodRepo.findById(command.periodId);
     if (!period) throw new PeriodNotFoundException();
+
+    // `periodId` URL'den geliyor; kapsam kaydın KENDİ kliniğinden doğrulanır.
+    // Kontrol yokken, dönem kapatma yetkisi olan herhangi bir personel başka bir
+    // kliniğin mali yılını kapatıp kapanış fişlerini defterine yazdırabiliyordu
+    // (lock/reopen'da kontrol vardı, close'da yoktu).
+    this.policyFactory
+      .finance(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanManageTargetClinic(period.clinicId.value)
+      )
+      .orThrow('accounting.period.close');
 
     // Transaction dışı hızlı-ret (belirgin kapalı dönemler için); kesin/otoriter
     // koruma aşağıdaki atomik claimForClosing'dir.

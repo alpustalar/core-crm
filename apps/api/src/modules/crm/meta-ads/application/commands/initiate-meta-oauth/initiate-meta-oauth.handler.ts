@@ -14,10 +14,10 @@ import {
 import { UUID } from '@src/domain/value-objects';
 
 @CommandHandler(InitiateMetaOAuthCommand)
-export class InitiateMetaOAuthHandler implements ICommandHandler<
-  InitiateMetaOAuthCommand,
-  InitiateMetaOAuthResponse
-> {
+export class InitiateMetaOAuthHandler
+  implements
+    ICommandHandler<InitiateMetaOAuthCommand, InitiateMetaOAuthResponse>
+{
   constructor(
     @Inject(META_MARKETING_API_SERVICE)
     private readonly metaApi: IMetaMarketingApiService,

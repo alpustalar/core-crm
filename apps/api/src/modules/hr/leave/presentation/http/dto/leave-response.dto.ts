@@ -58,6 +58,11 @@ export class LeaveRequestResponseDto {
 
 /** Yıllık izin bakiyesi (LeaveBalance read-model). */
 export class LeaveBalanceResponseDto {
+  /** Bu yıl doğan hak ediş. */
+  @Expose(OPS) accrued: number;
+  /** Önceki yıllardan devreden kullanılmamış gün. */
+  @Expose(OPS) carriedOver: number;
+  /** Toplam kullanılabilir gün (`accrued + carriedOver`). */
   @Expose(OPS) entitlement: number;
   @Expose(OPS) used: number;
   @Expose(OPS) remaining: number;

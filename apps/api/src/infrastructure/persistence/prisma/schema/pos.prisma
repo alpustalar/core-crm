@@ -11,6 +11,15 @@ enum PosProvider {
   IYZICO_TERMINAL
 }
 
+/// Bir POS kaydının satış mı yoksa onu tersleyen bir iptal/iade mi olduğunu ayırır.
+/// VOID satışın tamamını geri alır (en fazla bir canlı kayıt), REFUND kısmi olabilir
+/// (birden çok canlı kayıt; toplamı satışı aşamaz — kural handler'da kilit altında).
+enum PosTransactionKind {
+  SALE
+  VOID
+  REFUND
+}
+
 model PosDevice {
   id             String  @id
   clinicId       String  @map("clinic_id")
@@ -72,6 +81,22 @@ model PosTransaction {
   status      PosTransactionStatus @default(PENDING)
   externalRef String?              @map("external_ref")
 
+  kind PosTransactionKind @default(SALE)
+
+  /// Ters kaydın (VOID/REFUND) geri aldığı orijinal satış. Satışlarda null.
+  /// Denetim izidir — kaydın durumu ne olursa olsun korunur.
+  originalPosTransactionId String? @map("original_pos_transaction_id")
+
+  /// İptal (VOID) kilidi: yalnız CANLI bir iptal kaydında (PENDING/SUCCESS) dolu olur,
+  /// iptal FAILED/CANCELLED/TIMEOUT'a düştüğünde null'a çekilir. Postgres'te NULL'lar
+  /// birbiriyle çakışmadığı için `@unique` burada "bir satışın en fazla BİR canlı iptali
+  /// olabilir; başarısız denemeden sonra tekrar denenebilir" kuralını partial unique index
+  /// semantiğiyle uygular — ama raw SQL yerine Prisma'nın gördüğü bir kısıt olarak
+  /// (aksi halde ileride üretilecek bir migration index'i sessizce düşürebilirdi).
+  /// İadeler kısmi olabildiği için bu kilidi kullanmaz; kümülatif tutar kontrolü
+  /// handler'da, orijinal satır FOR UPDATE kilitliyken yapılır.
+  activeVoidOriginalId String? @unique @map("active_void_original_id")
+
   rawRequest  Json?     @map("raw_request")
   rawResponse Json?     @map("raw_response")
   initiatedAt DateTime  @default(now()) @map("initiated_at")
@@ -84,7 +109,11 @@ model PosTransaction {
   patient     Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
+  original  PosTransaction?  @relation("PosTransactionReversal", fields: [originalPosTransactionId], references: [id])
+  reversals PosTransaction[] @relation("PosTransactionReversal")
+
   @@index([clinicId])
   @@index([posDeviceId])
+  @@index([originalPosTransactionId])
   @@map("pos_transactions")
 }

@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetPurchaseRequestsQuery)
-export class GetPurchaseRequestsHandler
-  implements IQueryHandler<GetPurchaseRequestsQuery, GetPurchaseRequestsResponse>
-{
+export class GetPurchaseRequestsHandler implements IQueryHandler<
+  GetPurchaseRequestsQuery,
+  GetPurchaseRequestsResponse
+> {
   constructor(
     @Inject(PURCHASE_REQUEST_QUERY_REPOSITORY)
     private readonly prQueryRepo: IPurchaseRequestQueryRepository,
@@ -48,7 +49,9 @@ export class GetPurchaseRequestsHandler
       data: result.items,
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
-        serializationOptions: policy.getSerializationOptions({ clinicId: clinicId }),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: clinicId,
+        }),
       },
     };
   }

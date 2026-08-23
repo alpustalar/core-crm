@@ -21,10 +21,9 @@ import {
 import { META_ADS_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetMetaReportQuery)
-export class GetMetaReportHandler implements IQueryHandler<
-  GetMetaReportQuery,
-  GetMetaReportResponse
-> {
+export class GetMetaReportHandler
+  implements IQueryHandler<GetMetaReportQuery, GetMetaReportResponse>
+{
   constructor(
     @Inject(META_CAMPAIGN_METRIC_QUERY_REPOSITORY)
     private readonly metaCampaignMetricRepo: IMetaCampaignMetricQueryRepository,

@@ -6,7 +6,6 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { StockMovement } from '@modules/supply/inventory/domain/entities/stock-movement.entity';
 import { ProductNotFoundException } from '@modules/supply/inventory/domain/exceptions/inventory.exceptions';
 import { INVENTORY_EVENTS } from '@src/domain/constants/events';
 import {
@@ -17,22 +16,17 @@ import {
   IProductBatchCommandRepository,
   PRODUCT_BATCH_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product-batch/product-batch.command.repository';
-import {
-  IStockMovementCommandRepository,
-  STOCK_MOVEMENT_COMMAND_REPOSITORY,
-} from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.command.repository';
 
 @CommandHandler(AdjustStockCommand)
-export class AdjustStockHandler
-  implements ICommandHandler<AdjustStockCommand, void>
-{
+export class AdjustStockHandler implements ICommandHandler<
+  AdjustStockCommand,
+  void
+> {
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productRepo: IProductCommandRepository,
     @Inject(PRODUCT_BATCH_COMMAND_REPOSITORY)
     private readonly productBatchRepo: IProductBatchCommandRepository,
-    @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
-    private readonly stockMovementRepo: IStockMovementCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -56,7 +50,11 @@ export class AdjustStockHandler
     // Ürünü FOR UPDATE ile kilitle, sonra batch'leri kilit ALTINDA oku: aynı ürüne
     // eşzamanlı stok değişimlerini serialize eder. Aksi halde iki istek aynı batch
     // quantity'sini okuyup ayrı ayrı düşer → lost update (mevcut bakiyeyi bozar).
-    await this.txManager.run(async () => {
+    //
+    // outboxRun: stok hareketi kaydı miktar değişiminin defteridir; olay kaybolursa
+    // bakiye değişir ama izi kalmaz. Bu yüzden olay, miktarla aynı transaction'da
+    // outbox'a mühürlenir.
+    await this.txManager.outboxRun(async () => {
       const lockedProduct = await this.productRepo.findByIdForUpdate(
         product.id.value
       );
@@ -68,21 +66,23 @@ export class AdjustStockHandler
           clinicId
         );
 
-      const { updatedBatch, stockMovementProps } =
-        lockedProduct.handleStockChange({
-          quantityDelta: data.quantityDelta,
-          clinicId,
-          availableBatches,
-          explicitBatchId: data.batchId,
-          performedById: actor.userId,
-          notes: data.notes,
-        });
+      const updatedBatch = lockedProduct.handleStockChange({
+        quantityDelta: data.quantityDelta,
+        clinicId,
+        availableBatches,
+        explicitBatchId: data.batchId,
+        performedById: actor.userId,
+        notes: data.notes,
+      });
 
-      const stockMovement = StockMovement.create(stockMovementProps);
       if (updatedBatch) {
         await this.productBatchRepo.update(updatedBatch);
+        return;
       }
-      await this.stockMovementRepo.create(stockMovement);
+
+      // Parti bulunmayan artışta olayı ürün fırlattı; olaylar yalnız kalıcılaştırma
+      // sırasında boşaltıldığı için ürün yazılır (satır zaten kilit altında).
+      await this.productRepo.update(lockedProduct);
     });
   }
 }

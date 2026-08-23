@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
-import { AppointmentsResponseGroups } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSchema';
+import { AppointmentsResponseGroups } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 const { INTERNAL, MANAGEMENT, PROVIDER_DATA_OWNER, ADMIN } =
   AppointmentsResponseGroups;

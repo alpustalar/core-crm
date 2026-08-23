@@ -1,4 +1,3 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { GetInboundMediaHandler } from './get-inbound-media.handler';
 import { GetInboundMediaQuery } from './get-inbound-media.query';
 import { FetchWhatsappMediaQuery } from '@modules/channel-config/application/queries/fetch-whatsapp-media/fetch-whatsapp-media.query';
@@ -9,9 +8,16 @@ import { IConversationQueryRepository } from '@modules/conversation/domain/repos
 import { IMessageQueryRepository } from '@modules/conversation/domain/repositories/message.repository';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { MessageType } from '@shared';
+import {
+  ConversationAccessDeniedException,
+  MessageNotFoundException,
+} from '@modules/conversation/domain/exceptions/conversation.exceptions';
 
 describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
-  const ctx = { actor: { userId: 'u1' } } as never;
+  // Aktör bu kliniğe ait — `assertActorCanAccessClinic` kapıda bunu doğruluyor.
+  const ctx = {
+    actor: { userId: 'u1', clinicId: 'clinic-1', rolePriority: 10 },
+  } as never;
 
   const conversation = () =>
     Conversation.start({
@@ -87,7 +93,7 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
     expect(data).toEqual(fetched);
   });
 
-  it('mesaj bulunamazsa NotFoundException', async () => {
+  it('mesaj bulunamazsa MessageNotFoundException', async () => {
     const { handler } = build({ message: null });
     await expect(
       handler.execute(
@@ -98,10 +104,10 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
           ctx,
         })
       )
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(MessageNotFoundException);
   });
 
-  it('yazışma başka kliniğe aitse ForbiddenException', async () => {
+  it('aktör başka kliniğin id\'siyle çağırırsa kapıda reddedilir', async () => {
     const conv = conversation();
     const { handler } = build({
       message: mediaMessage(conv.id),
@@ -116,7 +122,7 @@ describe('GetInboundMediaHandler (proxy önizleme — saklama yok)', () => {
           ctx,
         })
       )
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(ConversationAccessDeniedException);
   });
 
   it('mesaj medya değilse (referans yok) null döner, bus çağrılmaz', async () => {

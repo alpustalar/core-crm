@@ -6,6 +6,7 @@ import {
   LogType,
 } from '@src/domain/constants/log-action.constant';
 import { randomUUID } from 'crypto';
+import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
 describe('Subscription entity — polimorfik sahip + yaşam döngüsü', () => {
   const organizationId = randomUUID();
@@ -49,14 +50,36 @@ describe('Subscription entity — polimorfik sahip + yaşam döngüsü', () => {
     expect(sub.cancelAtPeriodEnd).toBe(false);
   });
 
-  it('cancel → CANCELED; ikinci cancel hata verir', () => {
+  it('cancel → CANCELED; ikinci iptali kural sınıfı durdurur', () => {
+    const sub = Subscription.create({
+      billingTarget: 'ORGANIZATION',
+      organizationId,
+    });
+
+    sub.rules(DefaultValidateOptions).cancel().orThrow();
+    sub.cancel();
+    expect(sub.status).toBe('CANCELED');
+
+    // Guard artık entity'de değil `SubscriptionRules`'ta: aynı kural hem yazma
+    // tarafında hem entity kurmadan sorgu tarafında işletilebilsin diye.
+    expect(() =>
+      sub.rules(DefaultValidateOptions).cancel().orThrow()
+    ).toThrow();
+  });
+
+  it('systemOverride bağlamında ikinci iptal kurala takılmaz', () => {
     const sub = Subscription.create({
       billingTarget: 'ORGANIZATION',
       organizationId,
     });
     sub.cancel();
-    expect(sub.status).toBe('CANCELED');
-    expect(() => sub.cancel()).toThrow();
+
+    // Sistem/bakım akışları iş kurallarını atlar (`shouldValidate` false döner);
+    // bu davranışın kazara kaybolmadığını sabitler.
+    expect(
+      sub.rules({ ...DefaultValidateOptions, systemOverride: true }).cancel()
+        .isValid
+    ).toBe(true);
   });
 
   it('confirmPayment → ACTIVE + externalId + SubscriptionActivatedEvent', () => {

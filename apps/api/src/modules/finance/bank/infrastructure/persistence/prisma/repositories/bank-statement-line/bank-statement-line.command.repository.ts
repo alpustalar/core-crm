@@ -38,6 +38,11 @@ export class BankStatementLineCommandRepository
     return raw ? new BankStatementLine(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<BankStatementLine | null> {
+    await this.lockRowForUpdate('bank_statement_lines', id);
+    return this.findById(id);
+  }
+
   async findUnmatchedByStatementId(
     bankStatementId: string
   ): Promise<BankStatementLine[]> {

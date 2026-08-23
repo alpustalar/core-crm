@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Param, ParseUUIDPipe, Post, Put, Query, UseGuards, } from '@nestjs/common';
 import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
 import { GetContext, HasCapability, IGetContext } from '@common/decorators';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
@@ -15,10 +7,18 @@ import {
   SignConsentFormDto,
   UpdateConsentTemplateDto,
 } from '@shared/modules/consent-form/dto/commands';
-import { CreateConsentTemplateCommand } from '@modules/clinical/consent-form/application/commands/create-consent-template/create-consent-template.command';
-import { UpdateConsentTemplateCommand } from '@modules/clinical/consent-form/application/commands/update-consent-template/update-consent-template.command';
-import { ArchiveConsentTemplateCommand } from '@modules/clinical/consent-form/application/commands/archive-consent-template/archive-consent-template.command';
-import { SignConsentFormCommand } from '@modules/clinical/consent-form/application/commands/sign-consent-form/sign-consent-form.command';
+import {
+  CreateConsentTemplateCommand
+} from '@modules/clinical/consent-form/application/commands/create-consent-template/create-consent-template.command';
+import {
+  UpdateConsentTemplateCommand
+} from '@modules/clinical/consent-form/application/commands/update-consent-template/update-consent-template.command';
+import {
+  ArchiveConsentTemplateCommand
+} from '@modules/clinical/consent-form/application/commands/archive-consent-template/archive-consent-template.command';
+import {
+  SignConsentFormCommand
+} from '@modules/clinical/consent-form/application/commands/sign-consent-form/sign-consent-form.command';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { CONSENTFORMSUBMISSION, CONSENTFORMTEMPLATE } = CAPABILITIES;
@@ -63,11 +63,19 @@ export class ConsentFormCommandController {
   @Post('patients/:patientId/consent-forms/sign')
   sign(
     @Param('patientId', ParseUUIDPipe) patientId: string,
+    @Query('clinicId', ParseUUIDPipe) clinicId: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Body() dto: SignConsentFormDto,
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(
-      new SignConsentFormCommand({ patientId, data: dto, ctx })
+      new SignConsentFormCommand({
+        patientId,
+        data: dto,
+        ctx,
+        clinicId,
+        organizationId,
+      })
     );
   }
 }

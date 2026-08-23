@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { FinancialEvent } from '@shared';
+import { FinancialEvent, FinancialEventTypeSchema } from '@shared';
 import {
   DraftJournalEntry,
   DraftJournalLine,
@@ -8,7 +8,6 @@ import {
   PostingRule,
 } from '../posting-rule.interface';
 import { SalesInvoiceIssuedEventPayload } from '../event-payloads';
-import { FinancialEventTypeSchema } from '@shared';
 
 /**
  * Satış/Hizmet Faturası — SALES_INVOICE_ISSUED
@@ -23,9 +22,6 @@ import { FinancialEventTypeSchema } from '@shared';
  *   B 193 Peşin Ödenen Vergiler    withholdingTotal                (GV stopaj mahsubu)
  *     A 600 Serbest Meslek Hasılatı       netTotal
  *     A 391 Hesaplanan KDV                vatTotal
- *
- * Stopaj kararı (legalType + ödeyenin vergi sorumlusu olması) köprüde verilir; kural
- * payload-driven'dır. Nihai tüketici hastada withholdingTotal=0 → KURUM dalıyla aynı fiş.
  */
 @Injectable()
 export class SalesInvoiceIssuedRule implements PostingRule {
@@ -34,18 +30,24 @@ export class SalesInvoiceIssuedRule implements PostingRule {
   build(event: FinancialEvent, _ctx: PostingContext): DraftJournalEntry {
     const payload = event.payload as unknown as SalesInvoiceIssuedEventPayload;
     const revenueCode = payload.revenueAccountCode ?? '600.01';
+
+    const grandTotal = new Decimal(payload.grandTotal);
+    const netTotal = new Decimal(payload.netTotal);
+    const vatTotal = new Decimal(payload.vatTotal ?? '0');
     const withholding = new Decimal(payload.withholdingTotal ?? '0');
+
     const hasWithholding = withholding.gt(0);
+    const hasVat = vatTotal.gt(0);
 
     const receivable = hasWithholding
-      ? new Decimal(payload.grandTotal).minus(withholding).toFixed(2)
-      : payload.grandTotal;
+      ? grandTotal.minus(withholding)
+      : grandTotal;
 
     const lines: DraftJournalLine[] = [
       {
         accountCode: '120',
         partyId: payload.partyId,
-        debit: receivable,
+        debit: receivable.toFixed(2),
         desc: 'Alıcılar (cari)',
       },
     ];
@@ -60,14 +62,14 @@ export class SalesInvoiceIssuedRule implements PostingRule {
 
     lines.push({
       accountCode: revenueCode,
-      credit: payload.netTotal,
+      credit: netTotal.toFixed(2),
       desc: 'Yurtiçi Satışlar',
     });
 
-    if (Number(payload.vatTotal) > 0) {
+    if (hasVat) {
       lines.push({
         accountCode: '391',
-        credit: payload.vatTotal,
+        credit: vatTotal.toFixed(2),
         desc: 'Hesaplanan KDV',
       });
     }
@@ -75,7 +77,6 @@ export class SalesInvoiceIssuedRule implements PostingRule {
     return {
       date: event.occurredAt,
       description: 'Satış faturası',
-      // Yabancı para ise posting handler fonksiyonel paraya çevirir (Model A).
       currency: payload.currency,
       lines,
     };

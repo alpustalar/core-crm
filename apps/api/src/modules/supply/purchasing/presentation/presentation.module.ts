@@ -8,6 +8,11 @@ import { PurchasingQueryModule } from '@modules/supply/purchasing/application/qu
 
 @Module({
   imports: [PurchasingCommandModule, PurchasingQueryModule],
-  controllers: [PurchaseRequestQueryController, PurchaseRequestCommandController, PurchaseOrderQueryController, PurchaseOrderCommandController],
+  controllers: [
+    PurchaseRequestQueryController,
+    PurchaseRequestCommandController,
+    PurchaseOrderQueryController,
+    PurchaseOrderCommandController,
+  ],
 })
 export class PurchasingPresentationModule {}

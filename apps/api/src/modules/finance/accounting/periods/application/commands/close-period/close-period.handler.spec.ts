@@ -41,8 +41,20 @@ describe('ClosePeriodHandler (dönem kapanışı, doc 04/08)', () => {
       outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
     } as never;
 
+    // Yetki kapıda: kapsam kaydın kendi kliniğinden doğrulanıyor.
+    const policyFactory = {
+      finance: jest.fn().mockReturnValue({
+        evaluator: { check: () => ({ orThrow: () => undefined }) },
+      }),
+    } as never;
+
     return {
-      handler: new ClosePeriodHandler(periodCommandRepo, commandBus, txManager),
+      handler: new ClosePeriodHandler(
+        periodCommandRepo,
+        commandBus,
+        txManager,
+        policyFactory
+      ),
       periodCommandRepo,
       commandBus,
     };

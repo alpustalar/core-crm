@@ -13,6 +13,7 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetPaymentByAppointmentIdQuery } from '@modules/finance/payment/application/queries/get-payment-by-appointment-id/get-payment-by-appointment-id.query';
 import { InvoiceTriggers } from '@modules/finance/invoice/domain/constants/invoice-triggers';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @Injectable()
 export class AppointmentCompletedInvoiceListener {
@@ -22,7 +23,8 @@ export class AppointmentCompletedInvoiceListener {
 
   constructor(
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   @OnEvent(APPOINTMENT_EVENTS.COMPLETED, { async: true })
@@ -55,6 +57,20 @@ export class AppointmentCompletedInvoiceListener {
         `Randevu tamamlanması sonrası fatura kesilemedi: appointmentId=${event.appointmentId}`,
         error
       );
+      // Hizmet verildi ama faturası kesilmedi — yasal belge eksiği ve
+      // tahakkuk etmemiş gelir. Tekrar denenmiyor, elle müdahale gerekir.
+      this.criticalFailure.publish({
+        operation: 'finance.invoice.issue-on-appointment-completed',
+        severity: 'CRITICAL',
+        summary: 'Randevu tamamlandı ancak faturası kesilemedi.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: {
+          appointmentId: event.appointmentId,
+          patientId: event.patientId,
+        },
+        clinicId: event.clinicId,
+        dedupeKey: `invoice-failed:appointment:${event.appointmentId}`,
+      });
     }
   }
 }

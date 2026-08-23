@@ -4,6 +4,7 @@ import { PAYMENT_EVENTS } from '@src/domain/constants/events';
 import { PaymentPaidEvent } from '@modules/finance/payment/domain/events/payment-paid.event';
 import { FinanceLedgerProducer } from '@modules/finance/finance-ledger/infrastructure/messaging/queue/producers/finance-ledger.producer';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @Injectable()
 export class PaymentCompletedListener {
@@ -11,7 +12,8 @@ export class PaymentCompletedListener {
 
   constructor(
     private readonly financeLedgerProducer: FinanceLedgerProducer,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   @OnEvent(PAYMENT_EVENTS.PAID, { async: true })
@@ -64,6 +66,20 @@ export class PaymentCompletedListener {
         `Kuyruğa iş eklenirken hata oluştu: installmentId=${event.installmentId}`,
         error
       );
+      // Tahsilat alındı ama cari kayıt kuyruğa hiç girmedi: hasta bakiyesi ve
+      // klinik geliri eksik görünür, kuyrukta yeniden denenecek bir iş de yok.
+      this.criticalFailure.publish({
+        operation: 'finance.ledger.enqueue',
+        severity: 'CRITICAL',
+        summary: 'Tahsilat için cari kayıt kuyruğa alınamadı.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: {
+          installmentId: event.installmentId,
+          paymentId: event.paymentId,
+        },
+        clinicId: event.clinicId,
+        dedupeKey: `ledger-enqueue-failed:${event.installmentId}`,
+      });
     }
   }
 }

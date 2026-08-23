@@ -2,7 +2,7 @@ import { StockPurchasedEventPayload } from '@modules/supply/inventory/domain/eve
 import { z } from 'zod';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { StockMovementTypeSchema } from '@shared';
+import { StockMovementDirectionSchema, StockMovementTypeSchema } from '@shared';
 import { Decimal } from 'decimal.js';
 
 export const CreateBatchFromPurchaseSchema = z.object({
@@ -46,7 +46,23 @@ export const DeductQuantitySchema = z.object({
   performedById: z.uuid(),
   notes: z.string().nullable().optional(),
   movementType: StockMovementTypeSchema.optional(),
+  /** Hareket kaydının id'si; verilmezse üretilir (bkz. StockQuantityChangedEvent). */
+  movementId: z.uuid().optional(),
 });
 
 export type DeductQuantityProps = z.infer<typeof DeductQuantitySchema>;
 export type AddQuantityProps = DeductQuantityProps;
+
+/** Miktar değişimi olayını fırlatan iç yardımcının girişi. */
+export const RaiseStockQuantityChangedSchema = z.object({
+  movementId: z.uuid().optional(),
+  direction: StockMovementDirectionSchema,
+  movementType: StockMovementTypeSchema,
+  quantity: z.custom<Quantity>((val) => val instanceof Quantity),
+  performedById: z.uuid(),
+  notes: z.string().nullable().optional(),
+});
+
+export type RaiseStockQuantityChangedProps = z.infer<
+  typeof RaiseStockQuantityChangedSchema
+>;

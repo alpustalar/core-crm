@@ -1,5 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+import { Decimal } from 'decimal.js';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
   IPolicyFactory,
@@ -13,15 +14,31 @@ import {
 import {
   AccountBalanceInput,
   IncomeStatementCalculator,
+  IncomeStatementResult,
   IncomeStatementSection,
 } from '@modules/finance/accounting/posting/domain/reporting/income-statement.calculator';
 import { GetChartOfAccountsQuery } from '@modules/finance/accounting/chart-of-accounts/application/queries/get-chart-of-accounts/get-chart-of-accounts.query';
 import { GetIncomeStatementQuery } from './get-income-statement.query';
 import {
   GetIncomeStatementResponse,
+  IncomeStatementComparison,
   IncomeStatementReportSection,
 } from './get-income-statement.response';
 import { Account } from '@shared';
+import { IGetContext } from '@common/decorators';
+import { resolvePreviousPeriod } from '@modules/finance/accounting/posting/domain/reporting/previous-period.calculator';
+
+interface PeriodRange {
+  dateFrom: Date;
+  dateTo: Date;
+}
+
+interface ComputePeriodInput {
+  clinicId: string;
+  ctx: IGetContext;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
 
 @QueryHandler(GetIncomeStatementQuery)
 export class GetIncomeStatementHandler implements IQueryHandler<
@@ -39,7 +56,7 @@ export class GetIncomeStatementHandler implements IQueryHandler<
   async execute(
     query: GetIncomeStatementQuery
   ): Promise<GetIncomeStatementResponse> {
-    const { clinicId, ctx, dateFrom, dateTo } = query.payload;
+    const { clinicId, ctx, dateFrom, dateTo, compare } = query.payload;
 
     const { evaluator, policy } = this.policyFactory.finance(
       ctx.actor,
@@ -55,31 +72,14 @@ export class GetIncomeStatementHandler implements IQueryHandler<
 
     const serializationOptions = policy.getSerializationOptions({ clinicId });
 
-    const rows = await this.journalQueryRepo.trialBalance({
+    const r = await this.computePeriod({ clinicId, ctx, dateFrom, dateTo });
+
+    const comparison = await this.buildComparison({
       clinicId,
-      dateFrom,
-      dateTo,
+      ctx,
+      current: r,
+      range: this.previousRangeOf({ compare, dateFrom, dateTo }),
     });
-
-    const { data: accounts } = await this.queryBus.execute(
-      new GetChartOfAccountsQuery(clinicId, ctx)
-    );
-    const accountById = new Map<string, Account>(
-      accounts.map((account) => [account.id, account])
-    );
-
-    const balances: AccountBalanceInput[] = rows.map((row) => {
-      const account = accountById.get(row.accountId);
-
-      return {
-        code: account?.code ?? '?',
-        name: account?.name ?? '(bilinmeyen hesap)',
-        debit: row.totalDebit,
-        credit: row.totalCredit,
-      };
-    });
-
-    const r = IncomeStatementCalculator.compute(balances);
 
     return {
       data: {
@@ -96,9 +96,118 @@ export class GetIncomeStatementHandler implements IQueryHandler<
         otherIncome: this.toSection(r.otherIncome),
         otherExpense: this.toSection(r.otherExpense),
         netProfit: r.netProfit.toFixed(2),
+        comparison,
       },
       meta: { serializationOptions },
     };
+  }
+
+  /**
+   * Karşılaştırma yalnız kapalı bir aralık verildiğinde anlamlıdır — açık uçlu
+   * raporun "öncesi" tanımsızdır, o yüzden sessizce atlanır. Dönem seçimi
+   * takvim-ayı farkındadır (bkz. `resolvePreviousPeriod`).
+   */
+  private previousRangeOf(input: {
+    compare?: boolean;
+    dateFrom?: Date;
+    dateTo?: Date;
+  }): PeriodRange | null {
+    if (!input.compare || !input.dateFrom || !input.dateTo) return null;
+
+    return resolvePreviousPeriod({
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+    });
+  }
+
+  private async buildComparison(input: {
+    clinicId: string;
+    ctx: IGetContext;
+    current: IncomeStatementResult;
+    range: PeriodRange | null;
+  }): Promise<IncomeStatementComparison | null> {
+    if (!input.range) return null;
+
+    const previous = await this.computePeriod({
+      clinicId: input.clinicId,
+      ctx: input.ctx,
+      dateFrom: input.range.dateFrom,
+      dateTo: input.range.dateTo,
+    });
+
+    return {
+      previous: {
+        dateFrom: input.range.dateFrom,
+        dateTo: input.range.dateTo,
+        netSales: previous.netSales.toFixed(2),
+        grossProfit: previous.grossProfit.toFixed(2),
+        operatingProfit: previous.operatingProfit.toFixed(2),
+        netProfit: previous.netProfit.toFixed(2),
+      },
+      deltas: {
+        netSalesPct: this.pctChange(previous.netSales, input.current.netSales),
+        grossProfitPct: this.pctChange(
+          previous.grossProfit,
+          input.current.grossProfit
+        ),
+        operatingProfitPct: this.pctChange(
+          previous.operatingProfit,
+          input.current.operatingProfit
+        ),
+        netProfitPct: this.pctChange(
+          previous.netProfit,
+          input.current.netProfit
+        ),
+      },
+    };
+  }
+
+  private async computePeriod(
+    input: ComputePeriodInput
+  ): Promise<IncomeStatementResult> {
+    const rows = await this.journalQueryRepo.trialBalance({
+      clinicId: input.clinicId,
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+    });
+
+    const { data: accounts } = await this.queryBus.execute(
+      new GetChartOfAccountsQuery(input.clinicId, input.ctx)
+    );
+    const accountById = new Map<string, Account>(
+      accounts.map((account) => [account.id, account])
+    );
+
+    const balances: AccountBalanceInput[] = rows.map((row) => {
+      const account = accountById.get(row.accountId);
+
+      return {
+        code: account?.code ?? '?',
+        name: account?.name ?? '(bilinmeyen hesap)',
+        debit: row.totalDebit,
+        credit: row.totalCredit,
+      };
+    });
+
+    return IncomeStatementCalculator.compute(balances);
+  }
+
+  /**
+   * Yüzde değişim. Önceki dönem sıfırsa oran tanımsızdır; "sıfırdan artış" %100,
+   * "sıfırdan sıfıra" %0 kabul edilir (Ajans ROI raporuyla aynı sözleşme).
+   * Önceki değer negatifse (zarar) mutlak değere göre hesaplanır — aksi halde
+   * zarardan kâra geçiş negatif yüzde gösterirdi.
+   */
+  private pctChange(previous: Decimal, current: Decimal): number {
+    if (previous.isZero()) return current.greaterThan(0) ? 100 : 0;
+
+    const change = current
+      .minus(previous)
+      .div(previous.abs())
+      .mul(100)
+      .toDecimalPlaces(2);
+
+    return change.toNumber();
   }
 
   private toSection(

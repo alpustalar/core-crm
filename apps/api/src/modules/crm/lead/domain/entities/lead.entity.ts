@@ -13,10 +13,17 @@ import {
   AssignLeadStageProps,
   ConvertLeadProps,
   CreateLeadProps,
+  LeadAuditProps,
+  MarkLeadLostProps,
   MoveLeadToStageProps,
 } from '@modules/crm/lead/domain/contracts/lead-contracts';
 import { PipelineStageTypeSchema } from '@input-type-schemas/PipelineStageTypeSchema';
-import { LeadCreatedEvent } from '@modules/crm/lead/domain/events';
+import {
+  LeadConvertedEvent,
+  LeadCreatedEvent,
+  LeadLostEvent,
+  LeadStatusChangedEvent,
+} from '@modules/crm/lead/domain/events';
 import {
   LogAction,
   LogSource,
@@ -249,15 +256,95 @@ export class Lead extends AggregateRoot {
     return lead;
   }
 
-  public contact(): void {
-    this._status = LeadStatusSchema.enum.CONTACTED;
+  /**
+   * Event üretimi tek yerde toplanır (bkz. `Appointment` entity'si). Domain
+   * metodu "ne oldu"yu söyler, payload kurulumunu burası bilir; audit metni de
+   * event'in yanında durur, üç ayrı handler'da kopyalanmaz.
+   */
+  private get raiseEvent() {
+    return {
+      statusChanged: ({
+        previousStatus,
+        actorId,
+        logSource,
+        details,
+      }: LeadAuditProps & {
+        previousStatus: LeadStatus;
+        details?: string;
+      }): void => {
+        this.addDomainEvent(
+          new LeadStatusChangedEvent({
+            leadId: this.id.value,
+            clinicId: this.clinicId.value,
+            previousStatus,
+            newStatus: this._status,
+            actorId,
+            source: logSource,
+            action: LogAction.LEAD_STATUS_CHANGED,
+            type: LogType.INFO,
+            details:
+              details ??
+              `Lead durumu güncellendi: ${previousStatus} -> ${this._status}`,
+          })
+        );
+      },
+      converted: ({ actorId, logSource }: LeadAuditProps): void => {
+        this.addDomainEvent(
+          new LeadConvertedEvent({
+            leadId: this.id.value,
+            clinicId: this.clinicId.value,
+            patientId: this.patientId?.value ?? null,
+            appointmentId: this.appointmentId?.value ?? null,
+            actorId,
+            source: logSource,
+            action: LogAction.LEAD_CONVERTED,
+            type: LogType.INFO,
+            details: `Lead dönüştürüldü — hasta: ${this.patientId?.value ?? '-'}, randevu: ${this.appointmentId?.value ?? '-'}`,
+          })
+        );
+      },
+      lost: ({ actorId, logSource }: LeadAuditProps): void => {
+        this.addDomainEvent(
+          new LeadLostEvent({
+            leadId: this.id.value,
+            clinicId: this.clinicId.value,
+            lostReason: this._lostReason,
+            actorId,
+            source: logSource,
+            action: LogAction.LEAD_LOST,
+            type: LogType.INFO,
+            details: `Lead kaybedildi${this._lostReason ? `: ${this._lostReason}` : ''}`,
+          })
+        );
+      },
+    };
   }
 
-  public qualify(): void {
-    this._status = LeadStatusSchema.enum.QUALIFIED;
+  /** Statü geçişi + event; "önceki durum"u entity kendi içinde bilir. */
+  private changeStatus(newStatus: LeadStatus, props: LeadAuditProps): void {
+    const previousStatus = this._status;
+    if (previousStatus === newStatus) return;
+
+    this._status = newStatus;
+    this._updatedAt = DateTimeManager.create();
+
+    this.raiseEvent.statusChanged({ previousStatus, ...props });
   }
 
-  public convert({ patientId, appointmentId, actor }: ConvertLeadProps): void {
+  public contact(props: LeadAuditProps): void {
+    this.changeStatus(LeadStatusSchema.enum.CONTACTED, props);
+  }
+
+  public qualify(props: LeadAuditProps): void {
+    this.changeStatus(LeadStatusSchema.enum.QUALIFIED, props);
+  }
+
+  public convert({
+    patientId,
+    appointmentId,
+    actorId,
+    logSource,
+  }: ConvertLeadProps): void {
     this._patientId = patientId
       ? UUID.create(patientId).orThrow()
       : this._patientId;
@@ -269,32 +356,18 @@ export class Lead extends AggregateRoot {
     this._status = LeadStatusSchema.enum.CONVERTED;
     this._convertedAt = DateTimeManager.create();
 
-    // TODO: event fırlat ÖRN:
-    //       leadId,
-    //       clinicId,
-    //       patientId,
-    //       appointmentId,
-    //       actorId: actor.userId,
-    //       source: LogSource.WEB,
-    //       action: LogAction.LEAD_CONVERTED,
-    //       type: LogType.INFO,
-    //       details: `Lead dönüştürüldü — hasta: ${saved.patientId?.value ?? '-'}, randevu: ${saved.appointmentId?.value ?? '-'}`,
+    this.raiseEvent.converted({ actorId, logSource });
   }
 
-  public markLost(actor: ActorContext, reason?: string): void {
+  public markLost({ reason, actorId, logSource }: MarkLeadLostProps): void {
+    const now = DateTimeManager.create();
+
     this._status = LeadStatusSchema.enum.LOST;
     this._lostReason = reason ?? null;
-    this._updatedAt = DateTimeManager.create();
-    this._lostAt = DateTimeManager.create();
+    this._updatedAt = now;
+    this._lostAt = now;
 
-    // TODO: event fırlat ÖRN:  leadId,
-    //         clinicId,
-    //         lostReason,
-    //         actorId,
-    //         source,
-    //         action: LogAction.LEAD_LOST,
-    //         type: LogType.INFO,
-    //         details: `Lead kaybedildi${dto.lostReason ? `: ${dto.lostReason}` : ''}`
+    this.raiseEvent.lost({ actorId, logSource });
   }
 
   public rules(validateOptions: ValidateOptionsType) {
@@ -311,6 +384,7 @@ export class Lead extends AggregateRoot {
     this._stageId = props.stageId;
 
     const now = DateTimeManager.create();
+    const previousStatus = this._status;
 
     if (props.stageType === PipelineStageTypeSchema.enum.WON) {
       if (this._status !== LeadStatusSchema.enum.CONVERTED) {
@@ -338,6 +412,16 @@ export class Lead extends AggregateRoot {
     }
 
     this._updatedAt = now;
+
+    // Aşama taşıma statüyü değiştirmemiş olabilir (OPEN→OPEN); o zaman event yok.
+    if (this._status !== previousStatus) {
+      this.raiseEvent.statusChanged({
+        previousStatus,
+        actorId: props.actorId,
+        logSource: props.logSource,
+        details: `Lead aşama taşındı (${props.stageName}): ${previousStatus} -> ${this._status}`,
+      });
+    }
   }
 
   /** Yalnız huni + aşama kimliğini atar; LeadStatus'e dokunmaz (convert/lost senkronu, create seed). */

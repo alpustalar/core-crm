@@ -43,6 +43,16 @@ export class FinanceLedgerCommandRepository
     await this.db.financeLedger.update({ where: { id }, data: { status } });
   }
 
+  async updateStatusByInstallmentId(
+    installmentId: string,
+    status: LedgerStatus
+  ): Promise<void> {
+    await this.db.financeLedger.updateMany({
+      where: { installmentId },
+      data: { status },
+    });
+  }
+
   async updateManyStatusByPaymentId(
     paymentId: string,
     status: LedgerStatus

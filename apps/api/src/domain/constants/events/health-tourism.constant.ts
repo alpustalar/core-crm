@@ -4,3 +4,11 @@ export const HEALTH_TOURISM_CONFIG_EVENTS = {
 
 export type HealthTourismConfigEvent =
   (typeof HEALTH_TOURISM_CONFIG_EVENTS)[keyof typeof HEALTH_TOURISM_CONFIG_EVENTS];
+
+export const HOTEL_BOOKING_EVENTS = {
+  CREATED: 'hotel-booking.created',
+  CANCELLED: 'hotel-booking.cancelled',
+} as const;
+
+export type HotelBookingEvent =
+  (typeof HOTEL_BOOKING_EVENTS)[keyof typeof HOTEL_BOOKING_EVENTS];

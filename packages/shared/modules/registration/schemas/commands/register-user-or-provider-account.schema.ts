@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { CreateProviderSchema } from '@shared/modules/provider/schemas/index';
+import { EmailSchema } from '@shared/common/schemas';
 
 export const RegisterUserOrProviderAccountSchema = z.object({
-  email: z.email({ message: 'Geçersiz e-posta formatı' }).trim().toLowerCase(),
+  email: EmailSchema,
   displayName: z.string().min(1, { message: 'İsim alanı boş bırakılamaz' }),
   password: z.string().min(6, { message: 'Şifre en az 6 karakter olmalıdır' }),
   picture: z.url({ message: 'Geçersiz resim bağlantısı' }).optional(),

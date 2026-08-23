@@ -7,6 +7,7 @@ import {
   txStorage,
 } from '@src/infrastructure/transaction/als-storage';
 import { OutboxRepository } from '@src/infrastructure/persistence/prisma/outbox/outbox.repository';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @Injectable()
 export class TransactionManager {
@@ -15,7 +16,8 @@ export class TransactionManager {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
-    private outboxRepo: OutboxRepository
+    private outboxRepo: OutboxRepository,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   /**
@@ -122,6 +124,19 @@ export class TransactionManager {
         this.logger.error(
           `Event listener'ı hata verdi (event=${event.name}): ${error}`
         );
+        // Bu kanal kritik OLMAYAN yan etkiler için (kritik olanlar outbox'tan
+        // gider); yine de sessizce düşen bir listener fark edilmeli — bildirim
+        // gitmemiş ya da denetim kaydı yazılmamış olabilir. WARNING seviyesi,
+        // dedupe event adına göre: aynı listener sürekli patlıyorsa tek satır.
+        this.criticalFailure.publish({
+          operation: 'events.in-memory-dispatch',
+          severity: 'WARNING',
+          summary: `Event dinleyicisi hata verdi: ${event.name}`,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          context: { eventName: event.name },
+          clinicId: null,
+          dedupeKey: `listener-failed:${event.name}`,
+        });
       }
     }
   }

@@ -15,6 +15,11 @@ import { RecordFinancialEventCommand } from '@modules/finance/accounting/financi
 import { FinancialEventTypeSchema, PartyRoleSchema } from '@shared';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 const GRACE_PERIOD_MS = 3 * 60 * 1000; // 3 dk — in-flight işlemleri atla
 const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 saat — TIMEOUT olarak işaretle
@@ -28,11 +33,14 @@ export class ReconcilePosTransactionsHandler
   constructor(
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
     private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
 
     private readonly paxService: PaxService,
     private readonly txManager: TransactionManager,
     private readonly posPaymentSync: PosPaymentSyncService,
-    private readonly commandBus: TSCommandBus
+    private readonly commandBus: TSCommandBus,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   async execute(): Promise<void> {
@@ -85,6 +93,11 @@ export class ReconcilePosTransactionsHandler
               await this.posTransactionCommandRepo.findByIdForUpdate(tx.id);
             if (!entity) return;
 
+            // Kilidi beklerken cihaz callback'i işlemi sonuçlandırmış olabilir.
+            // Entity artık "yalnız PENDING'den geçiş"i zorluyor; burada sessizce
+            // atlanır ki tarama hata fırlatmasın.
+            if (!entity.validate.status.isPending().value) return;
+
             if (result.approved) {
               entity.markSuccess(result.externalRef, result.rawResponse);
               await this.posTransactionCommandRepo.update(entity);
@@ -128,6 +141,17 @@ export class ReconcilePosTransactionsHandler
           `POS reconcile işlemi sırasında beklenmeyen hata fırlatıldı: id=${tx.id}`,
           (err as Error).stack
         );
+        // Tarama bir sonraki işleme geçiyor; bu işlem PENDING'de asılı kalır.
+        // Kart çekilmiş olabilir — kimse bakmazsa ne tahsilat ne iade görünür.
+        this.criticalFailure.publish({
+          operation: 'finance.pos.reconcile',
+          severity: 'CRITICAL',
+          summary: 'POS işlemi mutabakatta sonuçlandırılamadı; PENDING kaldı.',
+          errorMessage: err instanceof Error ? err.message : String(err),
+          context: { posTransactionId: tx.id },
+          clinicId: null,
+          dedupeKey: `pos-reconcile-failed:${tx.id}`,
+        });
       }
     }
   }
@@ -173,6 +197,20 @@ export class ReconcilePosTransactionsHandler
         `Muhasebe köprüsü başarısız: posTransactionId=${input.posTransactionId}`,
         error
       );
+      this.criticalFailure.publish({
+        operation: 'finance.pos.accounting-bridge',
+        severity: 'CRITICAL',
+        summary:
+          'Mutabakatta sonuçlanan POS tahsilatı için muhasebe köprüsü çalışmadı.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: {
+          posTransactionId: input.posTransactionId,
+          patientId: input.patientId,
+          amount: input.amount,
+        },
+        clinicId: input.clinicId,
+        dedupeKey: `pos-bridge-failed:${input.posTransactionId}`,
+      });
     }
   }
 }

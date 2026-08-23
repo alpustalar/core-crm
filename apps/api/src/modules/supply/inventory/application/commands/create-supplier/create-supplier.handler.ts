@@ -8,32 +8,40 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
   ISupplierCommandRepository,
   SUPPLIER_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
 
 @CommandHandler(CreateSupplierCommand)
-export class CreateSupplierHandler
-  implements ICommandHandler<CreateSupplierCommand, string>
-{
+export class CreateSupplierHandler implements ICommandHandler<
+  CreateSupplierCommand,
+  string
+> {
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
     private readonly supplierRepo: ISupplierCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateSupplierCommand): Promise<string> {
     const { data, ctx } = command;
 
+    // Kiracı kimliği istekten alınmaz, klinikten türetilir — DTO'da böyle bir
+    // alan yok (bkz. CreateSupplierSchema).
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(
-          data.clinicId,
-          data.organizationId
-        )
+        p.actorCanAccessClinicOrOwnsOrganization(data.clinicId, organizationId)
       )
       .orThrow();
 
@@ -45,7 +53,7 @@ export class CreateSupplierHandler
       address: data.address ?? null,
       taxNumber: data.taxNumber ?? null,
       taxOffice: data.taxOffice ?? null,
-      organizationId: data.organizationId,
+      organizationId,
       clinicId: data.clinicId,
     });
 

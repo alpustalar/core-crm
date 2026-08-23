@@ -3,7 +3,7 @@ import { PosDeviceQueryController } from '@modules/finance/pos/physical/presenta
 import { PosDeviceCommandController } from '@modules/finance/pos/physical/presentation/http/controllers/pos-device.command.controller';
 import { PosCallbackController } from '@modules/finance/pos/physical/presentation/http/controllers/pos-callback.controller';
 import { PaxController } from '@modules/finance/pos/physical/presentation/http/controllers/pax.controller';
-import { IyzicoTerminalController } from '@modules/finance/pos/physical/presentation/http/controllers/iyzico-terminal.controller';
+import { IyzicoTerminalCommandController } from '@modules/finance/pos/physical/presentation/http/controllers/iyzico-terminal.command.controller';
 
 @Module({
   controllers: [
@@ -11,7 +11,7 @@ import { IyzicoTerminalController } from '@modules/finance/pos/physical/presenta
     PosDeviceCommandController,
     PosCallbackController,
     PaxController,
-    IyzicoTerminalController,
+    IyzicoTerminalCommandController,
   ],
 })
 export class PhysicalPosPresentationModule {}

@@ -36,14 +36,25 @@ describe('TransactionManager', () => {
       }),
     };
     const outboxRepo = { saveEvents: jest.fn().mockResolvedValue(undefined) };
+    // Listener hatası sessiz kalmasın diye uyarı yayınlanır (WARNING).
+    const criticalFailure = { publish: jest.fn() };
 
     const manager = new TransactionManager(
       prisma as unknown as PrismaService,
       eventEmitter as unknown as EventEmitter2,
-      outboxRepo as unknown as OutboxRepository
+      outboxRepo as unknown as OutboxRepository,
+      criticalFailure as never
     );
 
-    return { manager, prisma, state, emitted, eventEmitter, outboxRepo };
+    return {
+      manager,
+      prisma,
+      state,
+      emitted,
+      eventEmitter,
+      outboxRepo,
+      criticalFailure,
+    };
   };
 
   /** İş sırasında ALS store'a event ekleyen yardımcı (publisher'ın yaptığı şey). */

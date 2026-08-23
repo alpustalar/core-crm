@@ -5,11 +5,14 @@ describe('AppointmentCompletedInvoiceListener', () => {
   const make = (payment: unknown) => {
     const commandBus = { execute: jest.fn().mockResolvedValue(undefined) };
     const queryBus = { execute: jest.fn().mockResolvedValue({ data: payment }) };
+    // Fatura kesilemezse operatöre uyarı gider; testte yalnız çağrıldığı doğrulanır.
+    const criticalFailure = { publish: jest.fn() };
     const listener = new AppointmentCompletedInvoiceListener(
       commandBus as never,
-      queryBus as never
+      queryBus as never,
+      criticalFailure as never
     );
-    return { listener, commandBus, queryBus };
+    return { listener, commandBus, queryBus, criticalFailure };
   };
 
   const event = {

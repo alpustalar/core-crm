@@ -38,13 +38,6 @@ export class SearchClinicAppointmentsHandler
   ): Promise<SearchClinicAppointmentsQueryResponse> {
     const { filter, ctx } = query;
 
-    const serializationOptions = this.policyFactory
-      .appointment(ctx.actor, ctx.source)
-      .policy.getSerializationOptions({
-        clinicId: filter.clinicId,
-        providerId: filter.providerId,
-      });
-
     const { pagination, search, status, providerId, startDate, endDate } =
       filter;
 
@@ -63,7 +56,12 @@ export class SearchClinicAppointmentsHandler
       data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
-        serializationOptions,
+        serializationOptions: this.policyFactory
+          .appointment(ctx.actor, ctx.source)
+          .policy.getSerializationOptions({
+            clinicId: filter.clinicId,
+            providerId: filter.providerId,
+          }),
       },
     };
   }

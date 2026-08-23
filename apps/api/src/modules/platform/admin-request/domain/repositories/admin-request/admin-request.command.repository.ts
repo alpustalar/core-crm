@@ -5,5 +5,12 @@ export const ADMIN_REQUEST_COMMAND_REPOSITORY = Symbol(
   'IAdminRequestCommandRepository'
 );
 
-export type IAdminRequestCommandRepository =
-  IBaseCommandRepository<AdminRequest>;
+export interface IAdminRequestCommandRepository
+  extends IBaseCommandRepository<AdminRequest> {
+  /**
+   * Talebi `FOR UPDATE` kilitleyerek yükler — yalnız aktif transaction içinde.
+   * İnceleme (onay/ret) kararını besleyen okuma kilitsiz yapılırsa iki yönetici
+   * aynı bekleyen talebi aynı anda sonuçlandırabilir.
+   */
+  findByIdForUpdate(id: string): Promise<AdminRequest | null>;
+}

@@ -29,17 +29,16 @@ import {
 import { CreateProjectTaskCommand } from './create-project-task.command';
 
 @CommandHandler(CreateProjectTaskCommand)
-export class CreateProjectTaskHandler implements ICommandHandler<
-  CreateProjectTaskCommand,
-  string
-> {
+export class CreateProjectTaskHandler
+  implements ICommandHandler<CreateProjectTaskCommand, string>
+{
   constructor(
     @Inject(PROJECT_COMMAND_REPOSITORY)
-    private readonly projectCommandRepo: IProjectCommandRepository,
+    private readonly projectRepo: IProjectCommandRepository,
     @Inject(PROJECT_PHASE_COMMAND_REPOSITORY)
-    private readonly phaseCommandRepo: IProjectPhaseCommandRepository,
+    private readonly projectPhaseRepo: IProjectPhaseCommandRepository,
     @Inject(PROJECT_TASK_COMMAND_REPOSITORY)
-    private readonly taskCommandRepo: IProjectTaskCommandRepository,
+    private readonly projectTaskRepo: IProjectTaskCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -49,7 +48,7 @@ export class CreateProjectTaskHandler implements ICommandHandler<
     const { projectId, data, ctx } = command.payload;
 
     return this.txManager.run(async () => {
-      const project = await this.projectCommandRepo.findById(projectId);
+      const project = await this.projectRepo.findById(projectId);
       if (!project) throw new ProjectNotFoundException(projectId);
 
       this.policyFactory
@@ -65,8 +64,8 @@ export class CreateProjectTaskHandler implements ICommandHandler<
         await this.assertPhaseBelongsToProject(data.phaseId, projectId);
       }
 
-      // Yeni kart TODO kolonunun sonuna eklenir.
-      const maxOrder = await this.taskCommandRepo.maxBoardOrder(
+      // Yeni kart to-do kolonunun sonuna eklenir
+      const maxOrder = await this.projectTaskRepo.maxBoardOrder(
         projectId,
         ProjectTaskStatusSchema.enum.TODO
       );
@@ -91,7 +90,7 @@ export class CreateProjectTaskHandler implements ICommandHandler<
         createdById: ctx.actor.userId,
       });
 
-      const saved = await this.taskCommandRepo.create(task);
+      const saved = await this.projectTaskRepo.create(task);
       return saved.id.value;
     });
   }
@@ -100,7 +99,7 @@ export class CreateProjectTaskHandler implements ICommandHandler<
     phaseId: string,
     projectId: string
   ): Promise<void> {
-    const phase = await this.phaseCommandRepo.findById(phaseId);
+    const phase = await this.projectPhaseRepo.findById(phaseId);
     if (!phase) throw new ProjectPhaseNotFoundException(phaseId);
     if (phase.projectId.value !== projectId) {
       throw new ProjectPhaseMismatchException(phaseId, projectId);

@@ -7,6 +7,10 @@ import {
   ISubscriptionCommandRepository,
   SUBSCRIPTION_COMMAND_REPOSITORY,
 } from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ResumeSubscriptionCommand)
 export class ResumeSubscriptionHandler
@@ -15,6 +19,8 @@ export class ResumeSubscriptionHandler
   constructor(
     @Inject(SUBSCRIPTION_COMMAND_REPOSITORY)
     private readonly subscriptionRepo: ISubscriptionCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -25,6 +31,14 @@ export class ResumeSubscriptionHandler
     if (!subscription) throw new SubscriptionNotFoundException();
 
     await this.txManager.run(async () => {
+      subscription
+        .rules(
+          this.policyFactory
+            .entity(command.ctx.actor, command.ctx.source)
+            .policy.getValidateOptions()
+        )
+        .undoCancellation()
+        .orThrow();
       subscription.undoCancellation();
       await this.subscriptionRepo.update(subscription);
     });

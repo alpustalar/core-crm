@@ -26,11 +26,20 @@ import {
   IStockMovementCommandRepository,
   STOCK_MOVEMENT_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/stock-movement/stock-movement.command.repository';
+import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(ReceiveStockCommand)
-export class ReceiveStockHandler
-  implements ICommandHandler<ReceiveStockCommand, string>
-{
+export class ReceiveStockHandler implements ICommandHandler<
+  ReceiveStockCommand,
+  string
+> {
   constructor(
     @Inject(PRODUCT_COMMAND_REPOSITORY)
     private readonly productRepo: IProductCommandRepository,
@@ -38,6 +47,10 @@ export class ReceiveStockHandler
     private readonly productBatchRepo: IProductBatchCommandRepository,
     @Inject(STOCK_MOVEMENT_COMMAND_REPOSITORY)
     private readonly stockMovementRepo: IStockMovementCommandRepository,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -45,13 +58,28 @@ export class ReceiveStockHandler
     const { clinicId, dto, ctx } = command;
     const { actor } = ctx;
 
+    // Kiracı, aktörden DEĞİL partinin yazıldığı klinikten türetilir: `clinicId`
+    // istekle geliyor, aktörün organizasyonu ona damgalanırsa başka bir kiracının
+    // kliniğine ait parti yanlış organizasyonla kaydedilebilirdi.
+    const organizationId = await this.tenantScopeResolver.resolve({ clinicId });
+
+    // Kapsam kontrolü: `CapabilityGuard` yalnız "bu aktörde stockmovement:create
+    // var mı" der, hangi kiracının kliniği olduğuna bakmaz. Mal kabulün kendisine
+    // izin verme kararı yetenekte kalır; burada yalnız kiracı sınırı doğrulanır.
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessClinicOrOwnsOrganization(clinicId, organizationId)
+      )
+      .orThrow('inventory.stock.receive');
+
     const product = await this.productRepo.findById(dto.productId);
     if (!product) throw new ProductNotFoundException();
 
     const batch = ProductBatch.createFromPurchase({
       productId: product.id.value,
       clinicId,
-      organizationId: UUID.create(actor.organizationId).orThrow().value,
+      organizationId: UUID.create(organizationId).orThrow().value,
       supplierId: dto.supplierId ?? null,
       lotNumber: dto.lotNumber ?? null,
       expiresAt: dto.expiresAt ?? null,

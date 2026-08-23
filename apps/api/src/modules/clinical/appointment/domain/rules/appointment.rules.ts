@@ -17,7 +17,7 @@ import { AppointmentStatusType } from '@input-type-schemas/AppointmentStatusSche
 import {
   AppointmentRuleSnapshot,
   CreateAppointmentProps,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /** Bir işlemin üzerinde yapılamayacağı, sonuçlanmış (terminal) durumlar. */
 const SETTLED_STATUSES: AppointmentStatusType[] = [
@@ -44,10 +44,6 @@ export class AppointmentRules extends BaseRules implements IAppointmentRules {
     private readonly validateOptions: ValidateOptionsType = DefaultValidateOptions
   ) {
     super();
-  }
-
-  private get status(): AppointmentStatusType {
-    return this.snapshot.status;
   }
 
   public get markAsNoShow(): Validate {
@@ -109,6 +105,10 @@ export class AppointmentRules extends BaseRules implements IAppointmentRules {
         ),
       this.validateOptions
     );
+  }
+
+  private get status(): AppointmentStatusType {
+    return this.snapshot.status;
   }
 
   public schedule(props: Pick<CreateAppointmentProps, 'startTime'>) {

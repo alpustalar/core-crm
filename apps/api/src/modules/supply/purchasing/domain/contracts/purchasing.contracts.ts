@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { PurchaseRequestStatusSchema } from '@input-type-schemas/PurchaseRequestStatusSchema';
 import { PurchaseOrderStatusSchema } from '@input-type-schemas/PurchaseOrderStatusSchema';
+import { PurchaseOrderBillingStatusSchema } from '@input-type-schemas/PurchaseOrderBillingStatusSchema';
 import { Pagination } from '@shared/common';
 import { PurchaseRequest as IPurchaseRequest } from '@model-schema/PurchaseRequestSchema';
 import { PurchaseRequestItem as IPurchaseRequestItem } from '@model-schema/PurchaseRequestItemSchema';
@@ -98,6 +99,7 @@ export const FindPurchaseOrdersFilterSchema = z.object({
   clinicId: z.uuid(),
   supplierId: z.uuid().optional(),
   status: PurchaseOrderStatusSchema.optional(),
+  billingStatus: PurchaseOrderBillingStatusSchema.optional(),
   pagination: z.custom<Pagination>(
     (val) => val !== null && typeof val === 'object'
   ),

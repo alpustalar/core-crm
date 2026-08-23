@@ -70,6 +70,12 @@ export class ExternalWorkOrderCommandRepository
     return raw ? this.toEntity(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<ExternalWorkOrder | null> {
+    // Kilit başlık satırında: kalemler yalnız başlık üzerinden yazılır.
+    await this.lockRowForUpdate('external_work_orders', id);
+    return this.findById(id);
+  }
+
   async findOverdueForNotification(
     now: Date,
     limit: number

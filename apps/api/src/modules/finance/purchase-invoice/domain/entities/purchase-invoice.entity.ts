@@ -9,6 +9,11 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { PurchaseInvoiceStatusSchema } from '@shared';
 import { PurchaseInvoiceStatusType } from '@input-type-schemas/PurchaseInvoiceStatusSchema';
 import { CreatePurchaseInvoiceProps } from '@modules/finance/purchase-invoice/domain/contracts/purchase-invoice.contracts';
+import {
+  PurchaseInvoiceAlreadyMatchedException,
+  PurchaseInvoiceNotMatchableException,
+  PurchaseInvoiceNotMatchedException,
+} from '@modules/finance/purchase-invoice/domain/exceptions/purchase-invoice.exceptions';
 
 /**
  * Tedarikçiden alınan alış faturası. Satış faturasının kardeşi; dış belge
@@ -26,6 +31,7 @@ export class PurchaseInvoice extends AggregateRoot {
     this._supplierId = UUID.fromTrusted(data.supplierId);
     this._invoiceNumber = data.invoiceNumber;
     this._invoiceDate = data.invoiceDate;
+    this._purchaseOrderId = data.purchaseOrderId;
     this._lineAccountCode = data.lineAccountCode;
     this._vatRate = VatRate.fromTrusted(data.vatRate);
     this._netTotal = Money.fromTrusted(data.netTotal, currency);
@@ -64,6 +70,15 @@ export class PurchaseInvoice extends AggregateRoot {
   private _invoiceDate: Date;
   get invoiceDate(): Date {
     return this._invoiceDate;
+  }
+
+  private _purchaseOrderId: string | null;
+  get purchaseOrderId(): string | null {
+    return this._purchaseOrderId;
+  }
+
+  get isMatched(): boolean {
+    return this._purchaseOrderId !== null;
   }
 
   private _lineAccountCode: string;
@@ -120,6 +135,7 @@ export class PurchaseInvoice extends AggregateRoot {
       supplierId: UUID.create(props.supplierId).orThrow().value,
       invoiceNumber: props.invoiceNumber,
       invoiceDate: props.invoiceDate,
+      purchaseOrderId: props.purchaseOrderId ?? null,
       lineAccountCode: props.lineAccountCode,
       vatRate: VatRate.create(props.vatRate).orThrow().value.toNumber(),
       netTotal: Money.create(props.netTotal, props.currency).orThrow().value,
@@ -133,6 +149,39 @@ export class PurchaseInvoice extends AggregateRoot {
     });
   }
 
+  /**
+   * Faturayı bir satın alma siparişine bağlar. Sipariş tarafındaki tutar sayacı
+   * `ApplyInvoiceToPurchaseOrderCommand` ile ayrıca güncellenir; burada yalnız bağ
+   * kurulur. Zaten bağlıysa yeniden bağlanamaz — önce eşleştirme kaldırılır, aksi
+   * halde eski siparişin sayacı şişik kalırdı.
+   */
+  public matchToOrder(purchaseOrderId: string): void {
+    if (this._purchaseOrderId) {
+      throw new PurchaseInvoiceAlreadyMatchedException({
+        invoiceId: this._id.value,
+        purchaseOrderId: this._purchaseOrderId,
+      });
+    }
+    if (this._status === PurchaseInvoiceStatusSchema.enum.CANCELLED) {
+      throw new PurchaseInvoiceNotMatchableException(this._status);
+    }
+
+    this._purchaseOrderId = UUID.create(purchaseOrderId).orThrow().value;
+    this._updatedAt = DateTimeManager.create();
+  }
+
+  /** Bağı koparır (yanlış sipariş / fatura iptali). Sayaç komut tarafında düşülür. */
+  public unmatchFromOrder(): string {
+    if (!this._purchaseOrderId) {
+      throw new PurchaseInvoiceNotMatchedException(this._id.value);
+    }
+
+    const previousOrderId = this._purchaseOrderId;
+    this._purchaseOrderId = null;
+    this._updatedAt = DateTimeManager.create();
+    return previousOrderId;
+  }
+
   /** Repo'nun upsert'ine geçilen ham kayıt. Decimal alanlar Prisma'ya DecimalJsLike olarak gider. */
   public toPersistence(): IPurchaseInvoice {
     return {
@@ -142,6 +191,7 @@ export class PurchaseInvoice extends AggregateRoot {
       supplierId: this.supplierId.value,
       invoiceNumber: this.invoiceNumber,
       invoiceDate: this.invoiceDate,
+      purchaseOrderId: this.purchaseOrderId,
       lineAccountCode: this.lineAccountCode,
       vatRate: this.vatRate.value.toNumber(),
       netTotal: this.netTotal.value,

@@ -7,6 +7,10 @@ import {
   ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
   IAccountingPeriodCommandRepository,
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(LockPeriodCommand)
 export class LockPeriodHandler
@@ -15,12 +19,21 @@ export class LockPeriodHandler
   constructor(
     @Inject(ACCOUNTING_PERIOD_COMMAND_REPOSITORY)
     private readonly accountingPeriodRepo: IAccountingPeriodCommandRepository,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: LockPeriodCommand): Promise<void> {
     const period = await this.accountingPeriodRepo.findById(command.periodId);
     if (!period) throw new PeriodNotFoundException();
+
+    // `periodId` istekten geliyor; kapsam kaydın KENDİ kliniğinden doğrulanır
+    // (istekteki bir alandan değil — o alan da saldırganın kontrolünde olurdu).
+    this.policyFactory
+      .finance(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.actorCanManageTargetClinic(period.clinicId.value))
+      .orThrow('accounting.period.lock');
 
     period.lock();
     await this.txManager.run(async () => {

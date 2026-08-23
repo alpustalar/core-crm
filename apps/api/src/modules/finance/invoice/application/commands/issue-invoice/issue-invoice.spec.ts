@@ -8,6 +8,7 @@ import { GetTaxRateQuery } from '@modules/finance/accounting/tax-parameters/appl
 import { EnsurePartyForPatientCommand } from '@modules/finance/party/application/commands/ensure-party-for-patient/ensure-party-for-patient.command';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { QueueEDocumentCommand } from '@modules/finance/e-document/application/commands/queue-e-document/queue-e-document.command';
+import { InvoiceDuplicateException } from '@modules/finance/invoice/domain/exceptions/invoice.exceptions';
 
 describe('IssueInvoiceHandler', () => {
   const input = {
@@ -55,16 +56,20 @@ describe('IssueInvoiceHandler', () => {
     const tenantScopeResolver = {
       resolve: jest.fn().mockResolvedValue('org-1'),
     };
+    // e-Belge kuyruğa alınamazsa operatöre uyarı gider.
+    const criticalFailure = { publish: jest.fn() };
 
     const handler = new IssueInvoiceHandler(
       invoiceCommandRepo as never,
       tenantScopeResolver as never,
       txManager as never,
       commandBus as never,
-      queryBus as never
+      queryBus as never,
+      criticalFailure as never
     );
 
     return {
+      criticalFailure,
       handler,
       invoiceCommandRepo,
       txManager,
@@ -139,5 +144,44 @@ describe('IssueInvoiceHandler', () => {
       invoiceNumber: null,
       status: InvoiceStatusSchema.enum.ISSUED,
     });
+  });
+
+  it('yarışı kaybeden istek (unique kısıt) hata yükseltmez, kazananın faturasını döner', async () => {
+    const winner = {
+      id: { value: 'inv-winner' },
+      invoiceNumber: 'FTR-1',
+      status: InvoiceStatusSchema.enum.ISSUED,
+    };
+    // Baştaki kontrol "fatura yok" der (yarış henüz kaybedilmedi), yazma anında
+    // DB kısıtı patlar, ardından kazananın kaydı okunur.
+    const { handler, invoiceCommandRepo, commandBus } = make(null);
+    invoiceCommandRepo.create.mockRejectedValue(
+      new InvoiceDuplicateException()
+    );
+    invoiceCommandRepo.findByAppointmentId
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(winner);
+
+    const result = await handler.execute(new IssueInvoiceCommand(input));
+
+    expect(result).toEqual({
+      invoiceId: 'inv-winner',
+      invoiceNumber: 'FTR-1',
+      status: InvoiceStatusSchema.enum.ISSUED,
+    });
+    // Kaybeden taraf e-belge kuyruğuna İKİNCİ kez iş atmaz.
+    const queued = (commandBus.execute as jest.Mock).mock.calls.filter(
+      ([c]) => c instanceof QueueEDocumentCommand
+    );
+    expect(queued).toHaveLength(0);
+  });
+
+  it('unique kısıt dışındaki hatalar yutulmaz', async () => {
+    const { handler, invoiceCommandRepo } = make(null);
+    invoiceCommandRepo.create.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      handler.execute(new IssueInvoiceCommand(input))
+    ).rejects.toThrow('db down');
   });
 });

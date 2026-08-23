@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { ChannelNotConnectedException } from '@modules/channel-config/domain/exceptions/channel-config.exceptions';
 import { TokenCipherService } from '@src/infrastructure/security/crypto/token-cipher.service';
 import {
   IWhatsappCloudApi,
@@ -30,7 +31,10 @@ export class UpdateWhatsappBusinessProfileHandler implements ICommandHandler<
       command.clinicId
     );
     if (!channel || !channel.isActive || !channel.accessToken) {
-      throw new NotFoundException('Aktif WhatsApp kanalı bulunamadı.');
+      throw new ChannelNotConnectedException(
+        'WHATSAPP',
+        command.clinicId
+      );
     }
 
     const token = this.cipher.decrypt(channel.accessToken);

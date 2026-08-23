@@ -1,5 +1,6 @@
 import {CommandHandler, ICommandHandler} from '@nestjs/cqrs';
-import {Inject, NotFoundException} from '@nestjs/common';
+import {Inject} from '@nestjs/common';
+import {AiAgentConfigNotFoundException} from '@modules/ai-agent/domain/exceptions/ai-agent.exceptions';
 import {MongoTransactionManager} from '@src/infrastructure/persistence/mongo/mongo-transaction.manager';
 import {
     CLINIC_AI_AGENT_CONFIG_COMMAND_REPOSITORY,
@@ -25,9 +26,7 @@ export class SetClinicAiAgentEnabledHandler implements ICommandHandler<
             payload.clinicId
         );
         if (!config) {
-            throw new NotFoundException(
-                'AI asistan config bulunamadı; önce yapılandırın.'
-            );
+            throw new AiAgentConfigNotFoundException();
         }
 
         if (payload.enabled) config.enable();

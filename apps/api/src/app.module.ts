@@ -11,6 +11,7 @@ import { ThrottleMonitorGuard } from '@common/guards/throttle-monitor.guard';
 import { ThrottleMonitorListener } from '@common/guards/throttle-monitor.listener';
 import { UserModule } from '@modules/identity/user/user.module';
 import { PrismaModule } from '@src/infrastructure/persistence/prisma/prisma.module';
+import { TenantScopeModule } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.module';
 import { KernelHealthModule, RedisHealthIndicator } from '@src/http';
 import { PrismaHealthIndicator } from '@src/infrastructure/health/prisma-health.indicator';
 import { MongoPersistenceModule } from '@src/infrastructure/persistence/mongo/mongo-persistence.module';
@@ -67,6 +68,7 @@ import { BankModule } from '@modules/finance/bank/bank.module';
 import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.module';
 import { WorkOrderModule } from '@modules/supply/work-order/work-order.module';
 import { ProjectModule } from '@modules/organization/project/project.module';
+import { CriticalFailureModule } from '@common/observability/critical-failure.module';
 
 @Module({
   imports: [
@@ -76,6 +78,8 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     RouterModule.register(APP_ROUTES),
     FirebaseModule,
     PrismaModule,
+    // clinicId -> organizationId çözümlemesi 15+ modülde gerekiyor; @Global sağlanır.
+    TenantScopeModule,
     MongoPersistenceModule,
     // Readiness: api'nin işini yapamayacağı iki bağımlılık. Mongo YOK — orası
     // yalnız audit log tutuyor, erişilemediğinde api istekleri karşılamayı
@@ -121,6 +125,7 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     HealthTourismModule,
     InventoryModule,
     NotificationModule,
+    CriticalFailureModule,
     EmployeeModule,
     LeaveModule,
     AttendanceModule,

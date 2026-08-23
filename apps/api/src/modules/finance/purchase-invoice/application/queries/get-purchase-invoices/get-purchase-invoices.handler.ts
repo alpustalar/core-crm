@@ -14,10 +14,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetPurchaseInvoicesQuery)
-export class GetPurchaseInvoicesHandler
-  implements
-    IQueryHandler<GetPurchaseInvoicesQuery, GetPurchaseInvoicesResponse>
-{
+export class GetPurchaseInvoicesHandler implements IQueryHandler<
+  GetPurchaseInvoicesQuery,
+  GetPurchaseInvoicesResponse
+> {
   constructor(
     @Inject(PURCHASE_INVOICE_QUERY_REPOSITORY)
     private readonly purchaseInvoiceQueryRepo: IPurchaseInvoiceQueryRepository,

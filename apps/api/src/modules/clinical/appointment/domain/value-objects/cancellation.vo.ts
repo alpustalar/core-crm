@@ -1,6 +1,7 @@
 import { InvalidAppointmentCancellationException } from '../exceptions/appointment.exceptions';
-import { CreateCancellationProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+
 import { DateTimeManager, isEmpty } from '@common/utils';
+import { CreateCancellationProps } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 export class Cancellation {
   private readonly _canceledAt: Date;

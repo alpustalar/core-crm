@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { ClinicCalendarDay } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { ClinicCalendarDay } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Klinik tam takvimi, güne göre gruplanmış (klinik yereli). Sayfasız; aralıktaki

@@ -5,7 +5,7 @@ import { UpdateChargeDiscountHandler } from './update-charge-discount/update-cha
 import { VoidTreatmentChargeHandler } from './void-treatment-charge/void-treatment-charge.handler';
 import { TreatmentChargeRepositoryModule } from '@modules/finance/treatment-charge/infrastructure/persistence/prisma/repositories/treatment-charge/treatment-charge.repository.module';
 import { PolicyModule } from '@modules/platform/policy/policy.module';
-import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
+import { InvoiceDomainServicesModule } from '@modules/finance/invoice/domain/services/services.module';
 
 export const TREATMENT_CHARGE_COMMAND_HANDLERS = [
   AddTreatmentChargeHandler,
@@ -18,7 +18,9 @@ export const TREATMENT_CHARGE_COMMAND_HANDLERS = [
     CqrsModule,
     TreatmentChargeRepositoryModule,
     PolicyModule,
-    ClinicDomainServicesModule,
+    // Yaprak domain-servis modülü: "randevu faturalanmış mı" invariant'ı için.
+    // InvoiceModule import EDİLMEZ — controller/handler'ları da çekerdi.
+    InvoiceDomainServicesModule,
   ],
   providers: TREATMENT_CHARGE_COMMAND_HANDLERS,
   exports: TREATMENT_CHARGE_COMMAND_HANDLERS,

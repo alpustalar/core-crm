@@ -8,6 +8,7 @@ import {
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import { shouldValidate } from '@common/domain/utils/should-validate';
+import { isNotUndefined } from '@common/utils/is-not-undefined';
 
 interface AppointmentSettingsInvariants {
   rescheduleLimitHours: number;
@@ -43,6 +44,7 @@ export class ClinicAppointmentSettings {
     this._updatedAt = data.updatedAt;
   }
 
+  // TODO: validator kaldırılacak. domain rules oluşturulacak
   /** Girişlerin iş kuralı barikatı — create sırasında koşulur. */
   private static get businessRulesValidator() {
     return {
@@ -269,6 +271,8 @@ export class ClinicAppointmentSettings {
    * invariant'lar (saat sınırları ≥0, aktif randevu/ileri gün ≥1, slot ≥5dk)
    * güncel değerlerle yeniden doğrulanır.
    */
+
+  // TODO: validate options kaldırılacak. rules oluşturulacak.
   public update(
     props: UpdateClinicAppointmentSettingsProps,
     validateOptions = DefaultValidateOptions
@@ -304,15 +308,15 @@ export class ClinicAppointmentSettings {
     this._maxFutureBookingDays = maxFutureBookingDays;
     this._slotDurationMinutes = slotDurationMinutes;
 
-    if (props.allowPatientBooking !== undefined)
+    if (isNotUndefined(props.allowPatientBooking))
       this._allowPatientBooking = props.allowPatientBooking;
-    if (props.allowPatientCancel !== undefined)
+    if (isNotUndefined(props.allowPatientCancel))
       this._allowPatientCancel = props.allowPatientCancel;
-    if (props.staffAllowOverbooking !== undefined)
+    if (isNotUndefined(props.staffAllowOverbooking))
       this._staffAllowOverbooking = props.staffAllowOverbooking;
-    if (props.requireReminderResponse !== undefined)
+    if (isNotUndefined(props.requireReminderResponse))
       this._requireReminderResponse = props.requireReminderResponse;
-    if (props.requireConfirmation !== undefined)
+    if (isNotUndefined(props.requireConfirmation))
       this._requireConfirmation = props.requireConfirmation;
 
     this._updatedAt = DateTimeManager.create();

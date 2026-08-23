@@ -1,4 +1,5 @@
 import { Appointment, Pagination } from '@shared';
+import { Paginated } from '@common/interfaces/paginated.type';
 import {
   AppointmentWithDetails,
   ClinicCalendarEventRow,
@@ -17,8 +18,7 @@ import {
   ProviderDailyLoad,
   SearchClinicAppointmentsData,
   WaitingRoomRow,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { Paginated } from '@common/interfaces/paginated.type';
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 export const APPOINTMENT_QUERY_REPOSITORY = Symbol(
   'IAppointmentQueryRepository'

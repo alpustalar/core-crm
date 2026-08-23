@@ -10,8 +10,16 @@ export const PURCHASE_INVOICE_QUERY_REPOSITORY = Symbol(
   'IPurchaseInvoiceQueryRepository'
 );
 
-export type IPurchaseInvoiceCommandRepository =
-  IBaseCommandRepository<PurchaseInvoice>;
+export interface IPurchaseInvoiceCommandRepository
+  extends IBaseCommandRepository<PurchaseInvoice> {
+  /**
+   * Satır kilidiyle okur. Sipariş eşleştirme/koparma faturanın `purchaseOrderId`
+   * alanına bakıp siparişin kümülatif `invoicedTotal` sayacını değiştiriyor;
+   * kilitsiz okumada iki eşzamanlı istek de faturayı "eşleşmemiş" görüp aynı
+   * tutarı siparişe İKİ KEZ ekleyebilir.
+   */
+  findByIdForUpdate(id: string): Promise<PurchaseInvoice | null>;
+}
 
 /** Okuma tarafı: entity değil, plain model döner (veri HTTP sınırını geçiyor). */
 export interface IPurchaseInvoiceQueryRepository {

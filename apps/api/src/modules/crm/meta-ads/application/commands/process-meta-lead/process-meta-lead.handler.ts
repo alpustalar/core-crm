@@ -32,10 +32,9 @@ import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 
 @CommandHandler(ProcessMetaLeadCommand)
-export class ProcessMetaLeadHandler implements ICommandHandler<
-  ProcessMetaLeadCommand,
-  ProcessMetaLeadResponse
-> {
+export class ProcessMetaLeadHandler
+  implements ICommandHandler<ProcessMetaLeadCommand, ProcessMetaLeadResponse>
+{
   private readonly logger = new Logger(ProcessMetaLeadHandler.name);
 
   constructor(

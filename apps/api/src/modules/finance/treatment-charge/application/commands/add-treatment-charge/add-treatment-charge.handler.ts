@@ -17,14 +17,14 @@ import {
   TENANT_SCOPE_RESOLVER,
 } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import { TreatmentCharge } from '@modules/finance/treatment-charge/domain/entities/treatment-charge.entity';
-import {
-  TreatmentChargeAlreadyInvoicedException,
-  TreatmentListPriceMissingException,
-} from '@modules/finance/treatment-charge/domain/exceptions/treatment-charge.exceptions';
+import { TreatmentListPriceMissingException } from '@modules/finance/treatment-charge/domain/exceptions/treatment-charge.exceptions';
 import { GetAppointmentDetailQuery } from '@modules/clinical/appointment/application/queries/get-appointment-detail/get-appointment-detail.query';
 import { GetTreatmentPricingQuery } from '@modules/clinical/treatment/application/queries/get-treatment-pricing/get-treatment-pricing.query';
 import { GetClinicFinanceSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-finance-settings/get-clinic-finance-settings.query';
-import { GetInvoiceByAppointmentIdQuery } from '@modules/finance/invoice/application/queries/get-invoice-by-appointment-id/get-invoice-by-appointment-id.query';
+import {
+  IInvoiceIssuanceService,
+  INVOICE_ISSUANCE_SERVICE,
+} from '@modules/finance/invoice/domain/services/invoice-issuance/invoice-issuance.service.interface';
 import { AppointmentNotFoundException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 import { TREATMENT_CHARGE_EVENTS } from '@src/domain/constants/events';
 import { Money } from '@src/domain/value-objects/money.vo';
@@ -50,6 +50,8 @@ export class AddTreatmentChargeHandler
     private readonly tenantScopeResolver: ITenantScopeResolver,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(INVOICE_ISSUANCE_SERVICE)
+    private readonly invoiceIssuance: IInvoiceIssuanceService,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -75,12 +77,9 @@ export class AddTreatmentChargeHandler
       .orThrow(TREATMENT_CHARGE_EVENTS.ADDED);
 
     // Faturası kesilmiş randevunun ticari dayanağı dondu; satır eklenemez.
-    const { data: invoice } = await this.queryBus.execute(
-      new GetInvoiceByAppointmentIdQuery(appointmentId)
-    );
-    if (invoice) {
-      throw new TreatmentChargeAlreadyInvoicedException(appointmentId);
-    }
+    // Kontrol QueryBus yerine domain servisinden: yazmayı kapıda durduran
+    // invariant Command Repo'dan okunur (bkz. CQRS — Command Repo kuralı).
+    await this.invoiceIssuance.assertAppointmentNotInvoiced(appointmentId);
 
     const listPrice = await this.resolveListPrice({
       treatmentId: data.treatmentId,

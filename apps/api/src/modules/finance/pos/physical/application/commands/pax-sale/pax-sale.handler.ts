@@ -29,6 +29,12 @@ import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @CommandHandler(PaxSaleCommand)
 export class PaxSaleHandler
@@ -44,16 +50,31 @@ export class PaxSaleHandler
     private readonly paxService: PaxService,
     private readonly commandBus: TSCommandBus,
     private readonly txManager: TransactionManager,
-    private readonly posPaymentSync: PosPaymentSyncService
+    private readonly posPaymentSync: PosPaymentSyncService,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   async execute(command: PaxSaleCommand): Promise<PaxSaleResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
+
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL. Bu
+    // kontrol olmadan, POS yetkisi olan herhangi bir personel gövdeye başka bir
+    // kliniğin id'sini yazıp o kliniğin terminalinde işlem yürütebilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
     const device = await this.posDeviceRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
+
+    // Yetki `input.clinicId` üzerinden verildi; cihaz AYRI bir alandan geliyor. Bu doğrulama
+    // olmadan kendi kliniğinin id'siyle başka kliniğin terminali sürülebilirdi.
+    device.assertBelongsToClinic(input.clinicId);
 
     device.validate.status.isActive.orThrow();
 
@@ -230,6 +251,21 @@ export class PaxSaleHandler
         `Muhasebe köprüsü başarısız: posTransactionId=${input.posTransactionId}`,
         error
       );
+      // Kart çekildi (para tahsil edildi) ama ekonomik olay kaydedilmedi:
+      // tahsilat deftere hiç düşmez ve bunu fark edecek başka bir mekanizma yok.
+      this.criticalFailure.publish({
+        operation: 'finance.pos.accounting-bridge',
+        severity: 'CRITICAL',
+        summary: 'POS tahsilatı alındı ancak muhasebe köprüsü çalışmadı.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: {
+          posTransactionId: input.posTransactionId,
+          patientId: input.patientId,
+          amount: input.amount,
+        },
+        clinicId: input.clinicId,
+        dedupeKey: `pos-bridge-failed:${input.posTransactionId}`,
+      });
     }
   }
 }

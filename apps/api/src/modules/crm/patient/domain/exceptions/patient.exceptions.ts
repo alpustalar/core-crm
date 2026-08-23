@@ -36,3 +36,16 @@ export class PatientNotRegisteredException extends DomainException {
     super('Hasta telefon numarası veya Firebase kimliği eksik.');
   }
 }
+
+/**
+ * Aktör bu hasta kapsamına erişemiyor (farklı organizasyon ya da yönetmediği
+ * klinik). 403: kaydın var olup olmadığını sızdırmadan reddeder.
+ */
+export class PatientAccessDeniedException extends DomainException {
+  readonly errorCode = ERROR_CODES.PATIENT.ACCESS_DENIED;
+  public override readonly httpStatus = HttpStatus.FORBIDDEN;
+
+  constructor(message = 'Bu hasta kayıtlarına erişim yetkiniz yok.') {
+    super(message);
+  }
+}

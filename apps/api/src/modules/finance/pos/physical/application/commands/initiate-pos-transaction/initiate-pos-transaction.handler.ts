@@ -24,6 +24,11 @@ import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(InitiatePosTransactionCommand)
 export class InitiatePosTransactionHandler
@@ -41,18 +46,32 @@ export class InitiatePosTransactionHandler
     @Inject(PHYSICAL_POS_PROVIDER)
     private readonly posProvider: IPhysicalPosProvider,
     private readonly commandBus: TSCommandBus,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     command: InitiatePosTransactionCommand
   ): Promise<InitiatePosTransactionResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
+
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
     const device = await this.posDeviceRepo.findById(input.posDeviceId);
     if (!device) {
       throw new PosDeviceNotFoundException();
     }
+
+    // Yetki `input.clinicId` üzerinden verildi ve ödeme/işlem kayıtları da o
+    // klinikle yazılıyor; cihaz aynı kliniğe ait olmak ZORUNDA. Aksi halde kart
+    // başka kliniğin terminalinde (yani onun üye işyeri hesabında) çekilir,
+    // kayıt buraya düşerdi — defter ile gerçek para akışı ayrışırdı.
+    device.assertBelongsToClinic(input.clinicId);
 
     device.validate.status.isActive.orThrow();
 

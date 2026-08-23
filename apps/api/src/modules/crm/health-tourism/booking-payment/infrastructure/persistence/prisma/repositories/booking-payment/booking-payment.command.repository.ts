@@ -58,10 +58,27 @@ export class BookingPaymentCommandRepository
     return raw ? new BookingPayment(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<BookingPayment | null> {
+    await this.lockRowForUpdate('booking_payments', id);
+    return this.findById(id);
+  }
+
   async findByBookingId(bookingId: string): Promise<BookingPayment | null> {
     const raw = await this.db.bookingPayment.findFirst({
       where: { bookingId },
     });
     return raw ? new BookingPayment(raw) : null;
+  }
+
+  async findByBookingIdForUpdate(
+    bookingId: string
+  ): Promise<BookingPayment | null> {
+    const existing = await this.db.bookingPayment.findFirst({
+      where: { bookingId },
+      select: { id: true },
+    });
+    if (!existing) return null;
+
+    return this.findByIdForUpdate(existing.id);
   }
 }

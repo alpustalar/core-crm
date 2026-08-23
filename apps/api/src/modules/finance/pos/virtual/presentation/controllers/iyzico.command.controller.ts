@@ -37,8 +37,12 @@ export class IyzicoCommandController {
   @HasCapability(PAYMENT.create)
   @Post('initialize-checkout')
   @HttpCode(HttpStatus.OK)
-  initCheckout(@Body() dto: InitCheckoutFormDto, @UserIp() ip: string) {
-    return this.commandBus.execute(new InitCheckoutFormCommand(dto, ip));
+  initCheckout(
+    @Body() dto: InitCheckoutFormDto,
+    @UserIp() ip: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(new InitCheckoutFormCommand(dto, ip, ctx));
   }
 
   /**
@@ -73,7 +77,13 @@ export class IyzicoCommandController {
   @HasCapability(PAYMENT.update)
   @Post('refund')
   @HttpCode(HttpStatus.OK)
-  refundPayment(@Body() dto: RefundPaymentDto, @UserIp() ip: string) {
-    return this.commandBus.execute(new RefundPaymentCommand(dto.paymentId, ip));
+  refundPayment(
+    @Body() dto: RefundPaymentDto,
+    @UserIp() ip: string,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new RefundPaymentCommand(dto.paymentId, ip, ctx)
+    );
   }
 }

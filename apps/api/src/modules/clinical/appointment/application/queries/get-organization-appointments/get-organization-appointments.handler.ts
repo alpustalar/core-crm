@@ -13,10 +13,13 @@ import {
 } from '@modules/clinical/appointment/domain/repositories/appointment';
 
 @QueryHandler(GetOrganizationAppointmentsQuery)
-export class GetOrganizationAppointmentsHandler implements IQueryHandler<
-  GetOrganizationAppointmentsQuery,
-  GetOrganizationAppointmentsQueryResponse
-> {
+export class GetOrganizationAppointmentsHandler
+  implements
+    IQueryHandler<
+      GetOrganizationAppointmentsQuery,
+      GetOrganizationAppointmentsQueryResponse
+    >
+{
   constructor(
     @Inject(APPOINTMENT_QUERY_REPOSITORY)
     private readonly appointmentRepo: IAppointmentQueryRepository,
@@ -30,10 +33,6 @@ export class GetOrganizationAppointmentsHandler implements IQueryHandler<
     const { data, ctx } = query;
     const { organizationId, ...restData } = data;
 
-    const serializationOptions = this.policyFactory
-      .organization(ctx.actor, ctx.source)
-      .policy.getSerializationOptions();
-
     const { items, total } = await this.appointmentRepo.findByOrganizationId({
       organizationId,
       ...restData,
@@ -43,7 +42,9 @@ export class GetOrganizationAppointmentsHandler implements IQueryHandler<
       data: items,
       meta: {
         pagination: buildPaginationMeta(data.pagination, total),
-        serializationOptions,
+        serializationOptions: this.policyFactory
+          .organization(ctx.actor, ctx.source)
+          .policy.getSerializationOptions(),
       },
     };
   }

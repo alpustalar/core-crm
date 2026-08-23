@@ -6,10 +6,6 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import {
-  ClinicCalendarDay,
-  ClinicCalendarEvent,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
@@ -18,6 +14,10 @@ import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment';
+import {
+  ClinicCalendarDay,
+  ClinicCalendarEvent,
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Klinik tam takvimi: verilen tarih aralığındaki tüm randevuları (dolu-boş fark

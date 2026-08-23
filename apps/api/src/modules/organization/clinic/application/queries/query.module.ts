@@ -11,7 +11,6 @@ import { GetClinicFinanceSettingsHandler } from '@modules/organization/clinic/ap
 import { GetClinicOrganizationIdHandler } from '@modules/organization/clinic/application/queries/get-clinic-organization-id/get-clinic-organization-id.handler';
 import { GetClinicAppointmentSettingsHandler } from '@modules/organization/clinic/application/queries/get-clinic-appointment-settings/get-clinic-appointment-settings.handler';
 import { ClinicInfrastructureModule } from '@modules/organization/clinic/infrastructure/infrastructure.module';
-import { ClinicDomainServicesModule } from '@modules/organization/clinic/domain/services/services.module';
 
 const QueryHandlers = [
   FindClinicIdByProviderIdHandler,
@@ -27,7 +26,7 @@ const QueryHandlers = [
 ];
 
 @Module({
-  imports: [ClinicInfrastructureModule, ClinicDomainServicesModule],
+  imports: [ClinicInfrastructureModule],
   providers: [...QueryHandlers],
 })
 export class ClinicQueryModule {}

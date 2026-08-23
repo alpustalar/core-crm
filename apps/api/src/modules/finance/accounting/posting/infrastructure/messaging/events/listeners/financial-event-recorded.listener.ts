@@ -5,6 +5,7 @@ import { ExecutionContextFactory } from '@src/domain/common/execution/execution-
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { FinancialEventRecordedEvent } from '@modules/finance/accounting/financial-events/domain/events/financial-event-recorded.event';
 import { PostFinancialEventCommand } from '@modules/finance/accounting/posting/application/commands/post-financial-event/post-financial-event.command';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 /**
  * Bir ekonomik olay kaydedildiğinde fişi üretir.
@@ -14,7 +15,10 @@ import { PostFinancialEventCommand } from '@modules/finance/accounting/posting/a
 export class FinancialEventRecordedListener {
   private readonly logger = new Logger(FinancialEventRecordedListener.name);
 
-  constructor(private readonly commandBus: TSCommandBus) {}
+  constructor(
+    private readonly commandBus: TSCommandBus,
+    private readonly criticalFailure: CriticalFailurePublisher
+  ) {}
 
   @OnEvent(FINANCIAL_EVENT_EVENTS.RECORDED, { async: true })
   async handle(event: FinancialEventRecordedEvent): Promise<void> {
@@ -34,6 +38,22 @@ export class FinancialEventRecordedListener {
         `Fiş üretilemedi: event=${event.financialEventId}`,
         error
       );
+      // Ekonomik olay kaydedildi ama fişi atılmadı: mizan eksik kalır ve bunu
+      // kimse fark etmez — hata burada bilerek yutuluyor (olay defteri bozulmasın).
+      this.criticalFailure.publish({
+        operation: 'accounting.posting.post-financial-event',
+        severity: 'CRITICAL',
+        summary: 'Ekonomik olay kaydedildi ancak yevmiye fişi üretilemedi.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: {
+          financialEventId: event.financialEventId,
+          organizationId: event.organizationId,
+          eventType: event.type,
+        },
+        // Bu event klinik taşımıyor (defter organizasyon kapsamında kaydediliyor).
+        clinicId: null,
+        dedupeKey: `posting-failed:${event.financialEventId}`,
+      });
     }
   }
 }

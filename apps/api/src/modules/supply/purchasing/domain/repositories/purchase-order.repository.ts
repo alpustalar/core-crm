@@ -13,8 +13,17 @@ export const PURCHASE_ORDER_QUERY_REPOSITORY = Symbol(
   'IPurchaseOrderQueryRepository'
 );
 
-export type IPurchaseOrderCommandRepository =
-  IBaseCommandRepository<PurchaseOrder>;
+export interface IPurchaseOrderCommandRepository extends IBaseCommandRepository<PurchaseOrder> {
+  /**
+   * Siparişi kalemleriyle birlikte `FOR UPDATE` kilitleyerek yükler — yalnız aktif
+   * transaction içinde.
+   *
+   * Mal kabul kümülatif bir sayaçtır (`quantityReceived`): aynı sipariş için iki
+   * eşzamanlı kabul isteği kilitsiz okursa ikisi de aynı "kalan miktar"ı görür,
+   * ikisi de stok girişi tetikler → depoya olmayan mal girer.
+   */
+  findByIdForUpdate(id: string): Promise<PurchaseOrder | null>;
+}
 
 export interface IPurchaseOrderQueryRepository {
   findById(id: string): Promise<PurchaseOrderWithItems | null>;

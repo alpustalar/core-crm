@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { TreatmentChargeController } from './http/controllers/treatment-charge.controller';
+import { TreatmentChargeCommandController } from './http/controllers/treatment-charge.command.controller';
+import { TreatmentChargeQueryController } from './http/controllers/treatment-charge.query.controller';
 
 @Module({
   imports: [CqrsModule],
-  controllers: [TreatmentChargeController],
+  controllers: [TreatmentChargeCommandController, TreatmentChargeQueryController],
 })
 export class TreatmentChargePresentationModule {}

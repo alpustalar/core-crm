@@ -34,7 +34,7 @@ export class OpenRemakeWorkOrderHandler
     const { workOrderId, data, ctx } = command.payload;
 
     return this.txManager.run(async () => {
-      const source = await this.workOrderRepo.findById(workOrderId);
+      const source = await this.workOrderRepo.findByIdForUpdate(workOrderId);
       if (!source) throw new WorkOrderNotFoundException(workOrderId);
 
       this.policyFactory

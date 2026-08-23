@@ -15,15 +15,6 @@ import {
   AppointmentCreatorTypeType as AppointmentCreatorType,
 } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import {
-  AppointmentRuleSnapshot,
-  CalculateEndTimeProps,
-  CancelScheduleProps,
-  CreateAppointmentProps,
-  RescheduleByPatientProps,
-  RescheduleRequestProps,
-  UpdateAppointmentDetailsProps,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { AppointmentDetailsUpdatedEvent } from '@modules/clinical/appointment/domain/events/appointment-details-updated.event';
 import { AppointmentCheckedInEvent } from '@modules/clinical/appointment/domain/events/appointment-checked-in.event';
 import { AppointmentReminderDueEvent } from '@modules/clinical/appointment/domain/events/appointment-reminder-due.event';
@@ -64,6 +55,15 @@ import {
   UUID,
 } from '@src/domain/value-objects';
 import { IAuditLog } from '@common/interfaces/audit-log.interface';
+import {
+  AppointmentRuleSnapshot,
+  CalculateEndTimeProps,
+  CancelScheduleProps,
+  CreateAppointmentProps,
+  RescheduleByPatientProps,
+  RescheduleRequestProps,
+  UpdateAppointmentDetailsProps,
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 export class Appointment extends AggregateRoot {
   constructor(data: IAppointment) {

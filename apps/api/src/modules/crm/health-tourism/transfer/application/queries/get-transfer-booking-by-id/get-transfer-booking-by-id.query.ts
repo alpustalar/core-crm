@@ -7,6 +7,6 @@ export class GetTransferBookingByIdQuery implements IQuery {
 
   constructor(
     public readonly id: string,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

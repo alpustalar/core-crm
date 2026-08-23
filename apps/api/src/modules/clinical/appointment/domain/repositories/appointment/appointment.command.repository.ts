@@ -4,7 +4,7 @@ import { BatchPayload } from '@common/interfaces/batch-payload.type';
 import {
   CancelProviderAppointmentsData,
   FindDueForReminderData,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 export const APPOINTMENT_COMMAND_REPOSITORY = Symbol(
   'IAppointmentCommandRepository'

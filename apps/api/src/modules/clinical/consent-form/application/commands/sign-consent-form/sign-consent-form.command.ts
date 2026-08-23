@@ -9,6 +9,8 @@ export class SignConsentFormCommand implements ICommand {
       readonly patientId: string;
       readonly data: SignConsentForm;
       readonly ctx: IGetContext;
+      readonly clinicId: string;
+      readonly organizationId?: string | null;
     }
   ) {}
 }

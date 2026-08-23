@@ -33,7 +33,7 @@ import { ConfirmBookingPaymentCommand } from './confirm-booking-payment.command'
 import { PaymentProviders } from '@common/constants';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { Currency } from '@src/domain/value-objects/currency.vo';
-import { BookingPaymentTypeSchema } from '@shared';
+import { BookingPaymentTypeSchema, FinancialEventTypeSchema } from '@shared';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import {
   IPolicyFactory,
@@ -43,7 +43,6 @@ import {
   BOOKING_PAYMENT_COMMAND_REPOSITORY,
   IBookingPaymentCommandRepository,
 } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
-import { FinancialEventTypeSchema } from '@shared';
 import { RecordFinancialEventCommand } from '@modules/finance/accounting/financial-events/application/commands/record-financial-event/record-financial-event.command';
 import { FinancialEventDedupeKeys } from '@modules/finance/shared/domain/constants/financial-event-dedupe-keys.constant';
 import { FINANCIAL_EVENT_SOURCE_MODULES } from '@modules/finance/shared/domain/constants/financial-event-source-modules.constant';
@@ -52,6 +51,13 @@ import {
   PLATFORM_TENANT_PROVIDER,
 } from '@modules/finance/accounting/posting/domain/interfaces/platform-tenant.provider.interface';
 import { PlatformBookingSettledEventPayload } from '@modules/finance/accounting/posting/domain/posting/event-payloads';
+import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
+
+/** Kilitli claim adımının sonucu: ödeme bu webhook tarafından mı sahiplenildi? */
+type PaymentClaim =
+  | { readonly claimed: true; readonly bp: BookingPayment }
+  | { readonly claimed: false; readonly bp: BookingPayment };
 
 @CommandHandler(ConfirmBookingPaymentCommand)
 export class ConfirmBookingPaymentHandler
@@ -72,79 +78,152 @@ export class ConfirmBookingPaymentHandler
     @Inject(NATS_CLIENT)
     private readonly natsClient: ClientProxy,
     @Inject(PLATFORM_TENANT_PROVIDER)
-    private readonly platformTenant: IPlatformTenantProvider
+    private readonly platformTenant: IPlatformTenantProvider,
+    private readonly txManager: TransactionManager,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
+  /**
+   * Akış üç parçaya bölünmüştür: **claim-tx** (kilitli PENDING→PAID sahiplenmesi),
+   * **dış çağrılar** (HotelBeds book / link expire / iade — kilit dışında) ve
+   * **finalize-tx** (sonucun kilitli yazılması).
+   *
+   * Neden bölündü: sağlayıcı webhook'u tekrar gönderilebilir ve iki ödeme linki de
+   * ödenebilir. Durum okuması kilitsiz yapılırsa iki eşzamanlı webhook da kaydı
+   * "beklemede" görüp ikisi de rezervasyon açar. Kilit yalnız sahiplenme adımını
+   * kapsar; saniyeler süren HotelBeds çağrısı satır kilidini (ve tx bağlantısını)
+   * tutmaz.
+   */
   async execute(command: ConfirmBookingPaymentCommand): Promise<void> {
-    const { bookingPaymentId, provider, providerRef, ctx } = command.input;
+    const { bookingPaymentId, provider, providerRef } = command.input;
 
-    const bp = await this.bookingPaymentRepo.findById(bookingPaymentId);
-    if (!bp) {
-      throw new BookingPaymentNotFoundException(
-        `Ödeme kaydı bulunamadı: ${bookingPaymentId}`
-      );
-    }
+    const claim = await this.claimPayment(command);
 
-    this.policyFactory
-      .clinic(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.actorCanAccessTargetClinic(bp.clinicId.value))
-      .orThrow();
-
-    // Idempotency: PENDING değilse tekrar işlenmez. Zaten ödenmiş bir kayda ikinci ödeme
-    // gelirse (iki link de ödendi) → çift-çekim → ikinci ödemeyi iade et.
-    if (!bp.validate.status.isPending.value) {
-      if (bp.validate.status.isSettled.value) {
+    // Idempotency: bu webhook ödemeyi sahiplenemedi. Zaten ödenmiş bir kayda ikinci
+    // ödeme gelmişse (iki link de ödendi) → çift-çekim → ikinci ödemeyi iade et.
+    if (!claim.claimed) {
+      if (claim.bp.validate.status.isSettled.value) {
         this.logger.warn(
           `Çift ödeme tespit edildi (bp=${bookingPaymentId}, provider=${provider}). İkinci ödeme iade ediliyor.`
         );
-        await this.refundCharge(provider, providerRef, bp);
+        await this.refundCharge(provider, providerRef, claim.bp);
       }
       return;
     }
 
-    // PENDING → PAID
-    bp.markPaid(provider, providerRef);
-    await this.bookingPaymentRepo.update(bp);
+    const paid = claim.bp;
 
     // Diğer linki geçersiz kıl (best-effort).
-    await this.expireOtherLink(provider, bp);
+    await this.expireOtherLink(provider, paid);
 
     // intent'i HotelBeds'e replay et.
     try {
-      const bookingId = await this.book(bp);
-      bp.markBooked(bookingId, bookingId);
-      await this.bookingPaymentRepo.update(bp);
+      const bookingId = await this.book(paid);
+      const booked = await this.mutateInTx(bookingPaymentId, (bp) =>
+        bp.markBooked(bookingId, bookingId)
+      );
       this.logger.log(
         `Rezervasyon tamamlandı (bp=${bookingPaymentId}, bookingId=${bookingId}).`
       );
       // Tahsilat kliniğin defterine YAZILMAZ; platform defterine yazılır. Otel/transfer
       // bir platform işlemidir (hasta platforma öder, platform HotelBeds'e öder) ve
       // komisyon platform geliridir — klinik bu işleme finansal olarak taraf değildir.
-      await this.postSettlementToPlatformLedger(bp, provider);
+      await this.postSettlementToPlatformLedger(booked, provider);
       // Müşteriye mesajlaşma kanalından onay (AI dilinde / pencere dışı HSM); hatası bozmaz.
-      this.notifyCustomer(bp);
+      this.notifyCustomer(booked);
     } catch (err) {
       const reason =
         err instanceof Error ? err.message : 'Rezervasyon başarısız';
       this.logger.error(
         `HotelBeds rezervasyonu başarısız (bp=${bookingPaymentId}): ${reason}`
       );
-      bp.markFailed(reason);
-      await this.bookingPaymentRepo.update(bp);
-      // Tahsil edildi ama rezervasyon açılamadı → ödemeyi iade et.
+      const failed = await this.mutateInTx(bookingPaymentId, (bp) =>
+        bp.markFailed(reason)
+      );
+      // Tahsil edildi ama rezervasyon açılamadı → ödemeyi iade et (kilit dışında).
       try {
-        await this.refundCharge(provider, providerRef, bp);
-        bp.markRefunded(reason);
-        await this.bookingPaymentRepo.update(bp);
+        await this.refundCharge(provider, providerRef, failed);
+        await this.mutateInTx(bookingPaymentId, (bp) =>
+          bp.markRefunded(reason)
+        );
       } catch (refundErr) {
-        // TODO: slack bildirimi yollanacak
         this.logger.error(
           `İade de başarısız (bp=${bookingPaymentId}); manuel müdahale gerekli: ${
             refundErr instanceof Error ? refundErr.message : refundErr
           }`
         );
+        // Akışın EN KÖTÜ hali: para tahsil edildi, rezervasyon açılamadı ve iade
+        // de geçmedi. Müşterinin parası bizde, karşılığında hiçbir şey yok ve
+        // otomatik telafi yolu kalmadı — elle iade şart.
+        this.criticalFailure.publish({
+          operation: 'health-tourism.booking-payment.refund',
+          severity: 'CRITICAL',
+          summary:
+            'Tahsilat alındı, rezervasyon açılamadı ve iade de başarısız — elle iade gerekiyor.',
+          errorMessage:
+            refundErr instanceof Error ? refundErr.message : String(refundErr),
+          context: {
+            bookingPaymentId,
+            provider,
+            providerRef,
+            bookingFailureReason: reason,
+          },
+          clinicId: failed.clinicId.value,
+          dedupeKey: `booking-refund-failed:${bookingPaymentId}`,
+        });
       }
     }
+  }
+
+  /**
+   * Claim-tx: kaydı kilitleyip PENDING ise PAID'e çeker. `claimed: false` dönerse
+   * ödemeyi başka bir webhook (ya da bu webhook'un önceki denemesi) sahiplenmiştir.
+   */
+  private async claimPayment(
+    command: ConfirmBookingPaymentCommand
+  ): Promise<PaymentClaim> {
+    const { bookingPaymentId, provider, providerRef, ctx } = command.input;
+
+    return this.txManager.run(async () => {
+      const bp = await this.loadForUpdate(bookingPaymentId);
+
+      this.policyFactory
+        .clinic(ctx.actor, ctx.source)
+        .evaluator.check((p) => p.actorCanAccessTargetClinic(bp.clinicId.value))
+        .orThrow();
+
+      if (!bp.validate.status.isPending.value) {
+        return { claimed: false, bp };
+      }
+
+      bp.markPaid(provider, providerRef);
+      return { claimed: true, bp: await this.bookingPaymentRepo.update(bp) };
+    });
+  }
+
+  /** Kaydı kilitli yükleyip verilen durum geçişini uygular ve yazar (finalize-tx). */
+  private async mutateInTx(
+    bookingPaymentId: string,
+    apply: (bp: BookingPayment) => void
+  ): Promise<BookingPayment> {
+    return this.txManager.run(async () => {
+      const bp = await this.loadForUpdate(bookingPaymentId);
+      apply(bp);
+      return this.bookingPaymentRepo.update(bp);
+    });
+  }
+
+  private async loadForUpdate(
+    bookingPaymentId: string
+  ): Promise<BookingPayment> {
+    const bp =
+      await this.bookingPaymentRepo.findByIdForUpdate(bookingPaymentId);
+    if (!bp) {
+      throw new BookingPaymentNotFoundException(
+        `Ödeme kaydı bulunamadı: ${bookingPaymentId}`
+      );
+    }
+    return bp;
   }
 
   /**
@@ -198,6 +277,18 @@ export class ConfirmBookingPaymentHandler
           err instanceof Error ? err.message : String(err)
         }`
       );
+      // Rezervasyon açıldı ve para alındı ama platform defterine hiç düşmedi:
+      // komisyon geliri ve tedarikçi borcu kayıt dışı kalır.
+      this.criticalFailure.publish({
+        operation: 'health-tourism.booking-payment.platform-ledger',
+        severity: 'CRITICAL',
+        summary:
+          'Rezervasyon tahsilatı platform defterine yazılamadı (komisyon/tedarikçi kaydı eksik).',
+        errorMessage: err instanceof Error ? err.message : String(err),
+        context: { bookingPaymentId: bp.id.value },
+        clinicId: bp.clinicId.value,
+        dedupeKey: `booking-platform-ledger-failed:${bp.id.value}`,
+      });
     }
   }
 
@@ -327,6 +418,19 @@ export class ConfirmBookingPaymentHandler
           err instanceof Error ? err.message : err
         }`
       );
+      // İkinci ödeme linki açık kaldı: müşteri onu da öderse ikinci bir tahsilat
+      // doğar. Kayıt tarafı kilitli sahiplenmeyle ikinci rezervasyonu engelliyor
+      // ama PARA çekilmiş olur — linkin elle kapatılması gerekir.
+      this.criticalFailure.publish({
+        operation: 'health-tourism.booking-payment.expire-link',
+        severity: 'WARNING',
+        summary:
+          'Ödenmeyen ikinci ödeme linki kapatılamadı; çift tahsilat riski açık.',
+        errorMessage: err instanceof Error ? err.message : String(err),
+        context: { bookingPaymentId: bp.id.value, paidProvider },
+        clinicId: bp.clinicId.value,
+        dedupeKey: `booking-expire-link-failed:${bp.id.value}`,
+      });
     }
   }
 

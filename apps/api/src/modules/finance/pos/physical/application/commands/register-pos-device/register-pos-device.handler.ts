@@ -8,6 +8,11 @@ import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(RegisterPosDeviceCommand)
 export class RegisterPosDeviceHandler
@@ -16,13 +21,23 @@ export class RegisterPosDeviceHandler
 {
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
-    private readonly posDeviceRepo: IPosDeviceCommandRepository
+    private readonly posDeviceRepo: IPosDeviceCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     command: RegisterPosDeviceCommand
   ): Promise<RegisterPosDeviceResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
+
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL. Bu
+    // kontrol olmadan, POS yetkisi olan herhangi bir personel gövdeye başka bir
+    // kliniğin id'sini yazıp o kliniğin terminalinde işlem yürütebilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
     // DTO superRefine ile sağlayıcıya göre zorunlu alanları garanti eder; burada düz DTO,
     // entity'nin katı discriminated CreatePosDeviceProps koluna daraltılır (alanlar doğrulanmış).

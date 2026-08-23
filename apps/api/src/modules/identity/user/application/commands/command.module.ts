@@ -18,6 +18,8 @@ import { UpdateUserBySelfHandler } from './update-user-by-self/update-user-by-se
 import { SoftDeleteManyUsersByClinicIdHandler } from '@modules/identity/user/application/commands/soft-delete-many-user-by-clinic-id/soft-delete-many-users-by-clinic-id.handler';
 import { MailModule } from '@src/infrastructure/mail/mail.module';
 import { UserInfrastructureModule } from '@modules/identity/user/infrastructure/infrastructure.module';
+import { GrantUserCapabilityHandler } from './grant-user-capability/grant-user-capability.handler';
+import { RevokeUserCapabilityHandler } from './revoke-user-capability/revoke-user-capability.handler';
 
 const CommandHandlers = [
   UpdateLastLoginHandler,
@@ -33,7 +35,10 @@ const CommandHandlers = [
   UpdateUserByStaffHandler,
   UpdateUserBySelfHandler,
 
-  EnqueueForceDeleteUserHandler,];
+  EnqueueForceDeleteUserHandler,
+  GrantUserCapabilityHandler,
+  RevokeUserCapabilityHandler,
+];
 
 @Module({
   imports: [MailModule, ProviderModule, UserInfrastructureModule],

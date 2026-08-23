@@ -18,6 +18,11 @@ export class PurchaseInvoiceCommandRepository
     return raw ? new PurchaseInvoice(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<PurchaseInvoice | null> {
+    await this.lockRowForUpdateOrFail('purchase_invoices', id);
+    return this.findById(id);
+  }
+
   async update(entity: PurchaseInvoice): Promise<PurchaseInvoice> {
     const persistenceData = entity.toPersistence();
     const { id, ...data } = persistenceData;

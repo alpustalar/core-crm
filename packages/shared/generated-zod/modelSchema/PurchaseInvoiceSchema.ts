@@ -16,6 +16,11 @@ export const PurchaseInvoiceSchema = z.object({
   supplierId: z.string(),
   invoiceNumber: z.string().nullable(),
   invoiceDate: z.coerce.date(),
+  /**
+   * Eşleştirildiği satın alma siparişi (`supply/purchasing`). Bounded-context:
+   * scalar id, navigation YOK. Null = serbest fatura (siparişe bağlı değil).
+   */
+  purchaseOrderId: z.string().nullable(),
   lineAccountCode: z.string(),
   vatRate: z.number().int(),
   netTotal: decimalSchema("Field 'netTotal' must be a Decimal. Location: ['Models', 'PurchaseInvoice']"),

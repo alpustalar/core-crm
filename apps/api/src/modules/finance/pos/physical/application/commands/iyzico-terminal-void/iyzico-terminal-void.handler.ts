@@ -3,6 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import {
   OriginalPosTransactionNotFoundException,
   PosDeviceNotFoundException,
+  PosTransactionAlreadyReversedException,
   PosTransactionMissingExternalRefException,
   PosTransactionMissingPaymentDateException,
   PosTransactionNotVoidableException,
@@ -23,6 +24,7 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import PosTransactionKindSchema from '@input-type-schemas/PosTransactionKindSchema';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
 import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
@@ -30,12 +32,17 @@ import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(IyzicoTerminalVoidCommand)
-export class IyzicoTerminalVoidHandler
-  implements
-    ICommandHandler<IyzicoTerminalVoidCommand, IyzicoTerminalVoidResponse>
-{
+export class IyzicoTerminalVoidHandler implements ICommandHandler<
+  IyzicoTerminalVoidCommand,
+  IyzicoTerminalVoidResponse
+> {
   private readonly logger = new Logger(IyzicoTerminalVoidHandler.name);
 
   constructor(
@@ -46,57 +53,96 @@ export class IyzicoTerminalVoidHandler
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
     private readonly iyzicoTerminalService: IyzicoTerminalService,
     private readonly txManager: TransactionManager,
-    private readonly posPaymentSync: PosPaymentSyncService
+    private readonly posPaymentSync: PosPaymentSyncService,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     command: IyzicoTerminalVoidCommand
   ): Promise<IyzicoTerminalVoidResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
 
-    // Orijinal işlem iptal kararını besliyor → okuma command repo'dan (ana bağlantı):
-    // satış az önce tamamlanmış olabilir, replica gecikmesi iptali reddederdi.
-    const originalTx = await this.posTransactionRepo.findById(
-      input.originalPosTransactionId
-    );
-    if (!originalTx) {
-      throw new OriginalPosTransactionNotFoundException();
-    }
-    if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
-      throw new PosTransactionNotVoidableException();
-    }
-    if (!originalTx.externalRef) {
-      throw new PosTransactionMissingExternalRefException();
-    }
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL. Bu
+    // kontrol olmadan, POS yetkisi olan herhangi bir personel gövdeye başka bir
+    // kliniğin id'sini yazıp o kliniğin terminalinde işlem yürütebilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
-    const paymentDate = extractIyzicoPaymentDate(originalTx.rawResponse);
-    if (!paymentDate) {
-      throw new PosTransactionMissingPaymentDateException();
-    }
-
-    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
-    if (!device || !device.isActive) {
-      throw new PosDeviceNotFoundException();
-    }
-
-    const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
     const credentials = await this.credentialsResolver.resolve(input.clinicId);
 
-    const posTransaction = PosTransaction.create({
-      posDeviceId: device.id.value,
-      clinicId: input.clinicId,
-      paymentId: originalTx.paymentId ?? undefined,
-      amount: Number(originalTx.amount.value),
-      currency: originalTx.amount.currency,
+    // Faz 1 — orijinal işlem KİLİT ALTINDA doğrulanır ve PENDING iptal kaydı aynı
+    // transaction'da açılır (HTTP öncesi). Kilitli okuma, iptal kararını besleyen
+    // durumu eşzamanlı değiştiricilerden (mutabakat, callback) yalıtır.
+    const {
+      voidTx,
+      deviceUniqueId,
+      paymentDate,
+      originalPaymentId,
+      originalExternalRef,
+    } = await this.txManager.outboxRun(async () => {
+      const originalTx = await this.posTransactionRepo.findByIdForUpdate(
+        input.originalPosTransactionId
+      );
+      if (!originalTx) {
+        throw new OriginalPosTransactionNotFoundException();
+      }
+
+      // Yetki `input.clinicId` üzerinden verildi; ters kaydedilecek ORİJİNAL işlem
+      // ayrı bir alandan geliyor. Bu doğrulama olmadan başka kliniğin satışı iptal
+      // edilip para o kliniğin üye işyerinden geri döndürülebilirdi.
+      originalTx.assertBelongsToClinic(input.clinicId);
+      if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
+        throw new PosTransactionNotVoidableException();
+      }
+      if (!originalTx.externalRef) {
+        throw new PosTransactionMissingExternalRefException();
+      }
+
+      const paymentDate = extractIyzicoPaymentDate(originalTx.rawResponse);
+      if (!paymentDate) {
+        throw new PosTransactionMissingPaymentDateException();
+      }
+
+      // Satış zaten geri alınmışsa ikinci kez cihaza gidilmez. Kilit bu okumayı
+      // eşzamanlı iptallerden yalıtır; yine de araya giren bir istek olursa
+      // `active_void_original_id` unique kısıtı INSERT'te yakalar.
+      const reversal = await this.posTransactionRepo.findLiveReversalSummary(
+        originalTx.id.value
+      );
+      if (reversal.hasActiveVoid || reversal.refundedAmount.greaterThan(0)) {
+        throw new PosTransactionAlreadyReversedException();
+      }
+
+      const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
+      if (!device || !device.isActive) {
+        throw new PosDeviceNotFoundException();
+      }
+
+      const voidTx = await this.posTransactionRepo.create(
+        PosTransaction.create({
+          posDeviceId: device.id.value,
+          clinicId: input.clinicId,
+          paymentId: originalTx.paymentId ?? undefined,
+          amount: originalTx.amount.value.toNumber(),
+          currency: originalTx.amount.currency,
+          kind: PosTransactionKindSchema.enum.VOID,
+          originalPosTransactionId: originalTx.id.value,
+        })
+      );
+
+      return {
+        voidTx,
+        deviceUniqueId: device.iyzicoDeviceUniqueId.orThrow(),
+        paymentDate,
+        originalPaymentId: originalTx.paymentId,
+        originalExternalRef: originalTx.externalRef,
+      };
     });
 
-    // Faz 1 — PENDING iptal kaydı atomik olarak oluşturulur (HTTP öncesi)
-    const { voidTransactionId, voidTx } = await this.txManager.outboxRun(
-      async () => {
-        const tx = await this.posTransactionRepo.create(posTransaction);
-        return { voidTransactionId: tx.id.value, voidTx: tx };
-      }
-    );
+    const voidTransactionId = voidTx.id.value;
 
     // Faz 2 — iyzico Terminal iptal çağrısı
     try {
@@ -105,7 +151,7 @@ export class IyzicoTerminalVoidHandler
         deviceUniqueId,
         conversationId: voidTransactionId,
         transactionReferenceId: voidTransactionId,
-        paymentId: originalTx.externalRef,
+        paymentId: originalExternalRef,
         paymentDate,
       });
 
@@ -118,9 +164,9 @@ export class IyzicoTerminalVoidHandler
         if (approved) {
           voidTx.markSuccess(externalRef, result);
           await this.posTransactionRepo.update(voidTx);
-          if (originalTx.paymentId) {
+          if (originalPaymentId) {
             await this.posPaymentSync.markRefunded({
-              paymentId: originalTx.paymentId,
+              paymentId: originalPaymentId,
               clinicId: input.clinicId,
             });
           }

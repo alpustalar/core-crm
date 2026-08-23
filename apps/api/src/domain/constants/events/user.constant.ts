@@ -9,6 +9,8 @@ export const USER_EVENTS = {
   UPDATE: 'user.update',
   ENQUEUE_FORCE_DELETE: 'enqueue-force-delete',
   BULK_CHANGE_STATUS: 'user.change_status',
+  CAPABILITY_GRANTED: 'user.capability_granted',
+  CAPABILITY_REVOKED: 'user.capability_revoked',
 } as const;
 
 export type UserEvent = (typeof USER_EVENTS)[keyof typeof USER_EVENTS];
