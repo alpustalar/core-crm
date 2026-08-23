@@ -18,6 +18,13 @@ export const RecordPurchaseInvoiceSchema = z.object({
   invoiceNumber: z.string().optional(),
   invoiceDate: z.coerce.date(),
 
+  /**
+   * Faturanın eşleştirileceği satın alma siparişi (opsiyonel). Verilirse sipariş
+   * kilit altında doğrulanır (tedarikçi/klinik/para birimi uyumu + faturalanan
+   * toplam sipariş tutarını aşamaz) ve siparişin faturalama durumu güncellenir.
+   */
+  purchaseOrderId: z.uuid().optional(),
+
   /** Karşı borç/gider hesabı: 150 (stok) | 770/760/740 (gider). */
   lineAccountCode: z.string().min(1).default('770'),
   vatRate: z.number().int().min(0).max(100),
@@ -25,6 +32,6 @@ export const RecordPurchaseInvoiceSchema = z.object({
   vatTotal: z.number().nonnegative(),
   currency: PurchaseInvoiceCurrencyEnum.default('TRY'),
 
+  // organizationId ALINMAZ — clinicId'den türetilir (bkz. create-supplier).
   clinicId: z.uuid(),
-  organizationId: z.uuid(),
 });

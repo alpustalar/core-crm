@@ -300,6 +300,19 @@ export class DateTimeManager {
     return this.tz(date, tz).endOf('day').toDate();
   }
 
+  /** Verilen tarihin ait olduğu ayın ilk anı (ayın 1'i 00:00). */
+  static startOfMonth(date: Date, tz: TimeZoneType = DEFAULT_TZ): Date {
+    return this.tz(date, tz).startOf('month').toDate();
+  }
+
+  /**
+   * İki tarih arasındaki tam ay farkı (ondalık kısım atılır). Takvim aylarına
+   * hizalı raporlama dönemlerini tespit etmek için kullanılır.
+   */
+  static diffInMonths(later: Date, earlier: Date): number {
+    return dayjs(later).diff(dayjs(earlier), 'month');
+  }
+
   /**
    * Verilen yılın ilk anını döner (1 Ocak 00:00:00)
    */

@@ -1,6 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { HealthController } from './health.controller';
-import { HealthIndicator } from './health-indicator.interface';
+import { HealthController } from '@src/http';
+import { HealthIndicator } from '@src/http';
 
 const indicator = (
   name: string,
