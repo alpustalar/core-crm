@@ -1,6 +1,3 @@
-// TODO: KRİTİK: Bakiye kontrolünü yaparken doğrudan çalışanın o yılki annualLeaveEntitlement alanına bakıp, sadece currentYear (2026) içerisindeki onaylanmış izinleri düşülmüş:
-// TODO: Türkiye İş Kanunu (4857 Sayılı Kanun, Madde 53-54) ve genel İK pratiklerine göre: Geçmiş Yıldan Devreden İzinler: Çalışan 2025 yılından 5 gün izin devrettiyse ve 2026 hakkı 14 günse, toplam hakkı 19 gündür. Sadece currentYear hakkına bakmak çalışanın geçmişten devreden kazanılmış hakkını (accrual balance) gasp eder.Yıl Aşan İzinler (Cross-Year Leaves): İzin 28 Aralık 2026'da başlayıp 5 Ocak 2027'de bitiyorsa, startOfYear ve endOfYear filtresi bu iznin 2027'ye sarkan günlerini hesaptan düşürürken veya yılı sorgularken takvim sınırına takılabilir.Çözüm: İzin bakiyesi kontrolü için tekil bir annualLeaveEntitlement sayısı yerine, İK modülünden çalışanın aktif kullanılabilir toplam bakiyesini (Accrued/Remaining Balance) veren bir servis/query çağırmak ya da devreden bakiyeyi hesaba katmak şarttır.
-
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ApproveLeaveCommand } from './approve-leave.command';
@@ -13,37 +10,39 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { GetEmployeeByIdQuery } from '@modules/hr/employee/application/queries/get-employee-by-id/get-employee-by-id.query';
-import { IGetContext } from '@common/decorators/get-context.decorator';
 import { LeaveBalance } from '@modules/hr/leave/domain/value-objects/leave-balance.vo';
 import { LEAVE_EVENTS } from '@src/domain/constants/events';
-import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
 import {
   ILeaveCommandRepository,
   LEAVE_COMMAND_REPOSITORY,
 } from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
+import {
+  EMPLOYEE_LEAVE_ENTITLEMENT_SERVICE,
+  IEmployeeLeaveEntitlementService,
+} from '@modules/hr/employee/domain/services/leave-entitlement/leave-entitlement.service.interface';
+import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 @CommandHandler(ApproveLeaveCommand)
 export class ApproveLeaveHandler
   implements ICommandHandler<ApproveLeaveCommand, void>
 {
-  public internalCtx: IGetContext;
   constructor(
     @Inject(LEAVE_COMMAND_REPOSITORY)
     private readonly leaveRepo: ILeaveCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly queryBus: TSQueryBus,
+    @Inject(EMPLOYEE_LEAVE_ENTITLEMENT_SERVICE)
+    private readonly entitlementService: IEmployeeLeaveEntitlementService,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: ApproveLeaveCommand): Promise<void> {
     const { leaveId, data, ctx } = command.payload;
-    this.internalCtx = ExecutionContextFactory.createInternal(ctx);
 
     await this.txManager.run(async () => {
-      const leave = await this.leaveRepo.findById(leaveId);
+      // Kilitli okuma: aynı talebin iki kez onaylanıp günlerin iki kez
+      // düşülmesini engeller.
+      const leave = await this.leaveRepo.findByIdForUpdate(leaveId);
       if (!leave) throw new LeaveNotFoundException(leaveId);
 
       this.policyFactory
@@ -72,23 +71,26 @@ export class ApproveLeaveHandler
     employeeId: string,
     requestedDays: number
   ): Promise<void> {
-    const { data: employee } = await this.queryBus.execute(
-      new GetEmployeeByIdQuery(employeeId, this.internalCtx)
-    );
+    // Hak ediş, çalışan satırı kilitlenerek ve **aynı çağrıda** okunur: kilit alma
+    // ile kilitli veriyi okuma ayrı adımlara bölünseydi sırayı bozmak derleyicinin
+    // göremediği bir hata olurdu. Bu kilit aynı zamanda bakiyenin çapasıdır — aynı
+    // çalışanın iki izni eşzamanlı onaylanırken ikisi de aynı "kalan"ı göremez.
+    const entitlement =
+      await this.entitlementService.lockAndGetAnnualEntitlement(employeeId);
 
-    // İzin yılı + bakiye aritmetiği domain'de (LeaveBalance) — bakiye sorgusuyla
-    // birebir aynı hesap; iki yerde ayrı ayrı yazılmaz.
-    const { from, to } = LeaveBalance.periodOf();
-    const usedDays = await this.leaveRepo.sumApprovedAnnualDays(
+    // Devreden hak için hak edişin doğduğu ilk yıldan bugüne kadarki tüm onaylı
+    // izinler taranır; tek bir yılın penceresi kazanılmış hakkı görmezdi.
+    const now = DateTimeManager.create();
+    const from = DateTimeManager.startOfYear(entitlement.firstAccrualYear);
+    const { to } = LeaveBalance.periodOf(now);
+
+    const leaves = await this.leaveRepo.findApprovedAnnualLeaves(
       employeeId,
       from,
       to
     );
 
-    const balance = LeaveBalance.calculate({
-      entitlement: employee?.annualLeaveEntitlement ?? 0,
-      usedDays,
-    });
+    const balance = LeaveBalance.accrue({ entitlement, leaves, asOf: now });
 
     if (balance.exceeds(requestedDays)) {
       throw new LeaveInsufficientBalanceException(

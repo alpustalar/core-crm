@@ -20,10 +20,9 @@ export class PurchaseRequestNotPendingException extends DomainException<{
   public override readonly httpStatus = HttpStatus.CONFLICT;
 
   constructor(currentStatus?: string) {
-    super(
-      'Yalnızca onay bekleyen (SUBMITTED) talepler bu işleme uygundur.',
-      { currentStatus }
-    );
+    super('Yalnızca onay bekleyen (SUBMITTED) talepler bu işleme uygundur.', {
+      currentStatus,
+    });
   }
 }
 
@@ -34,10 +33,9 @@ export class PurchaseRequestNotApprovedException extends DomainException<{
   public override readonly httpStatus = HttpStatus.CONFLICT;
 
   constructor(currentStatus?: string) {
-    super(
-      'Siparişe yalnızca onaylanmış (APPROVED) talep dönüştürülebilir.',
-      { currentStatus }
-    );
+    super('Siparişe yalnızca onaylanmış (APPROVED) talep dönüştürülebilir.', {
+      currentStatus,
+    });
   }
 }
 
@@ -91,6 +89,81 @@ export class PurchaseOrderItemNotFoundException extends DomainException<{
   }
 }
 
+/**
+ * Fatura eşleştirmede sipariş tutarının aşılması. 3'lü eşleştirmenin (sipariş ↔
+ * mal kabul ↔ fatura) yakalamak için var olduğu asıl durum budur; frontend'in
+ * farkı gösterebilmesi için sipariş/teslim/faturalanan tutarlar meta'da taşınır.
+ */
+export class PurchaseOrderOverInvoicedException extends DomainException<{
+  orderId: string;
+  orderedTotal: number;
+  receivedValue: number;
+  alreadyInvoiced: number;
+  attempted: number;
+}> {
+  readonly errorCode = ERROR_CODES.PURCHASE_ORDER.OVER_INVOICED;
+  public override readonly httpStatus = HttpStatus.CONFLICT;
+
+  constructor(meta: {
+    orderId: string;
+    orderedTotal: number;
+    receivedValue: number;
+    alreadyInvoiced: number;
+    attempted: number;
+  }) {
+    super('Eşleştirilen fatura toplamı sipariş tutarını aşamaz.', meta);
+  }
+}
+
+export class PurchaseOrderNotBillableException extends DomainException<{
+  currentStatus?: string;
+}> {
+  readonly errorCode = ERROR_CODES.PURCHASE_ORDER.NOT_BILLABLE;
+  public override readonly httpStatus = HttpStatus.CONFLICT;
+
+  constructor(currentStatus?: string) {
+    super('Taslak veya iptal edilmiş siparişe fatura eşleştirilemez.', {
+      currentStatus,
+    });
+  }
+}
+
+export class PurchaseOrderSupplierMismatchException extends DomainException<{
+  orderSupplierId: string;
+  invoiceSupplierId: string;
+}> {
+  readonly errorCode = ERROR_CODES.PURCHASE_ORDER.SUPPLIER_MISMATCH;
+  public override readonly httpStatus = HttpStatus.CONFLICT;
+
+  constructor(meta: { orderSupplierId: string; invoiceSupplierId: string }) {
+    super('Fatura ile siparişin tedarikçisi aynı değil.', meta);
+  }
+}
+
+export class PurchaseOrderCurrencyMismatchException extends DomainException<{
+  orderCurrency: string;
+  invoiceCurrency: string;
+}> {
+  readonly errorCode = ERROR_CODES.PURCHASE_ORDER.CURRENCY_MISMATCH;
+  public override readonly httpStatus = HttpStatus.CONFLICT;
+
+  constructor(meta: { orderCurrency: string; invoiceCurrency: string }) {
+    super('Fatura ile siparişin para birimi aynı değil.', meta);
+  }
+}
+
+export class PurchaseOrderClinicMismatchException extends DomainException<{
+  orderClinicId: string;
+  invoiceClinicId: string;
+}> {
+  readonly errorCode = ERROR_CODES.PURCHASE_ORDER.CLINIC_MISMATCH;
+  public override readonly httpStatus = HttpStatus.CONFLICT;
+
+  constructor(meta: { orderClinicId: string; invoiceClinicId: string }) {
+    super('Fatura ile sipariş farklı kliniklere ait.', meta);
+  }
+}
+
 export class PurchaseOrderOverReceiptException extends DomainException<{
   itemId: string;
   ordered: number;
@@ -106,9 +179,6 @@ export class PurchaseOrderOverReceiptException extends DomainException<{
     alreadyReceived: number;
     attempted: number;
   }) {
-    super(
-      'Teslim alınan miktar sipariş edilen miktarı aşamaz.',
-      meta
-    );
+    super('Teslim alınan miktar sipariş edilen miktarı aşamaz.', meta);
   }
 }

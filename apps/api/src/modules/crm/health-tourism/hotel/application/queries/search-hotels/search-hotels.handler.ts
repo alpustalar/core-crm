@@ -1,4 +1,4 @@
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { SearchHotelsQuery } from './search-hotels.query';
 import { SearchHotelsResponse } from './search-hotels.response';
@@ -14,7 +14,7 @@ export class SearchHotelsHandler
 {
   constructor(
     @Inject(HOTELBEDS_API_SERVICE)
-    private readonly hotelbedsApi: IHotelbedsApiService,
+    private readonly hotelbedsApi: IHotelbedsApiService
   ) {}
 
   async execute(query: SearchHotelsQuery): Promise<SearchHotelsResponse> {

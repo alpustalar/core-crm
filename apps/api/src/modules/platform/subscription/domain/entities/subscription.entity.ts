@@ -16,10 +16,10 @@ import {
 } from '@input-type-schemas/BillingTargetSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
 import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { SubscriptionRules } from '@modules/platform/subscription/domain/rules/subscription.rules';
 
 /** `Subscription.renew` girişi — yeni dönem + son ödeme referansı + audit event gövdesi. */
 export interface RenewSubscriptionInput {
@@ -132,44 +132,12 @@ export class Subscription extends AggregateRoot {
     return this._updatedAt;
   }
 
-  private get _businessRulesValidator() {
+  public get validate() {
     return {
-      scheduleCancellation: (() => {
-        const isInvalid = !this.isActive.value;
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new Error(
-                'Yalnızca aktif abonelikler iptal planlanabilir.'
-              );
-          },
-        };
-      })(),
-      undoCancellation: (() => {
-        const isInvalid = !this._cancelAtPeriodEnd;
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid)
-              throw new Error(
-                'İptal planlanmamış abonelik üzerinde geri alma yapılamaz.'
-              );
-          },
-        };
-      })(),
-      cancel: (() => {
-        const isInvalid = this.isCanceled.value;
-
-        return {
-          isValid: !isInvalid,
-          orThrow: () => {
-            if (isInvalid) {
-              throw new Error('Abonelik zaten iptal edilmiş.');
-            }
-          },
-        };
-      })(),
+      status: {
+        isActive: () => this.isActive,
+        isCancelled: () => this.isCanceled,
+      },
     };
   }
 
@@ -402,21 +370,18 @@ export class Subscription extends AggregateRoot {
     );
   }
 
-  public scheduleCancellation(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.scheduleCancellation.orThrow();
+  public rules(validateOptions: ValidateOptionsType) {
+    return new SubscriptionRules(this, validateOptions);
+  }
+  public scheduleCancellation(): void {
     this._cancelAtPeriodEnd = true;
   }
 
-  public undoCancellation(options = DefaultValidateOptions): void {
-    if (shouldValidate(options))
-      this._businessRulesValidator.undoCancellation.orThrow();
+  public undoCancellation(): void {
     this._cancelAtPeriodEnd = false;
   }
 
-  public cancel(options = DefaultValidateOptions): void {
-    if (shouldValidate(options)) this._businessRulesValidator.cancel.orThrow();
-
+  public cancel(): void {
     this._status = SubStatusSchema.enum.CANCELED;
     this._cancelAtPeriodEnd = false;
   }

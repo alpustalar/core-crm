@@ -2,12 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { InstallmentNotFoundException } from '@modules/finance/payment/domain/exceptions/payment.exceptions';
 import { MarkInstallmentAsRefundedCommand } from './mark-installment-as-refunded.command';
-import {
-  IPaymentEventPublisher,
-  PAYMENT_EVENT_PUBLISHER,
-} from '@modules/finance/payment/domain/interfaces/payment-event-publisher.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
-import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -24,8 +19,6 @@ export class MarkInstallmentAsRefundedHandler
   constructor(
     @Inject(PAYMENT_COMMAND_REPOSITORY)
     private readonly paymentRepo: IPaymentCommandRepository,
-    @Inject(PAYMENT_EVENT_PUBLISHER)
-    private readonly paymentEventPublisher: IPaymentEventPublisher,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -45,19 +38,14 @@ export class MarkInstallmentAsRefundedHandler
 
       payment.rules(validateOptions).canRefund().orThrow();
 
-      payment.refundInstallment(installmentId);
-      await this.paymentRepo.update(payment);
-
-      // TODO: entity içinde refundInstallment içinde domain event olarak raise et
-      this.paymentEventPublisher.paymentRefund({
+      // PaymentRefundedEvent entity içinde raise edilir; `update()` flush eder.
+      payment.refundInstallment({
         installmentId,
-        paymentId: payment.id.value,
-        appointmentId: payment.appointmentId?.value ?? null,
-        clinicId: payment.clinicId.value,
-        action: LogAction.PAYMENT_REFUNDED,
-        type: LogType.INFO,
-        details: details ?? 'Ödeme iade edildi',
+        details,
+        actorId: ctx.actor.userId,
+        logSource: ctx.actor.source,
       });
+      await this.paymentRepo.update(payment);
     });
   }
 }

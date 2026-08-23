@@ -2,7 +2,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { VoidTreatmentChargeCommand } from './void-treatment-charge.command';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
   IPolicyFactory,
   POLICY_FACTORY,
@@ -11,11 +10,11 @@ import {
   ITreatmentChargeCommandRepository,
   TREATMENT_CHARGE_COMMAND_REPOSITORY,
 } from '@modules/finance/treatment-charge/domain/repositories/treatment-charge/treatment-charge.command.repository';
+import { TreatmentChargeNotFoundException } from '@modules/finance/treatment-charge/domain/exceptions/treatment-charge.exceptions';
 import {
-  TreatmentChargeAlreadyInvoicedException,
-  TreatmentChargeNotFoundException,
-} from '@modules/finance/treatment-charge/domain/exceptions/treatment-charge.exceptions';
-import { GetInvoiceByAppointmentIdQuery } from '@modules/finance/invoice/application/queries/get-invoice-by-appointment-id/get-invoice-by-appointment-id.query';
+  IInvoiceIssuanceService,
+  INVOICE_ISSUANCE_SERVICE,
+} from '@modules/finance/invoice/domain/services/invoice-issuance/invoice-issuance.service.interface';
 import { TREATMENT_CHARGE_EVENTS } from '@src/domain/constants/events';
 
 /**
@@ -31,7 +30,8 @@ export class VoidTreatmentChargeHandler
     private readonly chargeRepo: ITreatmentChargeCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
-    private readonly queryBus: TSQueryBus,
+    @Inject(INVOICE_ISSUANCE_SERVICE)
+    private readonly invoiceIssuance: IInvoiceIssuanceService,
     private readonly txManager: TransactionManager
   ) {}
 
@@ -39,7 +39,9 @@ export class VoidTreatmentChargeHandler
     const { chargeId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const charge = await this.chargeRepo.findById(chargeId);
+      // Kilitli okuma: iptal kararını besleyen durum, eşzamanlı indirim/iptal
+      // isteğiyle yarışmasın (lost update + çift iptal).
+      const charge = await this.chargeRepo.findByIdForUpdate(chargeId);
       if (!charge) throw new TreatmentChargeNotFoundException(chargeId);
 
       this.policyFactory
@@ -50,14 +52,11 @@ export class VoidTreatmentChargeHandler
         )
         .orThrow(TREATMENT_CHARGE_EVENTS.VOIDED);
 
-      const { data: invoice } = await this.queryBus.execute(
-        new GetInvoiceByAppointmentIdQuery(charge.appointmentId.value)
+      // Fatura kontrolü QueryBus yerine domain servisi üzerinden: yazmayı kapıda
+      // durduran invariant, aynı transaction kapsamında Command Repo'dan okunur.
+      await this.invoiceIssuance.assertAppointmentNotInvoiced(
+        charge.appointmentId.value
       );
-      if (invoice) {
-        throw new TreatmentChargeAlreadyInvoicedException(
-          charge.appointmentId.value
-        );
-      }
 
       charge.void({ reason: data.reason });
 

@@ -7,6 +7,6 @@ export class GetHotelBookingByIdQuery implements IQuery {
 
   constructor(
     public readonly bookingId: string,
-    public readonly ctx: IGetContext,
+    public readonly ctx: IGetContext
   ) {}
 }

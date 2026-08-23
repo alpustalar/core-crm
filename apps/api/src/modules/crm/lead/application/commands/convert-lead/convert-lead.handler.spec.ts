@@ -31,8 +31,10 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
   }
 
   function build(lead: Lead, createdPatientId = randomUUID()) {
+    // Dönüşüm kararını besleyen okuma kilitli: iki eşzamanlı dönüştürme isteği
+    // lead'i "açık" görüp iki hasta kaydı yaratamaz.
     const leadCommandRepo = {
-      findById: jest.fn(async () => lead),
+      findByIdForUpdate: jest.fn(async () => lead),
       update: jest.fn(async (l: Lead) => l),
       create: jest.fn(),
     };
@@ -98,7 +100,11 @@ describe('ConvertLeadHandler — dönüşümde otomatik hasta oluşturma', () =>
 
     await expect(
       handler.execute(
-        new ConvertLeadCommand({ leadId: lead.id.value, data: { clinicId }, ctx })
+        new ConvertLeadCommand({
+          leadId: lead.id.value,
+          data: { clinicId },
+          ctx,
+        })
       )
     ).rejects.toBeInstanceOf(LeadConvertMissingTargetException);
 

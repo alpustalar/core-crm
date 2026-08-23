@@ -3,6 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import {
   OriginalPosTransactionNotFoundException,
   PosDeviceNotFoundException,
+  PosTransactionAlreadyReversedException,
   PosTransactionMissingExternalRefException,
   PosTransactionMissingPaymentDateException,
   PosTransactionNotRefundableException,
@@ -24,6 +25,8 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import PosTransactionKindSchema from '@input-type-schemas/PosTransactionKindSchema';
+import { Decimal } from 'decimal.js';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import { IyzicoTerminalStatusSchema } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.contracts';
 import { extractIyzicoPaymentDate } from '@modules/finance/pos/physical/infrastructure/payment-gateway/iyzico-parser.utils';
@@ -31,12 +34,17 @@ import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(IyzicoTerminalRefundCommand)
-export class IyzicoTerminalRefundHandler
-  implements
-    ICommandHandler<IyzicoTerminalRefundCommand, IyzicoTerminalRefundResponse>
-{
+export class IyzicoTerminalRefundHandler implements ICommandHandler<
+  IyzicoTerminalRefundCommand,
+  IyzicoTerminalRefundResponse
+> {
   private readonly logger = new Logger(IyzicoTerminalRefundHandler.name);
 
   constructor(
@@ -47,61 +55,110 @@ export class IyzicoTerminalRefundHandler
     private readonly credentialsResolver: ResolveIyzicoTerminalCredentialsService,
     private readonly iyzicoTerminalService: IyzicoTerminalService,
     private readonly txManager: TransactionManager,
-    private readonly posPaymentSync: PosPaymentSyncService
+    private readonly posPaymentSync: PosPaymentSyncService,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     command: IyzicoTerminalRefundCommand
   ): Promise<IyzicoTerminalRefundResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
 
-    const originalTx = await this.posTransactionCommandRepo.findById(
-      input.originalPosTransactionId
-    );
-    if (!originalTx) {
-      throw new OriginalPosTransactionNotFoundException();
-    }
-    if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
-      throw new PosTransactionNotRefundableException();
-    }
-    if (!originalTx.externalRef) {
-      throw new PosTransactionMissingExternalRefException();
-    }
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL. Bu
+    // kontrol olmadan, POS yetkisi olan herhangi bir personel gövdeye başka bir
+    // kliniğin id'sini yazıp o kliniğin terminalinde işlem yürütebilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
-    const paymentDate = extractIyzicoPaymentDate(originalTx.rawResponse);
-    if (!paymentDate) {
-      throw new PosTransactionMissingPaymentDateException();
-    }
-
-    const refundAmount = input.amount ?? Number(originalTx.amount.value);
-    if (refundAmount > Number(originalTx.amount.value)) {
-      throw new RefundAmountExceedsOriginalException();
-    }
-
-    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
-    if (!device) {
-      throw new PosDeviceNotFoundException();
-    }
-
-    device.validate.status.isActive.orThrow();
-
-    const deviceUniqueId = device.iyzicoDeviceUniqueId.orThrow();
     const credentials = await this.credentialsResolver.resolve(input.clinicId);
 
-    const posTransaction = PosTransaction.create({
-      posDeviceId: device.id.value,
-      clinicId: input.clinicId,
-      paymentId: originalTx.paymentId ?? undefined,
-      amount: refundAmount,
-      currency: originalTx.amount.currency,
+    // Faz 1 — orijinal işlem KİLİT ALTINDA doğrulanır ve PENDING iade kaydı aynı
+    // transaction'da açılır (HTTP öncesi). Kilitli okuma, iade kararını besleyen
+    // durumu eşzamanlı değiştiricilerden (mutabakat, callback) yalıtır.
+    const {
+      refundTx,
+      deviceUniqueId,
+      paymentDate,
+      refundAmount,
+      originalPaymentId,
+      originalExternalRef,
+    } = await this.txManager.outboxRun(async () => {
+      const originalTx = await this.posTransactionCommandRepo.findByIdForUpdate(
+        input.originalPosTransactionId
+      );
+      if (!originalTx) {
+        throw new OriginalPosTransactionNotFoundException();
+      }
+
+      // Yetki `input.clinicId` üzerinden verildi; ters kaydedilecek ORİJİNAL işlem
+      // ayrı bir alandan geliyor. Bu doğrulama olmadan başka kliniğin satışı iptal
+      // edilip para o kliniğin üye işyerinden geri döndürülebilirdi.
+      originalTx.assertBelongsToClinic(input.clinicId);
+      if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
+        throw new PosTransactionNotRefundableException();
+      }
+      if (!originalTx.externalRef) {
+        throw new PosTransactionMissingExternalRefException();
+      }
+
+      const paymentDate = extractIyzicoPaymentDate(originalTx.rawResponse);
+      if (!paymentDate) {
+        throw new PosTransactionMissingPaymentDateException();
+      }
+
+      const originalAmount = originalTx.amount.value;
+      const refundAmount = new Decimal(input.amount ?? originalAmount);
+
+      // İade kısmi olabildiği için kontrol KÜMÜLATİF: daha önce iade edilenlerle
+      // birlikte satış tutarı aşılamaz. Tek tek bakmak, art arda gelen iki tam
+      // iadenin ikisinin de geçmesine izin verirdi. Okuma orijinal satır kilitliyken
+      // yapıldığı için eşzamanlı iadeler sıraya girer.
+      const reversal =
+        await this.posTransactionCommandRepo.findLiveReversalSummary(
+          originalTx.id.value
+        );
+      if (reversal.hasActiveVoid) {
+        throw new PosTransactionAlreadyReversedException();
+      }
+      if (
+        reversal.refundedAmount.plus(refundAmount).greaterThan(originalAmount)
+      ) {
+        throw new RefundAmountExceedsOriginalException();
+      }
+
+      const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
+      if (!device) {
+        throw new PosDeviceNotFoundException();
+      }
+
+      device.validate.status.isActive.orThrow();
+
+      const refundTx = await this.posTransactionCommandRepo.create(
+        PosTransaction.create({
+          posDeviceId: device.id.value,
+          clinicId: input.clinicId,
+          paymentId: originalTx.paymentId ?? undefined,
+          amount: refundAmount.toNumber(),
+          currency: originalTx.amount.currency,
+          kind: PosTransactionKindSchema.enum.REFUND,
+          originalPosTransactionId: originalTx.id.value,
+        })
+      );
+
+      return {
+        refundTx,
+        deviceUniqueId: device.iyzicoDeviceUniqueId.orThrow(),
+        paymentDate,
+        refundAmount: refundAmount.toNumber(),
+        originalPaymentId: originalTx.paymentId,
+        originalExternalRef: originalTx.externalRef,
+      };
     });
 
-    const { refundTransactionId, refundTx } = await this.txManager.outboxRun(
-      async () => {
-        const tx = await this.posTransactionCommandRepo.create(posTransaction);
-        return { refundTransactionId: tx.id.value, refundTx: tx };
-      }
-    );
+    const refundTransactionId = refundTx.id.value;
 
     // Faz 2 — iyzico Terminal iade çağrısı (transaction dışında)
     try {
@@ -110,7 +167,7 @@ export class IyzicoTerminalRefundHandler
         deviceUniqueId,
         conversationId: refundTransactionId,
         transactionReferenceId: refundTransactionId,
-        paymentId: originalTx.externalRef,
+        paymentId: originalExternalRef,
         price: refundAmount,
         paymentDate,
       });
@@ -125,9 +182,9 @@ export class IyzicoTerminalRefundHandler
         if (approved) {
           refundTx.markSuccess(externalRef, result);
           await this.posTransactionCommandRepo.update(refundTx);
-          if (originalTx.paymentId) {
+          if (originalPaymentId) {
             await this.posPaymentSync.markRefunded({
-              paymentId: originalTx.paymentId,
+              paymentId: originalPaymentId,
               clinicId: input.clinicId,
             });
           }

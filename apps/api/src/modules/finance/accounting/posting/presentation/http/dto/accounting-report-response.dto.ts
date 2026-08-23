@@ -154,6 +154,39 @@ export class FinancialStatementSectionResponseDto {
   @Expose(FIN) total: string;
 }
 
+/** Önceki dönemin ana satırları — kalem dökümü tekrarlanmaz. */
+export class IncomeStatementPeriodTotalsResponseDto {
+  @Expose(FIN)
+  @Type(() => Date)
+  dateFrom: Date;
+
+  @Expose(FIN)
+  @Type(() => Date)
+  dateTo: Date;
+
+  @Expose(FIN) netSales: string;
+  @Expose(FIN) grossProfit: string;
+  @Expose(FIN) operatingProfit: string;
+  @Expose(FIN) netProfit: string;
+}
+
+export class IncomeStatementDeltasResponseDto {
+  @Expose(FIN) netSalesPct: number;
+  @Expose(FIN) grossProfitPct: number;
+  @Expose(FIN) operatingProfitPct: number;
+  @Expose(FIN) netProfitPct: number;
+}
+
+export class IncomeStatementComparisonResponseDto {
+  @Expose(FIN)
+  @Type(() => IncomeStatementPeriodTotalsResponseDto)
+  previous: IncomeStatementPeriodTotalsResponseDto;
+
+  @Expose(FIN)
+  @Type(() => IncomeStatementDeltasResponseDto)
+  deltas: IncomeStatementDeltasResponseDto;
+}
+
 export class IncomeStatementReportResponseDto {
   @Expose(FIN) clinicId: string;
 
@@ -196,6 +229,10 @@ export class IncomeStatementReportResponseDto {
   otherExpense: FinancialStatementSectionResponseDto;
 
   @Expose(FIN) netProfit: string;
+
+  @Expose(FIN)
+  @Type(() => IncomeStatementComparisonResponseDto)
+  comparison: IncomeStatementComparisonResponseDto | null;
 }
 
 export class BalanceSheetReportResponseDto {

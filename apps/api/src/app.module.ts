@@ -68,6 +68,7 @@ import { BankModule } from '@modules/finance/bank/bank.module';
 import { ConsentFormModule } from '@modules/clinical/consent-form/consent-form.module';
 import { WorkOrderModule } from '@modules/supply/work-order/work-order.module';
 import { ProjectModule } from '@modules/organization/project/project.module';
+import { CriticalFailureModule } from '@common/observability/critical-failure.module';
 
 @Module({
   imports: [
@@ -124,6 +125,7 @@ import { ProjectModule } from '@modules/organization/project/project.module';
     HealthTourismModule,
     InventoryModule,
     NotificationModule,
+    CriticalFailureModule,
     EmployeeModule,
     LeaveModule,
     AttendanceModule,

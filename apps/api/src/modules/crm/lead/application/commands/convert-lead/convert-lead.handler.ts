@@ -47,7 +47,7 @@ export class ConvertLeadHandler
       .orThrow();
 
     await this.txManager.run(async () => {
-      const lead = await this.leadRepo.findById(leadId);
+      const lead = await this.leadRepo.findByIdForUpdate(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       // patientId verilmediyse lead'in telefon+isminden hastayı çöz-veya-oluştur
@@ -68,7 +68,8 @@ export class ConvertLeadHandler
       lead.convert({
         patientId,
         appointmentId: data.appointmentId,
-        actor: ctx.actor,
+        actorId: ctx.actor.userId,
+        logSource: ctx.actor.source,
       });
 
       // Kanban tutarlılığı: lead bir huniye bağlıysa WON aşamasına taşı.

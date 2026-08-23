@@ -3,7 +3,6 @@ import { Inject } from '@nestjs/common';
 import { AppointmentStatusSchema } from '@shared';
 import { GetClinicDailySummaryQuery } from './get-clinic-daily-summary.query';
 import { GetClinicDailySummaryQueryResponse } from './get-clinic-daily-summary.response';
-import { ClinicDailySummary } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
@@ -15,6 +14,7 @@ import {
   APPOINTMENT_QUERY_REPOSITORY,
   IAppointmentQueryRepository,
 } from '@modules/clinical/appointment/domain/repositories/appointment';
+import { ClinicDailySummary } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Resepsiyon günlük özeti. Aktörün kliniğine sabitlenir; klinik saat dilimini alıp

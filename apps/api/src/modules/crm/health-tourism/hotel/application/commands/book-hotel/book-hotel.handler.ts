@@ -15,6 +15,10 @@ import {
   IHotelbedsBookingCommandRepository,
 } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.command.repository';
 import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(BookHotelCommand)
 export class BookHotelHandler
@@ -27,11 +31,20 @@ export class BookHotelHandler
     private readonly hotelbedsBookingRepo: IHotelbedsBookingCommandRepository,
     @Inject(TENANT_SCOPE_RESOLVER)
     private readonly tenantScopeResolver: ITenantScopeResolver,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: BookHotelCommand): Promise<BookHotelResponse> {
     const { data } = command;
+
+    // `data.clinicId` istek gövdesinden geliyor: kontrol olmadan personel başka
+    // kliniğin adına (ve onun komisyon/muhasebe kayıtlarına) rezervasyon açabilirdi.
+    this.policyFactory
+      .clinic(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(data.clinicId))
+      .orThrow('health-tourism.booking');
 
     const generatedBookingUUID = UUID.generate();
 
@@ -64,6 +77,8 @@ export class BookHotelHandler
       clinicId: data.clinicId,
       status: HotelbedsBookingStatusSchema.enum.PENDING,
       organizationId,
+      actorId: command.ctx.actor.userId,
+      logSource: command.ctx.actor.source,
     });
 
     await this.txManager.run(async () => {

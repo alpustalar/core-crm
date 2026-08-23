@@ -3,6 +3,7 @@ import { Decimal } from 'decimal.js';
 import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
 import { PaymentMethodSchema } from '@input-type-schemas/PaymentMethodSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
+import { LogSource } from '@src/domain/constants/log-action.constant';
 
 // ==========================================
 // 1. YAŞLANDIRMA & RAPORLAMA SÖZLEŞMELERİ (AGING & REVENUE)
@@ -74,6 +75,20 @@ export const CreateInstallmentPropsSchema = z.object({
 });
 export type CreateInstallmentProps = z.infer<
   typeof CreateInstallmentPropsSchema
+>;
+
+/**
+ * Taksit iadesi. Event entity içinde raise edildiği için (bkz. CLAUDE.md) audit
+ * alanları buradan taşınır; `details` verilmezse varsayılan metin yazılır.
+ */
+export const RefundInstallmentPropsSchema = z.object({
+  installmentId: z.string(),
+  actorId: z.string(),
+  logSource: z.nativeEnum(LogSource),
+  details: z.string().optional(),
+});
+export type RefundInstallmentProps = z.infer<
+  typeof RefundInstallmentPropsSchema
 >;
 
 export const InstallmentOptionSchema = z.object({

@@ -17,8 +17,14 @@ import {
   PurchaseOrderEmptyItemsException,
   PurchaseOrderInvalidStateException,
   PurchaseOrderItemNotFoundException,
+  PurchaseOrderNotBillableException,
+  PurchaseOrderOverInvoicedException,
   PurchaseOrderOverReceiptException,
 } from '@modules/supply/purchasing/domain/exceptions/purchasing.exceptions';
+import PurchaseOrderBillingStatusSchema, {
+  PurchaseOrderBillingStatusType as PurchaseOrderBillingStatus,
+} from '@input-type-schemas/PurchaseOrderBillingStatusSchema';
+import { calculateReceivedValue } from '@modules/supply/purchasing/domain/rules/purchase-order-billing.rules';
 
 export interface PurchaseOrderLine {
   id: string;
@@ -57,6 +63,8 @@ export class PurchaseOrder extends AggregateRoot {
     this._netTotal = new Decimal(data.netTotal.toString());
     this._vatTotal = new Decimal(data.vatTotal.toString());
     this._grandTotal = new Decimal(data.grandTotal.toString());
+    this._invoicedTotal = new Decimal(data.invoicedTotal.toString());
+    this._billingStatus = data.billingStatus;
     this._note = data.note;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -121,6 +129,31 @@ export class PurchaseOrder extends AggregateRoot {
   private _grandTotal: Decimal;
   get grandTotal(): Decimal {
     return this._grandTotal;
+  }
+
+  private _invoicedTotal: Decimal;
+  get invoicedTotal(): Decimal {
+    return this._invoicedTotal;
+  }
+
+  private _billingStatus: PurchaseOrderBillingStatus;
+  get billingStatus(): PurchaseOrderBillingStatus {
+    return this._billingStatus;
+  }
+
+  /**
+   * Fiilen teslim alınan malın KDV dahil değeri. Faturalanan tutarla farkı
+   * "mal gelmeden faturalandı" / "mal geldi faturası gelmedi" sapmasını gösterir;
+   * eşleştirmeyi bloklamaz, raporlanır.
+   */
+  get receivedValue(): Decimal {
+    return calculateReceivedValue(this._lines);
+  }
+
+  /** Henüz faturalanmamış sipariş tutarı (negatife düşmez). */
+  get remainingToInvoice(): Decimal {
+    const remaining = this._grandTotal.minus(this._invoicedTotal);
+    return remaining.isNegative() ? new Decimal(0) : remaining;
   }
 
   private _note: string | null;
@@ -190,6 +223,8 @@ export class PurchaseOrder extends AggregateRoot {
         netTotal,
         vatTotal,
         grandTotal,
+        invoicedTotal: new Decimal(0),
+        billingStatus: PurchaseOrderBillingStatusSchema.enum.NOT_BILLED,
         note: props.note ?? null,
         createdAt: now,
         updatedAt: now,
@@ -270,6 +305,76 @@ export class PurchaseOrder extends AggregateRoot {
     this._updatedAt = DateTimeManager.create();
   }
 
+  /**
+   * Alış faturasını siparişe eşleştirir (matching). Sayaç kümülatiftir: bir
+   * siparişe birden çok fatura kesilebilir (kısmi sevkiyat), ama toplamları
+   * sipariş tutarını aşamaz — 3'lü eşleştirmenin asıl koruması budur.
+   *
+   * Teslim alınmamış malın faturalanması ENGELLENMEZ (peşin/ön fatura meşrudur);
+   * fark `receivedValue` üzerinden raporlanır.
+   */
+  public applyInvoice(amount: Decimal): void {
+    this.assertBillable();
+
+    const newTotal = this._invoicedTotal.plus(amount);
+    if (newTotal.greaterThan(this._grandTotal)) {
+      throw new PurchaseOrderOverInvoicedException({
+        orderId: this._id.value,
+        orderedTotal: this._grandTotal.toNumber(),
+        receivedValue: this.receivedValue.toNumber(),
+        alreadyInvoiced: this._invoicedTotal.toNumber(),
+        attempted: amount.toNumber(),
+      });
+    }
+
+    this._invoicedTotal = newTotal.toDecimalPlaces(2);
+    this.refreshBillingStatus();
+    this._updatedAt = DateTimeManager.create();
+  }
+
+  /**
+   * Eşleştirmeyi geri alır (yanlış siparişe bağlanmış fatura / fatura iptali).
+   * Sayaç sıfırın altına düşemez: düşüyorsa sayaç ile faturalar arasında bir
+   * tutarsızlık var demektir, sessizce kırpmak yerine hata verilir.
+   */
+  public revertInvoice(amount: Decimal): void {
+    const newTotal = this._invoicedTotal.minus(amount);
+    if (newTotal.isNegative()) {
+      throw new PurchaseOrderInvalidStateException(
+        'Geri alınan fatura tutarı siparişe işlenmiş toplamdan büyük olamaz.',
+        this._status,
+        'revertInvoice'
+      );
+    }
+
+    this._invoicedTotal = newTotal.toDecimalPlaces(2);
+    this.refreshBillingStatus();
+    this._updatedAt = DateTimeManager.create();
+  }
+
+  private assertBillable(): void {
+    const billable: PurchaseOrderStatus[] = [
+      PurchaseOrderStatusSchema.enum.SENT,
+      PurchaseOrderStatusSchema.enum.PARTIALLY_RECEIVED,
+      PurchaseOrderStatusSchema.enum.RECEIVED,
+    ];
+    if (!billable.includes(this._status)) {
+      throw new PurchaseOrderNotBillableException(this._status);
+    }
+  }
+
+  private refreshBillingStatus(): void {
+    if (this._invoicedTotal.isZero()) {
+      this._billingStatus = PurchaseOrderBillingStatusSchema.enum.NOT_BILLED;
+      return;
+    }
+    this._billingStatus = this._invoicedTotal.greaterThanOrEqualTo(
+      this._grandTotal
+    )
+      ? PurchaseOrderBillingStatusSchema.enum.FULLY_BILLED
+      : PurchaseOrderBillingStatusSchema.enum.PARTIALLY_BILLED;
+  }
+
   public getLine(itemId: string): PurchaseOrderLine | undefined {
     return this._lines.find((l) => l.id === itemId);
   }
@@ -288,6 +393,8 @@ export class PurchaseOrder extends AggregateRoot {
       netTotal: this._netTotal,
       vatTotal: this._vatTotal,
       grandTotal: this._grandTotal,
+      invoicedTotal: this._invoicedTotal,
+      billingStatus: this._billingStatus,
       note: this._note,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,

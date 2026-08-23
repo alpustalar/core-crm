@@ -11,10 +11,9 @@ import { ExecutionContextFactory } from '@src/domain/common/execution/execution-
 import { PaymentProviders } from '@common/constants';
 
 @CommandHandler(HandleBookingPaymentIyzicoCallbackCommand)
-export class HandleBookingPaymentIyzicoCallbackHandler implements ICommandHandler<
-  HandleBookingPaymentIyzicoCallbackCommand,
-  void
-> {
+export class HandleBookingPaymentIyzicoCallbackHandler
+  implements ICommandHandler<HandleBookingPaymentIyzicoCallbackCommand, void>
+{
   private readonly logger = new Logger(
     HandleBookingPaymentIyzicoCallbackHandler.name
   );

@@ -20,6 +20,12 @@ export class Money {
       amount: z.custom<Decimal>((val) => val instanceof Decimal),
       currency: CurrencySchema,
     })
+    .refine((data) => data.amount.isFinite(), {
+      // NaN/Infinity sessizce geçerse tüm zincire (tutar, minor unit, defter satırı)
+      // bulaşır: `new Decimal(NaN).isNegative()` false döndüğü için negatiflik
+      // kontrolü bunu yakalamaz.
+      message: 'Para miktarı geçerli bir sayı olmalıdır.',
+    })
     .refine((data) => !data.amount.isNegative(), {
       message: 'Para miktarı negatif olamaz.',
     });
@@ -112,7 +118,7 @@ export class Money {
       ? false
       : Money.validate.input(amount, currencyStr).isValid;
 
-    const normalizeAmount = isBlank ? null : new Decimal(amount!);
+    const normalizeAmount = isBlank ? null : new Decimal(amount);
 
     const instance =
       validated && normalizeAmount
@@ -133,6 +139,22 @@ export class Money {
 
   public toApiFormat(): string {
     return this._value.toFixed(2);
+  }
+
+  /**
+   * Kuruşa yuvarlar (2 hane, yarıyı yukarı).
+   *
+   * `multiply` bilerek yuvarlamaz — ara hesaplarda (birim fiyat × kesirli adet)
+   * duyarlılık korunmalı. Ama **satır tutarı** olarak kullanılacak bir Money
+   * mutlaka buradan geçirilir: DB kolonları `Decimal(x,2)` ve satırdan türeyen
+   * indirim/matrah da 2 haneye yuvarlanıyor. Ham çarpımı yuvarlamadan bırakmak,
+   * "liste − indirim = matrah" eşitliğini toplamda bir kuruş kaydırır.
+   */
+  public round(): Money {
+    return new Money(
+      this._value.toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+      this._currency
+    );
   }
 
   public applyPercentage(percentage: number | string | Decimal): Money {

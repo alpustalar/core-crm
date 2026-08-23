@@ -4,6 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { LeaveRequest as ILeaveRequest } from '@shared';
 import {
+  AnnualLeavePeriod,
   FindLeavesByEmployeeFilter,
   FindPendingLeavesFilter,
 } from '@modules/hr/leave/domain/contracts/leave.contracts';
@@ -48,20 +49,21 @@ export class LeaveRequestQueryRepository
     });
   }
 
-  async sumApprovedAnnualDays(
+  /** Command Repo'daki kesişim sorgusunun raporlama kopyası (bkz. o dosyadaki not). */
+  findApprovedAnnualLeaves(
     employeeId: string,
     from: Date,
     to: Date
-  ): Promise<number> {
-    const result = await this.db.leaveRequest.aggregate({
-      _sum: { days: true },
+  ): Promise<AnnualLeavePeriod[]> {
+    return this.db.leaveRequest.findMany({
       where: {
         employeeId,
         type: LeaveTypeSchema.enum.ANNUAL,
         status: LeaveStatusSchema.enum.APPROVED,
-        startDate: { gte: from, lte: to },
+        startDate: { lte: to },
+        endDate: { gte: from },
       },
+      select: { startDate: true, endDate: true },
     });
-    return result._sum.days ?? 0;
   }
 }

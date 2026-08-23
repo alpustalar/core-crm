@@ -38,7 +38,7 @@ export class MarkLeadLostHandler
       .orThrow();
 
     await this.txManager.run(async () => {
-      const lead = await this.leadRepo.findById(leadId);
+      const lead = await this.leadRepo.findByIdForUpdate(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       const validateOptions = this.policyFactory
@@ -47,7 +47,11 @@ export class MarkLeadLostHandler
 
       lead.rules(validateOptions).markLost().orThrow();
 
-      lead.markLost(ctx.actor, data.lostReason);
+      lead.markLost({
+        reason: data.lostReason,
+        actorId: ctx.actor.userId,
+        logSource: ctx.actor.source,
+      });
 
       // Kanban tutarlılığı: lead bir huniye bağlıysa LOST aşamasına taşı.
       await this.syncLostStage(lead, ctx);

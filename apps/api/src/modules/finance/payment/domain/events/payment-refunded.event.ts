@@ -24,6 +24,9 @@ export class PaymentRefundedEvent extends BaseEvent {
       metadata: payload.metadata,
       details: payload.details,
       type: payload.type,
+      // actorId super'e geçmiyordu: iade denetim kaydı "kim yaptı" bilgisi
+      // olmadan yazılıyordu.
+      actorId: payload.actorId,
     });
 
     this.installmentId = payload.installmentId;

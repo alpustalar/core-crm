@@ -12,7 +12,8 @@ export class BookingPaymentNotFoundException extends DomainException {
 }
 
 export class BookingPaymentLinkGenerationException extends DomainException {
-  public readonly errorCode = ERROR_CODES.BOOKING_PAYMENT.LINK_GENERATION_FAILED;
+  public readonly errorCode =
+    ERROR_CODES.BOOKING_PAYMENT.LINK_GENERATION_FAILED;
 
   constructor(
     message = 'Ödeme linki üretilemedi. Lütfen daha sonra tekrar deneyin.'
@@ -28,7 +29,8 @@ export class BookingPaymentLinkGenerationException extends DomainException {
  * ile kullanılabilir (personel bilinçli tercihi). Bunun için `manualOverride: true` gönderilir.
  */
 export class ManualBookingOverrideRequiredException extends DomainException {
-  public readonly errorCode = ERROR_CODES.BOOKING_PAYMENT.MANUAL_OVERRIDE_REQUIRED;
+  public readonly errorCode =
+    ERROR_CODES.BOOKING_PAYMENT.MANUAL_OVERRIDE_REQUIRED;
   public override readonly httpStatus = HttpStatus.PAYMENT_REQUIRED;
 
   constructor(

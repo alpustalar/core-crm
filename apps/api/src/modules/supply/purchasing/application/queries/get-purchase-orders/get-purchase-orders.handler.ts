@@ -13,9 +13,10 @@ import {
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @QueryHandler(GetPurchaseOrdersQuery)
-export class GetPurchaseOrdersHandler
-  implements IQueryHandler<GetPurchaseOrdersQuery, GetPurchaseOrdersResponse>
-{
+export class GetPurchaseOrdersHandler implements IQueryHandler<
+  GetPurchaseOrdersQuery,
+  GetPurchaseOrdersResponse
+> {
   constructor(
     @Inject(PURCHASE_ORDER_QUERY_REPOSITORY)
     private readonly poQueryRepo: IPurchaseOrderQueryRepository,
@@ -42,6 +43,7 @@ export class GetPurchaseOrdersHandler
       clinicId,
       status: filter.status,
       supplierId: filter.supplierId,
+      billingStatus: filter.billingStatus,
       pagination,
     });
 
@@ -49,7 +51,9 @@ export class GetPurchaseOrdersHandler
       data: result.items,
       meta: {
         pagination: buildPaginationMeta(pagination, result.total),
-        serializationOptions: policy.getSerializationOptions({ clinicId: clinicId }),
+        serializationOptions: policy.getSerializationOptions({
+          clinicId: clinicId,
+        }),
       },
     };
   }

@@ -1,5 +1,6 @@
 /* eslint-disable */
-import { BadRequestException } from '@nestjs/common';
+import { PeriodNotOpenForPostingException } from '@modules/finance/accounting/posting/domain/exceptions/posting.exceptions';
+import { JournalEntryNotPostedException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry.exceptions';
 import { ReverseJournalEntryHandler } from './reverse-journal-entry.handler';
 import { ReverseJournalEntryCommand } from './reverse-journal-entry.command';
 import { JournalEntry } from '@modules/finance/accounting/posting/domain/entities/journal-entry.entity';
@@ -65,11 +66,19 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
       outboxRun: jest.fn((cb: () => Promise<unknown>) => cb()),
     } as unknown as TransactionManager;
 
+    // Yetki kapıda: kapsam kaydın kendi kliniğinden doğrulanıyor.
+    const policyFactory = {
+      finance: jest.fn().mockReturnValue({
+        evaluator: { check: () => ({ orThrow: () => undefined }) },
+      }),
+    } as never;
+
     return {
       handler: new ReverseJournalEntryHandler(
         journalCommandRepo,
         queryBus,
-        txManager
+        txManager,
+        policyFactory
       ),
       journalCommandRepo,
     };
@@ -112,7 +121,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     const original = buildPostedOriginal();
     const { handler, journalCommandRepo } = build({ original, canPost: false });
 
-    await expect(run(handler)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(run(handler)).rejects.toBeInstanceOf(PeriodNotOpenForPostingException);
     expect(journalCommandRepo.create).not.toHaveBeenCalled();
   });
 
@@ -130,7 +139,7 @@ describe('ReverseJournalEntryHandler (storno, doc 04/08)', () => {
     });
     const { handler, journalCommandRepo } = build({ original: draft });
 
-    await expect(run(handler)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(run(handler)).rejects.toBeInstanceOf(JournalEntryNotPostedException);
     expect(journalCommandRepo.create).not.toHaveBeenCalled();
   });
 });

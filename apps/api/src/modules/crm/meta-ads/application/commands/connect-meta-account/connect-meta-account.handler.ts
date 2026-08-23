@@ -16,10 +16,10 @@ import {
 import { MetaAdAccount } from '@modules/crm/meta-ads/domain/entities/meta-ad-account.entity';
 
 @CommandHandler(ConnectMetaAccountCommand)
-export class ConnectMetaAccountHandler implements ICommandHandler<
-  ConnectMetaAccountCommand,
-  ConnectMetaAccountResponse
-> {
+export class ConnectMetaAccountHandler
+  implements
+    ICommandHandler<ConnectMetaAccountCommand, ConnectMetaAccountResponse>
+{
   constructor(
     @Inject(META_AD_ACCOUNT_COMMAND_REPOSITORY)
     private readonly metaAdAccountRepo: IMetaAdAccountCommandRepository,

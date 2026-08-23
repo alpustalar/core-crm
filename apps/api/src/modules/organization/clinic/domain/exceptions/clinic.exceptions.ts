@@ -9,3 +9,28 @@ export class ClinicNotFoundException extends DomainException {
     super('Klinik bulunamadı');
   }
 }
+
+/**
+ * İstekte gelen `organizationId`, `clinicId`'nin gerçekte bağlı olduğu
+ * organizasyonla uyuşmuyor.
+ *
+ * `TenantScopeInput.organizationId` istemciden gelebilen bir alandır; doğrulanmadan
+ * kabul edilirse aktör kendi kliniğinin kimliğiyle **başka bir kiracının**
+ * organizasyon kimliğini eşleştirip kaydı o kiracının org-kapsamlı listelerine
+ * enjekte edebilir. Uyuşmazlık ya saldırıdır ya da istemci hatasıdır; ikisi de
+ * sessizce düzeltilmez, kapıda durdurulur.
+ */
+export class TenantScopeMismatchException extends DomainException<{
+  clinicId: string;
+  organizationId: string;
+}> {
+  public errorCode = ERROR_CODES.CLINIC.TENANT_SCOPE_MISMATCH;
+  public override httpStatus = HttpStatus.FORBIDDEN;
+
+  constructor(clinicId: string, organizationId: string) {
+    super(
+      'Gönderilen organizasyon, kliniğin bağlı olduğu organizasyonla uyuşmuyor.',
+      { clinicId, organizationId }
+    );
+  }
+}

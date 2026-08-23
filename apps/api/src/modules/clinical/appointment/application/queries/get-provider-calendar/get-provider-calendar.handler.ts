@@ -28,8 +28,7 @@ export class GetProviderCalendarHandler
   async execute(
     query: GetProviderCalendarQuery
   ): Promise<GetProviderCalendarQueryResponse> {
-    const { payload } = query;
-    const { filter, ctx, pagination } = payload;
+    const { filter, ctx, pagination } = query.payload;
 
     {
       const { items, total } = await this.appointmentRepo.findProviderCalendar({
@@ -41,18 +40,16 @@ export class GetProviderCalendarHandler
 
       const anyProviderAppointment = items[0];
 
-      const serializationOptions = this.policyFactory
-        .appointment(ctx.actor, ctx.source)
-        .policy.getSerializationOptions({
-          providerId: filter.providerId,
-          clinicId: anyProviderAppointment.clinicId,
-        });
-
       return {
         data: items,
         meta: {
           pagination: buildPaginationMeta(pagination, total),
-          serializationOptions,
+          serializationOptions: this.policyFactory
+            .appointment(ctx.actor, ctx.source)
+            .policy.getSerializationOptions({
+              providerId: filter.providerId,
+              clinicId: anyProviderAppointment.clinicId,
+            }),
         },
       };
     }

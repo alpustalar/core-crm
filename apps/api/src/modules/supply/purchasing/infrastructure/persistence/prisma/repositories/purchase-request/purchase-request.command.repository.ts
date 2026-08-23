@@ -68,6 +68,12 @@ export class PurchaseRequestCommandRepository
     return raw ? this.toEntity(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<PurchaseRequest | null> {
+    // Kilit başlık satırında: kalemler yalnız başlık üzerinden yazılır.
+    await this.lockRowForUpdate('purchase_requests', id);
+    return this.findById(id);
+  }
+
   private toEntity(
     raw: IPurchaseRequest & { items: RawItem[] }
   ): PurchaseRequest {

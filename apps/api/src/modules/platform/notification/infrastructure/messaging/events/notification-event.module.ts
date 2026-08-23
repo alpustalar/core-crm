@@ -9,6 +9,9 @@ import { AppointmentReminderNotificationListener } from '@modules/platform/notif
 import { WorkOrderOverdueNotificationListener } from '@modules/platform/notification/infrastructure/messaging/events/listeners/work-order-overdue-notification.listener';
 import { NotificationRealtimeModule } from '@modules/platform/notification/infrastructure/realtime/notification-realtime.module';
 import { MailModule } from '@src/infrastructure/mail/mail.module';
+import { CriticalFailureListener } from '@modules/platform/notification/infrastructure/messaging/events/listeners/critical-failure.listener';
+import { LogOpsAlertAdapter } from '@modules/platform/notification/infrastructure/delivery/log-ops-alert.adapter';
+import { OPS_ALERT_PORT } from '@common/observability/ops-alert.port';
 
 /**
  * Bildirim yan etkilerini bağlar: domain event dinleyicileri (seam) + merkezi
@@ -25,11 +28,14 @@ import { MailModule } from '@src/infrastructure/mail/mail.module';
     AppointmentLifecycleNotificationListener,
     AppointmentReminderNotificationListener,
     WorkOrderOverdueNotificationListener,
+    CriticalFailureListener,
     NotificationDispatcherService,
     {
       provide: PATIENT_NOTIFICATION_PORT,
       useClass: MailPatientNotificationAdapter,
     },
+    // Slack adaptörü bağlanana kadar uyarılar yapılandırılmış log'a düşer.
+    { provide: OPS_ALERT_PORT, useClass: LogOpsAlertAdapter },
   ],
 })
 export class NotificationEventModule {}

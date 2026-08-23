@@ -34,10 +34,9 @@ interface PeriodResult {
 }
 
 @QueryHandler(GetAgencyRoiReportQuery)
-export class GetAgencyRoiReportHandler implements IQueryHandler<
-  GetAgencyRoiReportQuery,
-  GetAgencyRoiReportResponse
-> {
+export class GetAgencyRoiReportHandler
+  implements IQueryHandler<GetAgencyRoiReportQuery, GetAgencyRoiReportResponse>
+{
   constructor(
     @Inject(META_CAMPAIGN_METRIC_QUERY_REPOSITORY)
     private readonly metaCampaignMetricRepo: IMetaCampaignMetricQueryRepository,

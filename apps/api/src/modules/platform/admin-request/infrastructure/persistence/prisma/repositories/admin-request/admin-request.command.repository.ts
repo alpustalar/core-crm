@@ -20,6 +20,11 @@ export class AdminRequestCommandRepository
     return raw ? new AdminRequest(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<AdminRequest | null> {
+    await this.lockRowForUpdate('admin_requests', id);
+    return this.findById(id);
+  }
+
   async create(entity: AdminRequest): Promise<AdminRequest> {
     const data = entity.toPersistence();
 

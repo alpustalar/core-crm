@@ -123,7 +123,9 @@ export class AccountingReportsQueryController {
     @GetContext() ctx: IGetContext,
     @Query('clinicId', ParseUUIDPipe) clinicId: string,
     @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo') dateTo?: string
+    @Query('dateTo') dateTo?: string,
+    /** `compare=true` → önceki eşit uzunluktaki dönemle karşılaştırma eklenir. */
+    @Query('compare') compare?: string
   ) {
     return this.queryBus.execute(
       new GetIncomeStatementQuery({
@@ -131,6 +133,7 @@ export class AccountingReportsQueryController {
         ctx,
         dateFrom: dateFrom ? DateTimeManager.create(dateFrom) : undefined,
         dateTo: dateTo ? DateTimeManager.create(dateTo) : undefined,
+        compare: compare === 'true',
       })
     );
   }

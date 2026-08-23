@@ -13,8 +13,14 @@ export const PURCHASE_REQUEST_QUERY_REPOSITORY = Symbol(
   'IPurchaseRequestQueryRepository'
 );
 
-export type IPurchaseRequestCommandRepository =
-  IBaseCommandRepository<PurchaseRequest>;
+export interface IPurchaseRequestCommandRepository extends IBaseCommandRepository<PurchaseRequest> {
+  /**
+   * Talebi kalemleriyle `FOR UPDATE` kilitleyerek yükler — yalnız aktif transaction
+   * içinde. Onay/ret/iptal ve "siparişe dönüştürme" aynı satırın durumunu değiştirir;
+   * kilitsiz okuma iki eşzamanlı isteğin aynı talebi iki kez sipariş etmesine izin verir.
+   */
+  findByIdForUpdate(id: string): Promise<PurchaseRequest | null>;
+}
 
 export interface IPurchaseRequestQueryRepository {
   findById(id: string): Promise<PurchaseRequestWithItems | null>;

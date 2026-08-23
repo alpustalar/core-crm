@@ -25,6 +25,11 @@ export class TreatmentChargeCommandRepository
     return raw ? new TreatmentCharge(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<TreatmentCharge | null> {
+    await this.lockRowForUpdate('treatment_charges', id);
+    return this.findById(id);
+  }
+
   async update(entity: TreatmentCharge): Promise<TreatmentCharge> {
     const data = entity.toPersistence();
     const { id, ...update } = data;

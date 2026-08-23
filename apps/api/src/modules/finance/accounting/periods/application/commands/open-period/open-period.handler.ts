@@ -12,6 +12,10 @@ import {
   ACCOUNTING_PERIOD_COMMAND_REPOSITORY,
   IAccountingPeriodCommandRepository,
 } from '@modules/finance/accounting/periods/domain/repositories/accounting-period/accounting-period.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 /**
  * Bir clinic (defter) için ilgili yılın muhasebe dönemini açar.
@@ -26,11 +30,20 @@ export class OpenPeriodHandler
     private readonly accountingPeriodRepo: IAccountingPeriodCommandRepository,
     @Inject(TENANT_SCOPE_RESOLVER)
     private readonly tenantScopeResolver: ITenantScopeResolver,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: OpenPeriodCommand): Promise<string> {
     const { clinicId, year, ctx } = command.payload;
+
+    // `clinicId` istek parametresinden geliyor, aktörün kliniğinden değil:
+    // kontrol olmadan başka kliniğin muhasebe dönemi açılabilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanManageTargetClinic(clinicId))
+      .orThrow('accounting.period.open');
 
     const organizationId = await this.tenantScopeResolver.resolve({
       clinicId,

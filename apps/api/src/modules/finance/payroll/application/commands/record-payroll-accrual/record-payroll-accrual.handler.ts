@@ -38,7 +38,7 @@ export class RecordPayrollAccrualHandler
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(data.clinicId, organizationId)
+        p.actorCanAccessClinicOrOwnsOrganization(data.clinicId, organizationId)
       )
       .orThrow();
 

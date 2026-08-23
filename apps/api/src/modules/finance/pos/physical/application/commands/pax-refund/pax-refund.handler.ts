@@ -3,6 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import {
   OriginalPosTransactionNotFoundException,
   PosDeviceNotFoundException,
+  PosTransactionAlreadyReversedException,
   PosTransactionMissingExternalRefException,
   PosTransactionNotRefundableException,
   RefundAmountExceedsOriginalException,
@@ -21,16 +22,24 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import PosTransactionKindSchema from '@input-type-schemas/PosTransactionKindSchema';
+import { Decimal } from 'decimal.js';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(PaxRefundCommand)
-export class PaxRefundHandler
-  implements ICommandHandler<PaxRefundCommand, PaxRefundResponse>
-{
+export class PaxRefundHandler implements ICommandHandler<
+  PaxRefundCommand,
+  PaxRefundResponse
+> {
   private readonly logger = new Logger(PaxRefundHandler.name);
 
   constructor(
@@ -40,62 +49,104 @@ export class PaxRefundHandler
     private readonly posTransactionRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
     private readonly txManager: TransactionManager,
-    private readonly posPaymentSync: PosPaymentSyncService
+    private readonly posPaymentSync: PosPaymentSyncService,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: PaxRefundCommand): Promise<PaxRefundResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
 
-    const originalTx = await this.posTransactionRepo.findById(
-      input.originalPosTransactionId
-    );
-    if (!originalTx) {
-      throw new OriginalPosTransactionNotFoundException();
-    }
-    if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
-      throw new PosTransactionNotRefundableException();
-    }
-    if (!originalTx.externalRef) {
-      throw new PosTransactionMissingExternalRefException();
-    }
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL. Bu
+    // kontrol olmadan, POS yetkisi olan herhangi bir personel gövdeye başka bir
+    // kliniğin id'sini yazıp o kliniğin terminalinde işlem yürütebilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
-    const refundAmount = input.amount ?? Number(originalTx.amount);
+    // Faz 1 — orijinal işlem KİLİT ALTINDA doğrulanır ve PENDING iade kaydı aynı
+    // transaction'da açılır (TCP öncesi). Kilitli okuma, iade kararını besleyen
+    // durumu eşzamanlı değiştiricilerden (mutabakat taraması, cihaz callback'i) yalıtır.
+    const { refundTx, device, originalPaymentId, originalExternalRef } =
+      await this.txManager.outboxRun(async () => {
+        const originalTx = await this.posTransactionRepo.findByIdForUpdate(
+          input.originalPosTransactionId
+        );
+        if (!originalTx) {
+          throw new OriginalPosTransactionNotFoundException();
+        }
 
-    if (refundAmount > Number(originalTx.amount)) {
-      throw new RefundAmountExceedsOriginalException();
-    }
+        // Yetki `input.clinicId` üzerinden verildi; ters kaydedilecek ORİJİNAL işlem
+        // ayrı bir alandan geliyor. Bu doğrulama olmadan başka kliniğin satışı iptal
+        // edilip para o kliniğin üye işyerinden geri döndürülebilirdi.
+        originalTx.assertBelongsToClinic(input.clinicId);
+        if (originalTx.status !== PosTransactionStatusSchema.enum.SUCCESS) {
+          throw new PosTransactionNotRefundableException();
+        }
+        if (!originalTx.externalRef) {
+          throw new PosTransactionMissingExternalRefException();
+        }
 
-    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
-    if (!device) {
-      throw new PosDeviceNotFoundException();
-    }
+        const originalAmount = originalTx.amount.value;
+        const refundAmount = new Decimal(input.amount ?? originalAmount);
 
-    device.validate.status.isActive.orThrow();
+        // İade kısmi olabildiği için kontrol KÜMÜLATİF: daha önce iade edilenlerle
+        // birlikte satış tutarı aşılamaz. Tek tek bakmak, art arda gelen iki tam
+        // iadenin ikisinin de geçmesine izin verirdi. Okuma orijinal satır kilitliyken
+        // yapıldığı için eşzamanlı iadeler sıraya girer.
+        const reversal = await this.posTransactionRepo.findLiveReversalSummary(
+          originalTx.id.value
+        );
+        if (reversal.hasActiveVoid) {
+          throw new PosTransactionAlreadyReversedException();
+        }
+        if (
+          reversal.refundedAmount.plus(refundAmount).greaterThan(originalAmount)
+        ) {
+          throw new RefundAmountExceedsOriginalException();
+        }
 
-    const posTransaction = PosTransaction.create({
-      posDeviceId: device.id.value,
-      clinicId: input.clinicId,
-      paymentId: originalTx.paymentId ?? undefined,
-      amount: refundAmount,
-      currency: originalTx.amount.currency,
-    });
+        const device = await this.posDeviceRepo.findById(
+          originalTx.posDeviceId
+        );
+        if (!device) {
+          throw new PosDeviceNotFoundException();
+        }
 
-    // Faz 1 — PENDING iade kaydı atomik olarak oluşturulur (TCP öncesi)
-    const { refundTransactionId, refundTx } = await this.txManager.outboxRun(
-      async () => {
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionRepo.create(posTransaction);
-        return { refundTransactionId: id, refundTx: tx };
-      }
-    );
+        device.validate.status.isActive.orThrow();
+
+        const refundTx = await this.posTransactionRepo.create(
+          PosTransaction.create({
+            posDeviceId: device.id.value,
+            clinicId: input.clinicId,
+            paymentId: originalTx.paymentId ?? undefined,
+            amount: refundAmount.toNumber(),
+            currency: originalTx.amount.currency,
+            kind: PosTransactionKindSchema.enum.REFUND,
+            originalPosTransactionId: originalTx.id.value,
+          })
+        );
+
+        return {
+          refundTx,
+          device,
+          originalPaymentId: originalTx.paymentId,
+          originalExternalRef: originalTx.externalRef,
+        };
+      });
+
+    // ECR referansı ve dönen kimlik, DB'ye yazılan iade kaydının id'sidir: mutabakat
+    // taraması ve çağıranın sorgusu bu id üzerinden yürür.
+    const refundTransactionId = refundTx.id.value;
 
     // Faz 2 — PAX TCP çağrısı (transaction dışında)
     try {
       const result = await this.paxService.refund({
         device: device.getPaxConnection(),
-        amountInMinorUnits: Math.round(refundAmount * 100),
+        amountInMinorUnits: refundTx.amount.value.times(100).round().toNumber(),
         ecReferenceNumber: refundTransactionId,
-        originalReferenceNumber: originalTx.externalRef,
+        originalReferenceNumber: originalExternalRef,
       });
 
       // Faz 3 — sonuç + orijinal ödemeyi iade işaretle + ledger atomik (outboxRun)
@@ -103,9 +154,9 @@ export class PaxRefundHandler
         if (result.approved) {
           refundTx.markSuccess(result.externalRef, result.rawResponse);
           await this.posTransactionRepo.update(refundTx);
-          if (originalTx.paymentId) {
+          if (originalPaymentId) {
             await this.posPaymentSync.markRefunded({
-              paymentId: originalTx.paymentId,
+              paymentId: originalPaymentId,
               clinicId: input.clinicId,
             });
           }

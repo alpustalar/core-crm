@@ -48,7 +48,7 @@ export class EnsurePartyForEmployeeHandler
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(clinicId, organizationId)
+        p.actorCanAccessClinicOrOwnsOrganization(clinicId, organizationId)
       )
       .orThrow();
 

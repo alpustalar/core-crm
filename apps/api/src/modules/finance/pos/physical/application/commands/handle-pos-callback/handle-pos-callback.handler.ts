@@ -55,6 +55,20 @@ export class HandlePosCallbackHandler
           throw new PosTransactionNotFoundException(input.externalRef);
         }
 
+        // Idempotency: cihaz aynı callback'i tekrar gönderebilir. Kilit yalnız
+        // sıraya sokar; ikinci isteği durduran şey bu kontroldür. Yoksa işlem
+        // yeniden sonuçlandırılır ve ödeme tarafı o an bekleyen BİR SONRAKİ
+        // taksiti kapatır — tek çekimle iki taksit tahsil edilmiş görünürdü.
+        if (!transaction.validate.status.isPending().value) {
+          this.logger.warn(
+            `POS callback zaten işlenmiş (idempotency): externalRef=${input.externalRef} durum=${transaction.status}`
+          );
+          return {
+            posTransactionId: transaction.id,
+            status: transaction.status,
+          };
+        }
+
         switch (posCallbackResult.status) {
           case PosCallbackStatuses.SUCCESS:
             transaction.markSuccess(undefined, posCallbackResult.rawResponse);

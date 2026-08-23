@@ -12,6 +12,14 @@ export const BANK_STATEMENT_LINE_QUERY_REPOSITORY = Symbol(
 export type IBankStatementLineCommandRepository =
   IBaseCommandRepository<BankStatementLine> & {
     /**
+     * Satırı `FOR UPDATE` kilitleyerek yükler — yalnız aktif transaction içinde.
+     * Manuel mutabakat ile oto-eşleştirme taraması aynı satırı hedefleyebilir;
+     * kilitsiz okumada ikisi de satırı UNMATCHED görüp aynı defter hareketini
+     * iki kez bağlayabilir (çift sayım).
+     */
+    findByIdForUpdate(id: string): Promise<BankStatementLine | null>;
+
+    /**
      * Bir ekstrenin mutabık edilmemiş satırlarını yazma tarafı için yükler.
      * Oto-eşleştirme taramasının girdisi; okuma doğrudan MATCHED yazma kararını
      * beslediği için Command Context'e aittir.

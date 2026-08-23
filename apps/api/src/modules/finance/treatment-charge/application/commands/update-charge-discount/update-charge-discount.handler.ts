@@ -12,12 +12,12 @@ import {
   ITreatmentChargeCommandRepository,
   TREATMENT_CHARGE_COMMAND_REPOSITORY,
 } from '@modules/finance/treatment-charge/domain/repositories/treatment-charge/treatment-charge.command.repository';
-import {
-  TreatmentChargeAlreadyInvoicedException,
-  TreatmentChargeNotFoundException,
-} from '@modules/finance/treatment-charge/domain/exceptions/treatment-charge.exceptions';
+import { TreatmentChargeNotFoundException } from '@modules/finance/treatment-charge/domain/exceptions/treatment-charge.exceptions';
 import { GetClinicFinanceSettingsQuery } from '@modules/organization/clinic/application/queries/get-clinic-finance-settings/get-clinic-finance-settings.query';
-import { GetInvoiceByAppointmentIdQuery } from '@modules/finance/invoice/application/queries/get-invoice-by-appointment-id/get-invoice-by-appointment-id.query';
+import {
+  IInvoiceIssuanceService,
+  INVOICE_ISSUANCE_SERVICE,
+} from '@modules/finance/invoice/domain/services/invoice-issuance/invoice-issuance.service.interface';
 import { TREATMENT_CHARGE_EVENTS } from '@src/domain/constants/events';
 
 /**
@@ -33,6 +33,8 @@ export class UpdateChargeDiscountHandler
     private readonly chargeRepo: ITreatmentChargeCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(INVOICE_ISSUANCE_SERVICE)
+    private readonly invoiceIssuance: IInvoiceIssuanceService,
     private readonly queryBus: TSQueryBus,
     private readonly txManager: TransactionManager
   ) {}
@@ -41,8 +43,9 @@ export class UpdateChargeDiscountHandler
     const { chargeId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      // Mutasyon kararını besleyen okuma Command Repo'dan (aynı tx kapsamı).
-      const charge = await this.chargeRepo.findById(chargeId);
+      // Mutasyon kararını besleyen okuma Command Repo'dan, KİLİTLİ (aynı tx kapsamı):
+      // eşzamanlı ikinci indirim isteği bu satırı ezmesin (lost update).
+      const charge = await this.chargeRepo.findByIdForUpdate(chargeId);
       if (!charge) throw new TreatmentChargeNotFoundException(chargeId);
 
       const { evaluator, policy } = this.policyFactory.finance(
@@ -57,14 +60,11 @@ export class UpdateChargeDiscountHandler
         )
         .orThrow(TREATMENT_CHARGE_EVENTS.DISCOUNT_UPDATED);
 
-      const { data: invoice } = await this.queryBus.execute(
-        new GetInvoiceByAppointmentIdQuery(charge.appointmentId.value)
+      // Fatura kontrolü QueryBus yerine domain servisi üzerinden: yazmayı kapıda
+      // durduran invariant, aynı transaction kapsamında Command Repo'dan okunur.
+      await this.invoiceIssuance.assertAppointmentNotInvoiced(
+        charge.appointmentId.value
       );
-      if (invoice) {
-        throw new TreatmentChargeAlreadyInvoicedException(
-          charge.appointmentId.value
-        );
-      }
 
       const { data: settings } = await this.queryBus.execute(
         new GetClinicFinanceSettingsQuery(charge.clinicId.value)

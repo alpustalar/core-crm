@@ -23,6 +23,10 @@ import {
   IYZICO_TRANSACTION_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { IyzicoTransaction } from '@modules/finance/pos/virtual/domain/entities/iyzico-transaction.entity';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(InitCheckoutFormCommand)
 export class InitCheckoutFormHandler
@@ -37,13 +41,22 @@ export class InitCheckoutFormHandler
     private readonly iyzicoCommandRepo: IIyzicoTransactionCommandRepository,
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
     command: InitCheckoutFormCommand
   ): Promise<InitCheckoutFormCommandResponse> {
     const { dto, ip } = command;
+
+    // `dto.clinicId` istek gövdesinden geliyor: kontrol olmadan ödeme yetkisi olan
+    // personel başka kliniğin adına ödeme oturumu açabilirdi.
+    this.policyFactory
+      .finance(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(dto.clinicId))
+      .orThrow('payment.iyzico.checkout');
 
     const conversationId = randomUUID();
 

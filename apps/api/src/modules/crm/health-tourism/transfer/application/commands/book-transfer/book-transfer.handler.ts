@@ -20,6 +20,10 @@ import {
   IHotelbedsTransferBookingCommandRepository,
 } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.command.repository';
 import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(BookTransferCommand)
 export class BookTransferHandler
@@ -32,11 +36,20 @@ export class BookTransferHandler
     private readonly hotelbedsTransferBookingRepo: IHotelbedsTransferBookingCommandRepository,
     @Inject(TENANT_SCOPE_RESOLVER)
     private readonly tenantScopeResolver: ITenantScopeResolver,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: BookTransferCommand): Promise<BookTransferResponse> {
     const { data } = command;
+
+    // `data.clinicId` istek gövdesinden geliyor: kontrol olmadan personel başka
+    // kliniğin adına (ve onun komisyon/muhasebe kayıtlarına) rezervasyon açabilirdi.
+    this.policyFactory
+      .clinic(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.actorCanAccessTargetClinic(data.clinicId))
+      .orThrow('health-tourism.booking');
 
     const organizationId = await this.tenantScopeResolver.resolve(data);
 

@@ -5,7 +5,6 @@ import { LeadStatusSchema } from '@input-type-schemas/LeadStatusSchema';
 import { PipelineStageTypeSchema } from '@input-type-schemas/PipelineStageTypeSchema';
 import { LogSource } from '@src/domain/constants/log-action.constant';
 import { Pagination } from '@shared/common';
-import { ActorContext } from '@common/interfaces';
 
 // ==========================================
 // 1. LEAD OLUŞTURMA SÖZLEŞMESİ (CREATE LEAD)
@@ -78,15 +77,35 @@ export type FindAdAttributedLeadsFilter = z.infer<
   typeof FindAdAttributedLeadsFilterSchema
 >;
 
+/**
+ * Durum değişikliği event'lerinin audit alanları. Entity event'i kendisi raise
+ * ettiği için (bkz. CLAUDE.md — event entity'de raise edilir) "kim/nereden"
+ * bilgisi entity'ye buradan taşınır. Tüm `ActorContext`'i domain'e sokmak yerine
+ * yalnız iki skaler geçilir: entity'nin yetki/rol bilgisine işi yok.
+ */
+export const LeadAuditSchema = z.object({
+  actorId: z.string(),
+  logSource: z.nativeEnum(LogSource),
+});
+
+export type LeadAuditProps = z.infer<typeof LeadAuditSchema>;
+
 export const ConvertLeadSchema = z.object({
   patientId: z.string().optional(),
   appointmentId: z.string().optional(),
-  actor: z.custom<ActorContext>(
-    (val) => val !== null && typeof val === 'object'
-  ),
+  actorId: z.string(),
+  logSource: z.nativeEnum(LogSource),
 });
 
 export type ConvertLeadProps = z.infer<typeof ConvertLeadSchema>;
+
+export const MarkLeadLostSchema = z.object({
+  reason: z.string().optional(),
+  actorId: z.string(),
+  logSource: z.nativeEnum(LogSource),
+});
+
+export type MarkLeadLostProps = z.infer<typeof MarkLeadLostSchema>;
 
 // ==========================================
 // SATIŞ HUNİSİ — aşama taşıma (Kanban board)
@@ -100,7 +119,11 @@ export const MoveLeadToStageSchema = z.object({
   pipelineId: z.uuid(),
   stageId: z.uuid(),
   stageType: PipelineStageTypeSchema,
+  /** Audit metnindeki aşama adı ("Lead aşama taşındı (Teklif): ..."). */
+  stageName: z.string(),
   reason: z.string().optional(),
+  actorId: z.string(),
+  logSource: z.nativeEnum(LogSource),
 });
 
 export type MoveLeadToStageProps = z.infer<typeof MoveLeadToStageSchema>;

@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
 import { PurchaseRequestStatusType } from '@input-type-schemas/PurchaseRequestStatusSchema';
 import { PurchaseOrderStatusType } from '@input-type-schemas/PurchaseOrderStatusSchema';
+import { PurchaseOrderBillingStatusType } from '@input-type-schemas/PurchaseOrderBillingStatusSchema';
 
 const { INTERNAL, FINANCIAL, MANAGEMENT, ADMIN } = ResponseGroups;
 
@@ -144,6 +145,13 @@ export class PurchaseOrderResponseDto {
   @Expose(FIN)
   @Type(() => String)
   grandTotal: string;
+
+  /** Faturalanan tutar finans verisidir; eşleştirme durumu operasyona da açık. */
+  @Expose(FIN)
+  @Type(() => String)
+  invoicedTotal: string;
+
+  @Expose(OPS) billingStatus: PurchaseOrderBillingStatusType;
 
   @Expose({ groups: [MANAGEMENT, ADMIN] })
   organizationId: string;

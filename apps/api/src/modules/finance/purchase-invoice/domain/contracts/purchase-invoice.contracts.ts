@@ -13,6 +13,9 @@ export const CreatePurchaseInvoicePropsSchema = z.object({
   invoiceDate: z.date(),
   lineAccountCode: z.string().min(1, 'Hesap kodu zorunludur'),
 
+  /** Eşleştirildiği satın alma siparişi (opsiyonel — serbest fatura null kalır). */
+  purchaseOrderId: z.uuid().nullable().optional(),
+
   // KDV oranı: 0 ile 100 arası (örn: 0.18 veya 18 gibi sistem tercihinize göre)
   vatRate: z.number().min(0).max(100),
 

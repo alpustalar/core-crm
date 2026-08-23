@@ -52,7 +52,6 @@ export class HotelbedsBookingResponseDto {
   @Type(() => Number)
   totalNet: number; // Hotelbeds ham geliş maliyeti (Dışarı sızmamalı)
 
-  // TODO: hizmet payını klinik değil uygulama alacak.
   @Expose({ groups: [ADMIN] })
   @Type(() => Number)
   serviceFee: number | null; // Kliniğin aldığı hizmet payı

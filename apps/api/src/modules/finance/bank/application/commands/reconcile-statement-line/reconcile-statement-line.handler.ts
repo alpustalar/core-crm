@@ -27,24 +27,27 @@ export class ReconcileStatementLineHandler
   async execute(command: ReconcileStatementLineCommand): Promise<void> {
     const { lineId, data, ctx } = command.payload;
 
-    const line = await this.bankStatementLineRepo.findById(lineId);
-    if (!line) {
-      throw new BankStatementLineNotFoundException(lineId);
-    }
-
-    this.policyFactory
-      .finance(ctx.actor, ctx.source)
-      .evaluator.check((p) => p.canAccessClinicFinances(line.clinicId.value))
-      .orThrow('bank-statement-line.reconcile');
-
-    line.reconcile({
-      matchStatus: data.matchStatus,
-      matchedRef: data.matchedRef,
-      matchNote: data.matchNote,
-      reconciledById: ctx.actor.userId,
-    });
-
+    // Okuma da yazma da tek transaction içinde ve KİLİTLİ: manuel mutabakat ile
+    // oto-eşleştirme taraması aynı satırı hedefleyebilir; kilitsiz okumada ikisi
+    // de satırı UNMATCHED görüp aynı defter hareketini iki kez bağlar.
     await this.txManager.run(async () => {
+      const line = await this.bankStatementLineRepo.findByIdForUpdate(lineId);
+      if (!line) {
+        throw new BankStatementLineNotFoundException(lineId);
+      }
+
+      this.policyFactory
+        .finance(ctx.actor, ctx.source)
+        .evaluator.check((p) => p.canAccessClinicFinances(line.clinicId.value))
+        .orThrow('bank-statement-line.reconcile');
+
+      line.reconcile({
+        matchStatus: data.matchStatus,
+        matchedRef: data.matchedRef,
+        matchNote: data.matchNote,
+        reconciledById: ctx.actor.userId,
+      });
+
       await this.bankStatementLineRepo.update(line);
     });
   }

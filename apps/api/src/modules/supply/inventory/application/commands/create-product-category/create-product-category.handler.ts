@@ -8,39 +8,47 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import {
+  ITenantScopeResolver,
+  TENANT_SCOPE_RESOLVER,
+} from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import {
   IProductCategoryCommandRepository,
   PRODUCT_CATEGORY_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/product-category/product-category.command.repository';
 
 @CommandHandler(CreateProductCategoryCommand)
-export class CreateProductCategoryHandler
-  implements ICommandHandler<CreateProductCategoryCommand, string>
-{
+export class CreateProductCategoryHandler implements ICommandHandler<
+  CreateProductCategoryCommand,
+  string
+> {
   constructor(
     @Inject(PRODUCT_CATEGORY_COMMAND_REPOSITORY)
     private readonly productCategoryRepo: IProductCategoryCommandRepository,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
+    @Inject(TENANT_SCOPE_RESOLVER)
+    private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: CreateProductCategoryCommand): Promise<string> {
     const { data, ctx } = command;
 
+    // Kiracı kimliği istekten alınmaz, klinikten türetilir — DTO'da böyle bir
+    // alan yok (bkz. CreateProductCategorySchema).
+    const organizationId = await this.tenantScopeResolver.resolve(data);
+
     this.policyFactory
       .clinic(ctx.actor, ctx.source)
       .evaluator.check((p) =>
-        p.actorCanAccessClinicAndOrganization(
-          data.clinicId,
-          data.organizationId
-        )
+        p.actorCanAccessClinicOrOwnsOrganization(data.clinicId, organizationId)
       )
       .orThrow();
 
     const category = ProductCategory.create({
       name: data.name,
       parentId: data.parentId ?? null,
-      organizationId: data.organizationId,
+      organizationId,
       clinicId: data.clinicId,
     });
 

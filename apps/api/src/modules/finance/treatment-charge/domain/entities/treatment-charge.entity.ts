@@ -182,8 +182,16 @@ export class TreatmentCharge extends AggregateRoot {
   }
 
   /** İndirimsiz satır tutarı: liste fiyatı × adet. */
+  /**
+   * Satırın liste tutarı = birim fiyat × adet, **kuruşa yuvarlanmış**.
+   *
+   * Kolon olarak saklanmıyor, her okumada hesaplanıyor. Adet kesirli olabildiği
+   * için (`Decimal(10,3)`) ham çarpım 2 haneden fazla çıkabiliyordu; indirim ve
+   * matrah ise 2 haneye yuvarlanmış olarak saklandığı için özet satırında
+   * "liste − indirim = matrah" eşitliği bir kuruş kayıyordu.
+   */
   get listTotal(): Money {
-    return this._listPrice.multiply(this._quantity);
+    return this._listPrice.multiply(this._quantity).round();
   }
 
   get isVoided(): boolean {
@@ -334,7 +342,9 @@ export class TreatmentCharge extends AggregateRoot {
     vatAmount: Money;
     grossAmount: Money;
   } {
-    const listTotal = input.listPrice.multiply(input.quantity);
+    // Yuvarlama SATIR TUTARINDA yapılır; türeyen indirim/matrah bu tutardan
+    // hesaplanır ki saklanan değerlerle birebir tutsun.
+    const listTotal = input.listPrice.multiply(input.quantity).round();
 
     const discountValue = listTotal.value
       .mul(input.discountRate)

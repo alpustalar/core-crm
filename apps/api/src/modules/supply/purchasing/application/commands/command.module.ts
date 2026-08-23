@@ -7,6 +7,8 @@ import { CreatePurchaseOrderHandler } from './create-purchase-order/create-purch
 import { SendPurchaseOrderHandler } from './send-purchase-order/send-purchase-order.handler';
 import { ReceivePurchaseOrderHandler } from './receive-purchase-order/receive-purchase-order.handler';
 import { CancelPurchaseOrderHandler } from './cancel-purchase-order/cancel-purchase-order.handler';
+import { ApplyInvoiceToPurchaseOrderHandler } from './apply-invoice-to-purchase-order/apply-invoice-to-purchase-order.handler';
+import { RevertInvoiceFromPurchaseOrderHandler } from './revert-invoice-from-purchase-order/revert-invoice-from-purchase-order.handler';
 import { PurchasingInfrastructureModule } from '@modules/supply/purchasing/infrastructure/infrastructure.module';
 
 export const PURCHASING_COMMAND_HANDLERS = [
@@ -18,6 +20,8 @@ export const PURCHASING_COMMAND_HANDLERS = [
   SendPurchaseOrderHandler,
   ReceivePurchaseOrderHandler,
   CancelPurchaseOrderHandler,
+  ApplyInvoiceToPurchaseOrderHandler,
+  RevertInvoiceFromPurchaseOrderHandler,
 ];
 
 @Module({

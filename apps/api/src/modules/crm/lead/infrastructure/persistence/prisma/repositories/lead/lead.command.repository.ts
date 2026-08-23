@@ -25,6 +25,11 @@ export class LeadCommandRepository
     return raw ? new Lead(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Lead | null> {
+    await this.lockRowForUpdate('leads', id);
+    return this.findById(id);
+  }
+
   async update(entity: Lead): Promise<Lead> {
     const data = entity.toPersistence();
     const { id, ...update } = data;

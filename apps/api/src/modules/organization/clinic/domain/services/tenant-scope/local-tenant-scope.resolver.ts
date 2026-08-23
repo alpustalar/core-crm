@@ -12,7 +12,10 @@ import {
   CLINIC_QUERY_REPOSITORY,
   IClinicQueryRepository,
 } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
-import { ClinicNotFoundException } from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
+import {
+  ClinicNotFoundException,
+  TenantScopeMismatchException,
+} from '@modules/organization/clinic/domain/exceptions/clinic.exceptions';
 
 /**
  * Aynı süreç içinde (monolit) çalışan çözücü: Redis cache → clinic query repo.
@@ -29,11 +32,33 @@ export class LocalTenantScopeResolver implements ITenantScopeResolver {
     private readonly cacheService: IClinicCacheService
   ) {}
 
+  /**
+   * Kliniğin kiracısını döner.
+   *
+   * Girdideki `organizationId` **kısa devre değil, doğrulama** yolundan geçer:
+   * bu alan çoğu uçta DTO üzerinden istemciden gelir ve olduğu gibi kabul
+   * edilirse aktör kendi kliniğinin kimliğiyle başka bir kiracının organizasyon
+   * kimliğini eşleştirebilir; kayıt o kiracının org-kapsamlı listelerine düşer.
+   * Klinik→organizasyon okuması Redis'te önbelleklendiği için doğrulamanın
+   * maliyeti kısa devrenin kazandırdığından düşüktür.
+   */
   async resolve(input: TenantScopeInput): Promise<string> {
-    if (isDefined(input.organizationId)) return input.organizationId;
+    const organizationId = await this.resolveFromClinic(input.clinicId);
 
-    const clinicId = input.clinicId;
+    if (
+      isDefined(input.organizationId) &&
+      input.organizationId !== organizationId
+    ) {
+      throw new TenantScopeMismatchException(
+        input.clinicId,
+        input.organizationId
+      );
+    }
 
+    return organizationId;
+  }
+
+  private async resolveFromClinic(clinicId: string): Promise<string> {
     const cached = await this.cacheService.clinicOrganizationId().get(clinicId);
     if (cached) return cached.organizationId;
 

@@ -9,6 +9,10 @@ import {
 } from '@modules/finance/accounting/chart-of-accounts/domain/repositories/account/account.command.repository';
 import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
 import { ITenantScopeResolver } from '@shared';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 /**
  * Bir clinic (şube/defter) için klinik TDHP hesap planını kurar.
@@ -24,11 +28,20 @@ export class InitializeChartOfAccountsHandler
     private readonly accountRepo: IAccountCommandRepository,
     @Inject(TENANT_SCOPE_RESOLVER)
     private readonly tenantScopeResolver: ITenantScopeResolver,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: InitializeChartOfAccountsCommand): Promise<void> {
     const { clinicId, ctx } = command.payload;
+
+    // Hesap planı kurulumu klinik-seviye bir yapılandırma; `clinicId` istekten
+    // geldiği için kapsam burada doğrulanır.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.actorCanManageTargetClinic(clinicId))
+      .orThrow('accounting.chart-of-accounts.initialize');
 
     const organizationId = await this.tenantScopeResolver.resolve(
       command.payload

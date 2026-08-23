@@ -22,6 +22,7 @@ export interface ISubscriptionPaymentMethodCommandRepository
    * Abonelik-başına tek kayıtlı yöntem: varsa günceller (yeni kart), yoksa oluşturur.
    * Kart değişimi/yeniden saklama akışında callback'ten çağrılır.
    */
+
   upsertBySubscriptionId(
     props: CreateSubscriptionPaymentMethodProps
   ): Promise<SubscriptionPaymentMethod>;

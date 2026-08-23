@@ -20,9 +20,10 @@ import { ReceiveStockCommand } from '@modules/supply/inventory/application/comma
  * Hepsi tek transaction içinde (nested run ALS tx'ini paylaşır) → atomik.
  */
 @CommandHandler(ReceivePurchaseOrderCommand)
-export class ReceivePurchaseOrderHandler
-  implements ICommandHandler<ReceivePurchaseOrderCommand, void>
-{
+export class ReceivePurchaseOrderHandler implements ICommandHandler<
+  ReceivePurchaseOrderCommand,
+  void
+> {
   constructor(
     @Inject(PURCHASE_ORDER_COMMAND_REPOSITORY)
     private readonly purchaseOrderRepo: IPurchaseOrderCommandRepository,
@@ -36,7 +37,9 @@ export class ReceivePurchaseOrderHandler
     const { orderId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const order = await this.purchaseOrderRepo.findById(orderId);
+      // Kilitli okuma: `quantityReceived` kümülatif sayaçtır, iki eşzamanlı kabul
+      // kilitsiz okursa ikisi de aynı kalan miktarı görüp çift stok girişi yapar.
+      const order = await this.purchaseOrderRepo.findByIdForUpdate(orderId);
       if (!order) throw new PurchaseOrderNotFoundException(orderId);
 
       this.policyFactory

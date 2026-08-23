@@ -15,6 +15,11 @@ export class GetIncomeStatementQuery implements IQuery {
       ctx: IGetContext;
       dateFrom?: Date;
       dateTo?: Date;
+      /**
+       * Önceki eşit uzunluktaki dönemle karşılaştırma ekler. Tarih aralığı
+       * verilmediyse yok sayılır — açık uçlu raporun "öncesi" yoktur.
+       */
+      compare?: boolean;
     }
   ) {}
 }

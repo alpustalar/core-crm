@@ -1,5 +1,10 @@
 import { Lead } from './lead.entity';
-import { LeadCreatedEvent } from '@modules/crm/lead/domain/events';
+import {
+  LeadConvertedEvent,
+  LeadCreatedEvent,
+  LeadLostEvent,
+  LeadStatusChangedEvent,
+} from '@modules/crm/lead/domain/events';
 import { LogSource } from '@src/domain/constants/log-action.constant';
 import { randomUUID } from 'crypto';
 
@@ -7,7 +12,7 @@ describe('Lead entity — attribution alanları', () => {
   const clinicId = randomUUID();
   const organizationId = randomUUID();
 
-  it('create → getter\'lar ve toPersistence attribution\'ı taşır (reklam)', () => {
+  it("create → getter'lar ve toPersistence attribution'ı taşır (reklam)", () => {
     const lead = Lead.create({
       clinicId,
       organizationId,
@@ -97,6 +102,12 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
   const organizationId = randomUUID();
   const pipelineId = randomUUID();
   const stageId = randomUUID();
+  /** Event payload'ının audit alanları — her state geçişi bunu ister. */
+  const audit = {
+    actorId: 'user-1',
+    logSource: LogSource.WEB,
+    stageName: 'Test Aşaması',
+  };
 
   it('create → seed edilen pipelineId/stageId taşınır', () => {
     const lead = Lead.create({
@@ -112,10 +123,21 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
   });
 
   it('moveToStage(OPEN) → stageId değişir, status NEW kalır (senkron yok)', () => {
-    const lead = Lead.create({ clinicId, organizationId, source: 'MANUAL', pipelineId, stageId });
+    const lead = Lead.create({
+      clinicId,
+      organizationId,
+      source: 'MANUAL',
+      pipelineId,
+      stageId,
+    });
     const targetStage = randomUUID();
 
-    lead.moveToStage({ pipelineId, stageId: targetStage, stageType: 'OPEN' });
+    lead.moveToStage({
+      pipelineId,
+      stageId: targetStage,
+      stageType: 'OPEN',
+      ...audit,
+    });
 
     expect(lead.stageId).toBe(targetStage);
     expect(lead.status).toBe('NEW');
@@ -124,10 +146,21 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
   });
 
   it('moveToStage(WON) → status CONVERTED + convertedAt set', () => {
-    const lead = Lead.create({ clinicId, organizationId, source: 'MANUAL', pipelineId, stageId });
+    const lead = Lead.create({
+      clinicId,
+      organizationId,
+      source: 'MANUAL',
+      pipelineId,
+      stageId,
+    });
     const wonStage = randomUUID();
 
-    lead.moveToStage({ pipelineId, stageId: wonStage, stageType: 'WON' });
+    lead.moveToStage({
+      pipelineId,
+      stageId: wonStage,
+      stageType: 'WON',
+      ...audit,
+    });
 
     expect(lead.status).toBe('CONVERTED');
     expect(lead.stageId).toBe(wonStage);
@@ -136,7 +169,13 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
   });
 
   it('moveToStage(LOST) → status LOST + lostReason + lostAt set', () => {
-    const lead = Lead.create({ clinicId, organizationId, source: 'MANUAL', pipelineId, stageId });
+    const lead = Lead.create({
+      clinicId,
+      organizationId,
+      source: 'MANUAL',
+      pipelineId,
+      stageId,
+    });
     const lostStage = randomUUID();
 
     lead.moveToStage({
@@ -144,6 +183,7 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
       stageId: lostStage,
       stageType: 'LOST',
       reason: 'Bütçe yetersiz',
+      ...audit,
     });
 
     expect(lead.status).toBe('LOST');
@@ -153,12 +193,28 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
   });
 
   it('moveToStage: terminalden (LOST) OPEN aşamaya geri → QUALIFIED olarak reaktive olur', () => {
-    const lead = Lead.create({ clinicId, organizationId, source: 'MANUAL', pipelineId, stageId });
-    lead.moveToStage({ pipelineId, stageId: randomUUID(), stageType: 'LOST' });
+    const lead = Lead.create({
+      clinicId,
+      organizationId,
+      source: 'MANUAL',
+      pipelineId,
+      stageId,
+    });
+    lead.moveToStage({
+      pipelineId,
+      stageId: randomUUID(),
+      stageType: 'LOST',
+      ...audit,
+    });
     expect(lead.status).toBe('LOST');
 
     const reopenStage = randomUUID();
-    lead.moveToStage({ pipelineId, stageId: reopenStage, stageType: 'OPEN' });
+    lead.moveToStage({
+      pipelineId,
+      stageId: reopenStage,
+      stageType: 'OPEN',
+      ...audit,
+    });
 
     expect(lead.status).toBe('QUALIFIED');
     expect(lead.stageId).toBe(reopenStage);
@@ -166,7 +222,7 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
     expect(lead.lostReason).toBeNull();
   });
 
-  it('assignStage → yalnız pipelineId/stageId atar, status\'a dokunmaz', () => {
+  it("assignStage → yalnız pipelineId/stageId atar, status'a dokunmaz", () => {
     const lead = Lead.create({ clinicId, organizationId, source: 'MANUAL' });
     const p = randomUUID();
     const s = randomUUID();
@@ -176,5 +232,105 @@ describe('Lead entity — satış hunisi (moveToStage / assignStage)', () => {
     expect(lead.pipelineId).toBe(p);
     expect(lead.stageId).toBe(s);
     expect(lead.status).toBe('NEW');
+  });
+});
+
+describe('Lead entity — durum geçişi event\'leri', () => {
+  const clinicId = randomUUID();
+  const organizationId = randomUUID();
+  const audit = { actorId: 'user-1', logSource: LogSource.WEB };
+
+  /** `create` kendi event'ini raise ediyor; geçiş testleri onu saymasın. */
+  const freshLead = () => {
+    const lead = Lead.create({ clinicId, organizationId, source: 'MANUAL' });
+    lead.clearDomainEvents();
+    return lead;
+  };
+
+  it('convert → LeadConvertedEvent (hasta + randevu id taşır)', () => {
+    const lead = freshLead();
+    const patientId = randomUUID();
+    const appointmentId = randomUUID();
+
+    lead.convert({ patientId, appointmentId, ...audit });
+
+    const events = lead.getDomainEvents();
+    expect(events).toHaveLength(1);
+    const event = events[0] as LeadConvertedEvent;
+    expect(event).toBeInstanceOf(LeadConvertedEvent);
+    expect(event.leadId).toBe(lead.id.value);
+    expect(event.patientId).toBe(patientId);
+    expect(event.appointmentId).toBe(appointmentId);
+    expect(event.log?.actorId).toBe('user-1');
+    expect(event.log?.source).toBe(LogSource.WEB);
+  });
+
+  it('markLost → LeadLostEvent (sebep payload ve audit metnine girer)', () => {
+    const lead = freshLead();
+
+    lead.markLost({ reason: 'Bütçe yetersiz', ...audit });
+
+    const event = lead.getDomainEvents()[0] as LeadLostEvent;
+    expect(event).toBeInstanceOf(LeadLostEvent);
+    expect(event.lostReason).toBe('Bütçe yetersiz');
+    expect(event.log?.details).toContain('Bütçe yetersiz');
+  });
+
+  it('contact/qualify → LeadStatusChangedEvent, önceki durumu entity bilir', () => {
+    const lead = freshLead();
+
+    lead.contact(audit);
+    lead.qualify(audit);
+
+    const events = lead.getDomainEvents() as LeadStatusChangedEvent[];
+    expect(events).toHaveLength(2);
+    expect(events[0].previousStatus).toBe('NEW');
+    expect(events[0].newStatus).toBe('CONTACTED');
+    expect(events[1].previousStatus).toBe('CONTACTED');
+    expect(events[1].newStatus).toBe('QUALIFIED');
+  });
+
+  it('aynı duruma geçiş event üretmez (idempotent çağrı)', () => {
+    // Aynı statüye ikinci çağrı gürültü bir audit satırı yazmamalı:
+    // "CONTACTED -> CONTACTED" denetim kaydında anlamsız.
+    const lead = freshLead();
+
+    lead.contact(audit);
+    lead.contact(audit);
+
+    expect(lead.getDomainEvents()).toHaveLength(1);
+  });
+
+  it('moveToStage statüyü değiştirmiyorsa event üretmez (OPEN→OPEN)', () => {
+    const lead = freshLead();
+    const stageName = 'Teklif';
+
+    lead.moveToStage({
+      pipelineId: randomUUID(),
+      stageId: randomUUID(),
+      stageType: 'OPEN',
+      stageName,
+      ...audit,
+    });
+
+    expect(lead.getDomainEvents()).toHaveLength(0);
+  });
+
+  it('moveToStage(WON) → LeadStatusChangedEvent, audit metni aşama adını taşır', () => {
+    const lead = freshLead();
+
+    lead.moveToStage({
+      pipelineId: randomUUID(),
+      stageId: randomUUID(),
+      stageType: 'WON',
+      stageName: 'Kazanıldı',
+      ...audit,
+    });
+
+    const event = lead.getDomainEvents()[0] as LeadStatusChangedEvent;
+    expect(event).toBeInstanceOf(LeadStatusChangedEvent);
+    expect(event.previousStatus).toBe('NEW');
+    expect(event.newStatus).toBe('CONVERTED');
+    expect(event.log?.details).toContain('Kazanıldı');
   });
 });

@@ -8,7 +8,8 @@ export const META_LEAD_COMMAND_REPOSITORY = Symbol(
 );
 export const META_LEAD_QUERY_REPOSITORY = Symbol('IMetaLeadQueryRepository');
 
-export interface IMetaLeadCommandRepository extends IBaseCommandRepository<MetaLead> {
+export interface IMetaLeadCommandRepository
+  extends IBaseCommandRepository<MetaLead> {
   /**
    * Webhook idempotentliği: aynı lead iki kez gelirse ikinci kayıt açılmaz.
    * Yazma kararını beslediği için Command Context'te okunur; nihai güvence

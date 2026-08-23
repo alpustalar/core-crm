@@ -48,10 +48,6 @@ export class GetProviderAvailabilityHandler
       new FindClinicIdByProviderIdQuery(providerId)
     );
 
-    const serializationOptions = this.policyFactory
-      .appointment(actor, source)
-      .policy.getSerializationOptions({ clinicId, providerId });
-
     const providerAvailabilityQueryDateRange = DateRange.create(
       startDate,
       endDate
@@ -337,7 +333,14 @@ export class GetProviderAvailabilityHandler
       }
     }
 
-    return { data: days, meta: { serializationOptions } };
+    return {
+      data: days,
+      meta: {
+        serializationOptions: this.policyFactory
+          .appointment(actor, source)
+          .policy.getSerializationOptions({ clinicId, providerId }),
+      },
+    };
   }
 
   private hasFullDayOf(exceptions: ProviderException[], dateRange: DateRange) {

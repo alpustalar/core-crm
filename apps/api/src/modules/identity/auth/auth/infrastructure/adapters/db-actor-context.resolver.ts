@@ -7,10 +7,17 @@ import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { rolesCreateManyInputs } from '@src/infrastructure/persistence/prisma/data/modules';
 import { FindUserForAuthQuery } from '@modules/identity/user/application/queries/find-user-for-auth/find-user-for-auth.query';
+import type { AuthUserResponse } from '@modules/identity/user/domain/contracts/user.contracts';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 
 // TODO: PROD'TA KALDIR
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+// `includes` ALT DİZE eşleşmesiydi: ADMIN_EMAIL="admin@klinik.com" iken
+// "min@klinik.co" ile giriş yapan kullanıcı da sistem admini oluyordu. Liste
+// virgülle ayrılıp TAM eşitlik aranır.
+const ADMIN_EMAILS = (process.env.ADMIN_EMAIL ?? '')
+  .split(',')
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 const isDevelopment = process.env.MODE === 'DEVELOPMENT';
 //
 
@@ -44,13 +51,50 @@ export class DbActorContextResolver implements IActorContextResolverPort {
       capabilities: this.mergeCapabilities(user),
       rolePriority: user.role?.priority ?? 0,
       source: LogSource.SYSTEM,
-      managedClinics: user.managedClinics ?? [],
+      managedClinics: user.managedClinics.map(({ id }) => ({ id })),
       ownedOrganizations: user.ownedOrganizations ?? [],
+      organizationId: this.resolveOrganizationId(user),
       roleId: user.roleId ?? undefined,
       role: user.role ?? undefined,
       clinicId: user.clinicId ?? undefined,
       providerId: user.providerProfile?.id ?? undefined,
     };
+  }
+
+  /**
+   * Aktörün kiracı (organizasyon) kimliği — YALNIZ belirsizlik yoksa.
+   *
+   * `User` tablosunda `organizationId` kolonu yoktur; bağ üç yerden gelebilir:
+   * çalışılan klinik, yönetilen klinikler ve sahip olunan organizasyonlar. Üçünün
+   * birleşimi tek bir kimliğe işaret ediyorsa aktörün kiracısı odur.
+   *
+   * **`ownedOrganizations[0]` bilinçli olarak KULLANILMAZ.** Prisma ilişkili
+   * satırları `orderBy` verilmedikçe garantili bir sırada döndürmez: iki
+   * organizasyona sahip bir kullanıcıda `[0]` istekler arasında değişebilir ve
+   * kayıtlar sessizce yanlış kiracıya damgalanır — hiçbir filtrenin sonradan
+   * yakalayamayacağı bir bozulma. Kimlik tahmin edilmez.
+   *
+   * Birleşim birden fazla kimlik içeriyorsa `undefined` döner: hangi kiracı adına
+   * çalışıldığı artık isteğin kapsamıdır (clinicId), aktörün kimliği değil.
+   * Tüketiciler bu durumda kapıyı kapatır (kapsamsız okuma/yazma yapılmaz).
+   */
+  private resolveOrganizationId(
+    user: NonNullable<AuthUserResponse>
+  ): string | undefined {
+    const organizationIds = new Set<string>();
+
+    if (user.workingClinic)
+      organizationIds.add(user.workingClinic.organizationId);
+    user.managedClinics.forEach((clinic) =>
+      organizationIds.add(clinic.organizationId)
+    );
+    user.ownedOrganizations.forEach((organization) =>
+      organizationIds.add(organization.id)
+    );
+
+    if (organizationIds.size !== 1) return undefined;
+
+    return [...organizationIds][0];
   }
 
   /**
@@ -62,7 +106,9 @@ export class DbActorContextResolver implements IActorContextResolverPort {
    * o yüzden kesişimi/farkı hesaplamaya gerek kalmaz.
    */
   private mergeCapabilities(user: {
-    role?: { capabilities: { capability: { module: string; action: string } }[] } | null;
+    role?: {
+      capabilities: { capability: { module: string; action: string } }[];
+    } | null;
     grantedCapabilities?: { capability: { module: string; action: string } }[];
   }): string[] {
     const toKey = ({
@@ -82,7 +128,7 @@ export class DbActorContextResolver implements IActorContextResolverPort {
   // TODO: prod'ta create admin kaldır
   private async createAdmin(token: VerifiedToken): Promise<void> {
     const { uid: id, email } = token;
-    if (!email || !ADMIN_EMAIL?.includes(email)) return;
+    if (!email || !ADMIN_EMAILS.includes(email.toLowerCase())) return;
 
     const systemAdminRole = rolesCreateManyInputs.find((r) => {
       const priority = Priority.fromTrusted(r.priority);

@@ -230,6 +230,12 @@ export interface FindOverlappingAllocationsProps {
   excludeAllocationId?: string;
 }
 
+/** Kapasite çapa kilidi girdisi — kilitlenecek tablo `kind`'a göre seçilir. */
+export interface LockResourceCapacityProps {
+  kind: z.infer<typeof ProjectResourceKindSchema>;
+  resourceId: string;
+}
+
 /** Kaynak takvimi satırı — bir kaynağın hangi projeye ne kadar ayrıldığı. */
 export interface ResourceScheduleRow {
   allocationId: string;

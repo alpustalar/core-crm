@@ -37,6 +37,9 @@ import {
   IInvoiceCommandRepository,
   INVOICE_COMMAND_REPOSITORY,
 } from '@modules/finance/invoice/domain/repositories/invoice/invoice.command.repository';
+import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
+import { InvoiceDuplicateException } from '@modules/finance/invoice/domain/exceptions/invoice.exceptions';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @CommandHandler(IssueInvoiceCommand)
 export class IssueInvoiceHandler
@@ -51,7 +54,8 @@ export class IssueInvoiceHandler
     private readonly tenantScopeResolver: ITenantScopeResolver,
     private readonly txManager: TransactionManager,
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    private readonly criticalFailure: CriticalFailurePublisher
   ) {}
 
   async execute(command: IssueInvoiceCommand): Promise<IssueInvoiceResponse> {
@@ -62,11 +66,7 @@ export class IssueInvoiceHandler
       this.logger.log(
         `Fatura zaten mevcut, atlanıyor. invoiceId=${existingInvoice.id.value}`
       );
-      return {
-        invoiceId: existingInvoice.id.value,
-        invoiceNumber: existingInvoice.invoiceNumber,
-        status: existingInvoice.status,
-      };
+      return this.toResponse(existingInvoice);
     }
 
     const invoiceId = UUID.generate().value;
@@ -97,35 +97,47 @@ export class IssueInvoiceHandler
 
     // Fatura PENDING oluşturulur ve ekonomik olay (SALES_INVOICE_ISSUED) HER ZAMAN
     // yazılır — e-belge gönderiminden bağımsız. İkisi atomik (outboxRun).
-    await this.txManager.outboxRun(async () => {
-      await this.invoiceRepo.create({
-        id: invoiceId,
-        organizationId,
-        clinicId: input.clinicId,
-        patientId: input.patientId,
-        appointmentId: input.appointmentId,
-        paymentId: input.paymentId,
-        // Satırlardan türediyse genel toplam da satırların toplamıdır; çağıranın
-        // gönderdiği tutar değil (ikisi ayrışırsa satır toplamı esastır).
-        amount: taxSpec.grossAmount.value.toNumber(),
-        currency:
-          input.totalAmount.currency ?? Currency.fromTrusted(Currency.enum.TRY),
-        vatRate,
-        netTotal: taxSpec.netAmount.value,
-        vatTotal: taxSpec.taxAmount.value,
-        status: InvoiceStatusSchema.enum.PENDING,
-      });
+    //
+    // Mükerrer faturaya karşı nihai güvence baştaki `resolveExisting` kontrolü
+    // DEĞİL, DB'deki unique kısıttır: kontrol ile yazma arasındaki pencerede ikinci
+    // istek gelirse burada `InvoiceDuplicateException` alınır ve kazananın faturası
+    // okunup dönülür (kilitlenecek tek bir satır yok — fatura henüz yaratılmamış).
+    try {
+      await this.txManager.outboxRun(async () => {
+        await this.invoiceRepo.create({
+          id: invoiceId,
+          organizationId,
+          clinicId: input.clinicId,
+          patientId: input.patientId,
+          appointmentId: input.appointmentId,
+          paymentId: input.paymentId,
+          // Satırlardan türediyse genel toplam da satırların toplamıdır; çağıranın
+          // gönderdiği tutar değil (ikisi ayrışırsa satır toplamı esastır).
+          amount: taxSpec.grossAmount.value.toNumber(),
+          currency:
+            input.totalAmount.currency ??
+            Currency.fromTrusted(Currency.enum.TRY),
+          vatRate,
+          netTotal: taxSpec.netAmount.value,
+          vatTotal: taxSpec.taxAmount.value,
+          status: InvoiceStatusSchema.enum.PENDING,
+        });
 
-      await this.recordSalesInvoiceIssued({
-        invoiceId,
-        clinicId: input.clinicId,
-        patientId: input.patientId,
-        netTotal: taxSpec.netAmount.value.toString(),
-        vatTotal: taxSpec.taxAmount.value.toString(),
-        grandTotal: taxSpec.grossAmount.value.toString(),
-        issuedAt: DateTimeManager.create(),
+        await this.recordSalesInvoiceIssued({
+          invoiceId,
+          clinicId: input.clinicId,
+          patientId: input.patientId,
+          netTotal: taxSpec.netAmount.value.toString(),
+          vatTotal: taxSpec.taxAmount.value.toString(),
+          grandTotal: taxSpec.grossAmount.value.toString(),
+          issuedAt: DateTimeManager.create(),
+        });
       });
-    });
+    } catch (error) {
+      const winner = await this.resolveDuplicateWinner(error, input);
+      if (winner) return winner;
+      throw error;
+    }
 
     // e-Belge gönderimi async kuyruğa düşer (doc 07 §5); fatura/muhasebe zaten commit
     // edildiği için enqueue hatası akışı geri almaz — yalnız loglanır. Processor portu
@@ -139,6 +151,36 @@ export class IssueInvoiceHandler
     };
   }
 
+  /**
+   * Unique kısıt yarışını kaybettiysek kazananın faturasını döner; hata başka bir
+   * şeyse `null` döner ve çağıran hatayı yükseltir.
+   *
+   * Kaybeden tarafın transaction'ı komple geri sarıldığı için (fatura + muhasebe
+   * olayı birlikte) ortada yarım kayıt kalmaz; kazananın kaydı zaten commit'lidir.
+   */
+  private async resolveDuplicateWinner(
+    error: unknown,
+    input: IssueInvoiceCommand['input']
+  ): Promise<IssueInvoiceResponse | null> {
+    if (!(error instanceof InvoiceDuplicateException)) return null;
+
+    const winner = await this.resolveExisting(input);
+    if (!winner) throw error;
+
+    this.logger.warn(
+      `Fatura yarışı kaybedildi (eşzamanlı istek); mevcut fatura dönülüyor. invoiceId=${winner.id.value}`
+    );
+    return this.toResponse(winner);
+  }
+
+  private toResponse(invoice: Invoice): IssueInvoiceResponse {
+    return {
+      invoiceId: invoice.id.value,
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+    };
+  }
+
   /** e-Belge gönderimini kuyruğa alır; entegratör akışı faturayı bloklamaz. */
   private async enqueueEDocument(invoiceId: string): Promise<void> {
     try {
@@ -148,6 +190,18 @@ export class IssueInvoiceHandler
         `e-Belge kuyruğa alınamadı: invoiceId=${invoiceId}`,
         error
       );
+      // Fatura commit edildi ama e-belge işi kuyruğa hiç girmedi: fatura
+      // PENDING'de kalır, GİB'e giden bir belge olmaz ve tekrar deneyecek bir
+      // iş de yoktur — elle tetiklenmesi gerekir.
+      this.criticalFailure.publish({
+        operation: 'finance.e-document.enqueue',
+        severity: 'CRITICAL',
+        summary: 'Fatura kesildi ancak e-belge gönderimi kuyruğa alınamadı.',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        context: { invoiceId },
+        clinicId: null,
+        dedupeKey: `edocument-enqueue-failed:${invoiceId}`,
+      });
     }
   }
 

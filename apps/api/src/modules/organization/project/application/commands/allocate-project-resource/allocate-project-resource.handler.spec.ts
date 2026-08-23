@@ -30,7 +30,13 @@ describe('AllocateProjectResourceHandler (kaynak tahsisi)', () => {
     const findOverlapping = jest
       .fn()
       .mockResolvedValue(options.overlapping ?? []);
-    const allocationCommandRepo = { findOverlapping, create } as never;
+    // Kapasite hesabını serialize eden çapa kilidi (kaynağın kendi satırı).
+    const lockResourceCapacity = jest.fn().mockResolvedValue(undefined);
+    const allocationCommandRepo = {
+      findOverlapping,
+      create,
+      lockResourceCapacity,
+    } as never;
 
     const projectCommandRepo = {
       findById: jest.fn().mockResolvedValue(
@@ -68,6 +74,7 @@ describe('AllocateProjectResourceHandler (kaynak tahsisi)', () => {
       ),
       create,
       findOverlapping,
+      lockResourceCapacity,
     };
   }
 
@@ -161,5 +168,30 @@ describe('AllocateProjectResourceHandler (kaynak tahsisi)', () => {
         endDate: day('2026-09-30'),
       })
     );
+  });
+
+  it('kapasite çapa kilidi çakışma sorgusundan ÖNCE alınır', async () => {
+    const { handler, findOverlapping, lockResourceCapacity } = build({});
+    await run(handler);
+
+    expect(lockResourceCapacity).toHaveBeenCalledWith({
+      kind: 'EMPLOYEE',
+      resourceId,
+    });
+    // Aynı transaction'da olmak yetmez: kilit önce alınmazsa iki eşzamanlı
+    // istek de "yer var" görüp aynı personeli %150'ye çıkarır.
+    expect(lockResourceCapacity.mock.invocationCallOrder[0]).toBeLessThan(
+      findOverlapping.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('oda/cihazda çapa kilidi resources satırında alınır', async () => {
+    const { handler, lockResourceCapacity } = build({});
+    await run(handler, 'ROOM');
+
+    expect(lockResourceCapacity).toHaveBeenCalledWith({
+      kind: 'ROOM',
+      resourceId,
+    });
   });
 });

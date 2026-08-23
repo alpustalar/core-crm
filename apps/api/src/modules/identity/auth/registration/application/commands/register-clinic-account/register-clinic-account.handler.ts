@@ -18,6 +18,7 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { CreateOrganization } from '@shared/modules/organization/types';
 import { RegistrationConfigurationException } from '@modules/identity/auth/registration/domain/registration.exceptions';
 import { RegisterUserOrProviderAccountCommand } from '@modules/identity/auth/registration/application/commands/register-user-or-provider-account';
+import { StartTrialCommand } from '@modules/platform/subscription/application/commands/start-trial/start-trial.command';
 
 @CommandHandler(RegisterClinicAccountCommand)
 export class RegisterClinicAccountHandler
@@ -126,8 +127,17 @@ export class RegisterClinicAccountHandler
           ctx: this.internalCtx,
         })
       );
-    });
 
-    // TODO: başlangıçta trial basic üyelik verilecek
+      // Ücretsiz deneme aboneliği. Aynı transaction içinde: aboneliği olmayan
+      // kiracı `@RequiresModule` guard'ına takılıp uygulamayı hiç kullanamaz —
+      // yarım kalmış bir kayıt bırakmaktansa kaydın tamamı geri alınmalı.
+      // Komut kendi içinde idempotent (sahibin aboneliği varsa no-op).
+      await this.commandBus.execute(
+        new StartTrialCommand(
+          generatedOrganizationUUID.value,
+          generatedClinicUUID.value
+        )
+      );
+    });
   }
 }

@@ -33,7 +33,15 @@ export const AuthUserResponseSchema = z
     deletedAt: z.date().nullable(),
 
     // İlişkisel dizi ve nesne haritalamaları:
-    managedClinics: z.array(z.object({ id: z.uuid() })),
+    /**
+     * Aktörün çalıştığı kliniğin kiracı kimliği. `ActorContext.organizationId`
+     * buradan türer — kullanıcı tablosunda organizationId kolonu YOKTUR, kiracı
+     * bağı her zaman klinik/sahiplik ilişkisinden çözülür.
+     */
+    workingClinic: z.object({ organizationId: z.uuid() }).nullable(),
+    managedClinics: z.array(
+      z.object({ id: z.uuid(), organizationId: z.uuid() })
+    ),
     ownedOrganizations: z.array(z.object({ id: z.uuid() })),
     providerProfile: z.object({ id: z.uuid() }).nullable(),
     role: RoleWithCapabilitiesSchema.nullable(),

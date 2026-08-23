@@ -1,7 +1,4 @@
-import {
-  FinanceLedger as IFinanceLedger,
-  LedgerStatusSchema,
-} from '@shared/generated-zod';
+import { FinanceLedger as IFinanceLedger, LedgerStatusSchema, } from '@shared/generated-zod';
 import { LedgerCategoryType as LedgerCategory } from '@shared/generated-zod/inputTypeSchemas/LedgerCategorySchema';
 import { LedgerTypeType as LedgerType } from '@shared/generated-zod/inputTypeSchemas/LedgerTypeSchema';
 import { LedgerSourceType as LedgerSource } from '@shared/generated-zod/inputTypeSchemas/LedgerSourceSchema';
@@ -14,8 +11,8 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
-import { shouldValidate } from '@common/domain/utils/should-validate';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
+import { FinanceLedgerRules } from '@modules/finance/finance-ledger/domain/rules/finance-ledger.rules';
 
 export class FinanceLedgerEntity extends AggregateRoot {
   constructor(data: IFinanceLedger) {
@@ -197,19 +194,15 @@ export class FinanceLedgerEntity extends AggregateRoot {
     });
   }
 
-  public refund(validateOptions = DefaultValidateOptions): void {
-    if (shouldValidate(validateOptions))
-      this.isCompleted(
-        'Yalnızca tamamlanan kayıtlar iade edilebilir.'
-      ).orThrow();
+  public rules(validateOptions: ValidateOptionsType) {
+    return new FinanceLedgerRules(this, validateOptions);
+  }
 
+  public refund(): void {
     this._status = LedgerStatusSchema.enum.REFUNDED;
   }
 
-  public cancel(validateOptions = DefaultValidateOptions): void {
-    if (shouldValidate(validateOptions))
-      this.isRefunded('İade edilmiş kayıtlar iptal edilemez').orThrow();
-
+  public cancel(): void {
     const isCancelled = this.isCancelled().value;
     if (isCancelled) return;
 

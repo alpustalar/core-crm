@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { HotelbedsBookingNotFoundException } from '@modules/crm/health-tourism/hotel/domain/exceptions/hotelbeds-booking.exceptions';
 import { CancelHotelBookingCommand } from './cancel-hotel-booking.command';
 import {
   HOTELBEDS_API_SERVICE,
@@ -23,20 +24,39 @@ export class CancelHotelBookingHandler
     private readonly txManager: TransactionManager
   ) {}
 
+  /**
+   * Önce **kilitli claim** (durum kontrolü + CANCELLED yazımı), sonra HotelBeds
+   * iptal çağrısı.
+   *
+   * Sıra bilinçli: durum kontrolü dış çağrının arkasında kalsaydı iki eşzamanlı
+   * iptal isteği de rezervasyonu "aktif" görüp HotelBeds'e iki kez iptal (ve
+   * arkasındaki iade akışını iki kez) tetiklerdi. Zaten iptalliyse sessizce çıkar.
+   */
   async execute(command: CancelHotelBookingCommand): Promise<void> {
-    const { dto } = command;
-
-    const booking = await this.hotelbedsBookingRepo.findById(dto.bookingId);
-    if (!booking) throw new NotFoundException('Rezervasyon bulunamadı.');
+    const { dto, ctx } = command;
 
     // TODO: saga/outbox kullanıcaz. nest cqrs'in sagasını kullan. kullanıcıya direkt talebiniz alındı dön. kuyruğa al
 
-    await this.hotelbedsApi.cancelBooking(booking.reference);
+    const reference = await this.txManager.run(async () => {
+      const booking = await this.hotelbedsBookingRepo.findByIdForUpdate(
+        dto.bookingId
+      );
+      if (!booking) throw new HotelbedsBookingNotFoundException();
 
-    booking.cancel();
+      if (booking.validate.status.isCancelled.value) return null;
 
-    await this.txManager.run(async () => {
+      // İptal event'i entity içinde raise edilir; `update()` flush eder.
+      booking.cancel({
+        actorId: ctx.actor.userId,
+        logSource: ctx.actor.source,
+      });
       await this.hotelbedsBookingRepo.update(booking);
+
+      return booking.reference;
     });
+
+    if (!reference) return;
+
+    await this.hotelbedsApi.cancelBooking(reference);
   }
 }

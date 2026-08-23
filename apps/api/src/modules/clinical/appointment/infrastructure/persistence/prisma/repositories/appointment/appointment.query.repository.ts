@@ -5,6 +5,8 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 
 import { DateTimeManager } from '@common/utils';
+import { Paginated } from '@common/interfaces/paginated.type';
+import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query.repository';
 import {
   AppointmentWithDetails,
   ClinicCalendarEventRow,
@@ -23,9 +25,7 @@ import {
   ProviderDailyLoad,
   SearchClinicAppointmentsData,
   WaitingRoomRow,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import { Paginated } from '@common/interfaces/paginated.type';
-import { IAppointmentQueryRepository } from '@modules/clinical/appointment/domain/repositories/appointment/appointment.query.repository';
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 @Injectable()
 export class AppointmentQueryRepository

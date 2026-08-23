@@ -4,12 +4,13 @@ import { z } from 'zod';
 import { TSCommandBus } from '@common/cqrs/type-safe-command-bus';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import {
+  AI_TOOL_NAMES,
+  AiTool,
   AiToolContext,
   AiToolDefinition,
   AiToolResult,
+  IAiSubToolHandler,
 } from '@common/ai-tools';
-import { AiTool, IAiSubToolHandler } from '@common/ai-tools';
-import { AI_TOOL_NAMES } from '@common/ai-tools';
 import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { SearchHotelsQuery } from '@modules/crm/health-tourism/hotel/application/queries/search-hotels/search-hotels.query';
 import { SearchHotelsDto } from '@shared/modules/health-tourism/dto/queries';

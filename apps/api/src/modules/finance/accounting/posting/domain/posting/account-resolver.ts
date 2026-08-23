@@ -1,4 +1,5 @@
 import { Account } from '@shared';
+import { AccountCodeNotFoundException } from '@modules/finance/accounting/posting/domain/exceptions/posting.exceptions';
 
 /**
  * Hesap kodunu (ör. '120', '600.04') Account entity'sine çözer.
@@ -19,7 +20,7 @@ export class AccountResolver {
   public resolve(code: string): Account {
     const account = this.byCode.get(code);
     if (!account) {
-      throw new Error(`Hesap planında kod bulunamadı: ${code}`);
+      throw new AccountCodeNotFoundException(code);
     }
     return account;
   }

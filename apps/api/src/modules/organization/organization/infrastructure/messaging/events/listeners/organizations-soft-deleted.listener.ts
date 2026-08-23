@@ -18,14 +18,20 @@ export class OrganizationsSoftDeletedListener {
 
     if (log) {
       const { action, actorId, source, type } = log;
+      const logInput = {
+        action,
+        source,
+        metadata,
+        details: `organizationId: ${organizationId}`,
+        actorId,
+      };
+
+      // Entity bu event'i `LogType.INFO` ile fırlatıyor; yalnız SECURITY dalı
+      // yazıldığı için organizasyon silme hiç denetim kaydı bırakmıyordu.
       if (type === LogType.SECURITY) {
-        await this.auditLogService.security({
-          action,
-          source,
-          metadata,
-          details: 'organizationId: ' + organizationId,
-          actorId,
-        });
+        await this.auditLogService.security(logInput);
+      } else {
+        await this.auditLogService.info(logInput);
       }
 
       this.logger.log(`Organization soft deletion process started`, {

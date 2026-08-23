@@ -7,6 +7,10 @@ import {
   ISupplierCommandRepository,
   SUPPLIER_COMMAND_REPOSITORY,
 } from '@modules/supply/inventory/domain/repositories/supplier/supplier.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(UpdateSupplierCommand)
 export class UpdateSupplierHandler
@@ -15,12 +19,13 @@ export class UpdateSupplierHandler
   constructor(
     @Inject(SUPPLIER_COMMAND_REPOSITORY)
     private readonly supplierRepo: ISupplierCommandRepository,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
   ) {}
 
   async execute(command: UpdateSupplierCommand): Promise<void> {
     const { supplierId, dto, ctx } = command;
-    const { actor } = ctx;
 
     if (!supplierId) throw new SupplierNotFoundException(supplierId);
 
@@ -28,7 +33,12 @@ export class UpdateSupplierHandler
 
     if (!supplier) throw new SupplierNotFoundException(supplierId);
 
-    // TODO: supplier'ın clinicId'sine göre policy işlemi yapılacak.
+    this.policyFactory
+      .clinic(ctx.actor, ctx.source)
+      .evaluator.check((p) =>
+        p.actorCanAccessTargetClinic(supplier.clinicId.value)
+      )
+      .orThrow();
 
     supplier.update(dto);
 

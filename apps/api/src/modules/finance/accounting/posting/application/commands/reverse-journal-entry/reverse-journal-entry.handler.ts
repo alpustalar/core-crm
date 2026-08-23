@@ -1,5 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BadRequestException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { JournalEntryNotFoundException } from '@modules/finance/accounting/posting/domain/exceptions/journal-entry.exceptions';
+import {
+  NoAccountingPeriodForDateException,
+  PeriodNotOpenForPostingException,
+} from '@modules/finance/accounting/posting/domain/exceptions/posting.exceptions';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { FindPeriodByDateQuery } from '@modules/finance/accounting/periods/application/queries/find-period-by-date/find-period-by-date.query';
@@ -21,7 +30,9 @@ export class ReverseJournalEntryHandler implements ICommandHandler<
     @Inject(JOURNAL_COMMAND_REPOSITORY)
     private readonly journalCommandRepo: IJournalCommandRepository,
     private readonly queryBus: TSQueryBus,
-    private readonly txManager: TransactionManager
+    private readonly txManager: TransactionManager,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: ReverseJournalEntryCommand): Promise<string> {
@@ -35,22 +46,28 @@ export class ReverseJournalEntryHandler implements ICommandHandler<
     return this.txManager.outboxRun(async () => {
       const original = await this.journalCommandRepo.findByIdForUpdate(entryId);
       if (!original) {
-        throw new NotFoundException(`Yevmiye fişi bulunamadı: ${entryId}`);
+        throw new JournalEntryNotFoundException(entryId);
       }
+
+      // `entryId` istekten geliyor; kapsam FİŞİN kendi kliniğinden doğrulanır.
+      // Kontrol yokken storno yetkisi olan personel başka bir kliniğin fişini
+      // ters kaydedip o defteri bozabiliyordu.
+      this.policyFactory
+        .finance(ctx.actor, ctx.source)
+        .evaluator.check((p) =>
+          p.actorCanManageTargetClinic(original.clinicId)
+        )
+        .orThrow('accounting.journal.reverse');
 
       // Storno bugünün açık dönemine girer; kilitli dönemdeki orijinal kayda dokunulmaz.
       const { data: period } = await this.queryBus.execute(
         new FindPeriodByDateQuery(original.clinicId, entryDate, ctx)
       );
       if (!period) {
-        throw new BadRequestException(
-          `${entryDate.toISOString()} tarihi için muhasebe dönemi yok.`
-        );
+        throw new NoAccountingPeriodForDateException(entryDate);
       }
       if (period.status !== AccountingPeriodStatusSchema.enum.OPEN) {
-        throw new BadRequestException(
-          `Dönem ${period.year} kapalı/kilitli; storno atılamaz.`
-        );
+        throw new PeriodNotOpenForPostingException(period.year, period.status);
       }
 
       const generatedReversalUUID = UUID.generate();

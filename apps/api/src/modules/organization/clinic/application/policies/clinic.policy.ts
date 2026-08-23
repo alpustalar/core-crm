@@ -9,18 +9,37 @@ import {
 
 @Injectable()
 export class ClinicPolicy extends BasePolicy {
-  actorCanAccessClinicAndOrganization(
-    targetClinicId: string,
+  /**
+   * Klinik kapsamı: aktör hedef kliniğe dokunabilir mi?
+   *
+   * Klinik-kapsamlı yazmalarda **tek** kapsam kontrolüdür. Koşul "klinik erişimi
+   * VEYA organizasyon sahipliği": sahiplik ile `managedClinics` ayrışabiliyor —
+   * `create-clinic` yeni kliniği kurucunun yönettikleri listesine bağlamaz,
+   * dolayısıyla sahibi olduğu organizasyona sonradan açılan klinikte
+   * `actorCanAccessTargetClinic` false döner. Sahiplik org seviyesinde bir
+   * gerçektir; `managedClinics`'e denormalize edilirse zamanla kayar (devir,
+   * admin'in açtığı şube).
+   *
+   * İkinci koşul bilerek `actorCanManageTargetOrganization` (SAHİPLİK) — org
+   * ÜYELİĞİ (`actorCanAccessTargetOrganization`) olsaydı, aynı organizasyondaki
+   * herhangi bir personel hiç ilgisi olmayan kardeş kliniğe yazabilirdi; klinik
+   * seviyesindeki yalıtım tamamen kalkardı.
+   *
+   * `targetOrganizationId` **daima `TENANT_SCOPE_RESOLVER`'dan türetilmiş**
+   * değer olmalıdır, DTO'dan gelen ham alan değil (resolver istemcinin
+   * gönderdiğini kliniğe karşı doğrular).
+   */
+  actorCanAccessClinicOrOwnsOrganization(
+    targetClinicId: string | undefined,
     targetOrganizationId: string
   ): boolean {
-    const hasClinicAccess = this.actorCanAccessTargetClinic(targetClinicId);
+    if (this.actorCanAccessTargetClinic(targetClinicId)) return true;
 
     const organizationPolicy = new OrganizationPolicy(this.actor, this.source);
 
-    const hasOrgAccess =
-      organizationPolicy.actorCanAccessTargetOrganization(targetOrganizationId);
-
-    return hasClinicAccess && hasOrgAccess;
+    return organizationPolicy.actorCanManageTargetOrganization(
+      targetOrganizationId
+    );
   }
 
   actorCanAccessTargetClinic(targetClinicId: string | undefined): boolean {

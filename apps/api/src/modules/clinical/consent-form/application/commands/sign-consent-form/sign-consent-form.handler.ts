@@ -62,6 +62,7 @@ export class SignConsentFormHandler
 
     return this.txManager.run(async () => {
       const template = await this.consentTemplateRepo.findById(data.templateId);
+
       if (!template) {
         throw new ConsentTemplateNotFoundException(data.templateId);
       }

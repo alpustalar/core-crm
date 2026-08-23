@@ -24,10 +24,10 @@ export class RefundLedgerEntriesHandler
   async execute(
     command: RefundLedgerEntriesCommand
   ): Promise<RefundLedgerEntriesCommandResponse> {
-    const { ctx, paymentId } = command;
+    const { installmentId } = command;
 
-    await this.financeLedgerRepository.updateManyStatusByPaymentId(
-      paymentId,
+    await this.financeLedgerRepository.updateStatusByInstallmentId(
+      installmentId,
       LedgerStatusSchema.enum.REFUNDED
     );
   }

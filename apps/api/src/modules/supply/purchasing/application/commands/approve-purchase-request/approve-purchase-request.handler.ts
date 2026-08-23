@@ -29,7 +29,7 @@ export class ApprovePurchaseRequestHandler implements ICommandHandler<
     const { requestId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const request = await this.prCommandRepo.findById(requestId);
+      const request = await this.prCommandRepo.findByIdForUpdate(requestId);
       if (!request) throw new PurchaseRequestNotFoundException(requestId);
 
       this.policyFactory

@@ -30,6 +30,10 @@ import {
 } from '@modules/finance/pos/virtual/domain/repositories/iyzico-transaction.repository.interface';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 
 @CommandHandler(CancelPaymentCommand)
 export class CancelPaymentHandler
@@ -46,7 +50,9 @@ export class CancelPaymentHandler
     @Inject(PAYMENT_EVENT_PUBLISHER)
     private readonly paymentEventPublisher: IPaymentEventPublisher,
     private readonly commandBus: TSCommandBus,
-    private readonly queryBus: TSQueryBus
+    private readonly queryBus: TSQueryBus,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(
@@ -62,6 +68,13 @@ export class CancelPaymentHandler
     );
 
     if (!payment) throw new PaymentNotFoundException(paymentId);
+
+    // `paymentId` istekten geliyor; kapsam kaydın KENDİ kliniğinden doğrulanır.
+    // Kontrol dış SDK çağrısından ÖNCE — sonra olsaydı para çoktan hareket etmişti.
+    this.policyFactory
+      .finance(command.ctx.actor, command.ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(payment.clinicId))
+      .orThrow('payment.iyzico.cancel');
 
     const completedInstallment = payment.installments.find(
       (i) => i.status === InstallmentStatusSchema.enum.COMPLETED

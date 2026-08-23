@@ -5,8 +5,10 @@ import { ProjectResourceAllocation } from '@modules/organization/project/domain/
 import { IProjectResourceAllocationCommandRepository } from '@modules/organization/project/domain/repositories/project-resource-allocation/project-resource-allocation.command.repository';
 import {
   FindOverlappingAllocationsProps,
+  LockResourceCapacityProps,
   OverlappingAllocation,
 } from '@modules/organization/project/domain/contracts/project.contracts';
+import { ProjectResourceKindSchema } from '@input-type-schemas/ProjectResourceKindSchema';
 
 @Injectable()
 export class ProjectResourceAllocationCommandRepository
@@ -25,6 +27,25 @@ export class ProjectResourceAllocationCommandRepository
     });
     entity.flushEvents();
     return new ProjectResourceAllocation(raw);
+  }
+
+  /**
+   * Çapa kilidi kaynağın kendi satırındadır. `resourceId` EMPLOYEE'de
+   * `employees`, ROOM/EQUIPMENT'ta `resources` satırını gösterir (şema notu).
+   * Başka modüllerin tabloları ama burada veri OKUNMUYOR — yalnız aynı kaynağın
+   * eşzamanlı tahsislerini sıraya sokan kilit alınıyor.
+   *
+   * `resourceId` kullanıcı girdisidir: var olmayan bir kaynak gönderildiğinde kilit
+   * sessizce no-op kalır ve kapasite kuralı korumasız çalışırdı. `OrFail` bunu
+   * `LockTargetMissingException`'a çevirir (422).
+   */
+  async lockResourceCapacity(props: LockResourceCapacityProps): Promise<void> {
+    const table =
+      props.kind === ProjectResourceKindSchema.enum.EMPLOYEE
+        ? 'employees'
+        : 'resources';
+
+    await this.lockRowForUpdateOrFail(table, props.resourceId);
   }
 
   async findById(id: string): Promise<ProjectResourceAllocation | null> {

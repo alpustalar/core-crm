@@ -1,13 +1,13 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetProviderOpenSlotsQuery } from './get-provider-open-slots.query';
 import { GetProviderOpenSlotsResponse } from './get-provider-open-slots.response';
-import { OpenSlot } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { GetClinicTimezoneQuery } from '@modules/organization/clinic/application/queries/get-clinic-timezone/get-clinic-timezone.query';
 import { GetProviderAvailabilityQuery } from '@modules/clinical/appointment/application/queries/get-provider-availability/get-provider-availability.query';
 import { GetProviderAvailabilityDto } from '@shared/modules/appointment/dto/queries/get-provider-availability.dto';
 import { ExecutionContextFactory } from '@src/domain/common/execution/execution-context.factory';
+import { OpenSlot } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 /**
  * Bir doktorun verilen gündeki hazır boş slotlarını döner. Çalışma saatlerinden

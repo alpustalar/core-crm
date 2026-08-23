@@ -1,12 +1,19 @@
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CacheHotelRateOptionCommand } from './cache-hotel-rate-option.command';
-import { HotelCacheService } from '@modules/crm/health-tourism/hotel/infrastructure/cache/hotel-cache.service';
+import {
+  HOTEL_CACHE_SERVICE,
+  IHotelCacheService,
+} from '@modules/crm/health-tourism/hotel/domain/interfaces/hotel-cache.service.interface';
 
 @CommandHandler(CacheHotelRateOptionCommand)
 export class CacheHotelRateOptionHandler
   implements ICommandHandler<CacheHotelRateOptionCommand, void>
 {
-  constructor(private readonly cacheService: HotelCacheService) {}
+  constructor(
+    @Inject(HOTEL_CACHE_SERVICE)
+    private readonly cacheService: IHotelCacheService
+  ) {}
 
   async execute(command: CacheHotelRateOptionCommand): Promise<void> {
     await this.cacheService.hotelRateOption.set(

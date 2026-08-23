@@ -5,15 +5,6 @@ import {
   ILeadCommandRepository,
   LEAD_COMMAND_REPOSITORY,
 } from '@modules/crm/lead/domain/repositories/lead/lead.command.repository';
-import {
-  ILeadEventPublisher,
-  LEAD_EVENT_PUBLISHER,
-} from '@modules/crm/lead/domain/interfaces/lead-event-publisher.interface';
-import {
-  LogAction,
-  LogSource,
-  LogType,
-} from '@src/domain/constants/log-action.constant';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { LeadNotFoundException } from '@modules/crm/lead/domain/exceptions/lead.exceptions';
 import { LeadStatusSchema } from '@shared';
@@ -29,8 +20,6 @@ export class UpdateLeadStatusHandler
   constructor(
     @Inject(LEAD_COMMAND_REPOSITORY)
     private readonly leadRepo: ILeadCommandRepository,
-    @Inject(LEAD_EVENT_PUBLISHER)
-    private readonly eventPublisher: ILeadEventPublisher,
     @Inject(POLICY_FACTORY)
     private readonly policyFactory: IPolicyFactory,
     private readonly txManager: TransactionManager
@@ -40,7 +29,7 @@ export class UpdateLeadStatusHandler
     const { leadId, data, ctx } = command.payload;
 
     await this.txManager.run(async () => {
-      const lead = await this.leadRepo.findById(leadId);
+      const lead = await this.leadRepo.findByIdForUpdate(leadId);
       if (!lead) throw new LeadNotFoundException();
 
       this.policyFactory
@@ -54,33 +43,24 @@ export class UpdateLeadStatusHandler
         .entity(ctx.actor, ctx.source)
         .policy.getValidateOptions();
 
-      const previousStatus = lead.status;
+      // Durum değişikliği event'ini entity raise eder (önceki durumu kendisi
+      // bilir); repo `update()` içinde flush edilir. Handler yalnız yönlendirir.
+      const audit = {
+        actorId: ctx.actor.userId,
+        logSource: ctx.actor.source,
+      };
 
       if (data.status === LeadStatusSchema.enum.CONTACTED) {
         lead.rules(validateOptions).contact().orThrow();
-        lead.contact();
+        lead.contact(audit);
       } else if (data.status === LeadStatusSchema.enum.QUALIFIED) {
         lead.rules(validateOptions).qualify().orThrow();
-        lead.qualify();
+        lead.qualify(audit);
       }
 
       if (data.notes) lead.updateNotes(data.notes);
 
-      const saved = await this.leadRepo.update(lead);
-
-      // TODO: event entity içinde raise edilecek
-
-      this.eventPublisher.leadStatusChanged({
-        leadId: lead.id.value,
-        clinicId: lead.clinicId.value,
-        previousStatus,
-        newStatus: saved.status,
-        actorId: ctx.actor.userId,
-        source: LogSource.WEB,
-        action: LogAction.LEAD_STATUS_CHANGED,
-        type: LogType.INFO,
-        details: `Lead durumu güncellendi: ${previousStatus} -> ${saved.status}`,
-      });
+      await this.leadRepo.update(lead);
     });
   }
 }

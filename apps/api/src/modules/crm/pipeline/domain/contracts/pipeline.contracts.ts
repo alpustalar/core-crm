@@ -30,7 +30,9 @@ export const CreatePipelineStageSchema = z.object({
   type: PipelineStageTypeSchema.optional(),
   color: z.string().min(1).nullable().optional(),
 });
-export type CreatePipelineStageProps = z.infer<typeof CreatePipelineStageSchema>;
+export type CreatePipelineStageProps = z.infer<
+  typeof CreatePipelineStageSchema
+>;
 
 /** Yalnız sağlanan (undefined olmayan) alanlar güncellenir. */
 export const UpdatePipelineStageSchema = z.object({
@@ -39,7 +41,9 @@ export const UpdatePipelineStageSchema = z.object({
   type: PipelineStageTypeSchema.optional(),
   color: z.string().min(1).nullable().optional(),
 });
-export type UpdatePipelineStageProps = z.infer<typeof UpdatePipelineStageSchema>;
+export type UpdatePipelineStageProps = z.infer<
+  typeof UpdatePipelineStageSchema
+>;
 
 // ==========================================
 // Varsayılan huni şablonu (org'a seed'lenir)

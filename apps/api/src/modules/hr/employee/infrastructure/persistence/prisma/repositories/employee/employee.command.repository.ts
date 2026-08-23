@@ -24,6 +24,11 @@ export class EmployeeCommandRepository
     return raw ? new Employee(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Employee | null> {
+    await this.lockRowForUpdateOrFail('employees', id);
+    return this.findById(id);
+  }
+
   async update(entity: Employee): Promise<Employee> {
     const data = entity.toPersistence();
     const { id, ...update } = data;

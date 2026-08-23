@@ -23,7 +23,7 @@ export class ReviewAdminRequestHandler
     const { actor } = ctx;
 
     await this.txManager.run(async () => {
-      const request = await this.adminRequestRepo.findById(requestId);
+      const request = await this.adminRequestRepo.findByIdForUpdate(requestId);
       if (!request) throw new NotFoundException('İstek bulunamadı.');
 
       if (data.status === AdminRequestStatusSchema.enum.APPROVED) {

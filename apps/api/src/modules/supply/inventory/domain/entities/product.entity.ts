@@ -5,7 +5,6 @@ import {
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
-import { Decimal } from 'decimal.js';
 import { ProductConditionType as ProductCondition } from '@input-type-schemas/ProductConditionSchema';
 import { ProductUnitType as ProductUnit } from '@input-type-schemas/ProductUnitSchema';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
@@ -19,9 +18,10 @@ import { Name } from '@src/domain/value-objects/name.vo';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreateProductProps,
+  HandleStockChangeProps,
   UpdateProductProps,
 } from '@modules/supply/inventory/domain/contracts/product.contracts';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { StockQuantityChangedEvent } from '@modules/supply/inventory/domain/events/stock-quantity-changed.event';
 
 export class Product extends AggregateRoot {
   constructor(data: IProduct) {
@@ -269,17 +269,16 @@ export class Product extends AggregateRoot {
     this._isActive = false;
   }
 
-  public handleStockChange(props: {
-    quantityDelta: Decimal | number;
-    clinicId: string;
-    availableBatches: ProductBatch[];
-    explicitBatchId?: string | null;
-    performedById: string;
-    notes?: string | null;
-  }): {
-    updatedBatch: ProductBatch | null;
-    stockMovementProps: CreateStockMovementProps;
-  } {
+  /**
+   * Stok değişimini uygun partiye (batch) uygular ve değişen partiyi döner. Hareket
+   * kaydı (StockMovement) bu metodun dönüşü değildir: miktarı değiştiren aggregate
+   * `StockQuantityChangedEvent` fırlatır, kaydı dinleyici yazar.
+   *
+   * Parti bulunmayan artış durumunda (henüz hiç lot açılmamış ürün) olayı ürünün
+   * kendisi fırlatır ve `null` döner — çağıran bu durumda ürünü kalıcılaştırarak
+   * olayı boşaltır.
+   */
+  public handleStockChange(props: HandleStockChangeProps): ProductBatch | null {
     if (props.clinicId !== this.clinicId.value) {
       throw new Error(
         'Ürünün ait olduğu şube ile işlem yapılmak istenen şube uyuşmuyor.'
@@ -303,39 +302,39 @@ export class Product extends AggregateRoot {
       throw new Error('Düşüm yapılacak uygun bir lot/batch bulunamadı.');
     }
 
-    let stockMovementProps: CreateStockMovementProps;
-
     if (targetBatch) {
       if (isIncrease) {
-        stockMovementProps = targetBatch.addQuantity({
+        targetBatch.addQuantity({
           qty: absQty,
           performedById: props.performedById,
           notes: props.notes,
         });
       } else {
-        stockMovementProps = targetBatch.deductQuantity({
+        targetBatch.deductQuantity({
           qty: absQty,
           performedById: props.performedById,
           notes: props.notes,
         });
       }
-    } else {
-      stockMovementProps = {
+
+      return targetBatch;
+    }
+
+    this.addDomainEvent(
+      new StockQuantityChangedEvent({
+        movementId: UUID.generate().value,
         productId: this.id.value,
         clinicId: props.clinicId,
         batchId: null,
         type: StockMovementTypeSchema.enum.ADJUSTMENT,
         direction: StockMovementDirectionSchema.enum.IN,
-        quantity: absQty.value,
+        quantity: absQty.value.toString(),
         performedById: props.performedById,
         notes: props.notes ?? 'Batch bağımsız stok girişi yapıldı.',
-      };
-    }
+      })
+    );
 
-    return {
-      updatedBatch: targetBatch,
-      stockMovementProps,
-    };
+    return null;
   }
 
   toPersistence(): IProduct {

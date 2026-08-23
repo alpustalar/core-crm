@@ -22,6 +22,10 @@ export class PurchaseInvoiceResponseDto {
   @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
   status: PurchaseInvoiceStatusType;
 
+  /** Eşleştirildiği satın alma siparişi — null ise serbest fatura. */
+  @Expose({ groups: [INTERNAL, FINANCIAL, MANAGEMENT, ADMIN] })
+  purchaseOrderId: string | null;
+
   // --- Muhasebe Kodlama ve Finansal Tutarlar (Sadece Finans, Yönetim ve Admin) ---
   @Expose({ groups: [FINANCIAL, MANAGEMENT, ADMIN] })
   lineAccountCode: string;

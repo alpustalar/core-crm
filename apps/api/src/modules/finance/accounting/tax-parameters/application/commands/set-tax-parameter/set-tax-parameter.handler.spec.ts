@@ -22,9 +22,19 @@ describe('SetTaxParameterHandler', () => {
     const txManager = {
       run: jest.fn().mockImplementation((cb: () => Promise<unknown>) => cb()),
     };
+    // Kiracı kapsamı kontrolü geçer kabul edilir; reddedilme yolu policy'nin
+    // kendi testlerinde doğrulanıyor.
+    const policyFactory = {
+      finance: jest.fn().mockReturnValue({
+        evaluator: {
+          check: jest.fn().mockReturnValue({ orThrow: () => undefined }),
+        },
+      }),
+    };
     const handler = new SetTaxParameterHandler(
       commandRepo as never,
-      txManager as never
+      txManager as never,
+      policyFactory as never
     );
     return { handler, commandRepo };
   };

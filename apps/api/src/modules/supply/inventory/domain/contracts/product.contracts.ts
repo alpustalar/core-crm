@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { Decimal } from 'decimal.js';
 import { ProductConditionSchema, ProductUnitSchema } from '@shared';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
+import { ProductBatch } from '@modules/supply/inventory/domain/entities/product-batch.entity';
 
 export const CreateProductSchema = z.object({
   id: z.uuid().optional(),
@@ -49,3 +51,17 @@ export const UpdateProductSchema = z.object({
   supplierId: z.uuid().nullable().optional(),
 });
 export type UpdateProductProps = z.infer<typeof UpdateProductSchema>;
+
+export const HandleStockChangeSchema = z.object({
+  quantityDelta: z.custom<Decimal | number>(
+    (val) => val instanceof Decimal || typeof val === 'number'
+  ),
+  clinicId: z.uuid(),
+  availableBatches: z.custom<ProductBatch[]>(
+    (val) => Array.isArray(val) && val.every((b) => b instanceof ProductBatch)
+  ),
+  explicitBatchId: z.uuid().nullable().optional(),
+  performedById: z.uuid(),
+  notes: z.string().nullable().optional(),
+});
+export type HandleStockChangeProps = z.infer<typeof HandleStockChangeSchema>;

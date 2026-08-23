@@ -3,8 +3,18 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
-import { PendingTransactionForReconcile } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
-import { PosProvider, PosTransactionStatus, Prisma } from '@prisma/client';
+import {
+  PendingTransactionForReconcile,
+  PosTransactionReversalSummary,
+} from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+import {
+  PosProvider,
+  PosTransactionKind,
+  PosTransactionStatus,
+  Prisma,
+} from '@prisma/client';
+import { Decimal } from 'decimal.js';
+import { PosTransactionAlreadyReversedException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 
 @Injectable()
 export class PosTransactionCommandRepository
@@ -35,6 +45,32 @@ export class PosTransactionCommandRepository
     if (!existing) return null;
 
     return this.findByIdForUpdate(existing.id);
+  }
+
+  async findLiveReversalSummary(
+    originalPosTransactionId: string
+  ): Promise<PosTransactionReversalSummary> {
+    const rows = await this.db.posTransaction.findMany({
+      where: {
+        originalPosTransactionId,
+        status: {
+          in: [PosTransactionStatus.PENDING, PosTransactionStatus.SUCCESS],
+        },
+      },
+      select: { kind: true, amount: true },
+    });
+
+    return rows.reduce<PosTransactionReversalSummary>(
+      (summary, row) => ({
+        hasActiveVoid:
+          summary.hasActiveVoid || row.kind === PosTransactionKind.VOID,
+        refundedAmount:
+          row.kind === PosTransactionKind.REFUND
+            ? summary.refundedAmount.plus(new Decimal(row.amount.toString()))
+            : summary.refundedAmount,
+      }),
+      { hasActiveVoid: false, refundedAmount: new Decimal(0) }
+    );
   }
 
   async findPendingForReconcile(
@@ -92,7 +128,29 @@ export class PosTransactionCommandRepository
       }));
   }
 
+  /**
+   * Çift iptali nihai olarak DB kısıtı engeller (`active_void_original_id` unique):
+   * kilit altındaki kontrol ile INSERT arasında ikinci istek araya girerse burada
+   * P2002 alınır ve yarışı kaybeden taraf tipli domain hatasına çevrilir. Kilit
+   * ilk savunma, kısıt son savunmadır.
+   */
   async create(posTransaction: PosTransaction): Promise<PosTransaction> {
+    try {
+      return await this.insert(posTransaction);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new PosTransactionAlreadyReversedException();
+      }
+      throw error;
+    }
+  }
+
+  private async insert(
+    posTransaction: PosTransaction
+  ): Promise<PosTransaction> {
     const persistenceData = posTransaction.toPersistence();
 
     const data = {
@@ -113,6 +171,9 @@ export class PosTransactionCommandRepository
       where: { id },
       data: {
         status: data.status,
+        // İptal kaydı başarısızsa entity kilidi bırakır; bu alan yazılmazsa kilit
+        // DB'de takılı kalır ve satış bir daha hiç iptal edilemezdi.
+        activeVoidOriginalId: data.activeVoidOriginalId,
         externalRef: data.externalRef,
         rawRequest: data.rawRequest ?? undefined,
         rawResponse: data.rawResponse ?? undefined,

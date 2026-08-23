@@ -9,7 +9,8 @@ export const META_AD_ACCOUNT_QUERY_REPOSITORY = Symbol(
   'IMetaAdAccountQueryRepository'
 );
 
-export interface IMetaAdAccountCommandRepository extends IBaseCommandRepository<MetaAdAccount> {
+export interface IMetaAdAccountCommandRepository
+  extends IBaseCommandRepository<MetaAdAccount> {
   deactivate(id: string): Promise<void>;
 
   /**

@@ -23,6 +23,13 @@ import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/
 import { PostFinancialEventCommand } from './post-financial-event.command';
 import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/contracts/posting.contracts';
 import { AccountingPeriodStatusSchema } from '@shared';
+import {
+  AccountNotPostableException,
+  NoAccountingPeriodForDateException,
+  PartyRequiredForAccountException,
+  PeriodNotOpenForPostingException,
+  UnbalancedJournalEntryException,
+} from '@modules/finance/accounting/posting/domain/exceptions/posting.exceptions';
 
 @CommandHandler(PostFinancialEventCommand)
 export class PostFinancialEventHandler implements ICommandHandler<
@@ -68,12 +75,10 @@ export class PostFinancialEventHandler implements ICommandHandler<
       new FindPeriodByDateQuery(event.clinicId, event.occurredAt, ctx)
     );
     if (!period) {
-      throw new Error(
-        `${event.occurredAt.toISOString()} tarihi için muhasebe dönemi yok.`
-      );
+      throw new NoAccountingPeriodForDateException(event.occurredAt);
     }
     if (period.status !== AccountingPeriodStatusSchema.enum.OPEN) {
-      throw new Error(`Dönem ${period.year} kapalı/kilitli; fiş atılamaz.`);
+      throw new PeriodNotOpenForPostingException(period.year, period.status);
     }
 
     const { data: accounts } = await this.queryBus.execute(
@@ -109,13 +114,11 @@ export class PostFinancialEventHandler implements ICommandHandler<
       const account = resolver.resolve(line.accountCode);
 
       if (!account.isPostable) {
-        throw new Error(`Yaprak olmayan hesaba fiş atılamaz: ${account.code}`);
+        throw new AccountNotPostableException(account.code);
       }
 
       if (account.requiresParty && !line.partyId) {
-        throw new Error(
-          `${account.code} hesabında alt defter (party) zorunludur.`
-        );
+        throw new PartyRequiredForAccountException(account.code);
       }
 
       // Tutar çevrimi saf domain'de; handler yalnızca kuru çözüp orchestrate eder.
@@ -149,6 +152,20 @@ export class PostFinancialEventHandler implements ICommandHandler<
     if (fxRate) {
       const balance = FxConversion.roundingBalance(totalDebit, totalCredit);
       if (balance) {
+        // Denkleştirme YALNIZ yuvarlama artığını kapatabilir. Satır başına
+        // yuvarlama hatası en fazla yarım kuruş olduğundan artık kuruş cinsinden
+        // satır sayısını aşamaz. Sınır konmazsa: kaynak olayın kendisi dengesiz
+        // geldiğinde (ör. komisyon dağılımı hatalı) fark ne kadar büyük olursa
+        // olsun Kambiyo hesabına yazılıyor ve aşağıdaki denge kontrolü hiç
+        // devreye girmiyordu — dengesiz fiş sessizce "kur farkı" diye defterlenirdi.
+        const maxRoundingResidue = new Decimal(lines.length).mul('0.01');
+        if (balance.amount.greaterThan(maxRoundingResidue)) {
+          throw new UnbalancedJournalEntryException(
+            totalDebit.toString(),
+            totalCredit.toString()
+          );
+        }
+
         const isGain = balance.side === 'CREDIT';
         const kambiyo = resolver.resolve(isGain ? '646' : '656');
         lines.push({
@@ -165,8 +182,9 @@ export class PostFinancialEventHandler implements ICommandHandler<
     }
 
     if (!totalDebit.equals(totalCredit)) {
-      throw new Error(
-        'Yevmiye fişi borç ve alacak toplamları eşit olmalıdır. Mizan tutarsızlığı engellendi.'
+      throw new UnbalancedJournalEntryException(
+        totalDebit.toString(),
+        totalCredit.toString()
       );
     }
 

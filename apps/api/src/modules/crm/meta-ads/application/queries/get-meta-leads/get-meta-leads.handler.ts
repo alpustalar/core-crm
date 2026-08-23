@@ -14,10 +14,9 @@ import { META_ADS_EVENTS } from '@src/domain/constants/events';
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 
 @QueryHandler(GetMetaLeadsQuery)
-export class GetMetaLeadsHandler implements IQueryHandler<
-  GetMetaLeadsQuery,
-  GetMetaLeadsResponse
-> {
+export class GetMetaLeadsHandler
+  implements IQueryHandler<GetMetaLeadsQuery, GetMetaLeadsResponse>
+{
   constructor(
     @Inject(META_LEAD_QUERY_REPOSITORY)
     private readonly metaLeadRepo: IMetaLeadQueryRepository,

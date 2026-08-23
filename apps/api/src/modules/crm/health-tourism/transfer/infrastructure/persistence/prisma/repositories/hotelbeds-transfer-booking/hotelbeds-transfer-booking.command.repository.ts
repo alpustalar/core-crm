@@ -51,6 +51,25 @@ export class HotelbedsTransferBookingCommandRepository
     return new HotelbedsTransferBooking(raw);
   }
 
+  async findByIdForUpdate(
+    id: string
+  ): Promise<HotelbedsTransferBooking | null> {
+    await this.lockRowForUpdate('hotelbeds_transfer_bookings', id);
+    return this.findById(id);
+  }
+
+  async findByReferenceForUpdate(
+    reference: string
+  ): Promise<HotelbedsTransferBooking | null> {
+    const existing = await this.db.hotelbedsTransferBooking.findUnique({
+      where: { reference },
+      select: { id: true },
+    });
+    if (!existing) return null;
+
+    return this.findByIdForUpdate(existing.id);
+  }
+
   async findByReference(
     reference: string
   ): Promise<HotelbedsTransferBooking | null> {

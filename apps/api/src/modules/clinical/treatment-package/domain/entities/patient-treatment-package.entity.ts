@@ -13,16 +13,11 @@ import {
   UpdatePatientTreatmentPackageProps,
 } from '@modules/clinical/treatment-package/domain/contracts/patient-treatment-package.contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
-import {
-  InvalidTreatmentPackageResumeException,
-  InvalidTreatmentPackageStatusException,
-} from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
+import { InvalidTreatmentPackageResumeException } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { Guard } from '@common/domain/guards';
-import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { shouldValidate } from '@common/domain/utils/should-validate';
 import { PatientTreatmentPackageRules } from '@modules/clinical/treatment-package/domain/rules/patient-treatment-package.rules';
 import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 
@@ -135,13 +130,6 @@ export class PatientTreatmentPackage extends AggregateRoot {
         isSuspended: this.isSuspended,
         isExpired: this.isExpired,
       },
-      lifecycle: {
-        canComplete: this.canComplete,
-        canCancel: this.canCancel,
-        canSuspend: this.canSuspend,
-        canResume: this.canResume,
-        canUncancel: this.canUncancel,
-      },
     };
   }
 
@@ -149,48 +137,6 @@ export class PatientTreatmentPackage extends AggregateRoot {
     return this._dateRange.validate.expiration(
       () => new Error('Paketin süresi dolmuş.')
     );
-  }
-
-  private get canSuspend() {
-    const can = this.isActive.value && !this.isExpired.value;
-    return Guard.monitor(
-      can,
-      can,
-      () =>
-        new InvalidTreatmentPackageStatusException(this.status, this.id.value)
-    );
-  }
-
-  private get canResume() {
-    const can = this.isSuspended.value && !this.isExpired.value;
-    return Guard.monitor(
-      can,
-      can,
-      () => new Error('Bu paket devam ettirilemez')
-    );
-  }
-
-  private get canUncancel() {
-    const can = this.isCancelled.value && !this.isExpired.value;
-    return Guard.monitor(
-      can,
-      can,
-      () => new Error('Bu paket tekrar aktif hale getirilemez')
-    );
-  }
-
-  private get canComplete() {
-    const can = this.isActive.value && !this.isExpired.value;
-    return Guard.monitor(
-      can,
-      can,
-      () => new Error('Bu paket tamamlanabilir değil')
-    );
-  }
-
-  private get canCancel() {
-    const can = !this.isCompleted.value && !this.isCancelled.value;
-    return Guard.monitor(can, can, () => new Error('Bu paket iptal edilemez.'));
   }
 
   private get isCompleted() {
@@ -284,13 +230,11 @@ export class PatientTreatmentPackage extends AggregateRoot {
     this._updatedAt = DateTimeManager.create();
   }
 
-  complete(options = DefaultValidateOptions): void {
-    if (shouldValidate(options)) this.canComplete.orThrow();
+  complete(): void {
     this._status = PatientPackageStatusSchema.enum.COMPLETED;
   }
 
-  cancel(options = DefaultValidateOptions): void {
-    if (shouldValidate(options)) this.isCancelled.orThrow();
+  cancel(): void {
     this._status = PatientPackageStatusSchema.enum.CANCELLED;
   }
 
@@ -299,8 +243,7 @@ export class PatientTreatmentPackage extends AggregateRoot {
     this._updatedAt = DateTimeManager.create();
   }
 
-  suspend(options = DefaultValidateOptions): void {
-    if (shouldValidate(options)) this.canSuspend.orThrow();
+  suspend(): void {
     this._status = PatientPackageStatusSchema.enum.SUSPENDED;
   }
 

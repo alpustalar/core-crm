@@ -2,10 +2,6 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetClinicOpenSlotsQuery } from './get-clinic-open-slots.query';
 import { GetClinicOpenSlotsResponse } from './get-clinic-open-slots.response';
-import {
-  ClinicOpenSlot,
-  ClinicOpenSlotsDay,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { DateTimeManager } from '@common/utils';
 import { TimeZoneType } from '@input-type-schemas/TimeZoneSchema';
@@ -19,6 +15,10 @@ import {
   IPolicyFactory,
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import {
+  ClinicOpenSlot,
+  ClinicOpenSlotsDay,
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 interface BuildDaySlotsInput {
   day: ProviderCalendarDayResponse;

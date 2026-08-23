@@ -20,6 +20,10 @@ model PurchaseInvoice {
   invoiceNumber String?  @map("invoice_number") // tedarikçinin belge no'su
   invoiceDate   DateTime @map("invoice_date")
 
+  /// Eşleştirildiği satın alma siparişi (`supply/purchasing`). Bounded-context:
+  /// scalar id, navigation YOK. Null = serbest fatura (siparişe bağlı değil).
+  purchaseOrderId String? @map("purchase_order_id")
+
   // Karşı borç/gider hesabı: 150 (stok) | 770/760/740 (gider). Çağıran belirler.
   lineAccountCode String                @map("line_account_code")
   vatRate         Int                   @map("vat_rate")
@@ -35,5 +39,6 @@ model PurchaseInvoice {
   @@index([clinicId])
   @@index([organizationId])
   @@index([supplierId])
+  @@index([purchaseOrderId])
   @@map("purchase_invoices")
 }

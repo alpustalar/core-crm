@@ -19,6 +19,11 @@ export class HotelbedsBookingCommandRepository
     return raw ? new HotelbedsBooking(raw) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<HotelbedsBooking | null> {
+    await this.lockRowForUpdate('hotelbeds_bookings', id);
+    return this.findById(id);
+  }
+
   async create(entity: HotelbedsBooking): Promise<HotelbedsBooking> {
     const persistenceData = entity.toPersistence();
     const { rooms, ...rest } = persistenceData;

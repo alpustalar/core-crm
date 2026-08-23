@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from '@modules/platform/audit-log/audit-log.module';
-import { LEAD_EVENT_PUBLISHER } from '@modules/crm/lead/domain/interfaces/lead-event-publisher.interface';
-import { LeadEventPublisher } from './lead-event-publisher.service';
 import {
   LeadConvertedListener,
   LeadCreatedListener,
@@ -19,10 +17,9 @@ export const LEAD_LISTENERS = [
 
 @Module({
   imports: [AuditLogModule, ContextModule],
-  providers: [
-    { provide: LEAD_EVENT_PUBLISHER, useClass: LeadEventPublisher },
-    ...LEAD_LISTENERS,
-  ],
-  exports: [LEAD_EVENT_PUBLISHER],
+  // Publisher yok: lead event'lerinin tamamı entity içinde `addDomainEvent` ile
+  // raise ediliyor ve repo `update()`/`create()` içinde flush ediliyor. Bu modül
+  // yalnız dinleyicileri (audit log) ayağa kaldırır.
+  providers: LEAD_LISTENERS,
 })
 export class LeadEventModule {}

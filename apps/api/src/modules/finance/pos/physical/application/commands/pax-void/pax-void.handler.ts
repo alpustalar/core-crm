@@ -3,6 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import {
   OriginalPosTransactionNotFoundException,
   PosDeviceNotFoundException,
+  PosTransactionAlreadyReversedException,
   PosTransactionMissingExternalRefException,
   PosTransactionNotVoidableException,
 } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
@@ -20,95 +21,141 @@ import {
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
 import { PosPaymentSyncService } from '@modules/finance/pos/physical/application/services/pos-payment-sync.service';
 import PosTransactionStatusSchema from '@input-type-schemas/PosTransactionStatusSchema';
+import PosTransactionKindSchema from '@input-type-schemas/PosTransactionKindSchema';
 import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/pos-transaction.entity';
 import {
   IPosDeviceCommandRepository,
   POS_DEVICE_COMMAND_REPOSITORY,
 } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
+import {
+  IPolicyFactory,
+  POLICY_FACTORY,
+} from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
+import { POS_EVENTS } from '@src/domain/constants/events';
 
 @CommandHandler(PaxVoidCommand)
-export class PaxVoidHandler
-  implements ICommandHandler<PaxVoidCommand, PaxVoidResponse>
-{
+export class PaxVoidHandler implements ICommandHandler<
+  PaxVoidCommand,
+  PaxVoidResponse
+> {
   private readonly logger = new Logger(PaxVoidHandler.name);
 
   constructor(
     @Inject(POS_DEVICE_COMMAND_REPOSITORY)
     private readonly posDeviceRepo: IPosDeviceCommandRepository,
     @Inject(POS_TRANSACTION_COMMAND_REPOSITORY)
-    private readonly posTransactionCommandRepo: IPosTransactionCommandRepository,
+    private readonly posTransactionRepo: IPosTransactionCommandRepository,
     private readonly paxService: PaxService,
     private readonly txManager: TransactionManager,
-    private readonly posPaymentSync: PosPaymentSyncService
+    private readonly posPaymentSync: PosPaymentSyncService,
+    @Inject(POLICY_FACTORY)
+    private readonly policyFactory: IPolicyFactory
   ) {}
 
   async execute(command: PaxVoidCommand): Promise<PaxVoidResponse> {
-    const { input } = command;
+    const { input, ctx } = command;
 
-    // Orijinal işlem iptal kararını besliyor → okuma command repo'dan (ana bağlantı):
-    // satış az önce tamamlanmış olabilir, replica gecikmesi iptali reddederdi.
-    const originalTx = await this.posTransactionCommandRepo.findById(
-      input.originalPosTransactionId
-    );
-    if (!originalTx) {
-      throw new OriginalPosTransactionNotFoundException();
-    }
+    // `clinicId` istek gövdesinden geliyor — aktörün kendi kliniği DEĞİL. Bu
+    // kontrol olmadan, POS yetkisi olan herhangi bir personel gövdeye başka bir
+    // kliniğin id'sini yazıp o kliniğin terminalinde işlem yürütebilirdi.
+    this.policyFactory
+      .finance(ctx.actor, ctx.source)
+      .evaluator.check((p) => p.canAccessClinicFinances(input.clinicId))
+      .orThrow(POS_EVENTS.TRANSACTION_INITIATED);
 
-    originalTx.validate.status
-      .isSuccess(new PosTransactionNotVoidableException())
-      .orThrow();
+    // Faz 1 — orijinal işlem KİLİT ALTINDA doğrulanır ve PENDING void kaydı aynı
+    // transaction'da açılır (TCP öncesi). Kilitli okuma, iptal kararını besleyen
+    // durumu eşzamanlı değiştiricilerden (mutabakat taraması, cihaz callback'i)
+    // yalıtır; kilitsiz okumada "SUCCESS" görülüp iptal edilen işlem aslında bu
+    // arada TIMEOUT'a düşmüş olabilirdi.
+    const { voidTx, device, originalPaymentId, originalExternalRef } =
+      await this.txManager.outboxRun(async () => {
+        const originalTx = await this.posTransactionRepo.findByIdForUpdate(
+          input.originalPosTransactionId
+        );
+        if (!originalTx) {
+          throw new OriginalPosTransactionNotFoundException();
+        }
 
-    const originalTransactionExternalRef = originalTx.validate.has
-      .externalRef(new PosTransactionMissingExternalRefException())
-      .orThrow();
+        // Yetki `input.clinicId` üzerinden verildi; ters kaydedilecek ORİJİNAL işlem
+        // ayrı bir alandan geliyor. Bu doğrulama olmadan başka kliniğin satışı iptal
+        // edilip para o kliniğin üye işyerinden geri döndürülebilirdi.
+        originalTx.assertBelongsToClinic(input.clinicId);
 
-    const device = await this.posDeviceRepo.findById(originalTx.posDeviceId);
-    if (!device) {
-      throw new PosDeviceNotFoundException();
-    }
+        originalTx.validate.status
+          .isSuccess(new PosTransactionNotVoidableException())
+          .orThrow();
 
-    device.validate.status.isActive.orThrow();
+        const originalExternalRef = originalTx.validate.has
+          .externalRef(new PosTransactionMissingExternalRefException())
+          .orThrow();
 
-    const posTransaction = PosTransaction.create({
-      posDeviceId: device.id.value,
-      clinicId: input.clinicId,
-      paymentId: originalTx.paymentId ?? undefined,
-      amount: Number(originalTx.amount),
-      currency: originalTx.amount.currency,
-    });
+        // Satış zaten geri alınmışsa ikinci kez cihaza gidilmez. Kilit bu okumayı
+        // eşzamanlı iptallerden yalıtır; yine de araya giren bir istek olursa
+        // `active_void_original_id` unique kısıtı INSERT'te yakalar.
+        const reversal = await this.posTransactionRepo.findLiveReversalSummary(
+          originalTx.id.value
+        );
+        if (reversal.hasActiveVoid || reversal.refundedAmount.greaterThan(0)) {
+          throw new PosTransactionAlreadyReversedException();
+        }
 
-    // Faz 1 — PENDING void kaydı atomik olarak oluşturulur (TCP öncesi)
-    const { voidTransactionId, voidTx } = await this.txManager.outboxRun(
-      async () => {
-        const id = crypto.randomUUID();
-        const tx = await this.posTransactionCommandRepo.create(posTransaction);
-        return { voidTransactionId: id, voidTx: tx };
-      }
-    );
+        const device = await this.posDeviceRepo.findById(
+          originalTx.posDeviceId
+        );
+        if (!device) {
+          throw new PosDeviceNotFoundException();
+        }
+
+        device.validate.status.isActive.orThrow();
+
+        const voidTx = await this.posTransactionRepo.create(
+          PosTransaction.create({
+            posDeviceId: device.id.value,
+            clinicId: input.clinicId,
+            paymentId: originalTx.paymentId ?? undefined,
+            amount: originalTx.amount.value.toNumber(),
+            currency: originalTx.amount.currency,
+            kind: PosTransactionKindSchema.enum.VOID,
+            originalPosTransactionId: originalTx.id.value,
+          })
+        );
+
+        return {
+          voidTx,
+          device,
+          originalPaymentId: originalTx.paymentId,
+          originalExternalRef,
+        };
+      });
+
+    // ECR referansı ve dönen kimlik, DB'ye yazılan void kaydının id'sidir: mutabakat
+    // taraması ve çağıranın sorgusu bu id üzerinden yürür.
+    const voidTransactionId = voidTx.id.value;
 
     // Faz 2 — PAX TCP çağrısı (transaction dışında)
     try {
       const result = await this.paxService.void({
         device: device.getPaxConnection(),
-        amountInMinorUnits: Math.round(Number(originalTx.amount) * 100),
+        amountInMinorUnits: voidTx.amount.value.times(100).round().toNumber(),
         ecReferenceNumber: voidTransactionId,
-        originalReferenceNumber: originalTransactionExternalRef,
+        originalReferenceNumber: originalExternalRef,
       });
 
       // Faz 3 — sonuç + orijinal ödemeyi iade işaretle + ledger atomik (outboxRun)
       await this.txManager.outboxRun(async () => {
         if (result.approved) {
           voidTx.markSuccess(result.externalRef, result.rawResponse);
-          await this.posTransactionCommandRepo.update(voidTx);
-          if (originalTx.paymentId) {
+          await this.posTransactionRepo.update(voidTx);
+          if (originalPaymentId) {
             await this.posPaymentSync.markRefunded({
-              paymentId: originalTx.paymentId,
+              paymentId: originalPaymentId,
               clinicId: input.clinicId,
             });
           }
         } else {
           voidTx.markFailed(result.rawResponse);
-          await this.posTransactionCommandRepo.update(voidTx);
+          await this.posTransactionRepo.update(voidTx);
         }
       });
 
@@ -138,7 +185,7 @@ export class PaxVoidHandler
       if (err instanceof PaxConnectionError) {
         await this.txManager.run(async () => {
           voidTx.markFailed();
-          await this.posTransactionCommandRepo.update(voidTx);
+          await this.posTransactionRepo.update(voidTx);
         });
         this.logger.error(`PAX void bağlantı hatası: id=${voidTransactionId}`);
         return { posTransactionId: voidTransactionId, status: 'FAILED' };

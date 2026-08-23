@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { Decimal } from 'decimal.js';
 import BloodTypeSchema from '@input-type-schemas/BloodTypeSchema';
 import { GenderSchema, PatientTypeSchema } from '@shared';
 import { ResponseGroups } from '@common/constants/response-groups.constant';
+import { PatientStatusSchema } from '@input-type-schemas/PatientStatusSchema';
 
 // ==========================================
 // HASTA SERİLEŞTİRME GRUPLARI (RESPONSE GROUPS)
@@ -87,3 +87,19 @@ export const FindPatientByContactFilterSchema = z
 export type FindPatientByContactFilter = z.infer<
   typeof FindPatientByContactFilterSchema
 >;
+
+/**
+ * Hasta listeleme filtresi. Kapsam organizasyondur (hasta organizasyona ait,
+ * klinik opsiyonel); `clinicId` verilirse yalnız o şubenin hastalarına daralır.
+ * Ad/telefon/protokol araması `pagination.search` üzerinden yürür — `paginate`
+ * helper'ı tek kolonda arar, çok kolonlu arama repo'da açıkça kurulur.
+ */
+export const FindPatientsFilterSchema = z.object({
+  organizationId: z.uuid(),
+  clinicId: z.uuid().nullable().optional(),
+  status: PatientStatusSchema.optional(),
+  /** Ad, soyad, telefon veya protokol numarasında geçen metin. */
+  search: z.string().min(1).optional(),
+});
+
+export type FindPatientsFilter = z.infer<typeof FindPatientsFilterSchema>;

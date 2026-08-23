@@ -1,5 +1,5 @@
 import { Validate } from '@common/interfaces';
-import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { CreateAppointmentProps } from '@modules/clinical/appointment/domain/contracts/appointment';
 
 export interface IAppointmentRules {
   /** Randevu oluşturma kurallarını doğrular*/

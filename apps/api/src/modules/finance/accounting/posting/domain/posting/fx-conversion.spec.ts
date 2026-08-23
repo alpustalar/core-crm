@@ -109,3 +109,39 @@ describe('FxConversion.roundingBalance', () => {
     expect(result!.amount.toFixed(2)).toBe('0.03');
   });
 });
+
+/**
+ * Denkleştirme satırının **sınırı** ayrı bir konudur ve posting handler'ında
+ * uygulanır (`post-financial-event`): `roundingBalance` farkı hesaplar, ne kadarının
+ * kabul edilebilir olduğuna karar vermez. Aşağıdaki test bu ayrımı ve büyüklük
+ * mertebesini sabitler — yuvarlama artığı satır sayısı × 1 kuruşu aşamaz.
+ */
+describe('FxConversion — yuvarlama artığının büyüklüğü', () => {
+  it('satır başına yuvarlama hatası yarım kuruşu aşmaz', () => {
+    // 3 satırın her biri en kötü ihtimalle 0.005 kayar → toplam artık < 0.02.
+    const rate = new Decimal('1.23456');
+    const amounts = ['33.33', '66.67', '10.01'];
+
+    const converted = amounts.map((amount) =>
+      FxConversion.convertLine({
+        debit: amount,
+        txCurrency: 'EUR',
+        functionalCurrency: 'TRY',
+        rate,
+      })
+    );
+
+    const exactTotal = amounts.reduce(
+      (sum, amount) => sum.plus(new Decimal(amount).mul(rate)),
+      new Decimal(0)
+    );
+    const roundedTotal = converted.reduce(
+      (sum, line) => sum.plus(new Decimal(line.debit!.toString())),
+      new Decimal(0)
+    );
+
+    const residue = exactTotal.minus(roundedTotal).abs();
+    expect(residue.lessThanOrEqualTo(new Decimal(amounts.length).mul('0.005')))
+      .toBe(true);
+  });
+});

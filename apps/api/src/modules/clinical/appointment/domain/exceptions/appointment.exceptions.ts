@@ -1,6 +1,7 @@
 import { DomainException } from '@src/domain/exceptions/domain.exception';
 import { ERROR_CODES } from '@common/constants/error-codes.constant';
 import { HttpStatus } from '@nestjs/common';
+import type { SlotConflictMeta } from '@shared/modules/appointment/interfaces';
 
 export class AppointmentNotFoundException extends DomainException {
   public readonly errorCode = ERROR_CODES.APPOINTMENT.NOT_FOUND;
@@ -57,17 +58,16 @@ export class AppointmentCancellationNotAllowedException extends DomainException<
  * Seçilen uzman + zaman aralığında çakışan başka bir randevu bulunduğunda
  * fırlatılır. `meta` ile çakışan slotun saatleri frontend'e taşınır.
  */
-export class AppointmentSlotConflictException extends DomainException<{
-  conflictStart: string;
-  conflictEnd: string;
-}> {
+export class AppointmentSlotConflictException extends DomainException<SlotConflictMeta> {
   public readonly errorCode = ERROR_CODES.APPOINTMENT.ALREADY_BOOKED;
   public override readonly httpStatus = HttpStatus.CONFLICT;
 
   constructor(conflictStart: Date, conflictEnd: Date) {
+    // Tel üzerinde ISO string olarak gidiyor; sözleşme (`SlotConflictMeta`) de
+    // string diyor — Date'i olduğu gibi bırakmak tipi yalan söyletirdi.
     super(`Bu uzman için seçilen saatte çakışan bir randevu mevcut`, {
-      conflictStart,
-      conflictEnd,
+      conflictStart: conflictStart.toISOString(),
+      conflictEnd: conflictEnd.toISOString(),
     });
   }
 }

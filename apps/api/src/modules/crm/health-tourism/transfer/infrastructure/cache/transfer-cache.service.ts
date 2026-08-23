@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
+import {
+  TransferAvailabilityItem,
+  TransferRateOptionToken,
+} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { ITransferCacheService } from '@modules/crm/health-tourism/transfer/domain/interfaces/transfer-cache.service.interface';
 
 const KEYS = {
   AVAILABILITY: (paramsHash: string) => `transfer:availability:${paramsHash}`,
@@ -10,7 +15,7 @@ const KEYS = {
 };
 
 @Injectable()
-export class TransferCacheService {
+export class TransferCacheService implements ITransferCacheService {
   private readonly availabilityTtl = DateTimeManager.toSeconds({ minutes: 10 });
   private readonly rateOptionTtl = DateTimeManager.toSeconds({ minutes: 15 });
 
@@ -18,16 +23,21 @@ export class TransferCacheService {
 
   get transferAvailability() {
     return {
-      get: async <T = unknown>(paramsHash: string): Promise<T | null> => {
+      get: async (
+        paramsHash: string
+      ): Promise<TransferAvailabilityItem[] | null> => {
         const raw = await this.redis.get(KEYS.AVAILABILITY(paramsHash));
         if (!raw) return null;
         try {
-          return JSON.parse(raw) as T;
+          return JSON.parse(raw) as TransferAvailabilityItem[];
         } catch {
           return null;
         }
       },
-      set: async <T = unknown>(paramsHash: string, data: T): Promise<void> => {
+      set: async (
+        paramsHash: string,
+        data: TransferAvailabilityItem[]
+      ): Promise<void> => {
         await this.redis.set(
           KEYS.AVAILABILITY(paramsHash),
           JSON.stringify(data),
@@ -40,9 +50,9 @@ export class TransferCacheService {
 
   get transferRateOption() {
     return {
-      set: async <T = unknown>(
+      set: async (
         token: string,
-        data: T,
+        data: TransferRateOptionToken,
         ttlSeconds = this.rateOptionTtl
       ): Promise<void> => {
         await this.redis.set(
@@ -52,11 +62,11 @@ export class TransferCacheService {
           ttlSeconds
         );
       },
-      get: async <T = unknown>(token: string): Promise<T | null> => {
+      get: async (token: string): Promise<TransferRateOptionToken | null> => {
         const raw = await this.redis.get(KEYS.RATE_OPTION(token));
         if (!raw) return null;
         try {
-          return JSON.parse(raw) as T;
+          return JSON.parse(raw) as TransferRateOptionToken;
         } catch {
           return null;
         }

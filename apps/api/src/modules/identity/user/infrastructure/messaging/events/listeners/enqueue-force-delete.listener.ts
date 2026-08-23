@@ -3,12 +3,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EnqueueForceDeleteEvent } from '@modules/identity/user/domain/events/enqueue-force-delete.event';
 import { UserProducer } from '@modules/identity/user/infrastructure/messaging/queue/producer/user.producer';
+import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @Injectable()
 export class EnqueueForceDeleteListener {
   private readonly logger = new Logger(EnqueueForceDeleteListener.name);
 
-  constructor(private readonly userProducer: UserProducer) {}
+  constructor(
+    private readonly userProducer: UserProducer,
+    private readonly criticalFailure: CriticalFailurePublisher
+  ) {}
 
   @OnEvent(USER_EVENTS.ENQUEUE_FORCE_DELETE, { async: true })
   async handle(event: EnqueueForceDeleteEvent) {
@@ -22,6 +26,19 @@ export class EnqueueForceDeleteListener {
         `FATAL: Failed to enqueue Firebase cleanup for ${firebaseUid}. 
         Manual intervention required!: ${JSON.stringify(e)}`
       );
+      // Log satırı zaten "manuel müdahale gerekli" diyordu ama bunu okuyacak
+      // kimse yoktu: Firebase kimliği kuyruğa hiç girmediği için yetim kalır —
+      // silinmiş kullanıcı hâlâ oturum açabilir.
+      this.criticalFailure.publish({
+        operation: 'identity.firebase-cleanup.enqueue',
+        severity: 'CRITICAL',
+        summary:
+          'Firebase kimlik temizliği kuyruğa alınamadı; yetim kimlik kalıyor.',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        context: { firebaseUid },
+        clinicId: null,
+        dedupeKey: `firebase-cleanup-enqueue-failed:${firebaseUid}`,
+      });
     }
   }
 }

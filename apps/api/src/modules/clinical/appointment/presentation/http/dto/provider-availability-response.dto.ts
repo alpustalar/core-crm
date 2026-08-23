@@ -1,7 +1,8 @@
 import { Expose, Type } from 'class-transformer';
-import { AppointmentsResponseGroups } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+import { AppointmentsResponseGroups } from '@modules/clinical/appointment/domain/contracts/appointment';
 
-const { INTERNAL, MANAGEMENT, PROVIDER_DATA_OWNER } = AppointmentsResponseGroups;
+const { INTERNAL, MANAGEMENT, PROVIDER_DATA_OWNER } =
+  AppointmentsResponseGroups;
 
 /** Doktorun çalışma saatleri (dakika cinsinden gün içi ofsetler). */
 export class ProviderCalendarWorkingHoursResponseDto {

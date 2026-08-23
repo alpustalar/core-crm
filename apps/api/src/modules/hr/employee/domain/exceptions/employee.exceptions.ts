@@ -24,6 +24,18 @@ export class EmployeeAlreadyTerminatedException extends DomainException<{
   }
 }
 
+export class EmployeeInvalidEntitlementException extends DomainException<{
+  annualDays?: number;
+}> {
+  readonly errorCode = ERROR_CODES.EMPLOYEE.INVALID_ENTITLEMENT;
+
+  constructor(annualDays?: number) {
+    super('Yıllık izin hak edişi negatif olmayan bir tam sayı olmalıdır.', {
+      annualDays,
+    });
+  }
+}
+
 export class EmployeeContractNotFoundException extends DomainException<{
   contractId?: string;
 }> {

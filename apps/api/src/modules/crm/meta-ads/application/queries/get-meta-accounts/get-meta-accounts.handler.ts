@@ -13,10 +13,9 @@ import {
 import { META_ADS_EVENTS } from '@src/domain/constants/events';
 
 @QueryHandler(GetMetaAccountsQuery)
-export class GetMetaAccountsHandler implements IQueryHandler<
-  GetMetaAccountsQuery,
-  GetMetaAccountsResponse
-> {
+export class GetMetaAccountsHandler
+  implements IQueryHandler<GetMetaAccountsQuery, GetMetaAccountsResponse>
+{
   constructor(
     @Inject(META_AD_ACCOUNT_QUERY_REPOSITORY)
     private readonly metaAdAccountRepo: IMetaAdAccountQueryRepository,

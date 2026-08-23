@@ -5,6 +5,7 @@ import {
 } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { StockPurchasedEvent } from '../events/stock-purchased.event';
+import { StockQuantityChangedEvent } from '../events/stock-quantity-changed.event';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
@@ -12,8 +13,8 @@ import {
   AddQuantityProps,
   CreateBatchFromPurchaseProps,
   DeductQuantityProps,
+  RaiseStockQuantityChangedProps,
 } from '@modules/supply/inventory/domain/contracts/product-batch.contracts';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class ProductBatch extends AggregateRoot {
@@ -93,6 +94,26 @@ export class ProductBatch extends AggregateRoot {
     return this._updatedAt;
   }
 
+  private get raiseEvent() {
+    return {
+      quantityChanged: (props: RaiseStockQuantityChangedProps): void => {
+        this.addDomainEvent(
+          new StockQuantityChangedEvent({
+            movementId: UUID.createOrGenerate(props.movementId).value,
+            productId: this.productId.value,
+            clinicId: this.clinicId.value,
+            batchId: this.id.value,
+            type: props.movementType,
+            direction: props.direction,
+            quantity: props.quantity.value.toString(),
+            performedById: props.performedById,
+            notes: props.notes ?? null,
+          })
+        );
+      },
+    };
+  }
+
   public static createFromPurchase(
     props: CreateBatchFromPurchaseProps
   ): ProductBatch {
@@ -138,13 +159,17 @@ export class ProductBatch extends AggregateRoot {
     return batch;
   }
 
-  // TODO: burası event driven olacak. geriye hiçbir şey dönülmeyecek. stock movement işlemleri yan etki diyebiliriz sanıırm. event üzerinden ilerlesin deduct quantity ve addquantity işlemleri
+  /**
+   * Partiden stok düşer. Hareket kaydı (StockMovement) bu metodun dönüşü değil,
+   * fırlatılan olayın yan etkisidir — kayıt dinleyicide yazılır.
+   */
   public deductQuantity({
     qty,
     movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
+    movementId,
     performedById,
     notes,
-  }: DeductQuantityProps): CreateStockMovementProps {
+  }: DeductQuantityProps): void {
     const incomingQuantity =
       qty instanceof Quantity
         ? qty
@@ -155,25 +180,27 @@ export class ProductBatch extends AggregateRoot {
     this._quantity = this.quantity.sub(incomingQuantity);
     this._updatedAt = DateTimeManager.create();
 
-    return {
-      productId: this.productId.value,
-      clinicId: this.clinicId.value,
-      batchId: this.id.value,
-      type: movementType,
+    this.raiseEvent.quantityChanged({
+      movementId,
       direction: StockMovementDirectionSchema.enum.OUT,
-      quantity: incomingQuantity.value,
+      movementType,
+      quantity: incomingQuantity,
       performedById,
       notes: notes ?? 'Batch üzerinden stok düşümü yapıldı.',
-    };
+    });
   }
 
-  // TODO: burası event driven olacak. geriye hiçbir şey dönülmeyecek
+  /**
+   * Partiye stok ekler. Hareket kaydı (StockMovement) yan etkidir; bkz.
+   * {@link deductQuantity}.
+   */
   public addQuantity({
     qty,
     movementType = StockMovementTypeSchema.enum.ADJUSTMENT,
+    movementId,
     performedById,
     notes,
-  }: AddQuantityProps): CreateStockMovementProps {
+  }: AddQuantityProps): void {
     const incomingQuantity =
       qty instanceof Quantity
         ? qty
@@ -184,17 +211,16 @@ export class ProductBatch extends AggregateRoot {
     this._quantity = this.quantity.add(incomingQuantity);
     this._updatedAt = DateTimeManager.create();
 
-    return {
-      productId: this.productId.value,
-      clinicId: this.clinicId.value,
-      batchId: this.id.value,
-      type: movementType,
+    this.raiseEvent.quantityChanged({
+      movementId,
       direction: StockMovementDirectionSchema.enum.IN,
-      quantity: incomingQuantity.value,
+      movementType,
+      quantity: incomingQuantity,
       performedById,
       notes: notes ?? 'Batch üzerinden stok artırımı yapıldı.',
-    };
+    });
   }
+
   toPersistence(): IProductBatch {
     return {
       id: this.id.value,

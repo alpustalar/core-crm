@@ -8,6 +8,8 @@ import {
   PaxConnection,
 } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
 import {
+  PosDeviceClinicMismatchException,
+  PosDeviceInactiveException,
   PosDeviceMissingDeviceUniqueIdException,
   PosDeviceProviderMismatchException,
 } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
@@ -111,12 +113,25 @@ export class PosDevice extends AggregateRoot {
           return {
             isValid: activeStatus,
             orThrow: () => {
-              if (!activeStatus) throw new Error('Pos cihazı aktif değil.');
+              if (!activeStatus) throw new PosDeviceInactiveException();
             },
           };
         })(),
       },
     };
+  }
+
+  /**
+   * Cihazın hedef kliniğe ait olduğunu doğrular.
+   *
+   * Kural entity'de: cihazı yükleyen HER akış (satış, iade, void, gün sonu) bunu
+   * çağırmak zorunda; kontrolü handler'lara dağıtmak birini atlamayı kolaylaştırırdı
+   * (nitekim atlanmıştı).
+   */
+  public assertBelongsToClinic(clinicId: string): void {
+    if (this._clinicId.value !== clinicId) {
+      throw new PosDeviceClinicMismatchException(this._clinicId.value, clinicId);
+    }
   }
 
   /**

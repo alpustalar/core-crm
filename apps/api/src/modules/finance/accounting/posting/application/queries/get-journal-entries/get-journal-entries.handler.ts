@@ -32,7 +32,18 @@ export class GetJournalEntriesHandler
   async execute(
     query: GetJournalEntriesQuery
   ): Promise<GetJournalEntriesResponse> {
-    const { pagination, status, periodId, ctx } = query.payload;
+    const { pagination, status, periodId, clinicId, ctx } = query.payload;
+    // `clinicId` sorgu dizesinden geliyor — aktörün kendi kliniği DEĞİL. Kontrol
+    // yokken bu yetkiye sahip herhangi bir personel başka bir organizasyonun
+    // yevmiye defterini okuyabiliyordu; `getOrganizationSerializationOptions`
+    // yalnız ALAN maskeler, SATIR erişimini kısıtlamaz.
+    const { evaluator, policy } = this.policyFactory.finance(
+      ctx.actor,
+      ctx.source
+    );
+    evaluator
+      .check((p) => p.canAccessClinicFinances(clinicId))
+      .orThrow('accounting.journal.list');
 
     const organizationId = await this.tenantScopeResolver.resolve(
       query.payload
@@ -47,11 +58,9 @@ export class GetJournalEntriesHandler
       data: items,
       meta: {
         pagination: buildPaginationMeta(pagination, total),
-        serializationOptions: this.policyFactory
-          .finance(ctx.actor, ctx.source)
-          .policy.getOrganizationSerializationOptions({
-            organizationId,
-          }),
+        serializationOptions: policy.getOrganizationSerializationOptions({
+          organizationId,
+        }),
       },
     };
   }

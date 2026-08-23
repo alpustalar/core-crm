@@ -38,8 +38,7 @@ export class CheckAppointmentConflictsHandler
   async execute(
     query: CheckAppointmentConflictsQuery
   ): Promise<CheckAppointmentConflictsResponse> {
-    const { payload } = query;
-    const { filter, ctx } = payload;
+    const { filter, ctx } = query.payload;
 
     const endTime = Appointment.calculateEndTime({
       startTime: filter.startTime,

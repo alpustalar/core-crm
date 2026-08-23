@@ -10,7 +10,7 @@ import { AuthGuard, CapabilityGuard } from '@modules/identity/auth/auth/guards';
 import { GetContext, HasCapability, IGetContext } from '@common/decorators';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
-import { PaginationDto } from '@shared';
+import { Appointment, PaginationDto } from '@shared';
 import { GetClinicAppointmentsDto } from '@shared/modules/appointment/dto/queries/get-clinic-appointments.dto';
 import { GetOrganizationAppointmentsDto } from '@shared/modules/appointment/dto/queries/get-organization-appointments.dto';
 import { GetProviderCalendarDto } from '@shared/modules/appointment/dto/queries/get-provider-calendar.dto';
@@ -34,7 +34,6 @@ import { CheckAppointmentConflictsQuery } from '@modules/clinical/appointment/ap
 import { GetWaitingRoomQuery } from '@modules/clinical/appointment/application/queries/get-waiting-room/get-waiting-room.query';
 import { GetAppointmentDetailQuery } from '@modules/clinical/appointment/application/queries/get-appointment-detail/get-appointment-detail.query';
 import { Serialize } from '@common/decorators/serialize.decorator';
-import { Appointment } from '@shared';
 import {
   AppointmentDetailResponseDto,
   AppointmentResponseDto,
@@ -44,14 +43,14 @@ import {
   ConflictingAppointmentResponseDto,
   WaitingRoomEntryResponseDto,
 } from '@modules/clinical/appointment/presentation/http/dto';
-import type {
+import {
+  AppointmentWithDetails,
   ClinicCalendarDay,
   ClinicDailySummary,
   ClinicOpenSlotsDay,
   ConflictingAppointmentView,
   WaitingRoomEntry,
-} from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
-import type { AppointmentWithDetails } from '@modules/clinical/appointment/domain/contracts/appointment.contracts';
+} from '@modules/clinical/appointment/domain/contracts/appointment';
 
 @UseGuards(AuthGuard, CapabilityGuard)
 @HasCapability(CAPABILITIES.APPOINTMENT.read)

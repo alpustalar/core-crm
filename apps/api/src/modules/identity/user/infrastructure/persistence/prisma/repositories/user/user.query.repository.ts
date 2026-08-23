@@ -52,7 +52,11 @@ export class UserQueryRepository
     const raw = await this.db.user.findFirst({
       where: { id: firebaseUid, status: GlobalStatus.ACTIVE },
       include: {
-        managedClinics: { select: { id: true } },
+        // Kiracı kimliği (organizationId) kullanıcıda kolon olarak durmaz; klinik
+        // ilişkisinden çözülür. Onaylanmış `findForAuth` istisnası kapsamında
+        // tek sorguda alınır — yetki sınırını çizen skaler kimlik.
+        workingClinic: { select: { organizationId: true } },
+        managedClinics: { select: { id: true, organizationId: true } },
         ownedOrganizations: { select: { id: true } },
         providerProfile: { select: { id: true } },
         role: {
@@ -82,6 +86,7 @@ export class UserQueryRepository
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
       deletedAt: raw.deletedAt,
+      workingClinic: raw.workingClinic,
       managedClinics: raw.managedClinics,
       ownedOrganizations: raw.ownedOrganizations,
       providerProfile: raw.providerProfile,
