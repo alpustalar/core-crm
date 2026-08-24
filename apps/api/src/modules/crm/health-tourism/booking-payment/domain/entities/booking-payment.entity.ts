@@ -10,7 +10,7 @@ import {
   BookingPaymentStatusValue,
   BookingPaymentTypeValue,
   CreateBookingPaymentProps,
-} from '../contracts/booking-payment.contracts';
+} from '../contracts/booking-payment';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Url } from '@src/domain/value-objects/url.vo';

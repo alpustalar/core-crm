@@ -6,7 +6,7 @@ import {
   GlobalStatusSchema,
   GlobalStatusType as GlobalStatus,
 } from '@input-type-schemas/GlobalStatusSchema';
-import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic';
 import { Coordinates } from '@src/domain/value-objects/coordinates.vo';
 import { TimeZone } from '@src/domain/value-objects/timezone.vo';
 import { Slug } from '@src/domain/value-objects/slug.vo';
@@ -217,7 +217,25 @@ export class Clinic extends AggregateRoot {
     );
   }
 
+  /**
+   * consultationSlotDuration pozitif bir tam sayı olmalı. HTTP DTO'sunda
+   * (@shared/modules/clinic CreateClinicSchema) yalnız `.default(15)` var,
+   * pozitiflik/tam-sayı kontrolü yok — bu yüzden domain katmanında koşulur.
+   */
+  private static isValidConsultationSlotDuration(value: number): Guard<number> {
+    const isValid = Number.isInteger(value) && value > 0;
+    return Guard.monitor(
+      value,
+      isValid,
+      () => new Error('Muayene slot süresi pozitif bir tam sayı olmalıdır.')
+    );
+  }
+
   public static create(props: CreateClinicProps, actorId?: string): Clinic {
+    Clinic.isValidConsultationSlotDuration(
+      props.consultationSlotDuration
+    ).orThrow();
+
     const now = DateTimeManager.create();
 
     let coordinates: Coordinates | undefined;
@@ -326,8 +344,12 @@ export class Clinic extends AggregateRoot {
     if (isNotUndefined(props.sectorId))
       this._sectorId = UUID.create(props.sectorId).orThrow();
 
-    if (isNotUndefined(props.consultationSlotDuration))
+    if (isNotUndefined(props.consultationSlotDuration)) {
+      Clinic.isValidConsultationSlotDuration(
+        props.consultationSlotDuration
+      ).orThrow();
       this._consultationSlotDuration = props.consultationSlotDuration;
+    }
     this._updatedAt = DateTimeManager.create();
   }
 

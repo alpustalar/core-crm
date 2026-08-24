@@ -6,7 +6,7 @@ import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/po
 import {
   PendingTransactionForReconcile,
   PosTransactionReversalSummary,
-} from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+} from '@modules/finance/pos/physical/domain/contracts/pos-transaction';
 import {
   PosProvider,
   PosTransactionKind,

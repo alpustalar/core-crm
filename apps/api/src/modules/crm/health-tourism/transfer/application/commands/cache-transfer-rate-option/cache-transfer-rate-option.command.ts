@@ -1,4 +1,4 @@
-import { TransferRateOptionToken } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { TransferRateOptionToken } from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 
 /**
  * AI `search_transfers` akışının ürettiği kısa optionId → HotelBeds transfer bağlamını

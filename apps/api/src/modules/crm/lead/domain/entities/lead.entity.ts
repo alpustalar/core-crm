@@ -16,7 +16,7 @@ import {
   LeadAuditProps,
   MarkLeadLostProps,
   MoveLeadToStageProps,
-} from '@modules/crm/lead/domain/contracts/lead-contracts';
+} from '@modules/crm/lead/domain/contracts/lead';
 import { PipelineStageTypeSchema } from '@input-type-schemas/PipelineStageTypeSchema';
 import {
   LeadConvertedEvent,

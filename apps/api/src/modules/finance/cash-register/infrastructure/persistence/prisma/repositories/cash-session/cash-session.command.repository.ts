@@ -8,7 +8,7 @@ import { CashSessionStatusSchema } from '@input-type-schemas/CashSessionStatusSc
 import {
   CashBridgeTotals,
   CashMovementTotals,
-} from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+} from '@modules/finance/cash-register/domain/contracts';
 import { ICashSessionCommandRepository } from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.command.repository';
 
 @Injectable()

@@ -2,7 +2,7 @@ import { ConsentFormSubmission as IConsentFormSubmission } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { SignConsentFormProps } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+import { SignConsentFormProps } from '@modules/clinical/consent-form/domain/contracts';
 
 /**
  * Hastanın tablette imzaladığı onam formu kaydı. Şablon sonradan değişse bile

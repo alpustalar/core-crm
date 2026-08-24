@@ -25,3 +25,22 @@ export class HotelbedsBookingNotFoundException extends DomainException<{
     super('Hotelbeds rezervasyonu bulunamadı.');
   }
 }
+
+/**
+ * checkOut, checkIn'den sonra olmalıdır. Eskiden yalnız (hiç `.parse()` edilmeyen)
+ * `CreateHotelbedsBookingPropsSchema.refine()` içinde tanımlıydı — domain/contracts
+ * Zod'dan interface'e taşınırken keşfedildi ve entity.create()'e taşındı.
+ */
+export class HotelbedsBookingInvalidDateRangeException extends DomainException<{
+  checkIn: string;
+  checkOut: string;
+}> {
+  readonly errorCode = ERROR_CODES.HOTELBEDS_BOOKING.INVALID_DATE_RANGE;
+
+  constructor(checkIn: Date, checkOut: Date) {
+    super('Check-out tarihi, check-in tarihinden sonra olmalıdır.', {
+      checkIn: checkIn.toISOString(),
+      checkOut: checkOut.toISOString(),
+    });
+  }
+}

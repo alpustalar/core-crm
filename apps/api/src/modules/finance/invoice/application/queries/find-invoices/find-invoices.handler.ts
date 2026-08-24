@@ -9,7 +9,7 @@ import {
 import { buildPaginationMeta } from '@src/infrastructure/persistence/prisma/helpers';
 import { Invoice as IInvoice } from '@shared';
 import { taxSpecificationOf } from '@modules/finance/invoice/domain/rules/invoice-tax';
-import { InvoiceListItem } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { InvoiceListItem } from '@modules/finance/invoice/domain/contracts/invoice';
 import {
   IInvoiceQueryRepository,
   INVOICE_QUERY_REPOSITORY,

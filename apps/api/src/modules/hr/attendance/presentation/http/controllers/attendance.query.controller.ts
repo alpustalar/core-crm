@@ -22,7 +22,7 @@ import {
   AttendanceSummaryResponseDto,
 } from '@modules/hr/attendance/presentation/http/dto/attendance-response.dto';
 import type { AttendanceRecord } from '@shared';
-import type { AttendanceSummary } from '@modules/hr/attendance/domain/contracts/attendance.contracts';
+import type { AttendanceSummary } from '@modules/hr/attendance/domain/contracts/attendance-record';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { ATTENDANCERECORD } = CAPABILITIES;

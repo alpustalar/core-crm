@@ -1,5 +1,5 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
-import { PipelineStageView } from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+import { PipelineStageView } from '@modules/crm/pipeline/domain/contracts';
 
 export type GetPipelineStageByIdResponse =
   QueryResponse<PipelineStageView | null>;

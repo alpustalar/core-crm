@@ -3,7 +3,7 @@ import { PurchaseRequest } from '@modules/supply/purchasing/domain/entities/purc
 import {
   FindPurchaseRequestsFilter,
   PurchaseRequestWithItems,
-} from '@modules/supply/purchasing/domain/contracts/purchasing.contracts';
+} from '@modules/supply/purchasing/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const PURCHASE_REQUEST_COMMAND_REPOSITORY = Symbol(

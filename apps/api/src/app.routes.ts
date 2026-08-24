@@ -134,7 +134,7 @@ export const APP_ROUTES: Routes = [
     path: 'health-tourism',
     module: HealthTourismModule,
   },
-    {
+  {
     path: 'inventory',
     module: InventoryModule,
   },

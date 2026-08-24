@@ -2,7 +2,7 @@ import {
   ExternalWorkOrderWithItems,
   FindWorkOrdersFilter,
   WorkOrderSummary,
-} from '@modules/supply/work-order/domain/contracts/work-order.contracts';
+} from '@modules/supply/work-order/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const EXTERNAL_WORK_ORDER_QUERY_REPOSITORY = Symbol(

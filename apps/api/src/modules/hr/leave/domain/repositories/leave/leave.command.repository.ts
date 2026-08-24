@@ -1,6 +1,6 @@
 import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
-import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave.contracts';
+import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave-request';
 
 export const LEAVE_COMMAND_REPOSITORY = Symbol('ILeaveCommandRepository');
 

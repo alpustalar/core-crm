@@ -4,7 +4,7 @@ import {
   BillingTargetType as BillingTarget,
 } from '@input-type-schemas/BillingTargetSchema';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { CreateOrganizationFinanceSettingsProps } from '@modules/organization/organization/domain/contracts/organization-finance-settings.contracts';
+import { CreateOrganizationFinanceSettingsProps } from '@modules/organization/organization/domain/contracts/organization-finance-settings';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 
 /**

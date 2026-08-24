@@ -15,7 +15,7 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreateProjectProps,
   UpdateProjectDetailsProps,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 import { ProjectInvalidStateException } from '@modules/organization/project/domain/exceptions/project.exceptions';
 
 /** Terminal durumlar — buradan çıkış yoktur. */

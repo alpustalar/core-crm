@@ -2,7 +2,7 @@ import { QueryResponse } from '@shared/common/response/response.interface';
 import {
   BookingPaymentStatusValue,
   BookingPaymentTypeValue,
-} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 export interface BookingPaymentStatusView {
   id: string;

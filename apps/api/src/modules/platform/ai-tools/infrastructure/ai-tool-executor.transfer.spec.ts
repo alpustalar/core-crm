@@ -16,7 +16,7 @@ import { GetTransferBookingsQuery } from '@modules/crm/health-tourism/transfer/a
 import { GetTransferRateOptionQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-rate-option/get-transfer-rate-option.query';
 import { CacheTransferRateOptionCommand } from '@modules/crm/health-tourism/transfer/application/commands/cache-transfer-rate-option/cache-transfer-rate-option.command';
 import { InitiateBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.command';
-import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 describe('AiToolExecutor — transfer araçları (B3)', () => {
   const context: AiToolContext = {

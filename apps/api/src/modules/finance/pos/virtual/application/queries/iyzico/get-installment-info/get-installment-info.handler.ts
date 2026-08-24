@@ -9,7 +9,7 @@ import {
   IIyzicoProvider,
   IYZICO_PROVIDER,
 } from '@src/infrastructure/payment/pos/virtual/providers/iyzico/interfaces/iyzico.provider.interface';
-import { InstallmentOption } from '@modules/finance/payment/domain/contracts/payment.contracts';
+import { InstallmentOption } from '@modules/finance/payment/domain/contracts/payment';
 import { UUID } from '@src/domain/value-objects';
 import { IyzicoResultGuard } from '@src/domain/value-objects/iyzico-result-guard.vo';
 

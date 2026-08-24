@@ -7,7 +7,7 @@ import {
   FindOverlappingAllocationsProps,
   LockResourceCapacityProps,
   OverlappingAllocation,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 import { ProjectResourceKindSchema } from '@input-type-schemas/ProjectResourceKindSchema';
 
 @Injectable()

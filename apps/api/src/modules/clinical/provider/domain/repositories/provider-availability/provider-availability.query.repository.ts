@@ -1,5 +1,5 @@
 import { ProviderAvailability } from '@shared';
-import { ProviderAvailabilityWithAcceptsConsultation } from '@modules/clinical/provider/domain/contracts/provider.contracts';
+import { ProviderAvailabilityWithAcceptsConsultation } from '@modules/clinical/provider/domain/contracts';
 
 export const PROVIDER_AVAILABILITY_QUERY_REPOSITORY = Symbol(
   'IProviderAvailabilityQueryRepository'

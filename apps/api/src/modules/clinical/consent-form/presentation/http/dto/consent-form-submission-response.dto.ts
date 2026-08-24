@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { ConsentFormResponseGroups } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+import { ConsentFormResponseGroups } from '@modules/clinical/consent-form/domain/contracts';
 
 const { INTERNAL, MANAGEMENT } = ConsentFormResponseGroups;
 

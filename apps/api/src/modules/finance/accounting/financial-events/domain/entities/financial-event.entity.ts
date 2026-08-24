@@ -3,7 +3,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { FinancialEventRecordedEvent } from '../events/financial-event-recorded.event';
 import { FinancialEventTypeType as FinancialEventType } from '@input-type-schemas/FinancialEventTypeSchema';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
-import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/contracts/financial-events.contracts';
+import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/contracts/financial-event';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

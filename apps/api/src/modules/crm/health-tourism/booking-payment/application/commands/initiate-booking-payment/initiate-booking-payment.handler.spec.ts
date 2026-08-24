@@ -9,7 +9,7 @@ import { IServiceFeeProvider } from '@src/infrastructure/payment/links/service-f
 import { IBookingPaymentCommandRepository } from '@modules/crm/health-tourism/booking-payment/domain/repositories/booking-payment/booking-payment.command.repository';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
-import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 describe('InitiateBookingPaymentHandler — iki link + FX', () => {
   const hotelIntent: HotelBookingIntent = {

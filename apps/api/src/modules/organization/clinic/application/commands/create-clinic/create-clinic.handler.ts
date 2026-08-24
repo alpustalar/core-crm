@@ -1,4 +1,4 @@
-import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { CreateClinicProps } from '@modules/organization/clinic/domain/contracts/clinic';
 import { Clinic } from '@modules/organization/clinic/domain/entities/clinic.entity';
 
 import {

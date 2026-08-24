@@ -12,7 +12,7 @@ import { ExecutionSources } from '@src/domain/constants/execution-source.constan
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { IEmployeeLeaveEntitlementService } from '@modules/hr/employee/domain/services/leave-entitlement/leave-entitlement.service.interface';
 import { LeaveEntitlement } from '@modules/hr/employee/domain/value-objects/leave-entitlement.vo';
-import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave.contracts';
+import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave-request';
 
 describe('ApproveLeaveHandler — bakiye kilidi (çalışan satırı çapası)', () => {
   const CLINIC_ID = '11111111-1111-4111-8111-111111111111';

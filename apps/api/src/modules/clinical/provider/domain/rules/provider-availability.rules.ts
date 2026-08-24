@@ -4,7 +4,7 @@ import { DayMinuteRange } from '@src/domain/value-objects/day-minute-range.vo';
 import { isDefined } from '@common/utils';
 import { ProviderAvailability } from '@modules/clinical/provider/domain/entities/provider-availability.entity';
 import { BreakTimeOutOfRangeException } from '@modules/clinical/provider/domain/exceptions/provider-availability.exceptions';
-import { UpdateProviderAvailabilityProps } from '@modules/clinical/provider/domain/contracts/provider-availability.contracts';
+import { UpdateProviderAvailabilityProps } from '@modules/clinical/provider/domain/contracts';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
 export class ProviderAvailabilityRules extends BaseRules {

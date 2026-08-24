@@ -79,7 +79,7 @@ export class OpenCashSessionHandler
         cashRegisterId: register.id.value,
         clinicId: register.clinicId.value,
         organizationId: register.organizationId.value,
-        currency: register.currency,
+        currency: register.currency.value,
         openingFloat: data.openingFloat,
         openedById: actor.userId,
         note: data.note,

@@ -10,7 +10,7 @@ import {
   IProjectQueryRepository,
   PROJECT_QUERY_REPOSITORY,
 } from '@modules/organization/project/domain/repositories/project/project.query.repository';
-import { ProjectCostTotalRow } from '@modules/organization/project/domain/contracts/project.contracts';
+import { ProjectCostTotalRow } from '@modules/organization/project/domain/contracts';
 import { GetProjectBudgetVsActualQuery } from './get-project-budget-vs-actual.query';
 import {
   CostSourceLine,

@@ -17,7 +17,7 @@ import {
   PatientLedgerItem,
   PatientRevenue,
   SumIncomeByPatientsFilter,
-} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger.contracts';
+} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger';
 import { IFinanceLedgerQueryRepository } from '@modules/finance/finance-ledger/domain/repositories/finance-ledger/finance-ledger.query.repository';
 import { Paginated } from '@common/interfaces/paginated.type';
 

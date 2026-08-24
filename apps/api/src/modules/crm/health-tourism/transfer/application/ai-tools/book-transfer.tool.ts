@@ -14,7 +14,7 @@ import {
 import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { GetTransferRateOptionQuery } from '@modules/crm/health-tourism/transfer/application/queries/get-transfer-rate-option/get-transfer-rate-option.query';
 import { InitiateBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.command';
-import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { TransferBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 const BookTransferInputSchema = z.object({
   optionId: z.string().trim().min(1),

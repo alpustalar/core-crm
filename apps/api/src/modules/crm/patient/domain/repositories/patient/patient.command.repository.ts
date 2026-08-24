@@ -1,6 +1,6 @@
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
-import { FindPatientByContactFilter } from '@modules/crm/patient/domain/contracts/patient.contracts';
+import { FindPatientByContactFilter } from '@modules/crm/patient/domain/contracts/patient';
 
 export const PATIENT_COMMAND_REPOSITORY = Symbol('IPatientCommandRepository');
 

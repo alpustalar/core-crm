@@ -1,4 +1,4 @@
-import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 export const HOTEL_CACHE_SERVICE = Symbol('IHotelCacheService');
 

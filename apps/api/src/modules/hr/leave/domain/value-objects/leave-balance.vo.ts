@@ -2,7 +2,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import {
   AnnualLeavePeriod,
   LeaveBalance as ILeaveBalance,
-} from '@modules/hr/leave/domain/contracts/leave.contracts';
+} from '@modules/hr/leave/domain/contracts/leave-request';
 import { LeaveEntitlement } from '@modules/hr/employee/domain/value-objects/leave-entitlement.vo';
 
 export interface LeaveYearPeriod {

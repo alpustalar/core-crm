@@ -2,7 +2,7 @@ import { StaffNotification as IStaffNotification } from '@shared';
 import { StaffNotification } from '@modules/platform/notification/domain/entities/staff-notification.entity';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { NotificationDeliveryStatusType } from '@input-type-schemas/NotificationDeliveryStatusSchema';
-import { FindStaffNotificationsByRecipientProps } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import { FindStaffNotificationsByRecipientProps } from '@modules/platform/notification/domain/contracts/staff-notification';
 
 export const STAFF_NOTIFICATION_COMMAND_REPOSITORY = Symbol(
   'IStaffNotificationCommandRepository'

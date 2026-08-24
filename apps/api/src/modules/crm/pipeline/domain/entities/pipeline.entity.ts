@@ -2,7 +2,7 @@ import { Pipeline as IPipeline } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { CreatePipelineProps } from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+import { CreatePipelineProps } from '@modules/crm/pipeline/domain/contracts';
 
 /**
  * Klinik-seviye satış hunisi (aggregate root). organizationId denormalize edilir —

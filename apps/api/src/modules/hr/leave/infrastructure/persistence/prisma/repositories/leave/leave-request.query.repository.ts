@@ -7,7 +7,7 @@ import {
   AnnualLeavePeriod,
   FindLeavesByEmployeeFilter,
   FindPendingLeavesFilter,
-} from '@modules/hr/leave/domain/contracts/leave.contracts';
+} from '@modules/hr/leave/domain/contracts/leave-request';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
 import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';

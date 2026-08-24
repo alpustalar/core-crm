@@ -3,7 +3,7 @@ import {
   AnnualLeavePeriod,
   FindLeavesByEmployeeFilter,
   FindPendingLeavesFilter,
-} from '@modules/hr/leave/domain/contracts/leave.contracts';
+} from '@modules/hr/leave/domain/contracts/leave-request';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const LEAVE_QUERY_REPOSITORY = Symbol('ILeaveQueryRepository');

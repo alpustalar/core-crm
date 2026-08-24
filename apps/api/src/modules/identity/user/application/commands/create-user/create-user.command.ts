@@ -1,5 +1,5 @@
 import { IGetContext } from '@common/decorators/get-context.decorator';
-import { CreateUser } from '@modules/identity/user/domain/contracts/user.contracts';
+import { CreateUser } from '@modules/identity/user/domain/contracts';
 
 export class CreateUserCommand {
   constructor(

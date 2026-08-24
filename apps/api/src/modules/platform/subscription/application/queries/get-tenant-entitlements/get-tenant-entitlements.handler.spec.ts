@@ -6,7 +6,7 @@ import {
 import {
   IPlanQueryRepository,
 } from '@modules/platform/subscription/domain/repositories/plan/plan.query.repository';
-import { EntitlementSource } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { EntitlementSource } from '@modules/platform/subscription/domain/contracts';
 import { randomUUID } from 'crypto';
 
 describe('GetTenantEntitlementsHandler', () => {

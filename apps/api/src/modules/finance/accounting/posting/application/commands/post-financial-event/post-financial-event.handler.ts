@@ -21,7 +21,7 @@ import { AccountResolver } from '@modules/finance/accounting/posting/domain/post
 import { FxConversion } from '@modules/finance/accounting/posting/domain/posting/fx-conversion';
 import { PostingRuleRegistry } from '@modules/finance/accounting/posting/domain/posting/posting-rule.registry';
 import { PostFinancialEventCommand } from './post-financial-event.command';
-import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/contracts/posting.contracts';
+import { CreateJournalEntryLineProps } from '@modules/finance/accounting/posting/domain/contracts/journal-line';
 import { AccountingPeriodStatusSchema } from '@shared';
 import {
   AccountNotPostableException,

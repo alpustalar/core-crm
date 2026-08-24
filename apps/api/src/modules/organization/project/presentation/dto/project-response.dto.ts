@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { ProjectResponseGroups } from '@modules/organization/project/domain/contracts/project.contracts';
+import { ProjectResponseGroups } from '@modules/organization/project/domain/contracts';
 import { ProjectStatusType } from '@input-type-schemas/ProjectStatusSchema';
 import { ProjectPhaseStatusType } from '@input-type-schemas/ProjectPhaseStatusSchema';
 import { ProjectTaskStatusType } from '@input-type-schemas/ProjectTaskStatusSchema';

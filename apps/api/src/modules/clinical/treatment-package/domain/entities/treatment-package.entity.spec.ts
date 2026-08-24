@@ -4,10 +4,8 @@ import {
   TreatmentPackageDeletedEvent,
   TreatmentPackageUpdatedEvent,
 } from '@modules/clinical/treatment-package/domain/events';
-import {
-  CreateTreatmentPackageProps,
-  CreateTreatmentPackageSchema,
-} from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+import { CreateTreatmentPackageProps } from '@modules/clinical/treatment-package/domain/contracts';
+import { TreatmentPackageNameEmptyException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
@@ -61,11 +59,12 @@ describe('TreatmentPackage entity', () => {
       expect(pkg.itemsToSync).toEqual([]);
     });
 
-    it('boş isim reddedilir (şema katmanı)', () => {
-      // İsim boşluğu validasyonu artık entity'de değil, CreateTreatmentPackageSchema'da (DTO sınırında).
+    it('boş isim reddedilir (entity katmanı)', () => {
+      // İsim boşluğu validasyonu artık Zod DTO sınırında değil, entity.create() içinde
+      // Guard.monitor + TreatmentPackageNameEmptyException ile enforce ediliyor.
       expect(() =>
-        CreateTreatmentPackageSchema.parse({ ...baseProps, name: '' })
-      ).toThrow('Paket adı zorunludur');
+        TreatmentPackage.create({ ...baseProps, name: '' })
+      ).toThrow(TreatmentPackageNameEmptyException);
     });
 
     it('negatif fiyat reddedilir (Money katmanı)', () => {

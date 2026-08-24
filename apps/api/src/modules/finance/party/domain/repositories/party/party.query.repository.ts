@@ -1,5 +1,5 @@
 import { Pagination, Party } from '@shared';
-import { FindPartiesFilter } from '@modules/finance/party/domain/contracts/party.contracts';
+import { FindPartiesFilter } from '@modules/finance/party/domain/contracts/party';
 
 export const PARTY_QUERY_REPOSITORY = Symbol('IPartyQueryRepository');
 

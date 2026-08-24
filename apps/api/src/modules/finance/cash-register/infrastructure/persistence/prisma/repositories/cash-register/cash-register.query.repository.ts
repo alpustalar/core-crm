@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindCashRegistersFilter } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+import { FindCashRegistersFilter } from '@modules/finance/cash-register/domain/contracts';
 import { CashRegister as ICashRegister } from '@model-schema/CashRegisterSchema';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { ICashRegisterQueryRepository } from '@modules/finance/cash-register/domain/repositories/cash-register/cash-register.query.repository';

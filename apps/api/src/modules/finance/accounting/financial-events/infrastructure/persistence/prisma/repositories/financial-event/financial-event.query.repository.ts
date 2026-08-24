@@ -3,7 +3,7 @@ import { FinancialEvent as IFinancialEvent, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/contracts/financial-events.contracts';
+import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/contracts/financial-event';
 import { IFinancialEventQueryRepository } from '@modules/finance/accounting/financial-events/domain/repositories/financial-event/financial-event.query.repository';
 
 @Injectable()

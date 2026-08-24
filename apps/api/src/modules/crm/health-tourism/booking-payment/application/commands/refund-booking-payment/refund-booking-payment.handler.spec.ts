@@ -6,7 +6,7 @@ import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/doma
 import {
   CreateBookingPaymentProps,
   HotelBookingIntent,
-} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 describe('RefundBookingPaymentHandler — iptal sonrası iade', () => {
   const hotelIntent: HotelBookingIntent = {

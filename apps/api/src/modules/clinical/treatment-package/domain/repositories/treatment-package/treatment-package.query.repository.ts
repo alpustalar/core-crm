@@ -1,5 +1,5 @@
 import { Pagination, TreatmentPackage } from '@shared';
-import { TreatmentPackageWithRelations } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+import { TreatmentPackageWithRelations } from '@modules/clinical/treatment-package/domain/contracts';
 
 export const TREATMENT_PACKAGE_QUERY_REPO = Symbol(
   'ITreatmentPackageQueryRepository'

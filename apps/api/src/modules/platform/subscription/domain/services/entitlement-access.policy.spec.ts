@@ -2,7 +2,7 @@ import {
   resolveEffectivePlanId,
   subscriptionGrantsAccess,
 } from './entitlement-access.policy';
-import { EntitlementSource } from '../contracts/subscription.contracts';
+import { EntitlementSource } from '../contracts';
 
 const GRACE_DAYS = 7;
 const NOW = new Date('2026-07-05T12:00:00Z');

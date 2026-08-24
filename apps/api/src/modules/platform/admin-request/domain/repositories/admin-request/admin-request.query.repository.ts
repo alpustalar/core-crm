@@ -1,5 +1,5 @@
 import { AdminRequest as IAdminRequest } from '@shared';
-import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/contracts/admin-request.contracts';
+import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/contracts/admin-request';
 
 export const ADMIN_REQUEST_QUERY_REPOSITORY = Symbol(
   'IAdminRequestQueryRepository'

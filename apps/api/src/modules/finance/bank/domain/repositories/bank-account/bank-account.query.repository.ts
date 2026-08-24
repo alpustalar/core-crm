@@ -1,5 +1,5 @@
 import { BankAccount } from '@model-schema/BankAccountSchema';
-import { FindBankAccountsFilter } from '@modules/finance/bank/domain/contracts/bank.contracts';
+import { FindBankAccountsFilter } from '@modules/finance/bank/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const BANK_ACCOUNT_QUERY_REPOSITORY = Symbol(

@@ -6,7 +6,7 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import { DateTimeManager } from '@common/utils';
-import { CreatePlanProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { CreatePlanProps } from '@modules/platform/subscription/domain/contracts';
 import { Name } from '@src/domain/value-objects/name.vo';
 
 /**

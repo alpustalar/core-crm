@@ -1,4 +1,4 @@
-import { HotelAvailabilityItem } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { HotelAvailabilityItem } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 export const HOTELBEDS_API_SERVICE = Symbol('IHotelbedsApiService');
 

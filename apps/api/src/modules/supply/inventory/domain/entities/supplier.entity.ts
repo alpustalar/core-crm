@@ -8,7 +8,7 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreateSupplierProps,
   UpdateSupplierProps,
-} from '@modules/supply/inventory/domain/contracts/supplier.contracts';
+} from '@modules/supply/inventory/domain/contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class Supplier extends AggregateRoot {

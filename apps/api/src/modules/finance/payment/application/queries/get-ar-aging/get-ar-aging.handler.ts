@@ -9,7 +9,7 @@ import {
   GetArAgingResponse,
 } from './get-ar-aging.response';
 import { Decimal } from 'decimal.js';
-import { OpenInstallmentRow } from '@modules/finance/payment/domain/contracts/payment.contracts';
+import { OpenInstallmentRow } from '@modules/finance/payment/domain/contracts/payment';
 import {
   IPaymentQueryRepository,
   PAYMENT_QUERY_REPOSITORY,

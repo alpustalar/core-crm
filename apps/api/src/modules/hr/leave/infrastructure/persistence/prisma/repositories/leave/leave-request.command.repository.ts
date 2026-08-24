@@ -5,7 +5,7 @@ import { LeaveRequest } from '@modules/hr/leave/domain/entities/leave-request.en
 import { LeaveStatusSchema } from '@input-type-schemas/LeaveStatusSchema';
 import { LeaveTypeSchema } from '@input-type-schemas/LeaveTypeSchema';
 import { ILeaveCommandRepository } from '@modules/hr/leave/domain/repositories/leave/leave.command.repository';
-import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave.contracts';
+import { AnnualLeavePeriod } from '@modules/hr/leave/domain/contracts/leave-request';
 
 @Injectable()
 export class LeaveRequestCommandRepository

@@ -21,7 +21,7 @@ import {
 import type {
   InvoiceListItem,
   InvoiceView,
-} from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+} from '@modules/finance/invoice/domain/contracts/invoice';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 /**

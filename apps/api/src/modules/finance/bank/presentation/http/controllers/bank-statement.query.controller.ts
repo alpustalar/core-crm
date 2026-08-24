@@ -26,7 +26,7 @@ import type {
   BankStatementWithLines,
   LineMatchSuggestion,
   ReconciliationSummary,
-} from '@modules/finance/bank/domain/contracts/bank.contracts';
+} from '@modules/finance/bank/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { BANKSTATEMENT, BANKSTATEMENTLINE } = CAPABILITIES;

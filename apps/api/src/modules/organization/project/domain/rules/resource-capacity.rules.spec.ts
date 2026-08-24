@@ -4,7 +4,7 @@ import {
   normalizeAllocationPercent,
   rangesOverlap,
 } from './resource-capacity.rules';
-import { OverlappingAllocation } from '@modules/organization/project/domain/contracts/project.contracts';
+import { OverlappingAllocation } from '@modules/organization/project/domain/contracts';
 
 describe('resource-capacity.rules (kaynak kapasite kuralı)', () => {
   const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);

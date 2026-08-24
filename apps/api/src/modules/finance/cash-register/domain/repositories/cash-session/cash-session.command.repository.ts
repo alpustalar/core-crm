@@ -4,7 +4,7 @@ import { IBaseCommandRepository } from '@common/domain/repositories/base-command
 import {
   CashBridgeTotals,
   CashMovementTotals,
-} from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+} from '@modules/finance/cash-register/domain/contracts';
 
 export const CASH_SESSION_COMMAND_REPOSITORY = Symbol(
   'ICashSessionCommandRepository'

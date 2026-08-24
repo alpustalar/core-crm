@@ -4,7 +4,7 @@ import {
   ProjectAllocationConflictException,
   ProjectNotFoundException,
 } from '@modules/organization/project/domain/exceptions/project.exceptions';
-import { OverlappingAllocation } from '@modules/organization/project/domain/contracts/project.contracts';
+import { OverlappingAllocation } from '@modules/organization/project/domain/contracts';
 import { ProjectResourceAllocation } from '@modules/organization/project/domain/entities/project-resource-allocation.entity';
 
 describe('AllocateProjectResourceHandler (kaynak tahsisi)', () => {

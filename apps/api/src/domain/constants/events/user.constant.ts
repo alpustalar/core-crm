@@ -11,6 +11,8 @@ export const USER_EVENTS = {
   BULK_CHANGE_STATUS: 'user.change_status',
   CAPABILITY_GRANTED: 'user.capability_granted',
   CAPABILITY_REVOKED: 'user.capability_revoked',
+  MANAGED_CLINICS_ASSIGNED: 'user.managed_clinics_assigned',
+  ORGANIZATION_OWNERSHIP_GRANTED: 'user.organization_ownership_granted',
 } as const;
 
 export type UserEvent = (typeof USER_EVENTS)[keyof typeof USER_EVENTS];

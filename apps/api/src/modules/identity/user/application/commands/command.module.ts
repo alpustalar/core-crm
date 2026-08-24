@@ -21,6 +21,8 @@ import { MailModule } from '@src/infrastructure/mail/mail.module';
 import { UserInfrastructureModule } from '@modules/identity/user/infrastructure/infrastructure.module';
 import { GrantUserCapabilityHandler } from './grant-user-capability/grant-user-capability.handler';
 import { RevokeUserCapabilityHandler } from './revoke-user-capability/revoke-user-capability.handler';
+import { AssignManagedClinicsHandler } from './assign-managed-clinics/assign-managed-clinics.handler';
+import { GrantOrganizationOwnershipHandler } from './grant-organization-ownership/grant-organization-ownership.handler';
 
 const CommandHandlers = [
   UpdateLastLoginHandler,
@@ -40,6 +42,8 @@ const CommandHandlers = [
   EnqueueForceDeleteUserHandler,
   GrantUserCapabilityHandler,
   RevokeUserCapabilityHandler,
+  AssignManagedClinicsHandler,
+  GrantOrganizationOwnershipHandler,
 ];
 
 @Module({

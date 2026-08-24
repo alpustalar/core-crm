@@ -13,7 +13,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import type { WorkOrderItemSpecs } from '@shared/modules/work-order/schemas';
-import { CreateExternalWorkOrderProps } from '@modules/supply/work-order/domain/contracts/work-order.contracts';
+import { CreateExternalWorkOrderProps } from '@modules/supply/work-order/domain/contracts';
 import {
   WorkOrderDueDateRequiredException,
   WorkOrderEmptyItemsException,

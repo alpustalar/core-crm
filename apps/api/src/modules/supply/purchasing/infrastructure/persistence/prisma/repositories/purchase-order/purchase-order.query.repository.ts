@@ -6,7 +6,7 @@ import { IPurchaseOrderQueryRepository } from '@modules/supply/purchasing/domain
 import {
   FindPurchaseOrdersFilter,
   PurchaseOrderWithItems,
-} from '@modules/supply/purchasing/domain/contracts/purchasing.contracts';
+} from '@modules/supply/purchasing/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 @Injectable()

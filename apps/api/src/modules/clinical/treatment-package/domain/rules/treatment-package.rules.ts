@@ -4,7 +4,7 @@ import { DefaultValidateOptions } from '@common/domain/constants/default-options
 import {
   CreateTreatmentPackageProps,
   UpdateTreatmentPackageProps,
-} from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+} from '@modules/clinical/treatment-package/domain/contracts';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { TreatmentPackageAlreadyDeletedException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 import { isDefined } from '@common/utils';

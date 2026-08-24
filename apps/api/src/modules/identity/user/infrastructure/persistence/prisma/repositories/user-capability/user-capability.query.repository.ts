@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IUserCapabilityQueryRepository } from '@modules/identity/user/domain/repositories/user-capability/user-capability.query.repository';
-import { EffectiveCapability } from '@modules/identity/user/domain/contracts/user-capability.contracts';
+import { EffectiveCapability } from '@modules/identity/user/domain/contracts';
 
 @Injectable()
 export class UserCapabilityQueryRepository

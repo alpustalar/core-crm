@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { TreatmentChargeResponseGroups } from '@modules/finance/treatment-charge/domain/contracts/treatment-charge.contracts';
+import { TreatmentChargeResponseGroups } from '@modules/finance/treatment-charge/domain/contracts/treatment-charge';
 
 const { INTERNAL, FINANCIAL, MANAGEMENT, ADMIN } = TreatmentChargeResponseGroups;
 

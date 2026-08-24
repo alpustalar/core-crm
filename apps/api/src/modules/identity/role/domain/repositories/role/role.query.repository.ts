@@ -1,6 +1,6 @@
 import { RoleSlug } from '@src/domain/constants/db/role/role-slugs';
 import { Role as IRole } from '@shared';
-import { FindBySlugResponse } from '@modules/identity/role/domain/contracts/role.contracts';
+import { FindBySlugResponse } from '@modules/identity/role/domain/contracts/role';
 
 export const ROLE_QUERY_REPOSITORY = Symbol('IRoleRepository');
 

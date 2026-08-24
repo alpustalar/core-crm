@@ -1,7 +1,7 @@
 import { MetaLead as IMetaLead } from '@shared';
 import { MetaLead } from '@modules/crm/meta-ads/domain/entities/meta-lead.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
-import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/contracts';
 
 export const META_LEAD_COMMAND_REPOSITORY = Symbol(
   'IMetaLeadCommandRepository'

@@ -1,16 +1,18 @@
 import { ProviderAvailability as IProviderAvailability } from '@model-schema/ProviderAvailabilitySchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DayMinuteRange } from '@src/domain/value-objects/day-minute-range.vo';
+import { DayMinute } from '@src/domain/value-objects/day-minute.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import {
   CreateProviderAvailabilityProps,
   UpdateProviderAvailabilityProps,
-} from '@modules/clinical/provider/domain/contracts/provider-availability.contracts';
+} from '@modules/clinical/provider/domain/contracts';
 import { DateTimeManager } from '@src/common/infrastructure/date-time/date-time.manager';
 import { isDefined } from '@common/utils';
 import { ProviderAvailabilityRules } from '@modules/clinical/provider/domain/rules/provider-availability.rules';
 import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
+import { BreakTimeOutOfRangeException } from '@modules/clinical/provider/domain/exceptions/provider-availability.exceptions';
 
 export class ProviderAvailability extends AggregateRoot {
   constructor(data: IProviderAvailability) {
@@ -91,17 +93,30 @@ export class ProviderAvailability extends AggregateRoot {
   ): ProviderAvailability {
     const providerId = UUID.create(props.providerId).orThrow();
 
-    const availabilityRange = DayMinuteRange.fromNumbers(
-      props.startMinute,
-      props.endMinute
-    );
+    const availabilityRange = DayMinuteRange.create(
+      DayMinute.fromNumber(props.startMinute).orThrow(),
+      DayMinute.fromNumber(props.endMinute).orThrow()
+    ).orThrow();
+
     const breakRange =
       isDefined(props.breakStartMinute) && isDefined(props.breakEndMinute)
-        ? DayMinuteRange.fromNumbers(
-            props.breakStartMinute,
-            props.breakEndMinute
-          )
+        ? DayMinuteRange.create(
+            DayMinute.fromNumber(props.breakStartMinute).orThrow(),
+            DayMinute.fromNumber(props.breakEndMinute).orThrow()
+          ).orThrow()
         : null;
+
+    // Mola tanımlıysa mesai saatlerinin tamamen içinde kalmalı. Eskiden bu kural
+    // yalnız hiç `.parse()` edilmeyen bir Zod `.refine()`'da yaşıyordu (fiilen
+    // enforce edilmiyordu); dönüşümle birlikte gerçek zamanlı hale getirildi.
+    if (breakRange && !breakRange.validate.isCompletelyWithIn(availabilityRange).value) {
+      throw new BreakTimeOutOfRangeException(
+        breakRange.start.toString(),
+        breakRange.end.toString(),
+        availabilityRange.start.toString(),
+        availabilityRange.end.toString()
+      );
+    }
 
     return new ProviderAvailability({
       id: UUID.createOrGenerate(props.id).value,

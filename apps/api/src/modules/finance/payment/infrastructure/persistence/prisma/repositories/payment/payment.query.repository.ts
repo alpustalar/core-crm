@@ -8,7 +8,7 @@ import {
   ArAgingFilter,
   CollectedInstallmentRow,
   ProviderRevenueFilterData,
-} from '@modules/finance/payment/domain/contracts/payment.contracts';
+} from '@modules/finance/payment/domain/contracts/payment';
 import {
   IPaymentQueryRepository,
   PaymentWithInstallments,

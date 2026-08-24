@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import {
   Appointment,
   Clinic,
@@ -8,7 +7,7 @@ import {
   Treatment,
   User,
 } from '@shared';
-import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
+import { AppointmentStatusType as AppointmentStatus } from '@input-type-schemas/AppointmentStatusSchema';
 
 export type AppointmentWithDetails = Appointment & {
   patient: Patient | null;
@@ -17,40 +16,40 @@ export type AppointmentWithDetails = Appointment & {
   clinic: Clinic | null;
 };
 
-export type FindByOrganizationIdData = {
+export interface FindByOrganizationIdData {
   organizationId: string;
   pagination: Pagination;
   clinicId?: string;
-  status?: z.infer<typeof AppointmentStatusSchema>;
+  status?: AppointmentStatus;
   startDate?: Date;
   endDate?: Date;
-};
+}
 
-export type FindProviderCalendarData = {
+export interface FindProviderCalendarData {
   providerId: string;
   startDate: Date;
   endDate: Date;
   pagination: Pagination;
-};
+}
 
-export type FindClinicCalendarData = {
+export interface FindClinicCalendarData {
   clinicId: string;
   startDate: Date;
   endDate: Date;
   pagination: Pagination;
   providerId?: string;
-  status?: z.infer<typeof AppointmentStatusSchema>;
-};
+  status?: AppointmentStatus;
+}
 
-export type FindClinicCalendarEventsData = {
+export interface FindClinicCalendarEventsData {
   clinicId: string;
   startDate: Date;
   endDate: Date;
   providerId?: string;
-  status?: z.infer<typeof AppointmentStatusSchema>;
-};
+  status?: AppointmentStatus;
+}
 
-export type ClinicCalendarEventRow = {
+export interface ClinicCalendarEventRow {
   id: string;
   providerId: string;
   patientId: string | null;
@@ -58,45 +57,45 @@ export type ClinicCalendarEventRow = {
   patientPhone: string;
   startTime: Date;
   endTime: Date;
-  status: z.infer<typeof AppointmentStatusSchema>;
+  status: AppointmentStatus;
   treatmentType: string | null;
   isConsultation: boolean;
-};
+}
 
-export type SearchClinicAppointmentsData = {
+export interface SearchClinicAppointmentsData {
   clinicId: string;
   pagination: Pagination;
   search?: string;
-  status?: z.infer<typeof AppointmentStatusSchema>;
+  status?: AppointmentStatus;
   providerId?: string;
   startDate?: Date;
   endDate?: Date;
-};
+}
 
-export type FindUpcomingRemindersData = {
+export interface FindUpcomingRemindersData {
   clinicId: string;
   pagination: Pagination;
   hoursAhead?: number;
-};
+}
 
-export type FindClinicDailyCountsData = {
+export interface FindClinicDailyCountsData {
   clinicId: string;
   providerId?: string;
   dayStart: Date;
   dayEnd: Date;
-};
+}
 
-export type ClinicStatusCount = {
-  status: z.infer<typeof AppointmentStatusSchema>;
+export interface ClinicStatusCount {
+  status: AppointmentStatus;
   count: number;
-};
+}
 
-export type FindWaitingRoomData = {
+export interface FindWaitingRoomData {
   clinicId: string;
   providerId?: string;
-};
+}
 
-export type WaitingRoomRow = {
+export interface WaitingRoomRow {
   id: string;
   providerId: string;
   patientId: string | null;
@@ -105,40 +104,40 @@ export type WaitingRoomRow = {
   startTime: Date;
   checkedInAt: Date | null;
   treatmentType: string | null;
-};
+}
 
-export type FindDueForReminderData = {
+export interface FindDueForReminderData {
   now: Date;
   windowEnd: Date;
   limit: number;
-};
+}
 
-export type FindConflictingAppointmentData = {
+export interface FindConflictingAppointmentData {
   providerId: string;
   startTime: Date;
   endTime: Date;
   ignoreAppointmentId?: string;
-};
+}
 
-export type CheckConflictProps = {
+export interface CheckConflictProps {
   providerId: string;
   startTime: Date;
   endTime?: Date;
   duration?: number;
   ignoreAppointmentId?: string;
-};
+}
 
-export type ConflictingAppointment = {
+export interface ConflictingAppointment {
   id: string;
   startTime: Date;
   endTime: Date;
-};
+}
 
 export interface OccupiedSlot {
   id: string;
   startTime: Date;
   endTime: Date;
-  status: z.infer<typeof AppointmentStatusSchema>;
+  status: AppointmentStatus;
 }
 
 export interface ProviderDailyLoad {

@@ -4,7 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IMetaCampaignMetricCommandRepository } from '@modules/crm/meta-ads/domain/repositories/meta-campaign-metric.repository';
 import { Currency } from '@src/domain/value-objects/currency.vo';
-import { UpsertCampaignMetricData } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import { UpsertCampaignMetricData } from '@modules/crm/meta-ads/domain/contracts';
 
 @Injectable()
 export class MetaCampaignMetricCommandRepository

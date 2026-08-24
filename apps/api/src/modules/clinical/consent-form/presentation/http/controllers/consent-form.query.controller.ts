@@ -22,7 +22,7 @@ import {
   ConsentFormSubmissionResponseDto,
   ConsentFormTemplateResponseDto,
 } from '@modules/clinical/consent-form/presentation/http/dto';
-import type { ConsentFormSubmissionListItem } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+import type { ConsentFormSubmissionListItem } from '@modules/clinical/consent-form/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { CONSENTFORMSUBMISSION, CONSENTFORMTEMPLATE } = CAPABILITIES;

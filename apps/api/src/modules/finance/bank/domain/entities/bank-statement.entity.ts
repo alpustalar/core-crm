@@ -3,7 +3,7 @@ import { BankStatement as IBankStatement } from '@model-schema/BankStatementSche
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { ImportBankStatementProps } from '@modules/finance/bank/domain/contracts/bank.contracts';
+import { ImportBankStatementProps } from '@modules/finance/bank/domain/contracts';
 import { BankStatementLine } from '@modules/finance/bank/domain/entities/bank-statement-line.entity';
 import { BankStatementEmptyLinesException } from '@modules/finance/bank/domain/exceptions/bank.exceptions';
 import { isDefined, isEmpty } from '@common/utils';

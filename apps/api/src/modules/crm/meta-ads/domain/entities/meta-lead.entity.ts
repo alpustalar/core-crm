@@ -9,7 +9,7 @@ import { MetaLeadStatusType as MetaLeadStatus } from '@input-type-schemas/MetaLe
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Phone } from '@src/domain/value-objects/phone.vo';
 import { Email } from '@src/domain/value-objects/email.vo';
-import { CreateMetaLeadProps } from '@modules/crm/meta-ads/domain/contracts/meta-lead.contracts';
+import { CreateMetaLeadProps } from '@modules/crm/meta-ads/domain/contracts';
 import { DateTimeManager, isEmpty } from '@common/utils';
 
 export class MetaLead extends AggregateRoot {

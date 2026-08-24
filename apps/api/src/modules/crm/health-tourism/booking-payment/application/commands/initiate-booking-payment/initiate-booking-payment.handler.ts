@@ -19,7 +19,7 @@ import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/doma
 import {
   BookingIntent,
   BookingPaymentLinks,
-} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 import { BookingPaymentLinkGenerationException } from '@modules/crm/health-tourism/booking-payment/domain/exceptions/booking-payment.exceptions';
 import { InitiateBookingPaymentCommand } from './initiate-booking-payment.command';
 import {

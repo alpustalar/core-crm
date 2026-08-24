@@ -20,7 +20,7 @@ import {
   LeaveRequestResponseDto,
 } from '@modules/hr/leave/presentation/http/dto/leave-response.dto';
 import type { LeaveRequest } from '@shared';
-import type { LeaveBalance as LeaveBalanceView } from '@modules/hr/leave/domain/contracts/leave.contracts';
+import type { LeaveBalance as LeaveBalanceView } from '@modules/hr/leave/domain/contracts/leave-request';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { LEAVEREQUEST } = CAPABILITIES;

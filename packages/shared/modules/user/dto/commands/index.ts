@@ -5,3 +5,5 @@ export * from './update-user-by-staff.dto';
 export * from './user-soft-delete-by-actor.dto';
 export * from './user-update-by-self.dto';
 export * from './grant-user-capability.dto';
+export * from './assign-managed-clinics.dto';
+export * from './grant-organization-ownership.dto';

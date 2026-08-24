@@ -1,7 +1,7 @@
 import {
   EmployeeWithContracts,
   FindEmployeesFilter,
-} from '@modules/hr/employee/domain/contracts/employee.contracts';
+} from '@modules/hr/employee/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { Employee as IEmployee } from '@shared';
 

@@ -6,10 +6,11 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { DateTimeManager } from '@common/utils';
 
 import { AccountingPeriodStatusType as AccountingPeriodStatus } from '@input-type-schemas/AccountingPeriodStatusSchema';
-import { CreateAccountingPeriodProps } from '@modules/finance/accounting/periods/domain/contracts/periods.contracts';
+import { CreateAccountingPeriodProps } from '@modules/finance/accounting/periods/domain/contracts/accounting-period';
 import {
   InvalidPeriodLockException,
   InvalidPeriodReopenException,
+  InvalidPeriodYearException,
   PeriodAlreadyClosedException,
 } from '@modules/finance/accounting/periods/domain/exceptions/period.exceptions';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
@@ -125,6 +126,8 @@ export class AccountingPeriod extends AggregateRoot {
   }
 
   public static create(props: CreateAccountingPeriodProps): AccountingPeriod {
+    this.assertValidYear(props.year);
+
     const now = DateTimeManager.create();
 
     return new AccountingPeriod({
@@ -138,6 +141,18 @@ export class AccountingPeriod extends AggregateRoot {
       createdAt: now,
       updatedAt: now,
     });
+  }
+
+  /**
+   * `year` şablonu eskiden Zod (`z.number().int().min(2000).max(2100)`) ile domain
+   * kontratında doğrulanıyordu; kontrat düz tipe indirgenince kural HTTP sınırında
+   * (`@Body('year')`, DTO'suz) da uygulanmadığı için buraya taşındı — aksi halde
+   * kural hiçbir katmanda çalışmazdı.
+   */
+  private static assertValidYear(year: number): void {
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      throw new InvalidPeriodYearException(year);
+    }
   }
 
   public lock(): void {

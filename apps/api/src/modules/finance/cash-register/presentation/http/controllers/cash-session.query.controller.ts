@@ -16,7 +16,7 @@ import { GetCashSessionByIdQuery } from '@modules/finance/cash-register/applicat
 import { Serialize } from '@common/decorators/serialize.decorator';
 import { CashSessionResponseDto } from '@modules/finance/cash-register/presentation/http/dto/cash-register-response.dto';
 import type { CashSession as ICashSession } from '@shared';
-import type { CashSessionWithMovements } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+import type { CashSessionWithMovements } from '@modules/finance/cash-register/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { CASHSESSION } = CAPABILITIES;

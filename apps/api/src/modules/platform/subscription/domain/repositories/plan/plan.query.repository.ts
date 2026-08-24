@@ -1,5 +1,5 @@
 import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
-import { PlanReadModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { PlanReadModel } from '@modules/platform/subscription/domain/contracts';
 
 export const PLAN_QUERY_REPOSITORY = Symbol('IPlanQueryRepository');
 

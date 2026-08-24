@@ -15,7 +15,7 @@ import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.su
 import { SearchTransferAvailabilityQuery } from '@modules/crm/health-tourism/transfer/application/queries/search-transfer-availability/search-transfer-availability.query';
 import { SearchTransferAvailabilityDto } from '@shared/modules/health-tourism/dto/queries';
 import { CacheTransferRateOptionCommand } from '@modules/crm/health-tourism/transfer/application/commands/cache-transfer-rate-option/cache-transfer-rate-option.command';
-import { TransferRateOptionToken } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { TransferRateOptionToken } from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 
 const SearchTransfersInputSchema = z.object({
   direction: z.enum(['ARRIVAL', 'DEPARTURE']).optional(),

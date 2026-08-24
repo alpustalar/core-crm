@@ -11,7 +11,7 @@ import {
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { RecordProjectCostProps } from '@modules/organization/project/domain/contracts/project.contracts';
+import { RecordProjectCostProps } from '@modules/organization/project/domain/contracts';
 
 /**
  * Proje Maliyet Kalemi. **Muhasebe fişi değildir** — satın alma faturası / dış iş

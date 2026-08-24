@@ -2,7 +2,7 @@ import { Activity } from '@shared';
 import {
   FindActivitiesByLeadFilter,
   FindMyTasksFilter,
-} from '@modules/crm/activity/domain/contracts/activity.contracts';
+} from '@modules/crm/activity/domain/contracts/activity';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const ACTIVITY_QUERY_REPOSITORY = Symbol('IActivityQueryRepository');

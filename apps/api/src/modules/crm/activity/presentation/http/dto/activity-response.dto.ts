@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { ActivityResponseGroups } from '@modules/crm/activity/domain/contracts/activity.contracts';
+import { ActivityResponseGroups } from '@modules/crm/activity/domain/contracts/activity';
 import { ActivityTypeType as ActivityType } from '@input-type-schemas/ActivityTypeSchema';
 import { ActivityStatusType as ActivityStatus } from '@input-type-schemas/ActivityStatusSchema';
 

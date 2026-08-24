@@ -9,7 +9,7 @@ import { IProjectTaskQueryRepository } from '@modules/organization/project/domai
 import {
   FindMyProjectTasksFilter,
   FindProjectTasksFilter,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 @Injectable()
 export class ProjectTaskQueryRepository

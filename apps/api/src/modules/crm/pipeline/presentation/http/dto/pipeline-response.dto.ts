@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { PipelineResponseGroups } from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+import { PipelineResponseGroups } from '@modules/crm/pipeline/domain/contracts';
 import { PipelineStageTypeType } from '@input-type-schemas/PipelineStageTypeSchema';
 
 const { MANAGEMENT, ADMIN } = PipelineResponseGroups;

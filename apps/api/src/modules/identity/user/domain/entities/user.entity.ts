@@ -7,10 +7,6 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UserUpdatedEvent } from '@modules/identity/user/domain/events/user-updated.event';
 import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
-  CreateUserProps,
-  UpdateDetailsProps,
-} from '@modules/identity/user/domain/contracts/user.contracts';
-import {
   InvalidUserDeletionException,
   InvalidUserUpdateException,
 } from '@modules/identity/user/domain/exceptions/user.exceptions';
@@ -26,6 +22,16 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import { isDefined } from '@common/utils';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 import { UserDeletedEvent } from '@modules/identity/user/domain/events/delete-user.event';
+import {
+  UserManagedClinicsAssignedEvent,
+  UserOrganizationOwnershipGrantedEvent,
+} from '@modules/identity/user/domain/events/user-scope-changed.event';
+import {
+  AssignManagedClinicsProps,
+  CreateUserProps,
+  GrantOrganizationOwnershipProps,
+  UpdateDetailsProps,
+} from '@modules/identity/user/domain/contracts';
 
 export type UserRoleRef = { id: string; priority: Priority };
 export type UserWorkingClinicRef = { id: string };
@@ -210,6 +216,7 @@ export class User extends AggregateRoot {
 
   static create(props: CreateUserProps): User {
     const now = DateTimeManager.create();
+
     return new User({
       id: FirebaseUid.create(props.id).orThrow().value,
       email: Email.create(props.email).orThrow().value,
@@ -217,13 +224,17 @@ export class User extends AggregateRoot {
       emailVerified: false,
       status: GlobalStatusSchema.enum.ACTIVE,
       roleId: UUID.create(props.roleId).orThrow().value,
+
       picture: props.picture ? Img.create(props.picture).orThrow().value : null,
+
       phoneNumber: props.phone
         ? Phone.create(props.phone).orThrow().value
         : null,
+
       clinicId: props.clinicId
         ? UUID.create(props.clinicId).orThrow().value
         : null,
+
       lastLogin: now,
       createdAt: now,
       updatedAt: now,
@@ -247,20 +258,42 @@ export class User extends AggregateRoot {
     });
   }
 
-  isManagerOf(clinicId: string): boolean {
-    return (
-      this.managedClinicIds?.some(({ value: id }) => id === clinicId) ?? false
-    );
+  private static toDistinctIds(ids: string[]): string[] {
+    return [...new Set(ids.map((id) => UUID.create(id).orThrow().value))];
   }
 
+  private static diffScope(
+    current: UUID[] | null,
+    next: string[]
+  ): { added: string[]; removed: string[] } {
+    const before = new Set((current ?? []).map(({ value }) => value));
+    const after = new Set(next);
+
+    return {
+      added: next.filter((id) => !before.has(id)),
+      removed: [...before].filter((id) => !after.has(id)),
+    };
+  }
+
+  /**
+   * Profil güncellemesi: isim, resim, telefon, durum, rol, çalışılan klinik.
+   *
+   * Kapsam devri (yönetilen klinikler / organizasyon sahipliği) bilerek burada
+   * DEĞİL; assignManagedClinics ve grantOrganizationOwnership metotlarında.
+   * Aynı metotta olsalardı telefon güncelleyen bir çağrı, eksik gönderilen bir
+   * dizi yüzünden kullanıcının tüm yetki kapsamını silebilirdi; üstelik ikisi
+   * farklı denetim olayı üretir (INFO vs SECURITY).
+   */
   updateDetails(props: UpdateDetailsProps, actorId: string): void {
     if (this.isDeleted) {
       throw new InvalidUserUpdateException(this.id.value);
     }
     if (isDefined(props.displayName))
       this._displayName = FullName.create(props.displayName).orThrow();
+
     if (isNotUndefined(props.picture))
       this._picture = Img.create(props.picture).orThrow();
+
     if (isNotUndefined(props.phoneNumber))
       this._phoneNumber = props.phoneNumber
         ? Phone.create(props.phoneNumber).orThrow()
@@ -271,19 +304,6 @@ export class User extends AggregateRoot {
     if (isDefined(props.clinicId))
       this._clinicId = UUID.create(props.clinicId).orThrow();
 
-    // Kapsam atamaları: `undefined` dokunulmaz, `[]` listeyi temizler. Bu alanlar
-    // yetki devridir — hangi kliniğin/organizasyonun atanabileceği kararı çağıran
-    // handler'da verilir; entity yalnız kimlik formatını doğrular.
-    if (isNotUndefined(props.managedClinicIds))
-      this._managedClinicIds = props.managedClinicIds.map((id) =>
-        UUID.create(id).orThrow()
-      );
-
-    if (isNotUndefined(props.ownedOrganizationIds))
-      this._ownedOrganizationIds = props.ownedOrganizationIds.map((id) =>
-        UUID.create(id).orThrow()
-      );
-
     this._updatedAt = DateTimeManager.create();
 
     this.addDomainEvent(
@@ -293,6 +313,68 @@ export class User extends AggregateRoot {
         action: LogAction.USER_UPDATE,
         type: LogType.INFO,
         details: 'Kullanıcı bilgileri başarıyla güncellendi.',
+      })
+    );
+  }
+
+  /**
+   * Kullanıcının YÖNETTİĞİ kliniklerin tam listesini belirler (replace).
+   *
+   * Hangi kliniğin atanabileceği kararı entity'nin işi değildir; aktörün
+   * kapsamına bakmak gerekir, o bilgi burada yok. Entity kimlik formatını
+   * doğrular, farkı hesaplar ve güvenlik olayını üretir; devrin meşruluğunu
+   * çağıran handler kapıda doğrular.
+   */
+  assignManagedClinics(props: AssignManagedClinicsProps): void {
+    if (this.isDeleted) {
+      throw new InvalidUserUpdateException(this.id.value);
+    }
+
+    const next = User.toDistinctIds(props.clinicIds);
+    const { added, removed } = User.diffScope(this._managedClinicIds, next);
+
+    // Fark yoksa denetim kaydı da üretilmez: "değişmedi" satırları gerçek
+    // devirleri gürültüye boğar.
+    if (!added.length && !removed.length) return;
+
+    this._managedClinicIds = next.map((id) => UUID.fromTrusted(id));
+    this._updatedAt = DateTimeManager.create();
+
+    this.addDomainEvent(
+      new UserManagedClinicsAssignedEvent({
+        targetUserId: this.id.value,
+        actorId: props.actorId,
+        assigned: next,
+        added,
+        removed,
+      })
+    );
+  }
+
+  /**
+   * Kullanıcının SAHİBİ olduğu organizasyonların tam listesini belirler
+   * (replace). Sistemdeki en geniş kapsam olduğu için kendi olayını üretir.
+   */
+  grantOrganizationOwnership(props: GrantOrganizationOwnershipProps): void {
+    if (this.isDeleted) {
+      throw new InvalidUserUpdateException(this.id.value);
+    }
+
+    const next = User.toDistinctIds(props.organizationIds);
+    const { added, removed } = User.diffScope(this._ownedOrganizationIds, next);
+
+    if (!added.length && !removed.length) return;
+
+    this._ownedOrganizationIds = next.map((id) => UUID.fromTrusted(id));
+    this._updatedAt = DateTimeManager.create();
+
+    this.addDomainEvent(
+      new UserOrganizationOwnershipGrantedEvent({
+        targetUserId: this.id.value,
+        actorId: props.actorId,
+        assigned: next,
+        added,
+        removed,
       })
     );
   }

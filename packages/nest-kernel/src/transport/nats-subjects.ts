@@ -6,7 +6,7 @@ import {
   AiToolResult,
 } from '@common/ai-tools';
 import { MessageChannelType as MessageChannel } from '@shared';
-import { VerifiedToken } from '../auth/token-verifier.port';
+import { VerifiedToken } from '@src/auth';
 
 /**
  * Servisler arası NATS konuları — **tek kaynak**.

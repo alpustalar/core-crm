@@ -12,7 +12,7 @@ import {
   POLICY_FACTORY,
 } from '@modules/platform/policy/staff/domain/interfaces/policy-factory.interface';
 import { SerializationOptions } from '@shared';
-import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
+import { UserResponseGroups } from '@modules/identity/user/domain/contracts';
 import {
   IUserQueryRepository,
   USER_QUERY_REPOSITORY,

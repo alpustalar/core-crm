@@ -11,7 +11,7 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreateProjectPhaseProps,
   UpdateProjectPhaseProps,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 /**
  * Proje Aşaması. Sıralı (order) ve kendi durumu olan bir kilometre taşı.

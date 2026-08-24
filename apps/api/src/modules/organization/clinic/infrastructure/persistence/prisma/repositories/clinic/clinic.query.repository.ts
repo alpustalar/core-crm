@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 
 import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
-import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic';
 import { IClinicQueryRepository } from '@modules/organization/clinic/domain/repositories/clinic/clinic.query.repository';
 import { Clinic } from '@shared';
 

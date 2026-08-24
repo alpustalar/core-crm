@@ -1,7 +1,7 @@
 import {
   ConsentFormSubmissionListItem,
   FindConsentSubmissionsByPatientFilter,
-} from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+} from '@modules/clinical/consent-form/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { ConsentFormSubmission } from '@shared';
 

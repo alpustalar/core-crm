@@ -9,7 +9,7 @@ import {
   ApplyDiscountProps,
   CreateTreatmentChargeProps,
   VoidChargeProps,
-} from '@modules/finance/treatment-charge/domain/contracts/treatment-charge.contracts';
+} from '@modules/finance/treatment-charge/domain/contracts/treatment-charge';
 import {
   DiscountLimitExceededException,
   TreatmentChargeAlreadyVoidedException,

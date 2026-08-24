@@ -7,7 +7,7 @@ import {
   ExternalWorkOrderWithItems,
   FindWorkOrdersFilter,
   WorkOrderSummary,
-} from '@modules/supply/work-order/domain/contracts/work-order.contracts';
+} from '@modules/supply/work-order/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { ExternalWorkOrderStatusSchema } from '@input-type-schemas/ExternalWorkOrderStatusSchema';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

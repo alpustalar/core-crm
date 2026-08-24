@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
   Version,
 } from '@nestjs/common';
@@ -30,6 +31,10 @@ import { UpdateUserByStaffDto } from '@shared/modules/user/dto/commands/update-u
 import { GrantUserCapabilityDto } from '@shared/modules/user/dto/commands/grant-user-capability.dto';
 import { GrantUserCapabilityCommand } from '@modules/identity/user/application/commands/grant-user-capability/grant-user-capability.command';
 import { RevokeUserCapabilityCommand } from '@modules/identity/user/application/commands/revoke-user-capability/revoke-user-capability.command';
+import { AssignManagedClinicsDto } from '@shared/modules/user/dto/commands/assign-managed-clinics.dto';
+import { GrantOrganizationOwnershipDto } from '@shared/modules/user/dto/commands/grant-organization-ownership.dto';
+import { AssignManagedClinicsCommand } from '@modules/identity/user/application/commands/assign-managed-clinics';
+import { GrantOrganizationOwnershipCommand } from '@modules/identity/user/application/commands/grant-organization-ownership';
 
 const { USER } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)
@@ -72,6 +77,52 @@ export class UserCommandController {
     @GetContext() ctx: IGetContext
   ) {
     return this.commandBus.execute(new SoftDeleteUserByStaffCommand(dto, ctx));
+  }
+
+  /**
+   * Kullanıcının yönettiği kliniklerin TAM listesini belirler.
+   *
+   * Profil ucundan (`PATCH :id`) ayrı durur: bu bir yetki devridir ve aynı
+   * gövdede taşınsaydı telefon güncelleyen bir istek, eksik gönderilen bir dizi
+   * yüzünden kullanıcının tüm kapsamını silebilirdi. `PUT`, gövdenin tam liste
+   * olduğunu (kısmi değil) söyler.
+   *
+   * `USER.update` yetkisi yalnız kapıdır; asıl sınır handler'daki devir
+   * kontrolüdür — aktör yalnız kendi yönettiği kliniği atayabilir.
+   */
+  @Put(':id/managed-clinics')
+  @Version('1')
+  @HasCapability(USER.update)
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  assignManagedClinics(
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+    @Body() dto: AssignManagedClinicsDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new AssignManagedClinicsCommand({ targetUserId, data: dto, ctx })
+    );
+  }
+
+  /**
+   * Kullanıcının sahibi olduğu organizasyonların TAM listesini belirler.
+   * Sistemdeki en geniş kapsam; devir için aktörün o organizasyonun SAHİBİ
+   * olması gerekir (üyelik yetmez).
+   */
+  @Put(':id/owned-organizations')
+  @Version('1')
+  @HasCapability(USER.update)
+  @Throttle(THROTTLE_CONFIG.SENSITIVE_ENDPOINT)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  grantOrganizationOwnership(
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+    @Body() dto: GrantOrganizationOwnershipDto,
+    @GetContext() ctx: IGetContext
+  ) {
+    return this.commandBus.execute(
+      new GrantOrganizationOwnershipCommand({ targetUserId, data: dto, ctx })
+    );
   }
 
   /**

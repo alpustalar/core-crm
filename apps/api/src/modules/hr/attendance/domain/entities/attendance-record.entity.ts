@@ -9,7 +9,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import {
   CheckInProps,
   RecordAttendanceProps,
-} from '@modules/hr/attendance/domain/contracts/attendance.contracts';
+} from '@modules/hr/attendance/domain/contracts/attendance-record';
 import {
   AttendanceAlreadyClosedException,
   AttendanceInvalidTimeRangeException,

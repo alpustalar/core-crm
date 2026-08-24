@@ -7,7 +7,7 @@ import { Name } from '@src/domain/value-objects/name.vo';
 import {
   CreateMetaAdAccountProps,
   DeactivateMetaAdAccountProps,
-} from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+} from '@modules/crm/meta-ads/domain/contracts';
 import {
   MetaAccountConnectedEvent,
   MetaAccountDisconnectedEvent,

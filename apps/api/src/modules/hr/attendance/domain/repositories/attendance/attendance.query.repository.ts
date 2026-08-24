@@ -3,7 +3,7 @@ import {
   AttendanceSummary,
   FindAttendanceByEmployeeFilter,
   GetAttendanceSummaryFilter,
-} from '@modules/hr/attendance/domain/contracts/attendance.contracts';
+} from '@modules/hr/attendance/domain/contracts/attendance-record';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const ATTENDANCE_QUERY_REPOSITORY = Symbol('IAttendanceQueryRepository');

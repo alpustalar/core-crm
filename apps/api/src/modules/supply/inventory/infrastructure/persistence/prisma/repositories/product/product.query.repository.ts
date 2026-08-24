@@ -5,7 +5,7 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import { Pagination, Product as IProduct } from '@shared';
 
 import { Decimal } from 'decimal.js';
-import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { StockLevel } from '@modules/supply/inventory/domain/contracts';
 import { IProductQueryRepository } from '@modules/supply/inventory/domain/repositories/product/product.query.repository';
 
 @Injectable()

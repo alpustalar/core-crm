@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { CreateInvoiceProps } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { CreateInvoiceProps } from '@modules/finance/invoice/domain/contracts/invoice';
 import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
 import { IInvoiceCommandRepository } from '@modules/finance/invoice/domain/repositories/invoice/invoice.command.repository';
 import { InvoiceDuplicateException } from '@modules/finance/invoice/domain/exceptions/invoice.exceptions';

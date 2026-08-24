@@ -16,7 +16,7 @@ import {
 } from '@input-type-schemas/BillingTargetSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
-import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { CreateSubscriptionProps } from '@modules/platform/subscription/domain/contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
 import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 import { SubscriptionRules } from '@modules/platform/subscription/domain/rules/subscription.rules';

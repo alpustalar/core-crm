@@ -78,7 +78,6 @@ import { CriticalFailureModule } from '@common/observability/critical-failure.mo
     RouterModule.register(APP_ROUTES),
     FirebaseModule,
     PrismaModule,
-    // clinicId -> organizationId çözümlemesi 15+ modülde gerekiyor; @Global sağlanır.
     TenantScopeModule,
     MongoPersistenceModule,
     // Readiness: api'nin işini yapamayacağı iki bağımlılık. Mongo YOK — orası

@@ -2,7 +2,7 @@ import { Module as IModule } from '@shared';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { Decimal } from 'decimal.js';
-import { ModuleCreateProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { ModuleCreateProps } from '@modules/platform/subscription/domain/contracts';
 import { CurrencyType } from '@input-type-schemas/CurrencySchema';
 import { Currency } from '@src/domain/value-objects/currency.vo';
 

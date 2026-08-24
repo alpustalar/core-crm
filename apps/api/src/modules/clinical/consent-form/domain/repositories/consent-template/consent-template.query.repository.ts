@@ -1,5 +1,5 @@
 import { ConsentFormTemplate } from '@shared';
-import { FindConsentTemplatesFilter } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+import { FindConsentTemplatesFilter } from '@modules/clinical/consent-form/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const CONSENT_TEMPLATE_QUERY_REPOSITORY = Symbol(

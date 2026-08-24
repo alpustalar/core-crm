@@ -14,7 +14,7 @@ import {
   CreateBatchFromPurchaseProps,
   DeductQuantityProps,
   RaiseStockQuantityChangedProps,
-} from '@modules/supply/inventory/domain/contracts/product-batch.contracts';
+} from '@modules/supply/inventory/domain/contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 
 export class ProductBatch extends AggregateRoot {
@@ -130,14 +130,16 @@ export class ProductBatch extends AggregateRoot {
       id: batchId.value,
       productId: UUID.create(props.productId).orThrow().value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
-      supplierId: UUID.create(props.supplierId).orThrow().value,
-      lotNumber: props.lotNumber,
-      expiresAt: props.expiresAt,
+      supplierId: props.supplierId
+        ? UUID.create(props.supplierId).orThrow().value
+        : null,
+      lotNumber: props.lotNumber ?? null,
+      expiresAt: props.expiresAt ?? null,
       quantity: props.quantity.value,
       purchasePrice: props.purchasePrice.value,
       currency: props.purchasePrice.currency,
       receivedAt: DateTimeManager.create(),
-      notes: props.notes,
+      notes: props.notes ?? null,
       createdAt: DateTimeManager.create(),
       updatedAt: DateTimeManager.create(),
     });
@@ -149,7 +151,7 @@ export class ProductBatch extends AggregateRoot {
         productId: props.productId,
         clinicId: props.clinicId,
         organizationId: props.organizationId,
-        supplierId: props.supplierId,
+        supplierId: props.supplierId ?? null,
         quantity: props.quantity.value.toString(),
         unitPrice: props.purchasePrice.value.toString(),
         totalAmount: totalAmount.value.toString(),

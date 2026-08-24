@@ -8,7 +8,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import { Currency } from '@src/domain/value-objects/currency.vo';
 import { PurchaseInvoiceStatusSchema } from '@shared';
 import { PurchaseInvoiceStatusType } from '@input-type-schemas/PurchaseInvoiceStatusSchema';
-import { CreatePurchaseInvoiceProps } from '@modules/finance/purchase-invoice/domain/contracts/purchase-invoice.contracts';
+import { CreatePurchaseInvoiceProps } from '@modules/finance/purchase-invoice/domain/contracts/purchase-invoice';
 import {
   PurchaseInvoiceAlreadyMatchedException,
   PurchaseInvoiceNotMatchableException,

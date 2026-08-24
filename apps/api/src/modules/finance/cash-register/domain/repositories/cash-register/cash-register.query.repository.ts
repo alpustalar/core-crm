@@ -1,5 +1,5 @@
 import { CashRegister } from '@model-schema/CashRegisterSchema';
-import { FindCashRegistersFilter } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+import { FindCashRegistersFilter } from '@modules/finance/cash-register/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const CASH_REGISTER_QUERY_REPOSITORY = Symbol(

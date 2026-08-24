@@ -1,5 +1,5 @@
 import { Pagination, Product as IProduct } from '@shared';
-import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { StockLevel } from '@modules/supply/inventory/domain/contracts';
 
 export const PRODUCT_QUERY_REPOSITORY = Symbol('IProductQueryRepository');
 

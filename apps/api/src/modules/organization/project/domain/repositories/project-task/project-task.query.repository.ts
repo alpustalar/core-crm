@@ -3,7 +3,7 @@ import { Paginated } from '@common/interfaces/paginated.type';
 import {
   FindMyProjectTasksFilter,
   FindProjectTasksFilter,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 export const PROJECT_TASK_QUERY_REPOSITORY = Symbol(
   'IProjectTaskQueryRepository'

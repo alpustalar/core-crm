@@ -14,7 +14,7 @@ import {
 import {
   CreatePaymentProps,
   RefundInstallmentProps,
-} from '@modules/finance/payment/domain/contracts/payment.contracts';
+} from '@modules/finance/payment/domain/contracts/payment';
 import { PaymentRefundedEvent } from '@modules/finance/payment/domain/events/payment-refunded.event';
 import {
   LogAction,

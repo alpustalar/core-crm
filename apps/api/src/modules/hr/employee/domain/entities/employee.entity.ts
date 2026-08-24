@@ -12,7 +12,7 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreateEmployeeProps,
   UpdateEmployeeProps,
-} from '@modules/hr/employee/domain/contracts/employee.contracts';
+} from '@modules/hr/employee/domain/contracts';
 import { EmployeeAlreadyTerminatedException } from '@modules/hr/employee/domain/exceptions/employee.exceptions';
 import {
   Email,

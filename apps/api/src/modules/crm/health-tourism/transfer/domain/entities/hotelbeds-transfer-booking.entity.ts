@@ -11,7 +11,7 @@ import { Decimal } from 'decimal.js';
 import {
   CreateTransferBookingProps,
   UpdateTransferHolderProps,
-} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+} from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
 import { isNotUndefined } from '@common/utils/is-not-undefined';

@@ -537,75 +537,78 @@ await this.sessionCommandRepo.create(session);
 
 **Optimistic kilit (`version` kolonu) — KURAL**: Çekişmenin nadir ama lost-update'in kabul edilemez olduğu aggregate'lerde (randevu, abonelik) entity bir `version: number` taşır; `update()` `updateMany({ where: { id, version }, data: { …, version: version + 1 } })` ile günceller ve etkilenen satır 0 ise `ConcurrencyConflictException` (`@common/domain/exceptions`, 409) fırlatır. `create()` literal'i `version: 0` ile başlatır; `toPersistence()` `version`'ı taşır. `sync`/`upsert` (dış-senkron) yolları optimistic guard'a tabi değildir.
 
-**7. Domain Types & Kontratlar (`*.contracts.ts`) — KURAL**:
+**7. Domain Types & Kontratlar (`domain/contracts/`) — KURAL**:
 
-Her modülün, entity'lerinin ortak domain-seviye tiplerini toplayan **merkezi bir kontrat dosyası** olur: `domain/contracts/<aggregate-name>.contracts.ts`. Tipler ayrı ayrı `domain/types/*.ts` dosyalarına dağıtılmaz; tek dosyada, Zod şemalarından türetilerek tanımlanır. Repository interface'leri, repository implementasyonları ve entity static factory'leri tiplerini buradan alır. **Application katmanından (command/handler) import etmez**.
+Domain kontratları **plain TypeScript `interface`/`type`** ile yazılır — Zod **DEĞİL**. Gerekçe: bu tipler hiçbir zaman `.parse()`/`.safeParse()` edilmez (sadece `z.infer` için şema kuruluyordu — çalışma zamanı maliyeti olan, hiç tetiklenmeyen bir "doğrulama" illüzyonu); gerçek doğrulama zaten iki yerde yapılıyor: **HTTP sınırında** `@shared` DTO'ları (`nestjs-zod` pipe) ve **entity `create()` içinde** Value Object'ler (`Phone.create`, `UUID.create`, `DateRange.create`, `Guard.monitor`). Zod şeması + `z.infer` kombinasyonu bu iki gerçek katmanı tekrar ediyor, hem de hiç çalışmayan `.refine()` zincirleriyle sahte güvenlik hissi veriyordu.
+
+**İstisna — gerçekten `.parse()`/`.safeParse()` edilen kontratlar Zod kalır**: Bir kontrat dış/güvenilmeyen veriyi (OAuth `state` param'ı, webhook payload'ı, imza doğrulaması gereken bir gövde) runtime'da fiilen doğruluyorsa Zod şeması olarak kalır — bkz. `meta-ads.contracts.ts` içindeki `oAuthStatePayloadSchema` + `isOAuthStatePayload()` type-guard'ı. **Kural**: bir şema silinmeden/tipleştirilmeden önce `grep` ile o şemanın adı `.parse(` / `.safeParse(` ile birlikte codebase'de aranır — gerçek bir çağrı varsa Zod kalır, yoksa `interface`/`type`'a çevrilir. Bir kontratta `.refine()`/`.min()`/`.max()`/`.regex()` gibi iş kuralı taşıyan bir kısıt varsa ve bu kısıt entity/VO katmanında **karşılığı yoksa**, tip'e çevrilirken kural kaybolmaz — ilgili Guard/VO kontrolü olarak entity'ye taşınır.
+
+**Klasörleme — aggregate başına klasör**: Modülün bir (veya birden çok) entity'si/aggregate'i varsa, `domain/contracts/` altında **her aggregate için kendi adını taşıyan bir alt klasör** açılır: `domain/contracts/<aggregate-name>/`. Bu klasör konu bazlı dosyalara bölünür (tek dosya çok satır birikince): girdi tipleri (`<aggregate>-inputs.contracts.ts` — `...Props`), okuma modelleri (`<aggregate>-queries.contracts.ts` — `Filter`/`Response`), ve gerekirse modüle özgü ayrı alt-konular (bkz. `appointment/calendar.contracts.ts`, `appointment/reception.contracts.ts`, `appointment/slot-engine.contracts.ts`). Her klasör bir **`index.ts`** barrel'ı ile dışa açılır; tüketiciler klasör yolundan import eder (`.../domain/contracts/<aggregate-name>` → `index.ts`'e çözülür), dosya-içi yoldan değil. Birden fazla aggregate taşıyan modüllerde her aggregate kendi klasörünü alır (ör. `organization/clinic` → `contracts/clinic/`, `contracts/clinic-appointment-settings/`, `contracts/clinic-finance-settings/`, ...). Entity'si olmayan (salt config/value) modüller tek düz dosyada kalabilir: `domain/contracts/<module>.contracts.ts`. Referans örnek: `clinical/appointment/domain/contracts/appointment/`.
 
 **Mimarî Katmanlar ve Veri Akışı (Data Pipeline)** — verinin mimarideki yolculuğuna göre doğru suffix:
 
-| Suffix                    | Ne                                                                                              | Nerede                                                         |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **`...Props`**            | Command Handler'dan çıkıp **Entity static `create`** metoduna beslenen katı, zırhlı giriş tipi  | `domain/<module>.contracts.ts`                                 |
-| **`...Data`**             | Repository katmanında doğrudan **Prisma / ORM**'e paslanan, DB şemasına uygun saf veri nesnesi  | `infrastructure/persistence` (genelde `<module>.contracts.ts`) |
-| **`...Payload`**          | Domain Event gerçekleştiğinde event parametresi olarak fırlatılan veri paketi                   | `domain/events`                                                |
-| **`Filter` / `Response`** | Okuma modelleri, listeleme filtreleri, sorgu çıktıları (ör. `StockLevel`, `FindBookingsFilter`) | `domain/<module>.contracts.ts`                                 |
+| Suffix                    | Ne                                                                                              | Nerede                                    |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **`...Props`**            | Command Handler'dan çıkıp **Entity static `create`** metoduna beslenen katı giriş tipi          | `domain/contracts/<aggregate>/*-inputs.contracts.ts` |
+| **`...Data`**             | Repository katmanında doğrudan **Prisma / ORM**'e paslanan, DB şemasına uygun saf veri nesnesi  | `domain/contracts/<aggregate>/*-inputs.contracts.ts` |
+| **`...Payload`**          | Domain Event gerçekleştiğinde event parametresi olarak fırlatılan veri paketi                   | `domain/events`                            |
+| **`Filter` / `Response`** | Okuma modelleri, listeleme filtreleri, sorgu çıktıları (ör. `StockLevel`, `FindBookingsFilter`) | `domain/contracts/<aggregate>/*-queries.contracts.ts` |
 
 **İsimlendirme Standartları**:
 
-- Tüm Zod şemalarının sonu **`Schema`** ile biter (ör. `CreateProductSchema`).
-- Zod şemasından `z.infer` ile türetilen, entity `create`'e beslenen giriş tiplerinin sonu **`Props`** ile biter (ör. `CreateProductProps`).
+- Entity `create`'e beslenen giriş tiplerinin sonu **`Props`** ile biter (ör. `CreateProductProps`).
 - Repository'e (ORM/Prisma) paslanan altyapı veri tiplerinin sonu **`Data`** ile biter (ör. `CreateProductData`).
 - Domain Event gövdelerinin sonu **`Payload`** ile biter (ör. `StockPurchasedEventPayload`).
 - Read-model / Response / Filter tipleri doğrudan işlevini belirtir (ör. `StockLevel`, `FindBookingsFilter`).
+- Zod olarak kalan (gerçekten parse edilen) istisnai kontratlarda şema adı **`Schema`** ile biter; diğer her şey düz `interface`/`type`'tır.
 
 **Katı Tip Güvenliği & Direct Mapping**:
 
-- Başka şemalardan `.omit()`, `.pick()`, `.partial()` gibi **kalıtsal Zod metotları kullanma**. Her sözleşmeyi doğrudan (**Direct Mapping**) kendi alanlarıyla açıkça yaz.
-- Interface'teki opsiyonel alanları (`?`) şemada tam karşılığıyla eşleştir: `.optional()` veya DB nullable durumuna göre `.nullable().optional()`.
-- **Zod güncel API**: UUID için eski `z.string().uuid()` zincirini **kullanma**; doğrudan modern kök metot **`z.uuid()`** kullan.
-
-**Value Object & Custom Types**:
-
-- Interface içinde domain Value Object'leri (`Money`, `Quantity`, `VatRate`, `Decimal`) varsa, runtime'da korumak için `z.custom` sarmalayıcısı ile katı yaz: `z.custom<Quantity>((val) => val instanceof Quantity)`.
-- `any` veya içi boş `z.custom()` **asla kullanma**; gerekirse `z.unknown()` ya da `z.custom<T>(() => true)` tercih et.
+- Başka tiplerden TS `Omit<>`/`Pick<>`/`Partial<>` gibi türetme **kullanılmaz**. Her kontrat doğrudan (**Direct Mapping**) kendi alanlarıyla açıkça yazılır — okunabilirlik ve modülün bağımsızlığı için.
+- Value Object taşıyan alanlar (`Money`, `Quantity`, `VatRate`) doğrudan gerçek VO tipiyle yazılır (`quantity: Quantity`); Zod'daki gibi bir sarmalayıcıya gerek yoktur çünkü tip zaten derleme zamanında zorlanır.
 
 ```typescript
-// supply/inventory/domain/inventory.contracts.ts
-import { z } from 'zod';
+// supply/inventory/domain/contracts/product/product-inputs.contracts.ts
 import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 
 // Entity static create() girişi → Props
-export const CreateProductSchema = z.object({
-  id: z.uuid().optional(),
-  clinicId: z.uuid(),
-  name: z.string().min(1),
-  quantity: z.custom<Quantity>((val) => val instanceof Quantity),
-  vatRate: z
-    .custom<VatRate>((val) => val instanceof VatRate)
-    .nullable()
-    .optional(),
-});
-export type CreateProductProps = z.infer<typeof CreateProductSchema>;
-
-// Filter (read-model) — doğrudan işlevini belirtir
-export const FindProductsFilterSchema = z.object({
-  clinicId: z.uuid(),
-  search: z.string().optional(),
-});
-export type FindProductsFilter = z.infer<typeof FindProductsFilterSchema>;
+export interface CreateProductProps {
+  id?: string;
+  clinicId: string;
+  name: string;
+  quantity: Quantity;
+  vatRate?: VatRate | null;
+}
 ```
 
 ```typescript
-// ❌ Yanlış — command dosyasından import / ayrı domain/types dosyası
-import { CreateProductProps } from '@modules/supply/inventory/application/commands/create-product/create-product.command';
-import { CreateProductProps } from '@modules/supply/inventory/domain/types/create-product.props';
+// supply/inventory/domain/contracts/product/product-queries.contracts.ts
 
-// ✓ Doğru — merkezi kontrat dosyasından import
-import { CreateProductProps } from '@modules/supply/inventory/domain/inventory.contracts';
+// Filter (read-model) — doğrudan işlevini belirtir
+export interface FindProductsFilter {
+  clinicId: string;
+  search?: string;
+}
 ```
 
-- `shared` paketindeki DTO'lara (`CreateUser`, `UpdateUser`) **asla** DB'ye özgü alan (ör. `firebaseUid`, `id`) eklenmez; o alanlar `<module>.contracts.ts`'teki `...Props` / `...Data` tiplerine gider.
+```typescript
+// supply/inventory/domain/contracts/product/index.ts
+export * from './product-inputs.contracts';
+export * from './product-queries.contracts';
+```
+
+```typescript
+// ❌ Yanlış — command dosyasından import / ayrı domain/types dosyası / dosya-içi yol
+import { CreateProductProps } from '@modules/supply/inventory/application/commands/create-product/create-product.command';
+import { CreateProductProps } from '@modules/supply/inventory/domain/types/create-product.props';
+import { CreateProductProps } from '@modules/supply/inventory/domain/contracts/product/product-inputs.contracts';
+
+// ✓ Doğru — aggregate klasörünün barrel'ından import
+import { CreateProductProps } from '@modules/supply/inventory/domain/contracts/product';
+```
+
+- `shared` paketindeki DTO'lara (`CreateUser`, `UpdateUser`) **asla** DB'ye özgü alan (ör. `firebaseUid`, `id`) eklenmez; o alanlar `domain/contracts/<aggregate>/`'teki `...Props` / `...Data` tiplerine gider.
 
 ---
 

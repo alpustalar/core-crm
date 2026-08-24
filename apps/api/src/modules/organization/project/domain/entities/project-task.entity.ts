@@ -16,7 +16,7 @@ import {
   CreateProjectTaskProps,
   MoveProjectTaskProps,
   UpdateProjectTaskProps,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 import { ProjectTaskInvalidStateException } from '@modules/organization/project/domain/exceptions/project.exceptions';
 
 /**

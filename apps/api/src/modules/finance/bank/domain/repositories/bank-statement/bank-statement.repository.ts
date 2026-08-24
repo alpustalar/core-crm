@@ -5,7 +5,7 @@ import {
   BankStatementWithLines,
   FindBankStatementsFilter,
   ReconciliationSummary,
-} from '@modules/finance/bank/domain/contracts/bank.contracts';
+} from '@modules/finance/bank/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const BANK_STATEMENT_COMMAND_REPOSITORY = Symbol(

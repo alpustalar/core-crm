@@ -22,7 +22,7 @@ import {
 import type {
   ExternalWorkOrderWithItems,
   WorkOrderSummary,
-} from '@modules/supply/work-order/domain/contracts/work-order.contracts';
+} from '@modules/supply/work-order/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { EXTERNALWORKORDER } = CAPABILITIES;

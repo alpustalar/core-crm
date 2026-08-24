@@ -4,7 +4,7 @@ import { Guard } from '@common/domain/guards';
 import {
   CreateClinicAppointmentSettingsProps,
   UpdateClinicAppointmentSettingsProps,
-} from '@modules/organization/clinic/domain/contracts/clinic-appointment-settings.contracts';
+} from '@modules/organization/clinic/domain/contracts/clinic-appointment-settings';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 import { shouldValidate } from '@common/domain/utils/should-validate';

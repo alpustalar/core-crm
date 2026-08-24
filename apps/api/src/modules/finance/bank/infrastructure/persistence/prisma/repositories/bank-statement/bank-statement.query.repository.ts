@@ -8,7 +8,7 @@ import {
   BankStatementWithLines,
   FindBankStatementsFilter,
   ReconciliationSummary,
-} from '@modules/finance/bank/domain/contracts/bank.contracts';
+} from '@modules/finance/bank/domain/contracts';
 import { BankStatement as IBankStatement } from '@model-schema/BankStatementSchema';
 import { Paginated } from '@common/interfaces/paginated.type';
 

@@ -5,7 +5,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import {
   CreateConsentTemplateProps,
   UpdateConsentTemplateProps,
-} from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+} from '@modules/clinical/consent-form/domain/contracts';
 import { ConsentTemplateAlreadyArchivedException } from '@modules/clinical/consent-form/domain/exceptions/consent-form.exceptions';
 import { isDefined } from '@common/utils';
 import { isNotUndefined } from '@common/utils/is-not-undefined';

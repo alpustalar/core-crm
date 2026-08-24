@@ -41,7 +41,6 @@ export class StaffRescheduleHandler
     command: StaffRescheduleCommand
   ): Promise<StaffRescheduleCommandResponse> {
     const { data, ctx } = command;
-    const { actor, source } = ctx;
 
     const { appointmentId, startTime, duration, notes, treatmentId } = data;
 
@@ -55,7 +54,7 @@ export class StaffRescheduleHandler
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
-      .appointment(actor, source)
+      .appointment(ctx.actor, ctx.source)
       .evaluator.check(
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuyu yeniden zamanlamak için yetkiniz yok.'
@@ -81,7 +80,7 @@ export class StaffRescheduleHandler
     }
 
     const validateOptions = this.policyFactory
-      .entity(actor, source)
+      .entity(ctx.actor, ctx.source)
       .policy.getValidateOptions();
 
     appointment.rules(validateOptions).reschedule(startTime, endTime).orThrow();

@@ -4,7 +4,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import {
   FindPatientByContactFilter,
   FindPatientsFilter,
-} from '@modules/crm/patient/domain/contracts/patient.contracts';
+} from '@modules/crm/patient/domain/contracts/patient';
 import { Patient } from '@shared';
 import { Pagination } from '@shared/common';
 import { Paginated } from '@common/interfaces/paginated.type';

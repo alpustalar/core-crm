@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
-import { PlanReadModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { PlanReadModel } from '@modules/platform/subscription/domain/contracts';
 import { PlanIdType as PlanId } from '@input-type-schemas/PlanIdSchema';
 import { IPlanQueryRepository } from '@modules/platform/subscription/domain/repositories/plan/plan.query.repository';
 

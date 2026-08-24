@@ -1,4 +1,4 @@
-import { EffectiveCapability } from '@modules/identity/user/domain/contracts/user-capability.contracts';
+import { EffectiveCapability } from '@modules/identity/user/domain/contracts';
 
 export const USER_CAPABILITY_QUERY_REPOSITORY = Symbol(
   'IUserCapabilityQueryRepository'

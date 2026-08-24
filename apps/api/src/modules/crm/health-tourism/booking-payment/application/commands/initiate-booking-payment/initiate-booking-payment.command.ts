@@ -3,7 +3,7 @@ import {
   BookingIntent,
   BookingPaymentTypeValue,
   Currency,
-} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 import { InitiateBookingPaymentResponse } from './initiate-booking-payment.response';
 
 export interface InitiateBookingPaymentBuyer {

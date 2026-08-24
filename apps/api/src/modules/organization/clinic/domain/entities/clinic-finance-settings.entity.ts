@@ -4,7 +4,7 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
-import { CreateClinicFinanceSettingsProps } from '@modules/organization/clinic/domain/contracts/clinic-finance-settings.contracts';
+import { CreateClinicFinanceSettingsProps } from '@modules/organization/clinic/domain/contracts/clinic-finance-settings';
 import {
   RoundingDirectionSchema,
   RoundingDirectionType as RoundingDirection,

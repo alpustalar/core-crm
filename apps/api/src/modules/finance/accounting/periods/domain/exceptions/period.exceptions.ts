@@ -50,3 +50,12 @@ export class InvalidPeriodReopenException extends DomainException<{
     super('Yalnızca kilitli dönemler yeniden açılabilir.', { currentStatus });
   }
 }
+
+export class InvalidPeriodYearException extends DomainException<{
+  year: number;
+}> {
+  readonly errorCode = ERROR_CODES.PERIOD.INVALID_YEAR;
+  constructor(year: number) {
+    super('Muhasebe dönemi yılı 2000-2100 aralığında olmalıdır.', { year });
+  }
+}

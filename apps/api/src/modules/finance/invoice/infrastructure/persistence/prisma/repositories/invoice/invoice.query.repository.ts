@@ -3,7 +3,7 @@ import { Invoice as IInvoice, Pagination } from '@shared';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindInvoicesFilter } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { FindInvoicesFilter } from '@modules/finance/invoice/domain/contracts/invoice';
 import { IInvoiceQueryRepository } from '@modules/finance/invoice/domain/repositories/invoice/invoice.query.repository';
 
 /**

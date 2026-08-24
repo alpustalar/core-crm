@@ -2,7 +2,7 @@ import { BaseRules } from '@common/domain/rules/base.rules';
 import { HotelbedsBooking } from '@modules/crm/health-tourism/hotel/domain/entities/hotelbeds-booking.entity';
 import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
-import { CreateHotelbedsBookingProps } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { CreateHotelbedsBookingProps } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 export class HotelbedsBookingRules extends BaseRules {
   constructor(

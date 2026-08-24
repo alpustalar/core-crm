@@ -11,7 +11,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import {
   CreatePatientTreatmentPackageProps,
   UpdatePatientTreatmentPackageProps,
-} from '@modules/clinical/treatment-package/domain/contracts/patient-treatment-package.contracts';
+} from '@modules/clinical/treatment-package/domain/contracts';
 import { DateRange } from '@src/domain/value-objects/date-range.vo';
 import { InvalidTreatmentPackageResumeException } from '@modules/clinical/treatment-package/domain/exceptions/patient-treatment-package.exceptions';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

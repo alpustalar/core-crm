@@ -22,7 +22,7 @@ import {
   ApplyEDocumentResultProps,
   FailInvoiceEntityProps,
   IssueInvoiceEntityProps,
-} from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+} from '@modules/finance/invoice/domain/contracts/invoice';
 
 export class Invoice extends AggregateRoot {
   constructor(data: IInvoice) {

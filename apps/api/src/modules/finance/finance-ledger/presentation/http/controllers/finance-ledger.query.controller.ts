@@ -27,7 +27,7 @@ import type {
   LedgerSummary,
   PatientFinanceSummary,
   PatientLedgerItem,
-} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger.contracts';
+} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger';
 import { GetLedgerByPatientIdQuery } from '@modules/finance/finance-ledger/application/queries/get-ledger-by-patient-id/get-ledger-by-patient-id.query';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 

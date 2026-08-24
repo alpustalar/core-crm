@@ -19,10 +19,9 @@ import {
  * Kritik olmayan güncelleme olduğundan event in-memory (run) kanalıyla yayınlanır.
  */
 @CommandHandler(UpdateAppointmentDetailsCommand)
-export class UpdateAppointmentDetailsHandler implements ICommandHandler<
-  UpdateAppointmentDetailsCommand,
-  void
-> {
+export class UpdateAppointmentDetailsHandler
+  implements ICommandHandler<UpdateAppointmentDetailsCommand, void>
+{
   constructor(
     @Inject(APPOINTMENT_COMMAND_REPOSITORY)
     private readonly appointmentRepo: IAppointmentCommandRepository,
@@ -33,13 +32,12 @@ export class UpdateAppointmentDetailsHandler implements ICommandHandler<
 
   async execute(command: UpdateAppointmentDetailsCommand): Promise<void> {
     const { appointmentId, data, ctx } = command.payload;
-    const { actor, source } = ctx;
 
     const appointment = await this.appointmentRepo.findById(appointmentId);
     if (!appointment) throw new AppointmentNotFoundException();
 
     this.policyFactory
-      .appointment(actor, source)
+      .appointment(ctx.actor, ctx.source)
       .evaluator.check(
         (p) => p.canScheduleAppointmentInClinic(appointment.clinicId.value),
         'Bu randevuya erişim yetkiniz yok.'

@@ -12,7 +12,7 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreateActivityProps,
   UpdateActivityProps,
-} from '@modules/crm/activity/domain/contracts/activity.contracts';
+} from '@modules/crm/activity/domain/contracts/activity';
 import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 import { ActivityRules } from '@modules/crm/activity/domain/rules/activity.rules';
 

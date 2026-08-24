@@ -8,7 +8,7 @@ import { Quantity } from '@src/domain/value-objects/quantity.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
-import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { CreateStockMovementProps } from '@modules/supply/inventory/domain/contracts';
 
 export class StockMovement extends AggregateRoot {
   constructor(data: IStockMovement) {

@@ -5,7 +5,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { IMetaLeadQueryRepository } from '@modules/crm/meta-ads/domain/repositories/meta-lead.repository';
-import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import { FindMetaLeadsFilter } from '@modules/crm/meta-ads/domain/contracts';
 
 /**
  * Okuma tarafı: entity hidrate edilmez. Idempotentlik ve dönüşüm işaretleme

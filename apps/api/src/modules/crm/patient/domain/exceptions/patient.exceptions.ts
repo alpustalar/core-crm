@@ -28,6 +28,18 @@ export class PatientPhoneRequiredException extends DomainException {
   }
 }
 
+/**
+ * Kişi (telefon/e-posta) araması ikisi de boşken çalıştırılamaz — eskiden yalnız
+ * hiç `.parse()` edilmeyen bir Zod `.refine()` içindeydi (FindPatientByContactFilter).
+ */
+export class PatientContactRequiredException extends DomainException {
+  readonly errorCode = ERROR_CODES.PATIENT.CONTACT_REQUIRED;
+
+  constructor() {
+    super('Arama yapmak için en az telefon veya e-posta bilgisi gereklidir.');
+  }
+}
+
 export class PatientNotRegisteredException extends DomainException {
   readonly errorCode = ERROR_CODES.PATIENT.NOT_REGISTERED;
   public override readonly httpStatus = HttpStatus.UNPROCESSABLE_ENTITY;

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { Patient } from '@modules/crm/patient/domain/entities/patient.entity';
-import { FindPatientByContactFilter } from '@modules/crm/patient/domain/contracts/patient.contracts';
+import { FindPatientByContactFilter } from '@modules/crm/patient/domain/contracts/patient';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { IPatientCommandRepository } from '@modules/crm/patient/domain/repositories/patient/patient.command.repository';
 

@@ -4,7 +4,7 @@ import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/po
 import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { IPosDeviceCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
-import { PosTransactionReversalSummary } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+import { PosTransactionReversalSummary } from '@modules/finance/pos/physical/domain/contracts/pos-transaction';
 import {
   PosTransactionAlreadyReversedException,
   RefundAmountExceedsOriginalException,

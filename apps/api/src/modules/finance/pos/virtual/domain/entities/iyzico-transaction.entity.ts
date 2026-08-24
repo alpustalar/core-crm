@@ -8,7 +8,7 @@ import {
   MarkIyzicoFailedInput,
   MarkIyzicoRefundedInput,
   MarkIyzicoSuccessInput,
-} from '../contracts/iyzico-transaction.contracts';
+} from '../contracts/iyzico-transaction';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Guard } from '@common/domain/guards';
 import { UUID } from '@src/domain/value-objects/uuid.vo';

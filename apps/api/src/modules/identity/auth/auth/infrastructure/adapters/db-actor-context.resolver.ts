@@ -7,7 +7,7 @@ import { GlobalStatusSchema } from '@input-type-schemas/GlobalStatusSchema';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { rolesCreateManyInputs } from '@src/infrastructure/persistence/prisma/data/modules';
 import { FindUserForAuthQuery } from '@modules/identity/user/application/queries/find-user-for-auth/find-user-for-auth.query';
-import type { AuthUserResponse } from '@modules/identity/user/domain/contracts/user.contracts';
+import type { AuthUserResponse } from '@modules/identity/user/domain/contracts';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 
 // TODO: PROD'TA KALDIR

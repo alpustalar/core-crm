@@ -22,9 +22,8 @@ export class ReleaseAppointmentSlotHandler
 
   async execute(command: ReleaseAppointmentSlotCommand): Promise<void> {
     const { data, ctx, holderId } = command.payload;
-    const { actor } = ctx;
 
-    const effectiveHolderId = holderId ?? actor.userId;
+    const effectiveHolderId = holderId ?? ctx.actor.userId;
 
     if (!effectiveHolderId) throw new ClinicNotAssignedException();
 

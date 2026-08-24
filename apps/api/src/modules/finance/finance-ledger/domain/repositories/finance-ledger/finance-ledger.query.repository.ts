@@ -6,7 +6,7 @@ import {
   PatientLedgerItem,
   PatientRevenue,
   SumIncomeByPatientsFilter,
-} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger.contracts';
+} from '@modules/finance/finance-ledger/domain/contracts/finance-ledger';
 
 export const FINANCE_LEDGER_QUERY_REPOSITORY = Symbol(
   'IFinanceLedgerQueryRepository'

@@ -2,7 +2,8 @@ import { SubscriptionPaymentMethod as ISubscriptionPaymentMethod } from '@shared
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/utils';
-import { CreateSubscriptionPaymentMethodProps } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { Guard } from '@common/domain/guards';
+import { CreateSubscriptionPaymentMethodProps } from '@modules/platform/subscription/domain/contracts/subscription-payment-method';
 
 const DEFAULT_PROVIDER = 'IYZICO';
 
@@ -117,9 +118,43 @@ export class SubscriptionPaymentMethod extends AggregateRoot {
     return this._updatedAt;
   }
 
+  /**
+   * iyzico callback'i beklenen kart/alıcı alanlarını boş döndürürse (bozuk yanıt,
+   * entegrasyon hatası) yenileme tahsilatını sessizce bozacak bir kayıt oluşmasın
+   * diye burada durdurulur. Bu veri hiçbir @shared HTTP DTO'sundan geçmez.
+   */
+  private static assertRequiredFieldsPresent(
+    props: CreateSubscriptionPaymentMethodProps
+  ): void {
+    const requiredFields: Array<[string, string]> = [
+      ['cardUserKey', props.cardUserKey],
+      ['cardToken', props.cardToken],
+      ['buyerName', props.buyerName],
+      ['buyerSurname', props.buyerSurname],
+      ['buyerEmail', props.buyerEmail],
+      ['buyerGsmNumber', props.buyerGsmNumber],
+      ['buyerIp', props.buyerIp],
+    ];
+
+    const missing = requiredFields.find(([, value]) => !value || !value.trim());
+
+    Guard.monitor(
+      missing,
+      !missing,
+      () =>
+        new Error(
+          missing
+            ? `Ödeme yöntemi kaydı için '${missing[0]}' alanı boş olamaz (iyzico callback verisi eksik).`
+            : ''
+        )
+    ).orThrow();
+  }
+
   public static create(
     props: CreateSubscriptionPaymentMethodProps
   ): SubscriptionPaymentMethod {
+    SubscriptionPaymentMethod.assertRequiredFieldsPresent(props);
+
     const now = DateTimeManager.create();
     return new SubscriptionPaymentMethod({
       id: UUID.createOrGenerate(props.id).value,

@@ -15,11 +15,12 @@ import { Name } from '@src/domain/value-objects/name.vo';
 import {
   CancelHotelbedsBookingProps,
   CreateHotelbedsBookingProps,
-} from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+} from '@modules/crm/health-tourism/hotel/domain/contracts';
 import {
   HotelBookingCancelledEvent,
   HotelBookingCreatedEvent,
 } from '@modules/crm/health-tourism/hotel/domain/events';
+import { HotelbedsBookingInvalidDateRangeException } from '@modules/crm/health-tourism/hotel/domain/exceptions/hotelbeds-booking.exceptions';
 import {
   LogAction,
   LogType,
@@ -170,9 +171,18 @@ export class HotelbedsBooking extends AggregateRoot {
   }
 
   public static create(props: CreateHotelbedsBookingProps): HotelbedsBooking {
+    if (!(props.checkOut > props.checkIn)) {
+      throw new HotelbedsBookingInvalidDateRangeException(
+        props.checkIn,
+        props.checkOut
+      );
+    }
+
     const currency = Currency.create(props.currency).orThrow();
 
-    const totalNet = Money.create(props.totalNet, currency.value).orThrow();
+    const totalNet = Money.create(props.totalNet, currency.value)
+      .orThrow()
+      .validate.greaterThanZero.orThrow('Tutar pozitif olmalıdır.');
 
     const serviceFee = props.serviceFee
       ? Money.create(props.serviceFee, currency.value).orThrow().value
