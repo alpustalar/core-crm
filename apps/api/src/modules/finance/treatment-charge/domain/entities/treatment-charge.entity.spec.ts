@@ -2,7 +2,7 @@ import { Decimal } from 'decimal.js';
 import { TreatmentCharge } from './treatment-charge.entity';
 import { Money } from '@src/domain/value-objects/money.vo';
 import { VatRate } from '@src/domain/value-objects/vat-rate.vo';
-import { CreateTreatmentChargeProps } from '@modules/finance/treatment-charge/domain/contracts/treatment-charge.contracts';
+import { CreateTreatmentChargeProps } from '@modules/finance/treatment-charge/domain/contracts/treatment-charge';
 import {
   DiscountLimitExceededException,
   TreatmentChargeAlreadyVoidedException,

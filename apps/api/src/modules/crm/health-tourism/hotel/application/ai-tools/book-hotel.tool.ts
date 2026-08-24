@@ -13,9 +13,9 @@ import {
 } from '@common/ai-tools';
 import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.support';
 import { GetHotelRateOptionQuery } from '@modules/crm/health-tourism/hotel/application/queries/get-hotel-rate-option/get-hotel-rate-option.query';
-import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts';
 import { InitiateBookingPaymentCommand } from '@modules/crm/health-tourism/booking-payment/application/commands/initiate-booking-payment/initiate-booking-payment.command';
-import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { HotelBookingIntent } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 interface HotelPax {
   roomId: number;

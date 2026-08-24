@@ -3,7 +3,7 @@ import { HotelbedsTransferBooking, Pagination } from '@shared';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 import { IHotelbedsTransferBookingQueryRepository } from '@modules/crm/health-tourism/transfer/domain/repositories/hotelbeds-transfer-booking/hotelbeds-transfer-booking.query.repository';
 
 @Injectable()

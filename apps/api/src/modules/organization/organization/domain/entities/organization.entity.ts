@@ -10,7 +10,7 @@ import { LogAction, LogType } from '@src/domain/constants/log-action.constant';
 import {
   CreateOrganizationProps,
   UpdateOrganizationInfoProps,
-} from '@modules/organization/organization/domain/contracts/organization.contracts';
+} from '@modules/organization/organization/domain/contracts/organization';
 import { TimeZone } from '@src/domain/value-objects/timezone.vo';
 import { TimeZoneSchema } from '@shared';
 import { Name } from '@src/domain/value-objects/name.vo';

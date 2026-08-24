@@ -7,7 +7,7 @@ import {
   AdAttributedLead,
   FindAdAttributedLeadsFilter,
   FindLeadsFilter,
-} from '@modules/crm/lead/domain/contracts/lead-contracts';
+} from '@modules/crm/lead/domain/contracts/lead';
 import { ILeadQueryRepository } from '@modules/crm/lead/domain/repositories/lead/lead.query.repository';
 
 @Injectable()

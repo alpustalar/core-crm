@@ -1,6 +1,6 @@
 import { ActorContext } from '@common/interfaces';
 import { ClinicPolicy } from '@modules/organization/clinic/application/policies';
-import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
+import { UserResponseGroups } from '@modules/identity/user/domain/contracts';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 import { ExecutionSource } from '@src/domain/constants/execution-source.constant';
 import { isPlatformCapability } from '@src/infrastructure/persistence/prisma/data/modules';

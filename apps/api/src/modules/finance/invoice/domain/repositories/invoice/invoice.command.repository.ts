@@ -1,5 +1,5 @@
 import { Invoice } from '@modules/finance/invoice/domain/entities/invoice.entity';
-import { CreateInvoiceProps } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { CreateInvoiceProps } from '@modules/finance/invoice/domain/contracts/invoice';
 
 export const INVOICE_COMMAND_REPOSITORY = Symbol('IInvoiceCommandRepository');
 

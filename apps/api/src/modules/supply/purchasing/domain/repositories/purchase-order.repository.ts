@@ -3,7 +3,7 @@ import { PurchaseOrder } from '@modules/supply/purchasing/domain/entities/purcha
 import {
   FindPurchaseOrdersFilter,
   PurchaseOrderWithItems,
-} from '@modules/supply/purchasing/domain/contracts/purchasing.contracts';
+} from '@modules/supply/purchasing/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const PURCHASE_ORDER_COMMAND_REPOSITORY = Symbol(

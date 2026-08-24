@@ -2,7 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { ProviderResponseDto } from '@modules/clinical/provider/presentation/http/dto/provider-response.dto';
 import { Role, UserResponse } from '@shared';
 import { GlobalStatusType as GlobalStatus } from '@input-type-schemas/GlobalStatusSchema';
-import { UserResponseGroups } from '@modules/identity/user/domain/contracts/user.contracts';
+import { UserResponseGroups } from '@modules/identity/user/domain/contracts';
 
 export class RelationalDto {
   @Expose() id: string;

@@ -1,7 +1,7 @@
 import { SubStatusSchema } from '@shared';
 import { PlanIdSchema } from '@input-type-schemas/PlanIdSchema';
 import { DateTimeManager } from '@common/utils';
-import { EntitlementSource } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { EntitlementSource } from '@modules/platform/subscription/domain/contracts';
 
 /**
  * Kiracının abonelik durumundan erişim hakkı doğar mı — tek karar noktası (saf fonksiyon).

@@ -12,7 +12,7 @@ import { CurrencyType as Currency } from '@input-type-schemas/CurrencySchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { RecordCashMovementProps } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+import { RecordCashMovementProps } from '@modules/finance/cash-register/domain/contracts';
 import { CashInvalidAmountException } from '@modules/finance/cash-register/domain/exceptions/cash-register.exceptions';
 import { Money } from '@src/domain/value-objects';
 

@@ -5,7 +5,7 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import {
   CashSessionWithMovements,
   FindCashSessionsFilter,
-} from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+} from '@modules/finance/cash-register/domain/contracts';
 import { CashSession as ICashSession } from '@model-schema/CashSessionSchema';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { ICashSessionQueryRepository } from '@modules/finance/cash-register/domain/repositories/cash-session/cash-session.query.repository';

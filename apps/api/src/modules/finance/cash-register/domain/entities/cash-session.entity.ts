@@ -11,8 +11,11 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import {
   CloseCashSessionInput,
   OpenCashSessionProps,
-} from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
-import { CashSessionNotOpenException } from '@modules/finance/cash-register/domain/exceptions/cash-register.exceptions';
+} from '@modules/finance/cash-register/domain/contracts';
+import {
+  CashInvalidAmountException,
+  CashSessionNotOpenException,
+} from '@modules/finance/cash-register/domain/exceptions/cash-register.exceptions';
 
 /**
  * Kasa Oturumu (aggregate root). Bir kasanın günlük/vardiyalık nakit döngüsü:
@@ -145,6 +148,13 @@ export class CashSession extends AggregateRoot {
   }
 
   public static open(props: OpenCashSessionProps): CashSession {
+    if (props.openingFloat < 0) {
+      throw new CashInvalidAmountException(
+        'Açılış nakdi negatif olamaz.',
+        props.openingFloat
+      );
+    }
+
     const now = DateTimeManager.create();
     const id = UUID.createOrGenerate(props.id).value;
 

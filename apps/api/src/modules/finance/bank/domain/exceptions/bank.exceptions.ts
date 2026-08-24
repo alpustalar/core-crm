@@ -55,3 +55,31 @@ export class BankStatementLineNotFoundException extends DomainException<{
     super('Ekstre satırı bulunamadı.', { lineId });
   }
 }
+
+/**
+ * Mutabakat durumu MATCHED olarak işaretlenirken eşleşme referansı (matchedRef)
+ * boş bırakıldı. MATCHED bir satırın hangi 102 defter kaydına bağlandığı
+ * izlenebilir olmalıdır — referanssız bir MATCHED kaydı denetim izini kırar.
+ */
+export class BankStatementLineMatchRefRequiredException extends DomainException<{
+  lineId?: string;
+}> {
+  readonly errorCode = ERROR_CODES.BANK_STATEMENT.MATCH_REF_REQUIRED;
+
+  constructor(lineId?: string) {
+    super(
+      'Eşleşti (MATCHED) durumundaki işlemler için eşleşme referansı (matchedRef) zorunludur.',
+      { lineId }
+    );
+  }
+}
+
+export class BankStatementLineMatchNoteTooLongException extends DomainException<{
+  lineId?: string;
+}> {
+  readonly errorCode = ERROR_CODES.BANK_STATEMENT.MATCH_NOTE_TOO_LONG;
+
+  constructor(lineId?: string) {
+    super('Mutabakat notu 500 karakteri geçemez.', { lineId });
+  }
+}

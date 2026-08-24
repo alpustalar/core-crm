@@ -2,7 +2,7 @@ import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/po
 import {
   PendingTransactionForReconcile,
   PosTransactionReversalSummary,
-} from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+} from '@modules/finance/pos/physical/domain/contracts/pos-transaction';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';
 
 export const POS_TRANSACTION_COMMAND_REPOSITORY = Symbol(

@@ -4,7 +4,7 @@ import { PosTransaction } from '@modules/finance/pos/physical/domain/entities/po
 import { PosDevice } from '@modules/finance/pos/physical/domain/entities/pos-device.entity';
 import { IPosTransactionCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-transaction/pos-transaction.command.repository';
 import { IPosDeviceCommandRepository } from '@modules/finance/pos/physical/domain/repositories/pos-device/pos-device.command.repository';
-import { PosTransactionReversalSummary } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+import { PosTransactionReversalSummary } from '@modules/finance/pos/physical/domain/contracts/pos-transaction';
 import { PosTransactionAlreadyReversedException } from '@modules/finance/pos/physical/domain/exceptions/pos.exceptions';
 import { ResolveIyzicoTerminalCredentialsService } from '@modules/finance/pos/physical/application/services/resolve-iyzico-terminal-credentials.service';
 import { IyzicoTerminalService } from '@src/infrastructure/payment/pos/physical/providers/iyzico-terminal/iyzico-terminal.service';

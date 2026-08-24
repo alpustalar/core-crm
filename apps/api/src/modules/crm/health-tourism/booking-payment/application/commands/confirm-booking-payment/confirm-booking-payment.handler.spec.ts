@@ -8,7 +8,7 @@ import { BookingPaymentNotFoundException } from '@modules/crm/health-tourism/boo
 import {
   CreateBookingPaymentProps,
   HotelBookingIntent,
-} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 import { BookHotelCommand } from '@modules/crm/health-tourism/hotel/application/commands/book-hotel/book-hotel.command';
 import { NATS_SUBJECTS } from '@src/transport';
 import { IGetContext } from '@common/decorators';

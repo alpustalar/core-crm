@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { IUserCapabilityCommandRepository } from '@modules/identity/user/domain/repositories/user-capability/user-capability.command.repository';
-import { GrantUserCapabilityData } from '@modules/identity/user/domain/contracts/user-capability.contracts';
+import { GrantUserCapabilityData } from '@modules/identity/user/domain/contracts';
 
 @Injectable()
 export class UserCapabilityCommandRepository

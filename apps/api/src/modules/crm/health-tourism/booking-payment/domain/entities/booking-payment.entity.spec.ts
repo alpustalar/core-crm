@@ -2,7 +2,7 @@ import { BookingPayment } from './booking-payment.entity';
 import {
   CreateBookingPaymentProps,
   HotelBookingIntent,
-} from '../contracts/booking-payment.contracts';
+} from '../contracts/booking-payment';
 import { DefaultValidateOptions } from '@common/domain/constants/default-options.constant';
 
 describe('BookingPayment entity — durum makinesi', () => {

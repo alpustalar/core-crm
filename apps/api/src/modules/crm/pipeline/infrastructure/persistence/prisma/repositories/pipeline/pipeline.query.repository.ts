@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import {
   PipelineStageView,
   PipelineWithStages,
-} from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+} from '@modules/crm/pipeline/domain/contracts';
 import { Prisma } from '@prisma/client';
 import { IPipelineQueryRepository } from '@modules/crm/pipeline/domain/repositories/pipeline/pipeline.query.repository';
 

@@ -2,7 +2,7 @@ import { HotelbedsHotel as IHotelbedsHotel } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { JsonValueType as JsonValue } from '@input-type-schemas/JsonValueSchema';
 import { Coordinates } from '@src/domain/value-objects/coordinates.vo';
-import { CreateHotelbedsHotelProps } from '@modules/crm/health-tourism/hotel/domain/contracts/hotelbeds-hotel.contracts';
+import { CreateHotelbedsHotelProps } from '@modules/crm/health-tourism/hotel/domain/contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

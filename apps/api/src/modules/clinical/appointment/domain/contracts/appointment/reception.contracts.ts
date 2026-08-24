@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
+import { AppointmentStatusType as AppointmentStatus } from '@input-type-schemas/AppointmentStatusSchema';
 
 export interface ClinicDailySummary {
   date: string;
@@ -28,7 +27,7 @@ export interface ConflictingAppointmentView {
   patientName: string;
   startTime: Date;
   endTime: Date;
-  status: z.infer<typeof AppointmentStatusSchema>;
+  status: AppointmentStatus;
 }
 
 export type CancelProviderAppointmentsData = {

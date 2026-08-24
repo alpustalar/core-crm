@@ -1,5 +1,5 @@
 import { HotelbedsTransferBooking, Pagination } from '@shared';
-import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+import { FindTransferBookingsFilter } from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 
 export const HOTELBEDS_TRANSFER_BOOKING_QUERY_REPOSITORY = Symbol(
   'IHotelbedsTransferBookingQueryRepository'

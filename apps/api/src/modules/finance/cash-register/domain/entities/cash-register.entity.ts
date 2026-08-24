@@ -3,12 +3,12 @@ import {
   CashRegisterStatusSchema,
   CashRegisterStatusType as CashRegisterStatus,
 } from '@input-type-schemas/CashRegisterStatusSchema';
-import { CurrencyType as Currency } from '@input-type-schemas/CurrencySchema';
 import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { CreateCashRegisterProps } from '@modules/finance/cash-register/domain/contracts/cash-register.contracts';
+import { CreateCashRegisterProps } from '@modules/finance/cash-register/domain/contracts';
 import { CashRegisterArchivedException } from '@modules/finance/cash-register/domain/exceptions/cash-register.exceptions';
+import { Currency } from '@src/domain/value-objects';
 
 /**
  * Kasa (aggregate root). Fiziki nakit kasasını temsil eder; günlük oturumlar
@@ -21,7 +21,7 @@ export class CashRegister extends AggregateRoot {
     this._clinicId = UUID.fromTrusted(data.clinicId);
     this._organizationId = UUID.fromTrusted(data.organizationId);
     this._name = data.name;
-    this._currency = data.currency;
+    this._currency = Currency.fromTrusted(data.currency);
     this._status = data.status;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -76,7 +76,8 @@ export class CashRegister extends AggregateRoot {
       clinicId: UUID.create(props.clinicId).orThrow().value,
       organizationId: UUID.create(props.organizationId).orThrow().value,
       name: props.name,
-      currency: props.currency ?? 'TRY',
+      currency:
+        Currency.create(props.currency).orThrow().value ?? Currency.enum.TRY,
       status: CashRegisterStatusSchema.enum.ACTIVE,
       createdAt: now,
       updatedAt: now,
@@ -104,14 +105,14 @@ export class CashRegister extends AggregateRoot {
 
   public toPersistence(): ICashRegister {
     return {
-      id: this._id.value,
-      clinicId: this._clinicId.value,
-      organizationId: this._organizationId.value,
-      name: this._name,
-      currency: this._currency,
-      status: this._status,
-      createdAt: this._createdAt,
-      updatedAt: this._updatedAt,
+      id: this.id.value,
+      clinicId: this.clinicId.value,
+      organizationId: this.organizationId.value,
+      name: this.name,
+      currency: this.currency.value,
+      status: this.status,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }

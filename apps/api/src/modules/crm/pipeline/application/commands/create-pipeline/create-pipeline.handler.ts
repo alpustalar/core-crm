@@ -6,7 +6,7 @@ import { PipelineStage } from '@modules/crm/pipeline/domain/entities/pipeline-st
 import {
   DEFAULT_PIPELINE_NAME,
   DEFAULT_PIPELINE_STAGES,
-} from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+} from '@modules/crm/pipeline/domain/contracts';
 import { CreatePipelineCommand } from './create-pipeline.command';
 import {
   ITenantScopeResolver,

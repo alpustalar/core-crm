@@ -1,6 +1,6 @@
 import { ClinicPaymentGateway as IClinicPaymentGateway } from '@shared/generated-zod';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateClinicPaymentGatewayProps } from '@modules/finance/payment-gateway/domain/contracts/payment-gateway.contracts';
+import { CreateClinicPaymentGatewayProps } from '@modules/finance/payment-gateway/domain/contracts/clinic-payment-gateway';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

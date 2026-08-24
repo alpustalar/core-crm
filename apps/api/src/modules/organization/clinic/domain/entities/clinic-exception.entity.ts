@@ -1,5 +1,5 @@
 import { ClinicException as IClinicException } from '@shared';
-import { ClinicExceptionCreateProps } from '@modules/organization/clinic/domain/contracts/clinic-exception.contracts';
+import { ClinicExceptionCreateProps } from '@modules/organization/clinic/domain/contracts/clinic-exception';
 import { Guard } from '@common/domain/guards';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
@@ -70,10 +70,25 @@ export class ClinicException {
     };
   }
 
+  /** `reason` gönderildiyse boş string olamaz (null/undefined serbest). */
+  private static isValidReason(
+    reason?: string | null
+  ): Guard<string | null | undefined> {
+    const isInvalid =
+      reason !== undefined && reason !== null && reason.trim().length === 0;
+    return Guard.monitor(
+      reason,
+      !isInvalid,
+      () => new Error('İstisna gerekçesi boş bırakılamaz.')
+    );
+  }
+
   /**
    * 🎯 Yeni bir klinik istisnası (Resmi tatil, özel kapatma vs.) oluşturma kapısı
    */
   public static create(props: ClinicExceptionCreateProps): ClinicException {
+    ClinicException.isValidReason(props.reason).orThrow();
+
     return new ClinicException({
       id: UUID.createOrGenerate(props.id).value,
       clinicId: UUID.create(props.clinicId).orThrow().value,
@@ -88,6 +103,8 @@ export class ClinicException {
    */
 
   public updateReason(reason: string | null, isClosed?: boolean): void {
+    ClinicException.isValidReason(reason).orThrow();
+
     this._reason = reason;
     if (isClosed !== undefined) {
       this._isClosed = isClosed;

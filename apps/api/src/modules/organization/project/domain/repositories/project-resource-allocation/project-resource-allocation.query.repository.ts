@@ -1,7 +1,7 @@
 import {
   FindResourceScheduleFilter,
   ResourceScheduleRow,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 export const PROJECT_RESOURCE_ALLOCATION_QUERY_REPOSITORY = Symbol(
   'IProjectResourceAllocationQueryRepository'

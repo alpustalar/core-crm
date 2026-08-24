@@ -7,7 +7,7 @@ import {
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { Observable, Subject } from 'rxjs';
-import { StaffNotificationRealtimePayload } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import { StaffNotificationRealtimePayload } from '@modules/platform/notification/domain/contracts/staff-notification';
 
 const CHANNEL_PREFIX = 'notif:user:';
 const CHANNEL_PATTERN = `${CHANNEL_PREFIX}*`;

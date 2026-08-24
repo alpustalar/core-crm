@@ -1,6 +1,6 @@
 import { ClinicIyzicoTerminalConfig as IClinicIyzicoTerminalConfig } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateClinicIyzicoTerminalConfigProps } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+import { CreateClinicIyzicoTerminalConfigProps } from '@modules/finance/pos/physical/domain/contracts/clinic-iyzico-terminal-config';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

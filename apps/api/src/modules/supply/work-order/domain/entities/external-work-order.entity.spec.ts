@@ -4,7 +4,7 @@ import {
   WorkOrderEmptyItemsException,
   WorkOrderInvalidStateException,
 } from '@modules/supply/work-order/domain/exceptions/work-order.exceptions';
-import { CreateExternalWorkOrderProps } from '@modules/supply/work-order/domain/contracts/work-order.contracts';
+import { CreateExternalWorkOrderProps } from '@modules/supply/work-order/domain/contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { WorkOrderSentEvent } from '@modules/supply/work-order/domain/events/work-order-sent.event';
 import { WorkOrderReceivedEvent } from '@modules/supply/work-order/domain/events/work-order-received.event';

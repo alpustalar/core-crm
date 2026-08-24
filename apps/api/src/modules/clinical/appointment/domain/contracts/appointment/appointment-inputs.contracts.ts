@@ -1,43 +1,51 @@
-import { z } from 'zod';
-import { AppointmentSchema, TimeZoneSchema } from '@shared';
-import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
+import { AppointmentStatusType as AppointmentStatus } from '@input-type-schemas/AppointmentStatusSchema';
+import { AppointmentSourceType as AppointmentSource } from '@input-type-schemas/AppointmentSourceSchema';
+import { AppointmentCreatorTypeType as AppointmentCreatorType } from '@input-type-schemas/AppointmentCreatorTypeSchema';
 import { ExaminationTypeType as ExaminationType } from '@input-type-schemas/ExaminationTypeSchema';
 import { VisitTypeType as VisitType } from '@input-type-schemas/VisitTypeSchema';
+import { ExternalSystemType as ExternalSystem } from '@input-type-schemas/ExternalSystemSchema';
+import { TimeZoneType as TimeZone } from '@input-type-schemas/TimeZoneSchema';
 
-export const CreateAppointmentSchema = AppointmentSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-})
-  .partial()
-  .extend({
-    id: z.uuid().optional(),
-    providerId: z.uuid(),
-    clinicId: z.uuid(),
-    patientId: z.uuid(),
-    startTime: z.date(),
-    endTime: z.date().optional(),
-    patientName: z.string(),
-    patientPhone: z.string(),
-    patientEmail: z.email().nullable().optional(),
-    duration: z.number().optional(),
-    timezone: TimeZoneSchema,
-    treatmentType: z.string().nullable().optional(),
-    isConsultation: z.boolean(),
-  });
+export interface CreateAppointmentProps {
+  id?: string;
+  providerId: string;
+  clinicId: string;
+  patientId: string;
+  startTime: Date;
+  endTime?: Date;
+  patientName: string;
+  patientPhone: string;
+  patientEmail?: string | null;
+  duration?: number;
+  timezone: TimeZone;
+  treatmentType?: string | null;
+  isConsultation: boolean;
 
-export type CreateAppointmentProps = z.infer<typeof CreateAppointmentSchema>;
+  source?: AppointmentSource;
+  creatorType?: AppointmentCreatorType;
+  status?: AppointmentStatus;
+  examinationType?: ExaminationType | null;
+  visitType?: VisitType | null;
+  externalSystem?: ExternalSystem | null;
+  notes?: string | null;
+  approvedAt?: Date | null;
+  approvedBy?: string | null;
+  createdById?: string | null;
+  createdByRealName?: string | null;
+  checkedInAt?: Date | null;
+  reminderSentAt?: Date | null;
+  canceledAt?: Date | null;
+  canceledBy?: string | null;
+  cancelReason?: string | null;
+  version?: number;
+  externalId?: string | null;
+  treatmentId?: string | null;
+  resourceId?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+}
 
-export const UpdateAppointmentDetailsPropsSchema = z.object({
-  patientName: z.string().optional(),
-  patientPhone: z.string().optional(),
-  patientEmail: z.string().email().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  treatmentType: z.string().nullable().optional(),
-  treatmentId: z.uuid().nullable().optional(),
-});
-
-export type UpdateAppointmentDetailsProps = {
+export interface UpdateAppointmentDetailsProps {
   patientName?: string;
   patientPhone?: string;
   patientEmail?: string | null;
@@ -46,22 +54,20 @@ export type UpdateAppointmentDetailsProps = {
   treatmentId?: string | null;
   examinationType?: ExaminationType | null;
   visitType?: VisitType | null;
-};
+}
 
-export const RescheduleRequestSchema = z
-  .object({
-    startTime: z.date(),
-    endTime: z.date(),
-    providerId: z.uuid('Provider ID geçerli bir UUID olmalıdır'),
-    notes: z.string().max(1000, 'Notlar 1000 karakteri geçemez').optional(),
-    treatmentId: z.uuid().nullable().optional(),
-  })
-  .refine((data) => data.endTime > data.startTime, {
-    message: 'Bitiş zamanı, başlangıç zamanından sonra olmalıdır',
-    path: ['endTime'],
-  });
-
-export type RescheduleRequestProps = z.infer<typeof RescheduleRequestSchema>;
+/**
+ * endTime > startTime kuralı burada değil; `Appointment.reschedule()` içinden
+ * çağrılan `DateRange.create()` bu invariant'ı zaten kilit kapsamında işletiyor
+ * (bkz. src/domain/value-objects/date-range.vo.ts). Zod `.refine()` tekrarıydı.
+ */
+export interface RescheduleRequestProps {
+  startTime: Date;
+  endTime: Date;
+  providerId: string;
+  notes?: string;
+  treatmentId?: string | null;
+}
 
 export type RescheduleAppointmentProps = {
   startTime: Date;
@@ -75,60 +81,33 @@ export type RescheduleByPatientProps = RescheduleAppointmentProps & {
   rescheduleLimitHours: number;
 };
 
-export const CreateCancellationPropsSchema = z.object({
-  canceledBy: z.uuid().nullable().optional(),
-  reason: z.string().nullable().optional(),
-});
+export interface CreateCancellationProps {
+  canceledBy?: string | null;
+  reason?: string | null;
+}
 
-export type CreateCancellationProps = z.infer<
-  typeof CreateCancellationPropsSchema
->;
-
-export const CancelScheduleSchema = z.object({
-  canceledBy: z.string(),
-  reason: z.string().optional(),
-});
-
-export type CancelScheduleProps = z.infer<typeof CancelScheduleSchema>;
+export interface CancelScheduleProps {
+  canceledBy: string;
+  reason?: string;
+}
 
 export interface CancelAppointmentProps {
   canceledBy: NonNullable<string>;
   cancelReason?: string;
 }
 
-export const CalculateEndTimeSchema = z
-  .object({
-    startTime: z.coerce.date(),
-    endTime: z.coerce.date().nullable().optional(),
-    duration: z.coerce
-      .number()
-      .positive("Süre 0'dan büyük olmalıdır.")
-      .int('Süre tam sayı olmalıdır.')
-      .optional()
-      .nullable(),
-  })
-  .refine(
-    (data) => {
-      if (data.endTime) {
-        return data.endTime > data.startTime;
-      }
-      return true;
-    },
-    {
-      message: 'Bitiş tarihi, başlangıç tarihinden önce veya eşit olamaz.',
-      path: ['endTime'],
-    }
-  );
+/**
+ * endTime > startTime kuralı burada değil; `Appointment.create()` bu değeri
+ * hemen `DateRange.create()`'e besliyor ve o VO invariant'ı orada kilitleniyor.
+ * Zod `.refine()` tekrarıydı (hiç `.parse()` edilmiyordu).
+ */
+export interface CalculateEndTimeProps {
+  startTime: Date;
+  endTime?: Date | null;
+  duration?: number | null;
+}
 
-export type CalculateEndTimeProps = z.infer<typeof CalculateEndTimeSchema>;
-
-export const AppointmentRuleSnapshotSchema = z.object({
-  id: z.uuid(),
-  status: AppointmentStatusSchema,
-});
-
-export type AppointmentRuleSnapshot = z.infer<
-  typeof AppointmentRuleSnapshotSchema
->;
-
-export type IAppointmentEntity = z.infer<typeof AppointmentSchema>;
+export interface AppointmentRuleSnapshot {
+  id: string;
+  status: AppointmentStatus;
+}

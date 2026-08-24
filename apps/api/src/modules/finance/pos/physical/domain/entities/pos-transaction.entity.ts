@@ -12,7 +12,7 @@ import PosTransactionKindSchema, {
 } from '@input-type-schemas/PosTransactionKindSchema';
 import { JsonValueType } from '@input-type-schemas/JsonValueSchema';
 import { Money } from '@src/domain/value-objects/money.vo';
-import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/contracts/pos-physical.contracts';
+import { CreatePosTransactionProps } from '@modules/finance/pos/physical/domain/contracts/pos-transaction';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { FirebaseUid } from '@src/domain/value-objects/firebase-uid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';

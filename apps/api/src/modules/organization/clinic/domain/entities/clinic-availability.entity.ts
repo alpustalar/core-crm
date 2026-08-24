@@ -3,7 +3,7 @@ import { DayMinute } from '@src/domain/value-objects/day-minute.vo';
 import { ClinicAvailability as IClinicAvailability } from '@shared/generated-zod';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { TimeZoneType } from '@input-type-schemas/TimeZoneSchema';
-import { ClinicAvailabilityCreateProps } from '@modules/organization/clinic/domain/contracts/clinic-availability.contracts';
+import { ClinicAvailabilityCreateProps } from '@modules/organization/clinic/domain/contracts/clinic-availability';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Guard } from '@common/domain/guards';
 

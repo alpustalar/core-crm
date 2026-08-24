@@ -1,6 +1,6 @@
 import { QueryResponse } from '@shared/common/response/response.interface';
 import { Project, ProjectPhase } from '@shared';
-import { ProjectTaskStatusCountRow } from '@modules/organization/project/domain/contracts/project.contracts';
+import { ProjectTaskStatusCountRow } from '@modules/organization/project/domain/contracts';
 
 /** Proje detayı: künye + sıralı aşamalar + kolon başına görev sayısı. */
 export interface ProjectDetailView {

@@ -8,7 +8,7 @@ import {
   TransferAvailabilityFilter,
   TransferAvailabilityItem,
   TransferBookingResult,
-} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+} from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 import { IHotelbedsTransferApiService } from '@modules/crm/health-tourism/transfer/domain/interfaces/hotelbeds-transfer-api.interface';
 
 const TRANSFER_API_BASE = 'https://api.hotelbeds.com/transfer-api/1.0';

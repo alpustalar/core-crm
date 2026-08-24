@@ -3,7 +3,7 @@ import {
   AuthUserResponse,
   FindUsersByClinicIdsFilter,
   FindUsersByOrganizationIdsFilter,
-} from '@modules/identity/user/domain/contracts/user.contracts';
+} from '@modules/identity/user/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const USER_QUERY_REPOSITORY = Symbol('IUserQueryRepository');

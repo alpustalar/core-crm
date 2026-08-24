@@ -1,6 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { TreatmentCharge } from '@modules/finance/treatment-charge/domain/entities/treatment-charge.entity';
-import { AppointmentChargeSummary } from '@modules/finance/treatment-charge/domain/contracts/treatment-charge.contracts';
+import { AppointmentChargeSummary } from '@modules/finance/treatment-charge/domain/contracts/treatment-charge';
 import {
   ChargeCurrencyMismatchException,
   MixedVatRateException,

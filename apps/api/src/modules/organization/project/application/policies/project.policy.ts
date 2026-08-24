@@ -5,7 +5,7 @@ import { SerializationOptionsResponse } from '@common/interfaces/serialization-p
 import {
   ProjectResponseGroup,
   ProjectResponseGroups,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 /**
  * Proje yönetimi staff policy'si.

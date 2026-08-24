@@ -15,7 +15,7 @@ import {
   CreateTreatmentPackageProps,
   TreatmentPackageItemProps,
   UpdateTreatmentPackageProps,
-} from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+} from '@modules/clinical/treatment-package/domain/contracts';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { isNotUndefined } from '@common/utils/is-not-undefined';
@@ -23,6 +23,7 @@ import { Currency } from '@src/domain/value-objects/currency.vo';
 import { Guard } from '@common/domain/guards';
 import { ValidateOptionsType } from '@shared/common/validate-options/validate-options.type';
 import { TreatmentPackageRules } from '@modules/clinical/treatment-package/domain/rules/treatment-package.rules';
+import { TreatmentPackageNameEmptyException } from '@modules/clinical/treatment-package/domain/exceptions/treatment-package.exceptions';
 
 export class TreatmentPackage extends AggregateRoot {
   constructor(
@@ -137,6 +138,16 @@ export class TreatmentPackage extends AggregateRoot {
   }
 
   public static create(props: CreateTreatmentPackageProps): TreatmentPackage {
+    // İsim boşluğu kuralı: eskiden CreateTreatmentPackageSchema'nın `.min(1)`
+    // kısıtıydı; şema yalnız spec dosyasında `.parse()` ediliyordu (gerçek
+    // uygulama akışında hiç çağrılmıyordu). Zod kaldırılırken kural burada,
+    // entity'nin kendisinde gerçek zamanlı enforce edilecek şekilde taşındı.
+    Guard.monitor(
+      props.name,
+      props.name.length > 0,
+      () => new TreatmentPackageNameEmptyException()
+    ).orThrow();
+
     const now = DateTimeManager.create();
 
     const entity = new TreatmentPackage({

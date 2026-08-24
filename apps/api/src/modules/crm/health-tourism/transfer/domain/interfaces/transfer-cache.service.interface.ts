@@ -1,7 +1,7 @@
 import {
   TransferAvailabilityItem,
   TransferRateOptionToken,
-} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+} from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 
 export const TRANSFER_CACHE_SERVICE = Symbol('ITransferCacheService');
 

@@ -1,7 +1,7 @@
 import {
   PipelineStageView,
   PipelineWithStages,
-} from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+} from '@modules/crm/pipeline/domain/contracts';
 
 export const PIPELINE_QUERY_REPOSITORY = Symbol('IPipelineQueryRepository');
 

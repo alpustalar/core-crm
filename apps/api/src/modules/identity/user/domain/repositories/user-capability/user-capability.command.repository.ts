@@ -1,4 +1,4 @@
-import { GrantUserCapabilityData } from '@modules/identity/user/domain/contracts/user-capability.contracts';
+import { GrantUserCapabilityData } from '@modules/identity/user/domain/contracts';
 
 export const USER_CAPABILITY_COMMAND_REPOSITORY = Symbol(
   'IUserCapabilityCommandRepository'

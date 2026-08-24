@@ -15,8 +15,12 @@ import {
   AutoMatchLineInput,
   ReconcileLineInput,
   StatementLineImportProps,
-} from '@modules/finance/bank/domain/contracts/bank.contracts';
+} from '@modules/finance/bank/domain/contracts';
 import { MatchableStatementLine } from '@modules/finance/bank/domain/rules/statement-line-matcher';
+import {
+  BankStatementLineMatchNoteTooLongException,
+  BankStatementLineMatchRefRequiredException,
+} from '@modules/finance/bank/domain/exceptions/bank.exceptions';
 
 /**
  * Ekstre Hareketi (aggregate root). Bankadan gelen tekil hareket satırı; içerideki
@@ -177,6 +181,19 @@ export class BankStatementLine extends AggregateRoot {
       this._reconciledById = null;
       this._reconciledAt = null;
       return;
+    }
+
+    // İş kuralı: MATCHED durumunda eşleşme referansı zorunludur — referanssız bir
+    // MATCHED kaydı hangi 102 defter satırına bağlandığını izlenemez kılar.
+    if (
+      input.matchStatus === BankStatementLineMatchStatusSchema.enum.MATCHED &&
+      (!input.matchedRef || input.matchedRef.trim() === '')
+    ) {
+      throw new BankStatementLineMatchRefRequiredException(this._id.value);
+    }
+
+    if (input.matchNote && input.matchNote.length > 500) {
+      throw new BankStatementLineMatchNoteTooLongException(this._id.value);
     }
 
     this._matchStatus = input.matchStatus;

@@ -3,7 +3,7 @@ import {
   AdAttributedLead,
   FindAdAttributedLeadsFilter,
   FindLeadsFilter,
-} from '@modules/crm/lead/domain/contracts/lead-contracts';
+} from '@modules/crm/lead/domain/contracts/lead';
 import { Paginated } from '@common/interfaces/paginated.type';
 
 export const LEAD_QUERY_REPOSITORY = Symbol('ILeadQueryRepository');

@@ -15,7 +15,7 @@ import { AiToolSupport } from '@modules/platform/ai-tools/application/ai-tool.su
 import { SearchHotelsQuery } from '@modules/crm/health-tourism/hotel/application/queries/search-hotels/search-hotels.query';
 import { SearchHotelsDto } from '@shared/modules/health-tourism/dto/queries';
 import { CacheHotelRateOptionCommand } from '@modules/crm/health-tourism/hotel/application/commands/cache-hotel-rate-option/cache-hotel-rate-option.command';
-import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 const SearchHotelsInputSchema = z.object({
   checkIn: z.string().trim().min(1),

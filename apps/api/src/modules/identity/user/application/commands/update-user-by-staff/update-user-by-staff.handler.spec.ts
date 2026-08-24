@@ -7,59 +7,73 @@ import { ExecutionSources } from '@src/domain/constants/execution-source.constan
 import { LogSource } from '@src/domain/constants/log-action.constant';
 import { Priority } from '@src/domain/value-objects/priority.vo';
 import { ActorContext } from '@common/interfaces';
+import { User } from '@modules/identity/user/domain/entities/user.entity';
 import type { IGetContext } from '@common/decorators/get-context.decorator';
 
 /**
- * `managedClinicIds` / `ownedOrganizationIds` uzun süre DTO'da vardı ama entity
- * onları okumuyor, `update()` de yazmıyordu: alanlar sessizce düşüyordu. Çalışır
- * hale gelmeleri aynı zamanda bir YETKİ DEVRİ yüzeyi açar — bir klinik yöneticisi
- * kullanıcıya başka bir kiracının kliniğini atayabilirdi. Testler hem yazmanın
- * gerçekleştiğini hem devrin sınırlandığını sabitler.
+ * Bu uç yalnız PROFİL günceller. Kapsam devri (yönetilen klinik / organizasyon
+ * sahipliği) bilerek buradan çıkarıldı: ikisi aynı gövdede taşınırken telefon
+ * güncelleyen bir istek, eksik gönderilen bir dizi yüzünden kullanıcının tüm
+ * yetki kapsamını silebiliyordu. Testler bu ayrımın geri sızmamasını sabitler.
  */
-describe('UpdateUserByStaffHandler — kapsam atamaları', () => {
-  const OWN_CLINIC = 'clinic-own';
-  const FOREIGN_CLINIC = 'clinic-foreign';
-  const ORG = 'org-1';
-  const FOREIGN_ORG = 'org-2';
-  const TARGET = 'user-target';
+describe('UpdateUserByStaffHandler', () => {
+  const CLINIC = '11111111-1111-4111-8111-111111111111';
+  const FOREIGN_CLINIC = '33333333-3333-4333-8333-333333333333';
+  const ORG = '44444444-4444-4444-8444-444444444444';
+  const ROLE_ID = '66666666-6666-4666-8666-666666666666';
+  const NEW_ROLE_ID = '77777777-7777-4777-8777-777777777777';
+  const TARGET = 'target-user-uid';
 
   const manager: ActorContext = {
-    userId: 'user-manager',
+    userId: 'manager-uid',
     email: 'manager@clinic.com',
     source: LogSource.WEB,
     capabilities: [],
     rolePriority: 80,
-    managedClinics: [{ id: OWN_CLINIC }],
+    managedClinics: [{ id: CLINIC }],
     ownedOrganizations: [],
-    clinicId: OWN_CLINIC,
+    clinicId: CLINIC,
     organizationId: ORG,
   };
 
   const build = () => {
-    const targetUser = {
-      role: { priority: Priority.fromTrusted(10) },
-      clinicId: { value: OWN_CLINIC },
-      updateDetails: jest.fn(),
-    };
+    const now = new Date('2026-01-01T00:00:00Z');
+    const targetUser = new User({
+      id: TARGET,
+      displayName: 'Ada Lovelace',
+      email: 'ada@clinic.com',
+      emailVerified: true,
+      status: 'ACTIVE',
+      roleId: ROLE_ID,
+      picture: null,
+      phoneNumber: null,
+      clinicId: CLINIC,
+      lastLogin: now,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      role: { id: ROLE_ID, priority: Priority.fromTrusted(10) },
+      workingClinic: { id: CLINIC },
+      managedClinicIds: [CLINIC],
+      ownedOrganizationIds: [ORG],
+      providerProfileId: null,
+    });
 
     const userRepo = {
       findById: jest.fn().mockResolvedValue(targetUser),
       update: jest.fn().mockResolvedValue(targetUser),
+      replaceManagedClinics: jest.fn(),
+      replaceOwnedOrganizations: jest.fn(),
     };
 
     const handler = new UpdateUserByStaffHandler(
       userRepo as never,
       new PolicyFactory(new EventEmitter2()),
-      {
-        resolve: jest.fn(({ clinicId }: { clinicId: string }) =>
-          Promise.resolve(clinicId === OWN_CLINIC ? ORG : FOREIGN_ORG)
-        ),
-      } as never,
       { run: jest.fn((cb: () => unknown) => cb()) } as never
     );
 
     const ctx: IGetContext = {
-      actor: manager,
+      actor: { ...manager },
       source: ExecutionSources.USER_ACTION,
     };
 
@@ -68,77 +82,68 @@ describe('UpdateUserByStaffHandler — kapsam atamaları', () => {
 
   const run = (
     data: Record<string, unknown>,
-    deps = build()
-  ): [Promise<unknown>, ReturnType<typeof build>] => [
+    deps: ReturnType<typeof build>,
+    targetUserId = TARGET
+  ) =>
     deps.handler.execute(
       new UpdateUserByStaffCommand({
-        targetUserId: TARGET,
+        targetUserId,
         data: data as never,
         ctx: deps.ctx,
       })
-    ),
-    deps,
-  ];
-
-  it('yönetilen klinik atanabilir ve entity’ye geçer', async () => {
-    const deps = build();
-    const [promise] = run({ managedClinicIds: [OWN_CLINIC] }, deps);
-
-    await promise;
-
-    expect(deps.targetUser.updateDetails).toHaveBeenCalledWith(
-      { managedClinicIds: [OWN_CLINIC] },
-      manager.userId
     );
-    expect(deps.userRepo.update).toHaveBeenCalled();
+
+  it('profil alanlarını günceller', async () => {
+    const deps = build();
+
+    await run({ displayName: 'Ada Byron' }, deps);
+
+    // FullName soyadı normalize eder (büyük harf) — VO'nun kendi sözleşmesi.
+    expect(deps.targetUser.displayName.value).toBe('Ada BYRON');
+    expect(deps.userRepo.update).toHaveBeenCalledWith(deps.targetUser);
   });
 
-  it('yönetilmeyen klinik atanamaz — kayıt yazılmaz', async () => {
+  // Gövdeye kapsam alanı sızsa bile (eski istemci, elle atılan istek) entity
+  // onları okumaz: yetki devri yalnız kendi uçlarından geçer.
+  it('gövdedeki kapsam alanları yok sayılır — yetki silinmez', async () => {
     const deps = build();
-    const [promise] = run({ managedClinicIds: [FOREIGN_CLINIC] }, deps);
 
-    await expect(promise).rejects.toThrow(ForbiddenException);
-    expect(deps.userRepo.update).not.toHaveBeenCalled();
-    expect(deps.targetUser.updateDetails).not.toHaveBeenCalled();
-  });
-
-  it('listedeki tek bir yabancı klinik tüm isteği düşürür', async () => {
-    const deps = build();
-    const [promise] = run(
-      { managedClinicIds: [OWN_CLINIC, FOREIGN_CLINIC] },
+    await run(
+      {
+        phoneNumber: null,
+        managedClinicIds: [],
+        ownedOrganizationIds: [FOREIGN_CLINIC],
+      },
       deps
     );
 
-    await expect(promise).rejects.toThrow(ForbiddenException);
+    expect(deps.targetUser.managedClinicIds?.map((c) => c.value)).toEqual([
+      CLINIC,
+    ]);
+    expect(deps.targetUser.ownedOrganizationIds?.map((o) => o.value)).toEqual([
+      ORG,
+    ]);
+    expect(deps.userRepo.replaceManagedClinics).not.toHaveBeenCalled();
+    expect(deps.userRepo.replaceOwnedOrganizations).not.toHaveBeenCalled();
+  });
+
+  // Koşul eskiden ters yazılmıştı: `isSelf` doğruyken geçiyor, yani kullanıcı
+  // KENDİ rolünü değiştirebiliyor, başkasınınkini değiştiremiyordu.
+  it('kullanıcı kendi rolünü değiştiremez', async () => {
+    const deps = build();
+
+    await expect(
+      run({ roleId: NEW_ROLE_ID }, deps, manager.userId)
+    ).rejects.toThrow(ForbiddenException);
     expect(deps.userRepo.update).not.toHaveBeenCalled();
   });
 
-  it('sahibi olunmayan organizasyon atanamaz', async () => {
+  it('yönettiği kullanıcının rolünü değiştirebilir', async () => {
     const deps = build();
-    const [promise] = run({ ownedOrganizationIds: [ORG] }, deps);
 
-    // Aktör bu organizasyonun ÜYESİ ama SAHİBİ değil; devir için sahiplik gerekir.
-    await expect(promise).rejects.toThrow(ForbiddenException);
-  });
+    await run({ roleId: NEW_ROLE_ID }, deps);
 
-  it('sahip olunan organizasyon atanabilir', async () => {
-    const deps = build();
-    deps.ctx.actor.ownedOrganizations = [{ id: ORG }];
-
-    const [promise] = run({ ownedOrganizationIds: [ORG] }, deps);
-
-    await promise;
+    expect(deps.targetUser.roleId.value).toBe(NEW_ROLE_ID);
     expect(deps.userRepo.update).toHaveBeenCalled();
-  });
-
-  it('boş dizi atamayı kaldırmak demektir ve doğrulama gerektirmez', async () => {
-    const deps = build();
-    const [promise] = run({ managedClinicIds: [] }, deps);
-
-    await promise;
-    expect(deps.targetUser.updateDetails).toHaveBeenCalledWith(
-      { managedClinicIds: [] },
-      manager.userId
-    );
   });
 });

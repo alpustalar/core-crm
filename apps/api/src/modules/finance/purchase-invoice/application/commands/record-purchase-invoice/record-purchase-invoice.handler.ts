@@ -35,10 +35,9 @@ import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { CriticalFailurePublisher } from '@common/observability/critical-failure.publisher';
 
 @CommandHandler(RecordPurchaseInvoiceCommand)
-export class RecordPurchaseInvoiceHandler implements ICommandHandler<
-  RecordPurchaseInvoiceCommand,
-  string
-> {
+export class RecordPurchaseInvoiceHandler
+  implements ICommandHandler<RecordPurchaseInvoiceCommand, string>
+{
   private readonly logger = new Logger(RecordPurchaseInvoiceHandler.name);
   private internalCtx = ExecutionContextFactory.createInternal();
 
@@ -198,7 +197,9 @@ export class RecordPurchaseInvoiceHandler implements ICommandHandler<
         errorMessage: error instanceof Error ? error.message : String(error),
         context: { purchaseInvoiceId: input.purchaseInvoiceId },
         clinicId: input.clinicId ?? null,
-        dedupeKey: `purchase-bridge-failed:${input.purchaseInvoiceId}`,
+        dedupeKey: FinancialEventDedupeKeys.purchase_bridge_failed(
+          input.purchaseInvoiceId
+        ),
       });
     }
   }

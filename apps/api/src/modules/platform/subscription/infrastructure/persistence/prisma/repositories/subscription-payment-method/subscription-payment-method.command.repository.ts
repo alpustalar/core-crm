@@ -5,7 +5,7 @@ import { SubscriptionPaymentMethod } from '@modules/platform/subscription/domain
 import {
   CreateSubscriptionPaymentMethodProps,
   SavedCardChargeModel,
-} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+} from '@modules/platform/subscription/domain/contracts';
 import { ISubscriptionPaymentMethodCommandRepository } from '@modules/platform/subscription/domain/repositories/subscription-payment-method/subscription-payment-method.command.repository';
 
 @Injectable()

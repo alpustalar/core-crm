@@ -22,7 +22,7 @@ import {
 } from '@modules/platform/notification/domain/interfaces/notification-cache.service.interface';
 import { Serialize } from '@common/decorators/serialize.decorator';
 import { StaffNotificationResponseDto } from '@modules/platform/notification/presentation/http/dto/staff-notification-response.dto';
-import type { StaffNotificationListItem } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import type { StaffNotificationListItem } from '@modules/platform/notification/domain/contracts/staff-notification';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 // SSE keepalive — ara proxy'ler boşta bağlantıyı düşürmesin diye periyodik ping.

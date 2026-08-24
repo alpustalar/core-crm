@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js';
-import { CreateJournalEntryLineProps } from '../contracts/posting.contracts';
+import { CreateJournalEntryLineProps } from '../contracts/journal-line';
 import { JOURNAL_DESCRIPTIONS } from '@modules/finance/shared/domain/constants/journal-descriptions.constant';
 import { ACCOUNTING_RULES } from '@modules/finance/shared/domain/constants/accounting-rules.constant';
 import { Account } from '@shared';

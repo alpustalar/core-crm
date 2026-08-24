@@ -1,4 +1,4 @@
-import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { HotelRateOptionToken } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 /**
  * AI `search_hotels` akışının ürettiği kısa optionId → HotelBeds rate bağlamını

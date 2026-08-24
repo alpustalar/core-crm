@@ -6,7 +6,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import {
   ActiveSubscriptionReadModel,
   EntitlementSource,
-} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+} from '@modules/platform/subscription/domain/contracts';
 import { ISubscriptionQueryRepository } from '@modules/platform/subscription/domain/repositories/subscription/subscription.query.repository';
 
 /** Read-model'i besleyen include (items + her item'ın modülü). */

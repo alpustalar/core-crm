@@ -8,7 +8,7 @@ import {
   IBankStatementLineCommandRepository,
 } from '@modules/finance/bank/domain/repositories/bank-statement-line/bank-statement-line.repository';
 import { BankStatementLineNotFoundException } from '@modules/finance/bank/domain/exceptions/bank.exceptions';
-import { LineMatchSuggestion } from '@modules/finance/bank/domain/contracts/bank.contracts';
+import { LineMatchSuggestion } from '@modules/finance/bank/domain/contracts';
 import {
   DEFAULT_MATCH_OPTIONS,
   describeMatch,

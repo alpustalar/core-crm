@@ -4,7 +4,7 @@ import {
   ArAgingFilter,
   CollectedInstallmentRow,
   ProviderRevenueFilterData,
-} from '@modules/finance/payment/domain/contracts/payment.contracts';
+} from '@modules/finance/payment/domain/contracts/payment';
 
 export const PAYMENT_QUERY_REPOSITORY = Symbol('IPaymentQueryRepository');
 

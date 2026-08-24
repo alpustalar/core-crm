@@ -3,7 +3,7 @@ import { SubscriptionPaymentMethod } from '@modules/platform/subscription/domain
 import {
   CreateSubscriptionPaymentMethodProps,
   SavedCardChargeModel,
-} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+} from '@modules/platform/subscription/domain/contracts';
 
 export const SUBSCRIPTION_PAYMENT_METHOD_COMMAND_REPOSITORY = Symbol(
   'ISubscriptionPaymentMethodCommandRepository'

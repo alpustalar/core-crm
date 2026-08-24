@@ -18,7 +18,7 @@ import {
   IMetaAdsConfig,
   META_ADS_CONFIG,
 } from '@modules/crm/meta-ads/domain/interfaces/meta-ads-config.interface';
-import { isOAuthStatePayload } from '@modules/crm/meta-ads/domain/contracts/meta-ads.contracts';
+import { isOAuthStatePayload } from '@modules/crm/meta-ads/domain/contracts';
 import { LogSource } from '@src/domain/constants/log-action.constant';
 
 @CommandHandler(HandleMetaOAuthCallbackCommand)

@@ -14,7 +14,7 @@ import {
   FindProjectsFilter,
   ProjectCostTotalRow,
   ProjectTaskStatusCountRow,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 @Injectable()
 export class ProjectQueryRepository

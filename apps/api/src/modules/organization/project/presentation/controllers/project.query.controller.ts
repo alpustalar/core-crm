@@ -31,7 +31,7 @@ import {
   ResourceScheduleRowResponseDto,
 } from '@modules/organization/project/presentation/dto/project-response.dto';
 import type { Project, ProjectTask } from '@shared';
-import type { ResourceScheduleRow } from '@modules/organization/project/domain/contracts/project.contracts';
+import type { ResourceScheduleRow } from '@modules/organization/project/domain/contracts';
 import type { ProjectDetailView } from '@modules/organization/project/application/queries/get-project-by-id/get-project-by-id.response';
 import type { ProjectBudgetVsActual } from '@modules/organization/project/application/queries/get-project-budget-vs-actual/get-project-budget-vs-actual.response';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';

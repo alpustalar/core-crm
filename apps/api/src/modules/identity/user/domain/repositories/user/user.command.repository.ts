@@ -26,4 +26,16 @@ export interface IUserCommandRepository extends IBaseCommandRepository<User> {
     organizationId: string,
     clinicId: string
   ): Promise<{ attachedCount: number }>;
+
+  /**
+   * Kapsam ilişkilerini yazan iki metot. `update()` bunlara bilerek dokunmaz:
+   * `toPersistence()` yalnız skaler kolon ürettiği için M2M yazımı ayrı bir
+   * karardır ve genel güncellemenin yan etkisi olmamalıdır — olsaydı, ilişkileri
+   * yüklemeden kurulmuş bir entity'nin sıradan bir profil güncellemesi
+   * kullanıcının tüm kapsamını sessizce silerdi.
+   *
+   * `set` semantiği: entity üzerindeki liste yeni kapsamın tamamıdır.
+   */
+  replaceManagedClinics(entity: User): Promise<void>;
+  replaceOwnedOrganizations(entity: User): Promise<void>;
 }

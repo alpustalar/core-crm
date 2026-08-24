@@ -8,7 +8,7 @@ import {
   STAFF_NOTIFICATION_QUERY_REPOSITORY,
 } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
 import { StaffNotification as IStaffNotification } from '@shared';
-import { StaffNotificationListItem } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import { StaffNotificationListItem } from '@modules/platform/notification/domain/contracts/staff-notification';
 import {
   IPolicyFactory,
   POLICY_FACTORY,

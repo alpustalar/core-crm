@@ -8,7 +8,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { ProviderCreatedEvent } from '@modules/clinical/provider/domain/events/provider-created.event';
 import { ProviderSoftDeletedEvent } from '@modules/clinical/provider/domain/events/provider-soft-deleted.event';
 import { UpdateProviderInfo } from '@shared/modules/provider/types/update-provider-info.type';
-import { CreateProviderProps } from '@modules/clinical/provider/domain/contracts/provider.contracts';
+import { CreateProviderProps } from '@modules/clinical/provider/domain/contracts';
 import {
   ProviderAlreadyDeleted,
   ProviderNotAcceptingExaminationException,

@@ -17,7 +17,7 @@ import { JournalEntryStatusType as JournalEntryStatus } from '@input-type-schema
 import {
   BuildReversalDraftProps,
   CreateJournalEntryProps,
-} from '@modules/finance/accounting/posting/domain/contracts/posting.contracts';
+} from '@modules/finance/accounting/posting/domain/contracts/journal-entry';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 

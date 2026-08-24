@@ -5,7 +5,7 @@ import { DateTimeManager } from '@common/infrastructure/date-time/date-time.mana
 import {
   TransferAvailabilityItem,
   TransferRateOptionToken,
-} from '@modules/crm/health-tourism/transfer/domain/contracts/transfer.contracts';
+} from '@modules/crm/health-tourism/transfer/domain/contracts/hotelbeds-transfer-booking';
 import { ITransferCacheService } from '@modules/crm/health-tourism/transfer/domain/interfaces/transfer-cache.service.interface';
 
 const KEYS = {

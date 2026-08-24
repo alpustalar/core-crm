@@ -25,7 +25,7 @@ import {
 } from '@modules/identity/user/presentation/http/dto';
 import { Serialize } from '@common/decorators/serialize.decorator';
 import { GetUserCapabilitiesQuery } from '@modules/identity/user/application/queries/get-user-capabilities/get-user-capabilities.query';
-import { EffectiveCapability } from '@modules/identity/user/domain/contracts/user-capability.contracts';
+import { EffectiveCapability } from '@modules/identity/user/domain/contracts';
 
 const { USER } = CAPABILITIES;
 @UseGuards(AuthGuard, CapabilityGuard)

@@ -5,7 +5,7 @@ import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginat
 import {
   FindActivitiesByLeadFilter,
   FindMyTasksFilter,
-} from '@modules/crm/activity/domain/contracts/activity.contracts';
+} from '@modules/crm/activity/domain/contracts/activity';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { ActivityTypeSchema } from '@input-type-schemas/ActivityTypeSchema';
 import { ActivityStatusSchema } from '@input-type-schemas/ActivityStatusSchema';

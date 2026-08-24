@@ -1,4 +1,4 @@
-import { AutoMatchResult } from '@modules/finance/bank/domain/contracts/bank.contracts';
+import { AutoMatchResult } from '@modules/finance/bank/domain/contracts';
 
 /**
  * Tarama turunun sayısal özeti. Command normalde `void` döner; burada istisna

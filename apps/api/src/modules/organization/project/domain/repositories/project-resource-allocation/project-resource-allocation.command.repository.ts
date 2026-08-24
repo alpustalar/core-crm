@@ -3,7 +3,7 @@ import {
   FindOverlappingAllocationsProps,
   LockResourceCapacityProps,
   OverlappingAllocation,
-} from '@modules/organization/project/domain/contracts/project.contracts';
+} from '@modules/organization/project/domain/contracts';
 
 export const PROJECT_RESOURCE_ALLOCATION_COMMAND_REPOSITORY = Symbol(
   'IProjectResourceAllocationCommandRepository'

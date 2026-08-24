@@ -4,7 +4,7 @@ import {
   BookingPaymentProviderValue,
   BookingPaymentStatusValue,
   BookingPaymentTypeValue,
-} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+} from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 const { INTERNAL, MANAGEMENT, DATA_OWNER, FINANCIAL, ADMIN } = ResponseGroups;
 

@@ -10,7 +10,7 @@ import {
 } from '@input-type-schemas/NotificationDeliveryStatusSchema';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
-import { CreateStaffNotificationProps } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import { CreateStaffNotificationProps } from '@modules/platform/notification/domain/contracts/staff-notification';
 
 /**
  * Personel (staff) panel-içi bildirim kaydı. Domain event üretmez — kendisi bir

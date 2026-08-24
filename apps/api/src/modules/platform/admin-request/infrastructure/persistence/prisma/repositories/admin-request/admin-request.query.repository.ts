@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { AdminRequest as IAdminRequest } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/contracts/admin-request.contracts';
+import { FindAdminRequestsFilter } from '@modules/platform/admin-request/domain/contracts/admin-request';
 import { IAdminRequestQueryRepository } from '@modules/platform/admin-request/domain/repositories/admin-request/admin-request.query.repository';
 
 /** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */

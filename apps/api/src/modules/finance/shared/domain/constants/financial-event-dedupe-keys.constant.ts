@@ -16,6 +16,8 @@ export const FinancialEventDedupeKeys = {
   // referansı kullanması meşru olduğu için anahtar clinicId ile daraltılır.
   supplier_payment: (clinicId: string, reference: string) =>
     `supplier-payment:${clinicId}:${reference}`,
+  purchase_bridge_failed: (purchaseInvoiceId: string) =>
+    `purchase-bridge-failed:${purchaseInvoiceId}`,
 } as const;
 
 export type FinancialEventDedupeKey =

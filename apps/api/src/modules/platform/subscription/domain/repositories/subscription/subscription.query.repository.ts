@@ -2,7 +2,7 @@ import { Module as IModule } from '@shared';
 import {
   ActiveSubscriptionReadModel,
   EntitlementSource,
-} from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+} from '@modules/platform/subscription/domain/contracts';
 import { SubscriptionOwnerRef } from '@modules/platform/subscription/domain/repositories/subscription/subscription.command.repository';
 
 export const SUBSCRIPTION_QUERY_REPOSITORY = Symbol(

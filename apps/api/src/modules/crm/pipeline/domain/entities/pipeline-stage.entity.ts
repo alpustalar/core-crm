@@ -11,7 +11,7 @@ import { isNotUndefined } from '@common/utils/is-not-undefined';
 import {
   CreatePipelineStageProps,
   UpdatePipelineStageProps,
-} from '@modules/crm/pipeline/domain/contracts/pipeline.contracts';
+} from '@modules/crm/pipeline/domain/contracts';
 
 /** Huni aşaması. `type` (OPEN/WON/LOST) sistem senkronunu, `order` sıralamayı belirler. */
 export class PipelineStage extends AggregateRoot {

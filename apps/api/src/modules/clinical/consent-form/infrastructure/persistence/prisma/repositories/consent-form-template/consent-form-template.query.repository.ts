@@ -3,7 +3,7 @@ import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repo
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 
-import { FindConsentTemplatesFilter } from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+import { FindConsentTemplatesFilter } from '@modules/clinical/consent-form/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { IConsentTemplateQueryRepository } from '@modules/clinical/consent-form/domain/repositories/consent-template/consent-template.query.repository';
 import { ConsentFormTemplate } from '@shared';

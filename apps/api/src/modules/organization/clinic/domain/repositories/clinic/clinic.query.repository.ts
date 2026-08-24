@@ -1,4 +1,4 @@
-import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic.contracts';
+import { ClinicDetails } from '@modules/organization/clinic/domain/contracts/clinic';
 import { Clinic } from '@shared';
 
 export const CLINIC_QUERY_REPOSITORY = Symbol('IClinicQueryRepository');

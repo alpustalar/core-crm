@@ -16,7 +16,7 @@ import { GetPurchaseOrderByIdQuery } from '@modules/supply/purchasing/applicatio
 import { GetPurchaseOrderMatchSummaryQuery } from '@modules/supply/purchasing/application/queries/get-purchase-order-match-summary/get-purchase-order-match-summary.query';
 import { Serialize } from '@common/decorators/serialize.decorator';
 import { PurchaseOrderResponseDto } from '@modules/supply/purchasing/presentation/http/dto/purchasing-response.dto';
-import type { PurchaseOrderWithItems } from '@modules/supply/purchasing/domain/contracts/purchasing.contracts';
+import type { PurchaseOrderWithItems } from '@modules/supply/purchasing/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { PURCHASEORDER } = CAPABILITIES;

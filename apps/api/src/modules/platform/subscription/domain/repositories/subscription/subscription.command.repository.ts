@@ -1,4 +1,4 @@
-import { RenewalChargeModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { RenewalChargeModel } from '@modules/platform/subscription/domain/contracts';
 import { Module as IModule } from '@shared';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
 import { IBaseCommandRepository } from '@common/domain/repositories/base-command-repository.interface';

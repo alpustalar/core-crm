@@ -15,7 +15,7 @@ import {
 import BookingPaymentStatusSchema from '@input-type-schemas/BookingPaymentStatusSchema';
 import { BookingPayment } from '@modules/crm/health-tourism/booking-payment/domain/entities/booking-payment.entity';
 import { TransactionManager } from '@src/infrastructure/persistence/prisma/transaction/transaction.manager';
-import { BookingPaymentProviderValue } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { BookingPaymentProviderValue } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 
 /** Kilitli claim'in çıktısı: iade için gereken, artık null olmadığı kesin alanlar. */
 interface RefundClaim {

@@ -8,7 +8,7 @@ import {
   ITenantScopeResolver,
   TENANT_SCOPE_RESOLVER,
 } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
-import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/contracts/financial-events.contracts';
+import { RecordFinancialEventProps } from '@modules/finance/accounting/financial-events/domain/contracts/financial-event';
 import {
   FINANCIAL_EVENT_COMMAND_REPOSITORY,
   IFinancialEventCommandRepository,

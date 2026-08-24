@@ -29,7 +29,7 @@ async function bootstrap() {
     },
   });
   // HTTP'den ÖNCE başlatılır: messaging bir isteği, core henüz dinlemiyorken
-  // gönderirse zaman aşımına düşerdi.
+  // gönderirse zaman aşımına düşer.
   await app.startAllMicroservices();
 
   const port = Number(configService.get<number | string>('PORT', 8080));

@@ -1,6 +1,6 @@
 import { Pagination, Provider } from '@shared';
 import { Paginated } from '@common/interfaces/paginated.type';
-import { ProviderDirectoryEntry } from '@modules/clinical/provider/domain/contracts/provider.contracts';
+import { ProviderDirectoryEntry } from '@modules/clinical/provider/domain/contracts';
 
 export const PROVIDER_QUERY_REPOSITORY = Symbol('IProviderQueryRepository');
 

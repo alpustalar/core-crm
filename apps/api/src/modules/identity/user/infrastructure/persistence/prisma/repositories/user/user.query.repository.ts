@@ -12,7 +12,7 @@ import {
   AuthUserResponse,
   FindUsersByClinicIdsFilter,
   FindUsersByOrganizationIdsFilter,
-} from '@modules/identity/user/domain/contracts/user.contracts';
+} from '@modules/identity/user/domain/contracts';
 import { IUserQueryRepository } from '@modules/identity/user/domain/repositories/user/user.query.repository';
 
 @Injectable()

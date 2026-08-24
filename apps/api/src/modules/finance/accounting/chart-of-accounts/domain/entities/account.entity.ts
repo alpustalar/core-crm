@@ -11,7 +11,7 @@ import { AccountSideType as AccountSide } from '@input-type-schemas/AccountSideS
 import {
   CreateAccountProps,
   CreateChildAccountProps,
-} from '@modules/finance/accounting/chart-of-accounts/domain/contracts/chart-of-accounts.contracts';
+} from '@modules/finance/accounting/chart-of-accounts/domain/contracts/account';
 import {
   AccountTemplateMismatchException,
   CannotCreateChildException,

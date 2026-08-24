@@ -8,7 +8,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { IStaffNotificationQueryRepository } from '@modules/platform/notification/domain/repositories/staff-notification.repository';
-import { FindStaffNotificationsByRecipientProps } from '@modules/platform/notification/domain/contracts/staff-notification.contracts';
+import { FindStaffNotificationsByRecipientProps } from '@modules/platform/notification/domain/contracts/staff-notification';
 
 @Injectable()
 export class StaffNotificationQueryRepository

@@ -4,7 +4,7 @@ import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.ser
 import { Pagination, TreatmentPackage } from '@shared';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
 import { ITreatmentPackageQueryRepository } from '@modules/clinical/treatment-package/domain/repositories/treatment-package/treatment-package.query.repository';
-import { TreatmentPackageWithRelations } from '@modules/clinical/treatment-package/domain/contracts/treatment-package.contracts';
+import { TreatmentPackageWithRelations } from '@modules/clinical/treatment-package/domain/contracts';
 
 const packageInclude = {
   items: { select: { id: true, treatmentId: true, count: true } },

@@ -10,7 +10,7 @@ import {
   SubscriptionModuleResponseDto,
 } from '@modules/platform/subscription/presentation/http/dto/subscription-catalog-response.dto';
 import type { Module as SubscriptionModule } from '@shared';
-import type { PlanReadModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import type { PlanReadModel } from '@modules/platform/subscription/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { MODULE, PLAN } = CAPABILITIES;

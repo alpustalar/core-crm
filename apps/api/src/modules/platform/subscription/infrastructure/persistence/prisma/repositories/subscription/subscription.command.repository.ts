@@ -5,7 +5,7 @@ import { Decimal } from 'decimal.js';
 import { BaseCommandRepository } from '@src/infrastructure/persistence/prisma/base-command.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { Subscription } from '@modules/platform/subscription/domain/entities/subscription.entity';
-import { RenewalChargeModel } from '@modules/platform/subscription/domain/contracts/subscription.contracts';
+import { RenewalChargeModel } from '@modules/platform/subscription/domain/contracts';
 import { txStorage } from '@src/infrastructure/persistence/prisma/transaction';
 import { ConcurrencyConflictException } from '@common/domain/exceptions/concurrency-conflict.exception';
 import type {

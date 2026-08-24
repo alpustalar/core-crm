@@ -12,7 +12,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { randomUUID } from 'crypto';
-import { CreatePurchaseOrderProps } from '@modules/supply/purchasing/domain/contracts/purchasing.contracts';
+import { CreatePurchaseOrderProps } from '@modules/supply/purchasing/domain/contracts';
 import {
   PurchaseOrderEmptyItemsException,
   PurchaseOrderInvalidStateException,

@@ -1,5 +1,5 @@
 import { HotelbedsBooking, Pagination } from '@shared';
-import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 export const HOTELBEDS_BOOKING_QUERY_REPOSITORY = Symbol(
   'IHotelbedsBookingQueryRepository'

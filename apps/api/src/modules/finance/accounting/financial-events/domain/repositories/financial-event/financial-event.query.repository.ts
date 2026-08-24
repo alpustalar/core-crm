@@ -1,5 +1,5 @@
 import { FinancialEvent, Pagination } from '@shared';
-import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/contracts/financial-events.contracts';
+import { FindFinancialEventsFilter } from '@modules/finance/accounting/financial-events/domain/contracts/financial-event';
 
 export const FINANCIAL_EVENT_QUERY_REPOSITORY = Symbol(
   'IFinancialEventQueryRepository'

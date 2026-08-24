@@ -7,7 +7,7 @@ import {
   StockLevelResponseDto,
   StockMovementResponseDto,
 } from '@modules/supply/inventory/presentation/http/dto';
-import { StockLevel } from '@modules/supply/inventory/domain/contracts/stock-movement.contracts';
+import { StockLevel } from '@modules/supply/inventory/domain/contracts';
 import { GetStockMovementsDto } from '@shared/modules/inventory/dto/queries';
 import { TSQueryBus } from '@common/cqrs/type-safe-query-bus';
 import { GetProductStockQuery } from '@modules/supply/inventory/application/queries/get-product-stock/get-product-stock.query';

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindBankAccountsFilter } from '@modules/finance/bank/domain/contracts/bank.contracts';
+import { FindBankAccountsFilter } from '@modules/finance/bank/domain/contracts';
 import { BankAccount as IBankAccount } from '@model-schema/BankAccountSchema';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { IBankAccountQueryRepository } from '@modules/finance/bank/domain/repositories/bank-account/bank-account.query.repository';

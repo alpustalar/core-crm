@@ -25,6 +25,7 @@ import {
   IAppointmentCheckerService,
 } from '@modules/clinical/appointment/domain/interfaces/appointment-checker.service.interface';
 import { TENANT_SCOPE_RESOLVER } from '@modules/organization/clinic/domain/services/tenant-scope/tenant-scope.resolver.interface';
+import { AppointmentPatientPhoneRequiredException } from '@modules/clinical/appointment/domain/exceptions/appointment.exceptions';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -121,7 +122,7 @@ export class ScheduleAppointmentHandler
     });
 
     if (!patientPhone) {
-      throw new Error('Hasta telefonu bulunamadı.');
+      throw new AppointmentPatientPhoneRequiredException(patientId);
     }
 
     const appointment = Appointment.schedule({

@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-import { BookingPaymentProviderValue } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment.contracts';
+import { BookingPaymentProviderValue } from '@modules/crm/health-tourism/booking-payment/domain/contracts/booking-payment';
 import { IGetContext } from '@common/decorators';
 
 export interface ConfirmBookingPaymentInput {

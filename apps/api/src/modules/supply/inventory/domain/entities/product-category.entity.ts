@@ -1,6 +1,6 @@
 import { ProductCategory as IProductCategory } from '@shared';
 import { AggregateRoot } from '@common/domain/aggregate-root';
-import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/contracts/product-category.contracts';
+import { CreateProductCategoryProps } from '@modules/supply/inventory/domain/contracts';
 import { DateTimeManager } from '@common/infrastructure/date-time/date-time.manager';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { UUID } from '@src/domain/value-objects/uuid.vo';

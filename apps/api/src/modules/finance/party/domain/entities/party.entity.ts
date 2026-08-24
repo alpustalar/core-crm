@@ -3,7 +3,7 @@ import { AggregateRoot } from '@common/domain/aggregate-root';
 import { PartyTypeType as PartyType } from '@input-type-schemas/PartyTypeSchema';
 import { PartyRoleType as PartyRole } from '@input-type-schemas/PartyRoleSchema';
 import { PartyOriginTypeType as PartyOriginType } from '@input-type-schemas/PartyOriginTypeSchema';
-import { CreatePartyProps } from '@modules/finance/party/domain/contracts/party.contracts';
+import { CreatePartyProps } from '@modules/finance/party/domain/contracts/party';
 import { UUID } from '@src/domain/value-objects/uuid.vo';
 import { Name } from '@src/domain/value-objects/name.vo';
 import { DateTimeManager, isDefined } from '@common/utils';

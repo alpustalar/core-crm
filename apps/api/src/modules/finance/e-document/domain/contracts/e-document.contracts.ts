@@ -1,70 +1,62 @@
 // domain/contracts/e-document.contracts.ts
-import { z } from 'zod';
-import { EDocumentTypeSchema } from '@input-type-schemas/EDocumentTypeSchema';
-import { CurrencySchema } from '@input-type-schemas/CurrencySchema';
-import { EDocumentStatusSchema } from '@input-type-schemas/EDocumentStatusSchema';
+import type { EDocumentTypeType } from '@input-type-schemas/EDocumentTypeSchema';
+import type { CurrencyType } from '@input-type-schemas/CurrencySchema';
+import type { EDocumentStatusType } from '@input-type-schemas/EDocumentStatusSchema';
 
 // ==========================================
-// 1. YARDIMCI VE ALT ŞEMALAR (SUB-SCHEMAS)
+// 1. YARDIMCI VE ALT SÖZLEŞMELER (SUB-CONTRACTS)
 // ==========================================
 
-export const PartyTaxInfoSchema = z.object({
-  taxId: z.string().nullable(), // VKN veya TCKN
-  name: z.string().min(1, 'Firma/Kişi adı zorunludur'),
-  isEInvoiceUser: z.boolean().optional(),
-  alias: z.string().nullable().optional(), // e-Fatura posta kutusu etiketi
-});
-export type PartyTaxInfo = z.infer<typeof PartyTaxInfoSchema>;
+export interface PartyTaxInfo {
+  taxId: string | null; // VKN veya TCKN
+  name: string;
+  isEInvoiceUser?: boolean;
+  alias?: string | null; // e-Fatura posta kutusu etiketi
+}
 
-export const EDocumentLineSchema = z.object({
-  name: z.string().min(1, 'Kalem adı zorunludur'),
-  quantity: z.number().positive(),
-  unitPrice: z.string(), // Mali hassasiyet için string tutulmuştur
-  vatRate: z.number(),
-  vatAmount: z.string(),
-  withholdingAmount: z.string().optional(),
-});
-export type EDocumentLine = z.infer<typeof EDocumentLineSchema>;
+export interface EDocumentLine {
+  name: string;
+  quantity: number;
+  unitPrice: string; // Mali hassasiyet için string tutulmuştur
+  vatRate: number;
+  vatAmount: string;
+  withholdingAmount?: string;
+}
 
-export const EDocumentTotalsSchema = z.object({
-  net: z.string(),
-  vat: z.string(),
-  withholding: z.string().optional(),
-  payable: z.string(),
-});
-export type EDocumentTotals = z.infer<typeof EDocumentTotalsSchema>;
+export interface EDocumentTotals {
+  net: string;
+  vat: string;
+  withholding?: string;
+  payable: string;
+}
 
 // ==========================================
 // 2. ANA PROPS VE RESPONSE SÖZLEŞMELERİ
 // ==========================================
 
 /** Çekirdeğin porta geçtiği belge isteği (doc 07 §3). Adapter'a özgü değildir. */
-export const EDocumentRequestSchema = z.object({
-  type: EDocumentTypeSchema,
-  invoiceId: z.uuid(), // İç sistem faturası için z.uuid() kök metodu
-  issueDate: z.date(),
-  seller: PartyTaxInfoSchema,
-  buyer: PartyTaxInfoSchema,
-  lines: z.array(EDocumentLineSchema),
-  totals: EDocumentTotalsSchema,
-  currency: CurrencySchema,
-  note: z.string().optional(),
-});
-export type EDocumentRequest = z.infer<typeof EDocumentRequestSchema>;
+export interface EDocumentRequest {
+  type: EDocumentTypeType;
+  invoiceId: string; // İç sistem faturası
+  issueDate: Date;
+  seller: PartyTaxInfo;
+  buyer: PartyTaxInfo;
+  lines: EDocumentLine[];
+  totals: EDocumentTotals;
+  currency: CurrencyType;
+  note?: string;
+}
 
 /** Portun döndürdüğü belge sonucu. Noop'ta documentType=INTERNAL, uuid=null. */
-export const EDocumentResultSchema = z.object({
-  documentType: EDocumentTypeSchema,
-  uuid: z.uuid().nullable(), // ETTN genellikle UUID formatındadır, INTERNAL ise null
-  status: EDocumentStatusSchema,
-  invoiceNumber: z.string().nullable(), // Entegratörün atadığı Belge No (Örn: GIB20260000001)
-  rawResponse: z.unknown().optional(), // Entegratörden dönen ham veri
-});
-export type EDocumentResult = z.infer<typeof EDocumentResultSchema>;
+export interface EDocumentResult {
+  documentType: EDocumentTypeType;
+  uuid: string | null; // ETTN genellikle UUID formatındadır, INTERNAL ise null
+  status: EDocumentStatusType;
+  invoiceNumber: string | null; // Entegratörün atadığı Belge No (Örn: GIB20260000001)
+  rawResponse?: unknown; // Entegratörden dönen ham veri
+}
 
-export const MailboxInfoSchema = z.object({
-  isEInvoiceUser: z.boolean(),
-  alias: z.string().optional(), // e-Fatura posta kutusu etiketi (Örn: urn:mail:defaultpk@firma.com)
-});
-
-export type MailboxInfo = z.infer<typeof MailboxInfoSchema>;
+export interface MailboxInfo {
+  isEInvoiceUser: boolean;
+  alias?: string; // e-Fatura posta kutusu etiketi (Örn: urn:mail:defaultpk@firma.com)
+}

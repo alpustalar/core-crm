@@ -1,4 +1,4 @@
-import { UpsertHotelbedsHotelInput } from '@modules/crm/health-tourism/hotel/domain/contracts/hotelbeds-hotel.contracts';
+import { UpsertHotelbedsHotelInput } from '@modules/crm/health-tourism/hotel/domain/contracts';
 
 export const HOTELBEDS_HOTEL_COMMAND_REPOSITORY = Symbol(
   'IHotelbedsHotelCommandRepository'

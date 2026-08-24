@@ -3,7 +3,7 @@ import { HotelbedsBooking as IHotelbedsBooking, Pagination } from '@shared';
 import { PrismaService } from '@src/infrastructure/persistence/prisma/prisma.service';
 import { BaseRepository } from '@src/infrastructure/persistence/prisma/base.repository';
 import { paginate } from '@src/infrastructure/persistence/prisma/helpers/paginate.helper';
-import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/contracts/hotel.contracts';
+import { FindHotelBookingsFilter } from '@modules/crm/health-tourism/hotel/domain/contracts';
 import { IHotelbedsBookingQueryRepository } from '@modules/crm/health-tourism/hotel/domain/repositories/hotelbeds-booking/hotelbeds-booking.query.repository';
 
 /** Okuma tarafı: entity hidrate edilmez (veri doğrudan HTTP sınırını geçiyor). */

@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { AppointmentStatusSchema } from '@input-type-schemas/AppointmentStatusSchema';
+import { AppointmentStatusType as AppointmentStatus } from '@input-type-schemas/AppointmentStatusSchema';
 
 export interface ClinicCalendarEvent {
   appointmentId: string;
@@ -10,7 +9,7 @@ export interface ClinicCalendarEvent {
   patientPhone: string;
   startTime: Date;
   endTime: Date;
-  status: z.infer<typeof AppointmentStatusSchema>;
+  status: AppointmentStatus;
   treatmentType: string | null;
   isConsultation: boolean;
 }

@@ -15,7 +15,7 @@ import { GetPurchaseRequestsQuery } from '@modules/supply/purchasing/application
 import { GetPurchaseRequestByIdQuery } from '@modules/supply/purchasing/application/queries/get-purchase-request-by-id/get-purchase-request-by-id.query';
 import { Serialize } from '@common/decorators/serialize.decorator';
 import { PurchaseRequestResponseDto } from '@modules/supply/purchasing/presentation/http/dto/purchasing-response.dto';
-import type { PurchaseRequestWithItems } from '@modules/supply/purchasing/domain/contracts/purchasing.contracts';
+import type { PurchaseRequestWithItems } from '@modules/supply/purchasing/domain/contracts';
 import { CAPABILITIES } from '@src/infrastructure/persistence/prisma/data/modules';
 
 const { PURCHASEREQUEST } = CAPABILITIES;

@@ -4,7 +4,7 @@ import { DayMinuteRange } from '@src/domain/value-objects/day-minute-range.vo';
 import {
   CreateShiftProps,
   UpdateHoursAndDateProps,
-} from '@modules/clinical/provider/domain/contracts/provider-shift.contracts';
+} from '@modules/clinical/provider/domain/contracts';
 import {
   AppointmentOutOfShiftException,
   AppointmentOverlapsWithBreakException,

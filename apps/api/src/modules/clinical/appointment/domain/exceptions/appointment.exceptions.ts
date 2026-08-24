@@ -12,10 +12,6 @@ export class AppointmentNotFoundException extends DomainException {
   }
 }
 
-//? ====================================================================================
-//! ENTITY
-//? ====================================================================================
-
 export class AppointmentCancellationTimeException extends DomainException {
   public readonly errorCode = ERROR_CODES.APPOINTMENT.INVALID_DATE;
 
@@ -410,5 +406,16 @@ export class AppointmentClinicOutsideOrganizationException extends DomainExcepti
 
   constructor(clinicId: string) {
     super('Bu klinik için randevu alma yetkiniz yok.', { clinicId });
+  }
+}
+
+export class AppointmentPatientPhoneRequiredException extends DomainException<{
+  patientId?: string;
+}> {
+  readonly errorCode = ERROR_CODES.APPOINTMENT.PATIENT_PHONE_REQUIRED;
+  public override readonly httpStatus = HttpStatus.UNPROCESSABLE_ENTITY;
+
+  constructor(patientId?: string) {
+    super('Hasta telefonu bulunamadı.', { patientId });
   }
 }

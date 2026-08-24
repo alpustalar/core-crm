@@ -20,7 +20,7 @@ import {
   CreateProductProps,
   HandleStockChangeProps,
   UpdateProductProps,
-} from '@modules/supply/inventory/domain/contracts/product.contracts';
+} from '@modules/supply/inventory/domain/contracts';
 import { StockQuantityChangedEvent } from '@modules/supply/inventory/domain/events/stock-quantity-changed.event';
 
 export class Product extends AggregateRoot {

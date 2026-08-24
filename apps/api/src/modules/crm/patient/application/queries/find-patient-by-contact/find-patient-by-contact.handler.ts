@@ -2,7 +2,10 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindPatientByContactQuery } from './find-patient-by-contact.query';
 import { FindPatientByContactResponse } from './find-patient-by-contact.response';
-import { PatientNotFoundException } from '@modules/crm/patient/domain/exceptions/patient.exceptions';
+import {
+  PatientContactRequiredException,
+  PatientNotFoundException,
+} from '@modules/crm/patient/domain/exceptions/patient.exceptions';
 import {
   IPatientQueryRepository,
   PATIENT_QUERY_REPOSITORY,
@@ -22,6 +25,11 @@ export class FindPatientByContactHandler
     query: FindPatientByContactQuery
   ): Promise<FindPatientByContactResponse> {
     const { payload } = query;
+
+    if (!payload.phone && !payload.email) {
+      throw new PatientContactRequiredException();
+    }
+
     const patient = await this.patientRepo.findByContact({
       organizationId: payload.clinicId,
       phone: payload.phone,

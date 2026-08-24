@@ -1,5 +1,5 @@
 import { Invoice, Pagination } from '@shared';
-import { FindInvoicesFilter } from '@modules/finance/invoice/domain/contracts/invoice.contracts';
+import { FindInvoicesFilter } from '@modules/finance/invoice/domain/contracts/invoice';
 
 export const INVOICE_QUERY_REPOSITORY = Symbol('IInvoiceQueryRepository');
 

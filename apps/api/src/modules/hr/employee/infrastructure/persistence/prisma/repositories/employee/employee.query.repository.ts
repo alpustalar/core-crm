@@ -7,7 +7,7 @@ import { Employee as IEmployee } from '@shared';
 import {
   EmployeeWithContracts,
   FindEmployeesFilter,
-} from '@modules/hr/employee/domain/contracts/employee.contracts';
+} from '@modules/hr/employee/domain/contracts';
 import { Paginated } from '@common/interfaces/paginated.type';
 import { IEmployeeQueryRepository } from '@modules/hr/employee/domain/repositories/employee/employee.query.repository';
 

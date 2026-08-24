@@ -98,28 +98,11 @@ export class UserCommandRepository
     const { id, ...update } = create;
     const raw = await this.db.user.update({
       where: { id },
-      data: {
-        ...update,
-        // `toPersistence()` yalnız skaler kolonları üretir; kapsam atamaları M2M
-        // ilişkidir ve ayrıca yazılmalıdır — yazılmazsa handler'ın uyguladığı
-        // değişiklik sessizce düşer. `set` tam liste anlamına gelir: entity
-        // yüklenirken bu diziler `findById` ile dolduğu için aynı değerlerin
-        // yeniden yazılması etkisizdir, boş dizi ise atamayı kaldırır.
-        ...(entity.managedClinicIds && {
-          managedClinics: {
-            set: entity.managedClinicIds.map((clinicId) => ({
-              id: clinicId.value,
-            })),
-          },
-        }),
-        ...(entity.ownedOrganizationIds && {
-          ownedOrganizations: {
-            set: entity.ownedOrganizationIds.map((organizationId) => ({
-              id: organizationId.value,
-            })),
-          },
-        }),
-      },
+      // Kapsam ilişkileri (managedClinics / ownedOrganizations) burada BİLEREK
+      // yazılmaz: yetki devri kendi metotlarından geçer (bkz.
+      // `replaceManagedClinics`). Buraya eklenseydi, ilişkileri yüklemeden
+      // kurulmuş bir entity'nin sıradan güncellemesi kapsamı silerdi.
+      data: update,
     });
     entity.flushEvents();
     return new User({
@@ -135,6 +118,34 @@ export class UserCommandRepository
         : [],
       providerProfileId: entity.providerProfileId?.value ?? null,
     });
+  }
+
+  async replaceManagedClinics(entity: User): Promise<void> {
+    await this.db.user.update({
+      where: { id: entity.id.value },
+      data: {
+        updatedAt: entity.updatedAt,
+        managedClinics: {
+          set: (entity.managedClinicIds ?? []).map(({ value: id }) => ({ id })),
+        },
+      },
+    });
+    entity.flushEvents();
+  }
+
+  async replaceOwnedOrganizations(entity: User): Promise<void> {
+    await this.db.user.update({
+      where: { id: entity.id.value },
+      data: {
+        updatedAt: entity.updatedAt,
+        ownedOrganizations: {
+          set: (entity.ownedOrganizationIds ?? []).map(({ value: id }) => ({
+            id,
+          })),
+        },
+      },
+    });
+    entity.flushEvents();
   }
 
   async addManagedClinicToOrganizationOwners(

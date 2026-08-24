@@ -1,6 +1,6 @@
 import { ProjectResourceKindSchema } from '@input-type-schemas/ProjectResourceKindSchema';
 import { ProjectResourceKindType as ResourceKind } from '@input-type-schemas/ProjectResourceKindSchema';
-import { OverlappingAllocation } from '@modules/organization/project/domain/contracts/project.contracts';
+import { OverlappingAllocation } from '@modules/organization/project/domain/contracts';
 
 /**
  * Kaynak kapasite kuralı — saf fonksiyon (entity/repository bilmez, I/O yapmaz).

@@ -5,7 +5,7 @@ import { SerializationOptionsResponse } from '@common/interfaces/serialization-p
 import {
   ConsentFormResponseGroup,
   ConsentFormResponseGroups,
-} from '@modules/clinical/consent-form/domain/contracts/consent-form.contracts';
+} from '@modules/clinical/consent-form/domain/contracts';
 
 /**
  * Onam formu (template + submission) staff policy'si. Template CRUD klinik yöneticisi
